@@ -1,32 +1,78 @@
 <!DOCTYPE html>
-<html>
-	<head>
-		<meta charset=utf-8>
-		<title>Fluxograma Interativo da Grade de ECI</title>
-        <link rel="stylesheet" href="static/nouislider.css">
-        <link rel="stylesheet" href="static/tooltip.css">
-		<link rel="stylesheet" href="static/index.css">
-        <script src="js/jquery-3.2.1.min.js"></script>
-        <script src="js/nouislider.min.js"></script>
-        <script src="js/database.js"></script>
-        <script src="js/index.js"></script>
-	</head>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    Privacidade garantida pelo próprio navegador (Content-Security-Policy):
+    só carrega arquivos deste site e NÃO permite conexões com nenhum outro endereço
+    (connect-src 'self'). Ver docs/PRIVACIDADE.md.
+  -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="description" content="Fluxograma interativo da grade de Engenharia de Computação e Informação (UFRJ). Roda no seu navegador; seus dados não saem do computador.">
+  <title>Grade Interativa — ECI/UFRJ</title>
+  <link rel="stylesheet" href="static/app.css">
+  <!--
+    Ordem de carga (ver docs/ARQUITETURA.md):
+      1. Dados do curso (públicos, versionados): currículo, catálogo de optativas, horários e guia.
+      2. siga.js: regras do importador dos PDFs do SIGA (as mesmas de ferramentas/gerar_perfil.py).
+      3. perfil/perfil.js: perfil pessoal OPCIONAL, fora do git. Se não existir, o app funciona vazio.
+      4. app.js: modelo + telas.
+    O pdf.js (js/vendor) só é carregado quando você usa "Importar do SIGA".
+  -->
+  <script src="js/icones.js"></script>
+  <script src="js/database.js"></script>
+  <script src="js/optativas.js"></script>
+  <script src="js/horarios.js"></script>
+  <script src="js/guia.js"></script>
+  <script src="js/siga.js"></script>
+  <script src="perfil/perfil.js"></script>
+  <script src="js/app.js" defer></script>
+</head>
+<body>
+  <header class="topo">
+    <div class="titulo">
+      <h1 id="titulo">Grade ECI</h1>
+      <p id="subtitulo">Fluxograma interativo do curso</p>
+    </div>
+    <nav class="acoes">
+      <!-- abas: só aparecem com o modo clássico desligado -->
+      <div class="seg abas" role="tablist" aria-label="Telas">
+        <button type="button" data-vista="grade" role="tab">Grade</button>
+        <button type="button" data-vista="timeline" role="tab">Linha do tempo</button>
+        <button type="button" data-vista="optativas" role="tab">Optativas</button>
+        <button type="button" data-vista="cronograma" role="tab">Cronograma</button>
+        <button type="button" data-vista="pedidos" role="tab">Equivalências e Extensão / ACE</button>
+      </div>
+      <button type="button" id="btn-importar" class="btn btn-icone" data-icone="importar" title="Importar do SIGA" aria-label="Importar do SIGA"><span class="rot">Importar do SIGA</span></button>
+      <button type="button" id="btn-privacidade" class="btn btn-icone" data-icone="privacidade" title="Privacidade: seus dados ficam neste computador" aria-label="Privacidade"></button>
+      <button type="button" id="btn-limpar" class="btn btn-ghost" title="Apagar o que foi salvo neste navegador">Limpar</button>
+      <!-- interruptor do modo clássico (ligado ao abrir) -->
+      <label class="interruptor" title="Modo clássico">
+        <input type="checkbox" id="modo-classico" role="switch" aria-label="Modo clássico">
+        <span class="trilho" aria-hidden="true"></span>
+      </label>
+    </nav>
+  </header>
 
-	<body>
+  <p id="aviso-importado" class="aviso-importado" hidden></p>
+  <!-- Camada 1: barra única de progresso (todas as telas) -->
+  <section id="barra-geral" class="barra-geral" aria-label="Progresso geral"></section>
+  <!-- Camada 2: detalhes por grupo e legenda de situações (linha do tempo, ou "detalhes ▾") -->
+  <section id="progresso" class="progresso" aria-label="Progresso por grupo" hidden></section>
+  <div id="legenda" class="legenda" hidden></div>
+  <!-- Página inicial: pincel de tags, exibição e filtros -->
+  <div id="ferramentas" class="ferramentas" hidden></div>
+  <main id="painel" class="painel"></main>
+  <!-- Paleta flutuante do pincel (aba Grade) -->
+  <div id="paleta" class="paleta" hidden></div>
+  <aside id="detalhes" class="detalhes" hidden></aside>
 
-		<div id="portrait-warning">
-			<h3>Please rotate your phone as depicted.</h3>
-		</div>
-
-        <div id="panel">
-        </div>
-
-		<div id="options-menu">
-	        <a id="help" class="option incomplete-course" target="_blank" href="https://github.com/carloseduardov8/Interactive-Flowchart/wiki"></a>
-			<a id="lock" class="option"></a>
-			<a id="bucket" class="option transition"></a>
-			<a id="switch" class="option transition"></a>
-		</div>
-
-	</body>
+  <footer class="rodape">
+    Passe o mouse numa disciplina: <span class="tag-req">pré-requisitos</span> e <span class="tag-dep">o que ela libera</span> acendem.
+    · <a href="docs/ARQUITETURA.md">arquitetura</a>
+    · <a href="classico.html">versão clássica</a>
+    · <a href="https://github.com/gremio-eci/grade" target="_blank" rel="noopener">GitHub</a>
+  </footer>
+</body>
 </html>

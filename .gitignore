@@ -1,0 +1,7 @@
+# Arquivos pessoais (contêm dados sensíveis: CPF, RG, notas)
+*.pdf
+*.xlsx
+perfil/perfil.js
+perfil/*.json
+Engenharia de Computação*
+Claude outputs/
