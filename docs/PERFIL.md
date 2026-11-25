@@ -61,6 +61,9 @@ São as disciplinas que contam como **livre escolha** e podem ser usadas em pedi
 - `papel`: `conteudo` (a cursada que justifica o conteúdo) ou `horas` (só completa a carga horária).
 - `status`: `a pedir` · `em análise` · `deferido` · `indeferido`.
 - Deferido: a pedida passa a contar e as cursadas saem da livre escolha. Indeferido: não conta.
+- Pedidos que dividem a mesma cursada ficam fora da conta até a situação ser corrigida.
+  Um deferimento sem conflito tem prioridade sobre um pedido pendente. Disciplinas usadas em
+  dispensa já registrada ficam indisponíveis para novos pedidos.
 - Formato antigo `{ "cursada": "EEL660", … }` continua aceito.
 
 ## `extensao` (Extensão / ACE)

@@ -19,8 +19,9 @@ Pronto: a grade aparece pintada com o que você já fez e está cursando.
 O site abre no **modo clássico**: só a grade inteira na tela e uma paleta embaixo para pintar. O **interruptor**
 no canto superior direito desliga o modo clássico e mostra as abas abaixo.
 
-**Seus dados não saem do computador.** Os PDFs são lidos dentro da página, nome e CPF não são lidos, e uma
-política de segurança faz o navegador bloquear qualquer envio para fora. Clique no escudo para conferir
+**A importação acontece no seu dispositivo.** O leitor decodifica cada página em memória e o importador descarta
+os cabeçalhos com dados pessoais. A política de segurança restringe as conexões iniciadas pela página.
+Clique no escudo para conferir
 (detalhes em [`docs/PRIVACIDADE.md`](docs/PRIVACIDADE.md)).
 
 ![Fluxo da Grade Interativa](docs/diagramas/arquitetura-atual.svg)
@@ -74,7 +75,17 @@ docs/                 documentação
 ```
 
 Sem build e sem dependências: edite e recarregue a página (Ctrl+F5).
-Para rodar com servidor local: `python -m http.server 8000` e abra `http://localhost:8000`.
+Abra `index.html` diretamente para usar os PDFs e o perfil que estão no seu computador.
+Para testar por HTTP no PowerShell, sirva uma cópia dos arquivos públicos, com acesso restrito a este computador.
+
+```powershell
+$gradePublica = Join-Path $env:TEMP ("grade-eci-" + [guid]::NewGuid())
+git archive --format=zip --output "$gradePublica.zip" HEAD index.html classico.html js static docs
+Expand-Archive -LiteralPath "$gradePublica.zip" -DestinationPath $gradePublica
+python -m http.server --bind 127.0.0.1 --directory "$gradePublica" 8000
+```
+
+Abra `http://127.0.0.1:8000` e selecione os documentos pelo botão de importação.
 
 ## Créditos e licença
 

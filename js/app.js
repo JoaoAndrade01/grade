@@ -72,8 +72,11 @@
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const fmt = (n) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
   const pad = (n) => String(n).padStart(2, "0");
-  const load = (k, def) => {
-    try { const v = localStorage.getItem(STORE + k); return v ? JSON.parse(v) : def; }
+  const load = (k, def, valida = () => true) => {
+    try {
+      const v = JSON.parse(localStorage.getItem(STORE + k));
+      return v != null && valida(v) ? v : def;
+    }
     catch (e) { return def; }
   };
   const save = (k, v) => {
@@ -81,6 +84,47 @@
     catch (e) { /* armazenamento indisponível: segue só em memória */ }
   };
   const clone = (o) => JSON.parse(JSON.stringify(o));
+  const objeto = (v) => v != null && typeof v === "object" && !Array.isArray(v);
+  const texto = (v) => typeof v === "string";
+  const numero = (v) => Number.isFinite(v) && v >= 0;
+  const opcional = (v, valida) => v == null || valida(v);
+  const listaDe = (v, valida) => Array.isArray(v) && v.every(valida);
+  const codigo = (v) => texto(v) && /^[A-Z]{3}[A-Z0-9]{3}$/.test(v);
+  const nomePeriodo = (v) => texto(v) && v.trim() !== "" && !Object.hasOwn(Object.prototype, v);
+  const statusDisciplina = (v) => texto(v) && Object.hasOwn(FORCA, v);
+  const dadosDisciplina = (d) => objeto(d) && codigo(d.code) && opcional(d.name, texto)
+    && opcional(d.credits, numero) && opcional(d.horas, numero)
+    && opcional(d.category, (v) => [1, 2, 3, 4, 5].includes(v));
+  const disciplinaValida = (d) => codigo(d) || (dadosDisciplina(d)
+    && opcional(d.status, statusDisciplina) && opcional(d.nota, (v) => texto(v) || numero(v))
+    && opcional(d.equivale, codigo) && opcional(d.horarios, (v) => listaDe(v, texto))
+    && opcional(d.dispensa, (v) => listaDe(v, (x) => codigo(x) || dadosDisciplina(x))));
+  const periodoValido = (p) => objeto(p) && nomePeriodo(p.nome)
+    && opcional(p.atual, (v) => typeof v === "boolean") && opcional(p.planejado, (v) => typeof v === "boolean")
+    && opcional(p.nota, (v) => texto(v) || numero(v)) && opcional(p.disciplinas, (v) => listaDe(v, disciplinaValida));
+  const pedidoValido = (e) => objeto(e) && codigo(e.pedida)
+    && opcional(e.status, (v) => EQ_STATUS.includes(v)) && opcional(e.obs, texto)
+    && (Array.isArray(e.cursadas)
+      ? e.cursadas.every((c) => codigo(c) || (objeto(c) && codigo(c.code) && opcional(c.papel, (v) => ["conteudo", "horas"].includes(v))))
+      : codigo(e.cursada));
+  const extensaoValida = (a) => objeto(a) && opcional(a.nome, texto) && opcional(a.code, texto)
+    && opcional(a.horas, numero) && opcional(a.periodo, texto) && opcional(a.status, (v) => EXT_STATUS.includes(v));
+  const tagsValidas = (v) => listaDe(v, (t) => objeto(t) && texto(t.id) && texto(t.nome)
+    && texto(t.cor) && /^#[\da-f]{6}$/i.test(t.cor) && texto(t.status) && Object.hasOwn(CONTA_COMO, t.status));
+  const marcacoesValidas = (v) => objeto(v) && Object.entries(v).every(([c, t]) => codigo(c) && texto(t));
+  const listasValidas = (v) => opcional(v.equivalencias, (e) => listaDe(e, pedidoValido))
+    && opcional(v.extensao, (e) => listaDe(e, extensaoValida));
+  const perfilValido = (p) => objeto(p) && listaDe(p.periodos, periodoValido) && listasValidas(p)
+    && opcional(p.curso, (v) => Number.isInteger(v) && Array.isArray((window.courses || [])[v]))
+    && opcional(p.titulo, texto) && opcional(p.subtitulo, texto) && opcional(p.nome, texto)
+    && opcional(p.fonte, (f) => objeto(f) && opcional(f.boaEmissao, texto))
+    && opcional(p.tags, tagsValidas) && opcional(p.marcacoes, marcacoesValidas)
+    && opcional(p.boa, (b) => objeto(b) && listaDe(b.naoExplicitadas, (d) => dadosDisciplina(d)
+      && numero(d.credits) && numero(d.ch) && (texto(d.grau) || numero(d.grau))));
+  const planoValido = (p) => objeto(p) && listasValidas(p)
+    && opcional(p.novos, (v) => listaDe(v, periodoValido))
+    && (p.periodos === undefined || (objeto(p.periodos)
+      && Object.entries(p.periodos).every(([nome, itens]) => nomePeriodo(nome) && listaDe(itens, disciplinaValida))));
 
   // Horários: "ter 08-10" <-> células (dia*100 + hora)
   function parseHorarios(lista) {
@@ -120,25 +164,27 @@
 
   // ---------- Estado ----------
   // Ordem de prioridade do perfil: importado pelo app (localStorage) > perfil/perfil.js > nenhum.
-  const perfilArquivo = window.PERFIL || null;
-  let perfilImportado = load("perfilImportado", null);
-  let perfil = perfilImportado || perfilArquivo || load("perfil", null);
-  let tags = load("tags", null) || (perfil && perfil.tags) || clone(TAGS_PADRAO);
+  const perfilArquivo = perfilValido(window.PERFIL) ? window.PERFIL : null;
+  const perfilLocalAntigo = () => load("perfil", null, perfilValido);
+  let perfilImportado = load("perfilImportado", null, perfilValido);
+  let perfil = perfilImportado || perfilArquivo || perfilLocalAntigo();
+  let tags = load("tags", null, tagsValidas) || (perfil && perfil.tags) || clone(TAGS_PADRAO);
   // marcações feitas com o pincel: código -> id da tag ("" = sem tag)
-  let marcacoes = load("marcacoes", null) || (perfil && perfil.marcacoes) || (() => {
-    const antigo = load("manual", {}); const m = {};   // migra o "✎ Marcar" da versão anterior
-    Object.keys(antigo).forEach((c) => { m[c] = antigo[c] === "aprovado" ? "aprovada" : ""; });
+  let marcacoes = load("marcacoes", null, marcacoesValidas) || (perfil && perfil.marcacoes) || (() => {
+    const antigo = load("manual", {}, objeto); const m = {};   // migra o "✎ Marcar" da versão anterior
+    Object.keys(antigo).filter(codigo).forEach((c) => { m[c] = antigo[c] === "aprovado" ? "aprovada" : ""; });
     return m;
   })();
   let pincel = null;                 // id da tag selecionada para pintar (null = clique abre detalhes)
   let exibir = Object.assign({ codigo: true, notas: false, dificuldade: false, presenca: false }, load("exibir", {}));
-  let filtroNivel = load("filtroNivel", []);   // níveis de dificuldade em destaque (vazio = todos)
+  let filtroNivel = load("filtroNivel", [], (v) => listaDe(v, numero));   // níveis de dificuldade em destaque (vazio = todos)
   let progressoAberto = load("progressoAberto", false);
   // Modo clássico (padrão ao abrir): só a grade inteira numa tela e a paleta para pintar.
   // Desligado = modo completo, com as abas (linha do tempo, optativas, cronograma, pedidos).
   let modoClassico = load("modoClassico", true);
-  let creditosManuais = load("creditos", {}); // categoria -> créditos extras
-  let plano = Object.assign({ periodos: {}, novos: [] }, load("plano", {})); // edições de planejamento
+  let creditosManuais = load("creditos", {}, (v) => objeto(v)
+    && Object.entries(v).every(([k, n]) => Object.hasOwn(CATS, k) && numero(n))); // categoria -> créditos extras
+  let plano = { periodos: {}, novos: [], ...load("plano", {}, planoValido) }; // edições de planejamento
   let vistaAtual = load("vista", perfil ? "timeline" : "grade");   // aba do modo completo
   let filtros = Object.assign({ busca: "", grupo: "2", prefixo: "", liberadas: false, ocultarFeitas: true, cabe: false, alvo: "", ativas: true }, load("filtros", {}));
   let cronoPeriodo = load("cronoPeriodo", null);
@@ -180,7 +226,7 @@
       }
       const o = opt[code] || custom[code];
       if (!o) return null;
-      return { code, name: o.name, credits: o.credits || 0, horas: o.horas, category: o.category || 3, workload: o.workload,
+      return { code, name: o.name || code, credits: o.credits || 0, horas: o.horas, category: o.category || 3, workload: o.workload,
         req: o.requirements || [], coreq: o.corequirements || [], fonte: opt[code] ? "catalogo" : "perfil" };
     }
 
@@ -192,13 +238,15 @@
     const regs = {};
     const registra = (code, r) => (regs[code] = regs[code] || []).push(r);
     const conhece = (o) => {
-      if (o.code && !curr[o.code] && !opt[o.code] && !custom[o.code]) {
-        custom[o.code] = { name: o.name || o.code, credits: o.credits || 0, category: o.category || 3, horas: o.horas };
+      if (o.code && !curr[o.code] && !opt[o.code]) {
+        const anterior = custom[o.code] || {};
+        custom[o.code] = { name: anterior.name ?? o.name, credits: anterior.credits ?? o.credits,
+          category: anterior.category ?? o.category, horas: anterior.horas ?? o.horas };
       }
     };
 
-    const base = ((perfil && perfil.periodos) || []).map((p) => Object.assign({}, p));
-    (plano.novos || []).forEach((n) => { if (!base.some((p) => p.nome === n.nome)) base.push(Object.assign({ disciplinas: [] }, n)); });
+    const base = ((perfil && perfil.periodos) || []).map((p) => ({ ...p }));
+    (plano.novos || []).forEach((n) => { if (!base.some((p) => p.nome === n.nome)) base.push({ disciplinas: [], ...n }); });
 
     const periodos = base.map((p, pi) => {
       const tipo = p.planejado ? "planejado" : p.atual ? "atual" : "cursado";
@@ -206,7 +254,7 @@
       const editado = !!plano.periodos[p.nome];
       const brutos = editado ? plano.periodos[p.nome] : (p.disciplinas || []);
       const itens = brutos.map((raw) => {
-        const it = typeof raw === "string" ? { code: raw } : Object.assign({}, raw);
+        const it = typeof raw === "string" ? { code: raw } : raw;
         conhece(it);
         const status = it.status || padrao;
         const alvo = it.equivale || it.code;
@@ -221,7 +269,7 @@
         };
         registra(alvo, { pi, status, nota: it.nota, via: it.equivale ? `equivalência: ${it.code} ${item.name}` : null });
         (it.dispensa || []).forEach((d) => {
-          const dn = typeof d === "string" ? { code: d } : Object.assign({ category: 2 }, d);
+          const dn = typeof d === "string" ? { code: d } : { category: 2, ...d };
           conhece(dn);
           if (status !== "reprovado") registra(dn.code, { pi, status, nota: "T", via: `dispensa por ${it.code}` });
           item.dispensas.push(dn.code);
@@ -236,26 +284,47 @@
     const consumidas = new Set();
     const pendEq = {};
     const pendConsumo = new Set();
-    getEq().forEach((e) => {
+    const dispensou = {};
+    periodos.forEach((p) => p.itens.forEach((it) => {
+      if (it.dispensas.length && it.status === "aprovado") dispensou[it.code] = (dispensou[it.code] || []).concat(it.dispensas);
+    }));
+    const pedidos = getEq();
+    const usosDeferidos = new Map();
+    pedidos.filter((e) => e.status === "deferido").forEach((e) => {
+      new Set(cursadasDe(e).map((c) => c.code)).forEach((code) => usosDeferidos.set(code, (usosDeferidos.get(code) || 0) + 1));
+    });
+    const usosPendentes = new Map();
+    pedidos.filter(pendente).forEach((e) => {
+      new Set(cursadasDe(e).map((c) => c.code)).forEach((code) => usosPendentes.set(code, (usosPendentes.get(code) || 0) + 1));
+    });
+    const pedidosComConflito = new Set();
+    pedidos.forEach((e) => {
       const cs = e ? cursadasDe(e) : [];
       if (!cs.length || !e.pedida) return;
       const st = e.status || "a pedir";
       if (st === "deferido") {
-        const pis = cs.map((c) => ((regs[c.code] || []).filter((x) => x.status === "aprovado" || x.status === "previsto").pop() || { pi: 0 }).pi);
-        registra(e.pedida, { pi: Math.max(...pis), status: "aprovado", nota: "E", via: `equivalência deferida: ${cs.map((c) => c.code).join(" + ")}` });
+        if (cs.some((c) => usosDeferidos.get(c.code) > 1 || dispensou[c.code])) {
+          pedidosComConflito.add(e);
+          return;
+        }
+        const pis = cs.map((c) => (regs[c.code] || []).filter((x) => x.status === "aprovado").pop()?.pi);
+        const pi = pis.every((i) => i != null) ? Math.max(...pis) : null;
+        registra(e.pedida, { pi, status: "aprovado", nota: "E", via: `equivalência deferida: ${cs.map((c) => c.code).join(" + ")}` });
         cs.forEach((c) => consumidas.add(c.code));
       } else if (pendente(e)) {
+        if (cs.some((c) => dispensou[c.code] || usosDeferidos.has(c.code) || usosPendentes.get(c.code) > 1)) {
+          pedidosComConflito.add(e);
+          return;
+        }
         pendEq[e.pedida] = e;
         cs.forEach((c) => pendConsumo.add(c.code));
       }
     });
 
     const ref = (window.horarios || {})[cursoId] || null;
-    const dispensou = {};
-    periodos.forEach((p) => p.itens.forEach((it) => { if (it.dispensas.length && it.status !== "reprovado") dispensou[it.code] = (dispensou[it.code] || []).concat(it.dispensas); }));
     const guia = (window.guia || {})[cursoId] || null;
     const boa = (perfil && perfil.boa) || null;
-    M = { grade, curr, opt, catalogo, info, deps, regs, periodos, cursoId, ref, consumidas, pendEq, pendConsumo, guia, dispensou, boa };
+    M = { grade, curr, opt, catalogo, info, deps, regs, periodos, cursoId, ref, consumidas, pendEq, pendConsumo, guia, dispensou, boa, pedidosComConflito };
   }
 
   /** Status vindo só do perfil (histórico, período atual, planos e pedidos), sem as marcações do pincel. */
@@ -287,12 +356,12 @@
     const r = (M.regs[code] || []).filter((x) => concluido(x.status)).pop();
     return r ? r.nota : null;
   };
-  const periodoDe = (code, filtro) => (M.regs[code] || []).filter((r) => filtro(r.status)).map((r) => M.periodos[r.pi].nome);
+  const periodoDe = (code, filtro) => (M.regs[code] || []).filter((r) => filtro(r.status)).map((r) => M.periodos[r.pi]?.nome).filter(Boolean);
 
   // Requisito cumprido (ou previsto/planejado) em período anterior a "pi"?
   function cumpridoAntes(code, pi) {
     if (Object.prototype.hasOwnProperty.call(marcacoes, code) && statusDaTag(marcacoes[code]) === "aprovado") return true;
-    return (M.regs[code] || []).some((r) => FORCA[r.status] >= FORCA.planejado && r.pi < pi);
+    return (M.regs[code] || []).some((r) => r.pi != null && FORCA[r.status] >= FORCA.planejado && r.pi < pi);
   }
   function avisos(code, pi) {
     const i = M.info(code); if (!i) return [];
@@ -473,7 +542,7 @@
   function card(o) {
     const temAviso = o.aviso && o.aviso.length;
     const attrs = [
-      `class="card s-${o.status} cat-${o.cat}${temAviso ? " tem-aviso" : ""}${o.classe ? " " + o.classe : ""}"`,
+      `class="card s-${esc(o.status)} cat-${esc(o.cat)}${temAviso ? " tem-aviso" : ""}${o.classe ? " " + o.classe : ""}"`,
       o.code ? `data-code="${esc(o.code)}"` : "",
       o.idx != null ? `data-idx="${o.idx}"` : "",
       o.fill ? `style="--ok:${o.fill.ok}%;--prev:${o.fill.prev}%;--plan:${o.fill.plan}%"` : "",
@@ -783,11 +852,11 @@
 
   // ---------- Vista: Equivalências & Extensão ----------
   // Semestre "2021/1" -> índice; usado para o prazo de 5 anos (Res. CEG 01/2017)
-  const semIdx = (nome) => { const m = /^(\d{4})\/(\d)/.exec(nome || ""); return m ? (+m[1]) * 2 + (+m[2] - 1) : null; };
+  const semIdx = (nome) => { const m = /^(\d{4})\/([12])$/.exec(nome || ""); return m ? (+m[1]) * 2 + (+m[2] - 1) : null; };
   const semAtual = () => { const d = new Date(); return d.getFullYear() * 2 + (d.getMonth() < 6 ? 0 : 1); };
   function idadeAnos(code) {
-    const r = (M.regs[code] || []).filter((x) => concluido(x.status)).pop();
-    const i = r ? semIdx(M.periodos[r.pi].nome) : null;
+    const r = (M.regs[code] || []).filter((x) => x.status === "aprovado").pop();
+    const i = r ? semIdx(M.periodos[r.pi]?.nome) : null;
     return i == null ? null : (semAtual() - i) / 2;
   }
   const boaDe = (c) => ((M.boa && M.boa.naoExplicitadas) || []).find((d) => d.code === c) || null;
@@ -820,12 +889,14 @@
     const cs = cursadasDe(e), pi = M.info(e.pedida);
     const ch = cs.reduce((a, c) => a + chDe(c.code), 0);
     const chPed = pi ? pi.workload || 0 : 0;
-    const velhas = cs.filter((c) => (idadeAnos(c.code) || 0) > 5).map((c) => ({ code: c.code, anos: idadeAnos(c.code) }));
+    const idades = cs.map((c) => ({ code: c.code, anos: idadeAnos(c.code) }));
+    const velhas = idades.filter((c) => c.anos != null && c.anos > 5);
+    const semData = idades.filter((c) => c.anos == null);
     const cr = cs.reduce((a, c) => a + crDe(c.code), 0);
     const semConteudo = !cs.some((c) => c.papel !== "horas");
     const repetidas = (e.status || "a pedir") === "indeferido" ? [] : cs.filter((c) => usosDe(c.code, getEq().indexOf(e)).length).map((c) => c.code);
     const pedidaFeita = concluido((M.regs[e.pedida] || []).reduce((a, r) => (FORCA[r.status] > FORCA[a] ? r.status : a), "pendente")) && (e.status || "") !== "deferido";
-    return { cs, ch, chPed, chOk: !chPed || ch >= chPed, velhas, cr, semConteudo, repetidas, pedidaFeita };
+    return { cs, ch, chPed, chOk: !chPed || ch >= chPed, velhas, semData, cr, semConteudo, repetidas, pedidaFeita };
   }
 
   function renderPedidos() {
@@ -883,8 +954,11 @@
       const checks = [
         a.chPed ? `<li class="${a.chOk ? "ok" : "alerta"}">${a.chOk ? "✓" : "✗"} C.H. ${a.ch} h ${a.chOk ? "≥" : "<"} ${a.chPed} h</li>` : "",
         a.semConteudo ? `<li class="alerta">✗ nenhuma cursada marcada como conteúdo</li>` : "",
-        a.velhas.length ? `<li class="alerta">⚠ mais de 5 anos: ${a.velhas.map((v) => esc(v.code)).join(", ")}</li>` : `<li class="ok">✓ dentro de 5 anos</li>`,
+        a.velhas.length ? `<li class="alerta">⚠ mais de 5 anos: ${a.velhas.map((v) => esc(v.code)).join(", ")}</li>` : "",
+        a.semData.length ? `<li class="alerta">Data de aprovação não confirmada: ${a.semData.map((v) => esc(v.code)).join(", ")}</li>` : "",
+        a.cs.length && !a.velhas.length && !a.semData.length ? `<li class="ok">✓ dentro de 5 anos pela estimativa semestral</li>` : "",
         a.repetidas.length ? `<li class="alerta">⚠ já usada em outro pedido/dispensa: ${a.repetidas.map(esc).join(", ")}</li>` : "",
+        M.pedidosComConflito.has(e) ? `<li class="alerta">Créditos fora da soma até resolver o uso em duplicidade.</li>` : "",
         a.pedidaFeita ? `<li class="alerta">⚠ a pedida já está aprovada/prevista</li>` : "",
         `<li>usa ${fmt(a.cr)} cr de livre escolha</li>`,
       ].join("");
@@ -906,7 +980,7 @@
     const linhasLivre = neCodes.map((c) => {
       const cr = crDe(c); somaLivre += cr;
       const u = usosDe(c);
-      const usada = u.some((x) => x.tipo === "pedido" && /deferido/.test(x.txt)) || M.consumidas.has(c);
+      const usada = M.consumidas.has(c);
       if (usada) somaUsada += cr;
       const id = idadeAnos(c);
       return `<tr class="${u.length ? "" : "livre"}"><td>${descr(c)}</td><td>${id != null ? `${fmt(Math.floor(id * 2) / 2)} anos${id > 5 ? " ⚠" : ""}` : "—"}</td>
@@ -1096,7 +1170,7 @@
       if (it.status !== "reprovado" && it.category != 5) cr += it.credits;
       hs += it.cel.size;
       const aviso = p.tipo !== "cursado" && it.status !== "reprovado" ? avisos(it.alvo, p.pi) : [];
-      return `<li class="crono-item${cronoSel === it.code ? " sel" : ""} s-${it.status}" style="--cor:${cor[it.code]}">
+      return `<li class="crono-item${cronoSel === it.code ? " sel" : ""} s-${esc(it.status)}" style="--cor:${cor[it.code]}">
         <button type="button" class="crono-pick" data-csel="${esc(it.code)}">
           <i class="sw"></i><span><b>${seloGuia(it.alvo, true)} ${esc(it.name)}</b><small>${esc(metaDe(it.code, it.category == 5 ? it.horas : it.credits, it.category))}${it.status !== "planejado" ? " · " + ROTULO[it.status].toLowerCase() : ""}${textoPresenca(it.alvo) ? " · " + esc(textoPresenca(it.alvo)) : ""}</small>
           <small class="${it.cel.size ? "" : "alerta"}">${it.cel.size ? `${formataHorarios(it.cel).join(", ")} · ${it.cel.size} h/sem` : "sem horário"}</small>
@@ -1155,7 +1229,7 @@
         const n = Math.max(...sobrep.map((o) => o.lane)) + 1;
         const ini = Math.max(r.ini, H_INI), fim = Math.min(r.fim, H_FIM);
         if (fim <= ini) return;
-        blocos += `<div class="bloco-aula${sobrep.length > 1 ? " conflito" : ""}${cronoSel === r.it.code ? " sel" : ""} s-${r.it.status}"
+        blocos += `<div class="bloco-aula${sobrep.length > 1 ? " conflito" : ""}${cronoSel === r.it.code ? " sel" : ""} s-${esc(r.it.status)}"
           style="grid-column:${di + 2};grid-row:${ini - H_INI + 2} / ${fim - H_INI + 2};--cor:${cor[r.it.code]};--lane:${r.lane};--lanes:${n}">
           <b>${seloGuia(r.it.alvo, true)} ${esc(r.it.code)}</b><span>${esc(r.it.name)}</span><small>${pad(ini)}–${pad(fim)}h</small></div>`;
       });
@@ -1381,12 +1455,12 @@
     box.innerHTML = `<header><span class="cat-pill">${icone("privacidade", 14)} Privacidade</span><button type="button" class="fechar" aria-label="Fechar">×</button></header>
       <h3>Seus dados ficam neste computador</h3>
       <ul class="lista garantias">
-        <li>${icone("cadeado", 16)} <span><b>Nenhuma conexão com outros sites.</b> A página tem uma política de segurança (CSP) que faz o próprio navegador
-          <b>bloquear</b> qualquer envio para fora deste site, mesmo que algum código tentasse.</span></li>
+        <li>${icone("cadeado", 16)} <span><b>A importação não envia dados.</b> A política de segurança (CSP)
+          bloqueia conexões do código com outras origens, scripts externos e envios de formulário.</span></li>
         <li>${icone("offline", 16)} <span><b>Sem servidor, sem conta, sem rastreadores.</b> Tudo (inclusive o leitor de PDF) vem dos arquivos do próprio site.
           Funciona até sem internet.</span></li>
-        <li>${icone("importar", 16)} <span><b>PDFs lidos aqui mesmo.</b> O importador lê só códigos de disciplina, créditos, carga horária, notas, situação e períodos.
-          Nome, matrícula, CPF, RG, filiação e endereço não são lidos.</span></li>
+        <li>${icone("importar", 16)} <span><b>PDFs processados neste dispositivo.</b> O leitor de PDF decodifica cada página em memória.
+          O importador descarta os cabeçalhos e usa somente as linhas acadêmicas e a data de emissão do BOA.</span></li>
         <li>${icone("privacidade", 16)} <span><b>Guardado só neste navegador</b> (localStorage). Outra pessoa, outro navegador ou o site publicado não veem nada disso.</span></li>
       </ul>
       <h4>Verificação ao vivo</h4>
@@ -1430,24 +1504,29 @@
   async function linhasPDF(arquivo) {
     const doc = await window.pdfjsLib.getDocument({ data: await arquivo.arrayBuffer(), isEvalSupported: false }).promise;
     const linhas = [];
-    for (let n = 1; n <= doc.numPages; n++) {
-      const conteudo = await (await doc.getPage(n)).getTextContent();
-      const itens = conteudo.items.filter((i) => i.str && i.str.trim()).map((i) => {
-        const [a, b, , , x, y] = i.transform;
-        const k = Math.hypot(a, b) || 1, dx = a / k, dy = b / k;
-        return { ao: dx * x + dy * y, tr: -dy * x + dx * y, w: i.width, s: i.str };
-      }).sort((p, q) => q.tr - p.tr || p.ao - q.ao);
-      const grupos = [];
-      itens.forEach((i) => {
-        const g = grupos[grupos.length - 1];
-        if (g && Math.abs(g.tr - i.tr) <= 2.5) g.itens.push(i); else grupos.push({ tr: i.tr, itens: [i] });
-      });
-      grupos.forEach((g) => {
-        g.itens.sort((p, q) => p.ao - q.ao);
-        let txt = "", fim = null;
-        g.itens.forEach((i) => { txt += (fim != null && i.ao - fim > 0.8 ? " " : "") + i.s; fim = i.ao + i.w; });
-        linhas.push(txt);
-      });
+    try {
+      for (let n = 1; n <= doc.numPages; n++) {
+        const conteudo = await (await doc.getPage(n)).getTextContent();
+        const itens = conteudo.items.filter((i) => i.str && i.str.trim()).map((i) => {
+          const [a, b, , , x, y] = i.transform;
+          const k = Math.hypot(a, b) || 1, dx = a / k, dy = b / k;
+          return { ao: dx * x + dy * y, tr: -dy * x + dx * y, w: i.width, s: i.str };
+        }).sort((p, q) => q.tr - p.tr || p.ao - q.ao);
+        const grupos = [];
+        itens.forEach((i) => {
+          const g = grupos[grupos.length - 1];
+          if (g && Math.abs(g.tr - i.tr) <= 2.5) g.itens.push(i); else grupos.push({ tr: i.tr, itens: [i] });
+        });
+        const pagina = grupos.map((g) => {
+          g.itens.sort((p, q) => p.ao - q.ao);
+          let txt = "", fim = null;
+          g.itens.forEach((i) => { txt += (fim != null && i.ao - fim > 0.8 ? " " : "") + i.s; fim = i.ao + i.w; });
+          return txt;
+        });
+        linhas.push(...window.SIGA.filtrarPaginaPDF(pagina));
+      }
+    } finally {
+      await doc.destroy();
     }
     return linhas;
   }
@@ -1464,7 +1543,7 @@
       </ol>
       <input type="file" id="siga-pdfs" accept="application/pdf,.pdf" multiple class="campo">
       <button type="button" class="btn btn-primario" id="siga-gerar">Gerar perfil</button>
-      <p class="dica" id="siga-status">Os arquivos são lidos só neste navegador. Nome, CPF e outros dados pessoais não são lidos.</p>
+      <p class="dica" id="siga-status">Os PDFs são processados neste navegador. Os cabeçalhos com dados pessoais são descartados.</p>
       ${r ? `<div class="resumo-import">
         <h4>Resumo</h4>
         <ul class="lista">
@@ -1472,7 +1551,7 @@
           <li>${r.perfil.periodos.reduce((a, p) => a + (p.planejado ? 0 : p.disciplinas.filter((d) => d.status !== "reprovado").length), 0)} disciplinas aprovadas ou em curso</li>
           ${(r.perfil.periodos.find((p) => p.atual) || null) ? `<li>Período atual: <b>${esc(r.perfil.periodos.find((p) => p.atual).nome)}</b> (${r.perfil.periodos.find((p) => p.atual).disciplinas.length} disciplinas)</li>` : ""}
           ${r.boa ? `<li>BOA de ${esc(r.boa.emissao || "?")}: ${r.boa.naoExplicitadas.length} não explicitadas, ${r.boa.equivalencias.length} equivalência(s) automática(s)</li>` : "<li class='alerta'>Sem BOA: período atual e não explicitadas ficam de fora.</li>"}
-          <li>Arquivos: ${r.arquivos.map((a) => `${esc(a.nome)} <small>(${a.tipo})</small>`).join(", ")}</li>
+          <li>Documentos reconhecidos: ${r.historicos} Histórico(s)${r.boa ? " e 1 BOA" : ""}</li>
         </ul>
         <button type="button" class="btn btn-primario" id="siga-usar">Usar este perfil</button>
         <button type="button" class="btn btn-ghost" id="siga-baixar">Baixar perfil.js</button>
@@ -1494,7 +1573,7 @@
       for (const f of arquivos) {
         const linhas = await linhasPDF(f);
         const tipo = linhas.some((l) => /BOLETIM DE ORIENTA/i.test(l)) ? "BOA" : "Histórico";
-        lidos.push({ nome: f.name, tipo, linhas });
+        lidos.push({ tipo, linhas });
       }
       const curriculo = {}, catalogo = {};
       M.grade.forEach((c) => { if (c.code) curriculo[c.code] = { category: c.category }; });
@@ -1503,10 +1582,8 @@
       const boaL = lidos.find((x) => x.tipo === "BOA");
       const boa = boaL ? window.SIGA.lerBOA(boaL.linhas) : null;
       if (!historicos.some((h) => h.registros.length) && !boa) throw new Error("não reconheci nenhum Histórico ou BOA do SIGA nesses arquivos");
-      const novo = window.SIGA.montarPerfil({ historicos, boa, curriculo, catalogo, anterior: perfil ? perfilExportado() : null });
-      novo.tags = clone(tags);
-      if (Object.keys(marcacoes).length) novo.marcacoes = clone(marcacoes);
-      resultadoImportacao = { perfil: novo, boa, arquivos: lidos.map((x) => ({ nome: x.nome, tipo: x.tipo })) };
+      const novo = window.SIGA.montarPerfil({ historicos, boa, curriculo, catalogo, anterior: perfilExportado() });
+      resultadoImportacao = { perfil: novo, boa, historicos: historicos.filter((h) => h.registros.length).length };
       abreImportador();
     } catch (e) {
       status.textContent = "Não deu certo: " + e.message;
@@ -1522,11 +1599,27 @@
   }
 
   function usaPerfilImportado(novo) {
-    perfilImportado = novo; perfil = novo;
-    save("perfilImportado", novo);
-    // as edições locais já foram incorporadas ao perfil gerado
-    plano = { periodos: {}, novos: [] }; save("plano", plano);
-    montaModelo(); vistaAtual = "timeline"; save("vista", vistaAtual); fechaDetalhes(); render();
+    if (!perfilValido(novo)) throw new Error("perfil com campos inválidos. Confira a estrutura em docs/PERFIL.md");
+    const anterior = { perfilImportado, perfil, plano, tags, marcacoes, vistaAtual, M };
+    perfilImportado = perfil = novo;
+    plano = { periodos: {}, novos: [] };
+    tags = novo.tags ?? tags;
+    marcacoes = novo.marcacoes ?? marcacoes;
+    vistaAtual = "timeline";
+    try {
+      montaModelo();
+      render();
+    } catch (e) {
+      ({ perfilImportado, perfil, plano, tags, marcacoes, vistaAtual, M } = anterior);
+      render();
+      throw e;
+    }
+    save("perfilImportado", perfilImportado);
+    save("plano", plano);
+    save("tags", tags);
+    save("marcacoes", marcacoes);
+    save("vista", vistaAtual);
+    fechaDetalhes();
   }
 
   // ---------- Destaque de requisitos ----------
@@ -1655,7 +1748,7 @@
         let sug = "";
         if (ult && /^(\d{4})\/(\d)$/.test(ult.nome)) { const [a, s] = ult.nome.split("/").map(Number); sug = s >= 2 ? `${a + 1}/1` : `${a}/2`; }
         const nome = (prompt("Nome do novo período planejado:", sug) || "").trim();
-        if (!nome || M.periodos.some((p) => p.nome === nome)) return;
+        if (!nomePeriodo(nome) || M.periodos.some((p) => p.nome === nome)) return;
         plano.novos = (plano.novos || []).concat([{ nome, planejado: true }]);
         plano.periodos[nome] = [];
         cronoPeriodo = nome; save("cronoPeriodo", nome); save("plano", plano); montaModelo(); render();
@@ -1750,7 +1843,7 @@
       }
       if (t.id === "descartar-importado") {
         if (!confirm("Voltar a usar o perfil/perfil.js e descartar o perfil importado deste navegador?")) return;
-        perfilImportado = null; save("perfilImportado", null); perfil = perfilArquivo || load("perfil", null);
+        perfilImportado = null; save("perfilImportado", null); perfil = perfilArquivo || perfilLocalAntigo();
         montaModelo(); return render();
       }
     });
@@ -1779,7 +1872,15 @@
       if (t.id === "tag-padrao") { if (confirm("Restaurar as tags padrão?")) { tags = clone(TAGS_PADRAO); return salvaTags(); } return; }
       // importador
       if (t.id === "siga-gerar") return geraPerfilDoSiga();
-      if (t.id === "siga-usar" && resultadoImportacao) { const novo = resultadoImportacao.perfil; resultadoImportacao = null; return usaPerfilImportado(novo); }
+      if (t.id === "siga-usar" && resultadoImportacao) {
+        try {
+          usaPerfilImportado(resultadoImportacao.perfil);
+          resultadoImportacao = null;
+        } catch (e) {
+          $("#siga-status").textContent = "Não consegui usar o perfil: " + e.message;
+        }
+        return;
+      }
       if (t.id === "siga-baixar" && resultadoImportacao) return baixa("perfil.js", textoPerfil(resultadoImportacao.perfil));
       if (t.dataset.settag != null) return marca(t.dataset.settag, t.dataset.tag);
       if (t.dataset.reset) return marca(t.dataset.reset, null);
@@ -1814,11 +1915,11 @@
     }));
 
     $("#btn-limpar").addEventListener("click", () => {
-      const temImportado = !perfilArquivo && load("perfil", null);
+      const temImportado = !perfilArquivo && perfilLocalAntigo();
       if (!confirm("Apagar tudo o que foi salvo neste navegador (marcações manuais, edições de planejamento" + (temImportado ? ", perfil importado" : "") + ")?")) return;
       marcacoes = {}; creditosManuais = {}; plano = { periodos: {}, novos: [] }; proposta = null; cronoSlot = null;
       ["manual", "marcacoes", "creditos", "plano", "perfilImportado"].forEach((k) => save(k, null));
-      if (perfilImportado) { perfilImportado = null; perfil = perfilArquivo || load("perfil", null); }
+      if (perfilImportado) { perfilImportado = null; perfil = perfilArquivo || perfilLocalAntigo(); }
       if (temImportado) { save("perfil", null); perfil = null; }
       montaModelo(); render();
     });
@@ -1830,9 +1931,6 @@
     f.text().then((txt) => {
       const m = txt.match(/^\s*window\.PERFIL\s*=\s*/m);
       const obj = JSON.parse((m ? txt.slice(m.index + m[0].length) : txt).replace(/;\s*$/, ""));
-      if (!obj || !Array.isArray(obj.periodos)) throw new Error("o arquivo não tem a lista \"periodos\"");
-      if (obj.tags) { tags = obj.tags; save("tags", tags); }
-      if (obj.marcacoes) { marcacoes = obj.marcacoes; save("marcacoes", marcacoes); }
       usaPerfilImportado(obj);
     }).catch((e) => alert("Não consegui ler o perfil: " + e.message + "\n(O conteúdo precisa ser JSON válido, com chaves entre aspas.)"));
     input.value = "";

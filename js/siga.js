@@ -57,6 +57,68 @@
   }
 
   const num = (s) => Number(String(s).replace(/\.(?=\d{3}\b)/g, "").replace(",", "."));
+  const tituloBOA = /^BOLETIM DE ORIENTA[ÇC][ÃA]O ACAD[ÊE]MICA\b/i;
+  const colunasBOA = /^Aluno\s+Matr[íi]cula\b.*\bEmiss[ãa]o\s*$/i;
+  const colunasHist = /^Per[íi]odo\s+C[óo]digo\b.*\bCrR\s+CH\s+Grau\s+CrO\s+Pontos\s+SF\b/i;
+  const secaoNE = /Cursadas e N[ãa]o Explicitadas/i;
+  const secaoElenco = /Atividades Acad[êe]micas (Obrigat[óo]rias|Optativas)/i;
+  const secaoReprov = /Frequ[êe]ncia de reprova/i;
+  const totalNE = /^Total(:| de Livre)/i;
+
+  /** Conserva somente linhas acadêmicas e a data de emissão em cada página extraída. */
+  function filtrarPaginaPDF(texto) {
+    const linhas = normalizarLinhas(texto);
+    const boa = linhas.findIndex((l) => tituloBOA.test(l));
+    if (boa >= 0) {
+      const cabecalho = linhas.findIndex((l, i) => i > boa && colunasBOA.test(l));
+      if (cabecalho < 0) return [];
+      const saida = ["BOLETIM DE ORIENTAÇÃO ACADÊMICA"];
+      const emissao = RE.boaEmissao.exec(linhas[cabecalho + 1] || "");
+      if (emissao) saida.push(emissao[0]);
+      for (const l of linhas.slice(cabecalho + 2)) {
+        if (secaoNE.test(l)) saida.push("Cursadas e Não Explicitadas");
+        else if (secaoElenco.test(l)) saida.push("Atividades Acadêmicas Obrigatórias");
+        else if (secaoReprov.test(l)) saida.push("Frequência de reprovações");
+        else if (totalNE.test(l)) saida.push("Total:");
+        else if (RE.boaNaoExplicitada.test(l)) saida.push(l);
+        else {
+          const rp = RE.boaReprovacao.exec(l);
+          if (rp) {
+            const periodos = rp[4].match(/\d{4}\/\d/g);
+            if (periodos) saida.push(l.slice(0, l.length - rp[4].length) + periodos.join(" "));
+            continue;
+          }
+          const el = RE.boaElenco.exec(l);
+          if (!el) continue;
+          const situacao = /^Cursando\b/i.exec(el[6]) || RE.origemCodigo.exec(el[6]);
+          if (situacao) saida.push(l.slice(0, l.length - el[6].length) + situacao[0]);
+        }
+      }
+      return saida;
+    }
+
+    const cabecalho = linhas.findIndex((l) => colunasHist.test(l));
+    if (cabecalho < 0) return [];
+    const saida = [];
+    let aguardandoOrigem = false;
+    for (const l of linhas.slice(cabecalho + 1)) {
+      const registro = RE.histLinha.exec(l);
+      if (registro) {
+        saida.push(registro[0]);
+        aguardandoOrigem = false;
+      } else if (/^Disciplina origem da Dispensa:?(?:\s|$)/.test(l)) {
+        const codigo = RE.origemCodigo.exec(RE.origemTitulo.exec(l)[1]);
+        saida.push("Disciplina origem da Dispensa:" + (codigo ? " " + codigo[1] : ""));
+        aguardandoOrigem = !codigo;
+      } else if (aguardandoOrigem && RE.origemCodigo.test(l)) {
+        saida.push(RE.origemCodigo.exec(l)[1]);
+        aguardandoOrigem = false;
+      } else if (/^\d{4}(?:\/\d)?(?:$|\s+Matr[íi]cula\b)/i.test(l)) {
+        saida.push(RE.histPeriodo.exec(l)[1]);
+      }
+    }
+    return saida;
+  }
 
   // ---------------------------------------------------------------------------
   // Histórico
@@ -111,10 +173,10 @@
     let secao = null;
     for (const l of linhas) {
       if (!out.emissao) { const e = RE.boaEmissao.exec(l); if (e) out.emissao = e[1]; }
-      if (/Cursadas e N[ãa]o Explicitadas/i.test(l)) { secao = "ne"; continue; }
-      if (/Atividades Acad[êe]micas (Obrigat[óo]rias|Optativas)/i.test(l)) { secao = "elenco"; continue; }
-      if (/Frequ[êe]ncia de reprova/i.test(l)) { secao = "reprov"; continue; }
-      if (/^Total(:| de Livre)/i.test(l) && secao === "ne") { secao = null; continue; }
+      if (secaoNE.test(l)) { secao = "ne"; continue; }
+      if (secaoElenco.test(l)) { secao = "elenco"; continue; }
+      if (secaoReprov.test(l)) { secao = "reprov"; continue; }
+      if (totalNE.test(l) && secao === "ne") { secao = null; continue; }
 
       if (secao === "ne") {
         const m = RE.boaNaoExplicitada.exec(l);
@@ -135,7 +197,7 @@
         if (/^Cursando\b/i.test(resto)) {
           out.cursando.push({ code: m[1], name: m[2].trim(), credits: m[3] === "NCC" ? 0 : num(m[3]), ch: num(m[4]) });
         } else {
-          const c = /^([A-Z]{3}[A-Z0-9]{3})\s/.exec(resto);
+          const c = RE.origemCodigo.exec(resto);
           if (c && c[1] !== m[1]) out.equivalencias.push({ recomendada: m[1], cursada: c[1] });
         }
       }
@@ -171,7 +233,7 @@
     const curriculo = a.curriculo || {}, catalogo = a.catalogo || {};
     const anterior = a.anterior || null;
     const conhecido = (c) => curriculo[c] || catalogo[c];
-    const ace = (c) => (catalogo[c] && catalogo[c].category == 5) || /^EEW[XYZUKE]/.test(c);
+    const ace = (c) => conhecido(c)?.category === 5;
 
     // 1) Junta registros de todos os históricos. Um mesmo (código, situação) que aparece num
     //    bloco de "créditos transferidos" (período só com ano) e também num semestre real
@@ -189,9 +251,11 @@
       return true;
     });
 
-    // 2) Dispensas (grau "T"): viram "dispensa" na disciplina de origem, não um item próprio.
+    // 2) A dispensa acompanha a origem aprovada quando ela está nos documentos.
+    const origensAprovadas = new Set(regs.filter((r) => r.grau !== "T" && r.sf === "AP").map((r) => r.code));
     const dispensas = {}; // origem -> [alvos]
-    regs.filter((r) => r.grau === "T" && r.dispensaDe).forEach((r) => (dispensas[r.dispensaDe] = dispensas[r.dispensaDe] || []).push(r.code));
+    regs.filter((r) => r.grau === "T" && r.sf === "AP" && origensAprovadas.has(r.dispensaDe)).forEach((r) =>
+      (dispensas[r.dispensaDe] = dispensas[r.dispensaDe] || []).push(r.code));
 
     // 3) Equivalências do BOA (recomendada ← cursada): ex. COS231 ← EEL470
     const equivale = {};
@@ -201,12 +265,15 @@
     const periodos = {};
     const add = (nome, item) => (periodos[nome] = periodos[nome] || []).push(item);
     regs.forEach((r) => {
-      if (r.grau === "T") return;
+      if (r.grau === "T" && r.sf === "AP" && origensAprovadas.has(r.dispensaDe)) return;
       const nome = /\//.test(r.periodo || "") ? r.periodo : `${r.periodo || "?"} (transferidas)`;
       const item = { code: r.code };
       if (!conhecido(r.code)) Object.assign(item, { name: r.name, credits: r.credits, category: 3 });
-      if (equivale[r.code]) item.equivale = equivale[r.code];
-      if (dispensas[r.code]) item.dispensa = dispensas[r.code].slice();
+      if (r.grau === "T") item.nota = "T";
+      else {
+        if (equivale[r.code]) item.equivale = equivale[r.code];
+        if (dispensas[r.code] && r.sf === "AP") item.dispensa = [...new Set(dispensas[r.code])];
+      }
       if (r.sf !== "AP") item.status = "reprovado";
       if (/^\d+(\.\d+)?$/.test(r.grau)) item.nota = num(r.grau);
       add(nome, item);
@@ -253,7 +320,7 @@
     const ext = ((anterior && anterior.extensao) || []).slice();
     extensaoBOA.forEach((e) => { if (!ext.some((x) => x.code && x.code === e.code)) ext.push(e); });
     perfil.extensao = ext;
-    ["tags", "marcacoes"].forEach((k) => { if (anterior && anterior[k]) perfil[k] = anterior[k]; });
+    ["tags", "marcacoes"].forEach((k) => { if (anterior && anterior[k] != null) perfil[k] = anterior[k]; });
 
     if (anterior && Array.isArray(anterior.periodos)) {
       // horários e status já anotados no período atual anterior são preservados
@@ -262,16 +329,20 @@
       if (antAtual && atual && antAtual.nome === atual.nome) {
         atual.disciplinas.forEach((it) => {
           const v = (antAtual.disciplinas || []).map((d) => (typeof d === "string" ? { code: d } : d)).find((d) => d.code === it.code);
-          if (v) { if (v.horarios) it.horarios = v.horarios; if (v.status) it.status = v.status; }
+          if (v) {
+            if (v.horarios != null) it.horarios = v.horarios;
+            if (v.status) it.status = v.status;
+          }
         });
       }
       // períodos planejados posteriores ao atual continuam valendo
       const corte = chavePeriodo(atual ? atual.nome : ultimo);
-      anterior.periodos.filter((p) => p.planejado && chavePeriodo(p.nome) > corte).forEach((p) => saida.push(p));
+      anterior.periodos.filter((p) => p.planejado && (!chavePeriodo(p.nome) || chavePeriodo(p.nome) > corte)
+        && !saida.some((s) => s.nome === p.nome)).forEach((p) => saida.push(p));
     }
     perfil.periodos = saida;
     return perfil;
   }
 
-  return { VERSAO, RE, normalizarLinhas, lerHistorico, lerBOA, montarPerfil, proximoPeriodo };
+  return { VERSAO, RE, normalizarLinhas, filtrarPaginaPDF, lerHistorico, lerBOA, montarPerfil, proximoPeriodo };
 });

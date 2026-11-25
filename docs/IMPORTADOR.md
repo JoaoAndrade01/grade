@@ -16,8 +16,8 @@ dois no navegador). Para manter planos, pedidos, extensão e tags, use `--mescla
 
 ## Passo a passo das regras
 
-1. **Linhas**: cada página vira linhas de texto (pdf.js agrupa por posição respeitando páginas giradas;
-   pypdf usa `extraction_mode="layout"`). Espaços repetidos viram um.
+1. **Linhas**: pdf.js agrupa por posição e pypdf usa `extraction_mode="layout"`. Os dois leitores
+   decodificam a página em memória. O filtro conserva as linhas acadêmicas e a data de emissão do BOA.
 2. **Histórico** (`lerHistorico`): cada linha `[período] CÓDIGO Nome CrR CH Grau CrO Pontos SF` vira um registro.
    Um período só com ano (ex.: `2025`) é o bloco de **créditos transferidos**. Grau `T` = dispensa; a linha
    seguinte "Disciplina origem da Dispensa: CÓDIGO …" diz qual disciplina gerou a dispensa.
@@ -25,7 +25,8 @@ dois no navegador). Para manter planos, pedidos, extensão e tags, use `--mescla
    (linha `COS231 … EEL470 …` = EEL470 vale COS231); **Cursadas e Não Explicitadas**; **Frequência de reprovações**.
 4. **Montagem** (`montarPerfil`):
    1. junta os históricos; um registro do bloco de transferidos que também aparece num semestre real fica só no semestre;
-   2. dispensas viram `dispensa: [...]` na disciplina de origem;
+   2. dispensas são associadas à origem aprovada quando ela consta nos documentos. Quando a origem
+      está ausente, a disciplina dispensada entra como aprovação com grau `T`;
    3. equivalências do BOA viram `equivale`;
    4. reprovações do BOA entram como `status: "reprovado"` no período indicado (o Histórico só lista aprovações);
       períodos `AAAA/0` são ignorados;
@@ -47,9 +48,10 @@ Rode sempre que mudar uma regra. (Requer Python com pypdf e Node.)
 ## Limitações conhecidas
 
 - Reprovações com período `AAAA/0` (transferência) não têm semestre real e ficam de fora.
-- Notas de disciplinas dispensadas (`T`) não existem; elas aparecem como dispensa na origem.
+- Dispensas (`T`) são registradas sem nota numérica.
 - Se o SIGA mudar o layout dos PDFs, ajuste as expressões em `RE` (nos dois arquivos) e rode o teste.
 
 ## Privacidade
 
-Nenhuma regra lê nome, matrícula, CPF, RG, filiação ou endereço. Tudo roda localmente.
+Tudo roda localmente. Nome, matrícula, CPF, RG, filiação e endereço dos cabeçalhos são descartados
+antes da montagem do perfil.

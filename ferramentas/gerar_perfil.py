@@ -48,13 +48,81 @@ def normalizar_linhas(texto):
     return [x for x in (re.sub(r"\s+", " ", l).strip() for l in linhas) if x]
 
 
+TITULO_BOA = re.compile(r"^BOLETIM DE ORIENTA[ÇC][ÃA]O ACAD[ÊE]MICA\b", re.I)
+COLUNAS_BOA = re.compile(r"^Aluno\s+Matr[íi]cula\b.*\bEmiss[ãa]o\s*$", re.I)
+COLUNAS_HIST = re.compile(r"^Per[íi]odo\s+C[óo]digo\b.*\bCrR\s+CH\s+Grau\s+CrO\s+Pontos\s+SF\b", re.I)
+SECAO_NE = re.compile(r"Cursadas e N[ãa]o Explicitadas", re.I)
+SECAO_ELENCO = re.compile(r"Atividades Acad[êe]micas (Obrigat[óo]rias|Optativas)", re.I)
+SECAO_REPROV = re.compile(r"Frequ[êe]ncia de reprova", re.I)
+TOTAL_NE = re.compile(r"^Total(:| de Livre)", re.I)
+
+
+def filtrar_pagina_pdf(texto):
+    """Espelho de filtrarPaginaPDF em siga.js."""
+    linhas = normalizar_linhas(texto or "")
+    boa = next((i for i, l in enumerate(linhas) if TITULO_BOA.match(l)), None)
+    if boa is not None:
+        cabecalho = next((i for i in range(boa + 1, len(linhas)) if COLUNAS_BOA.match(linhas[i])), None)
+        if cabecalho is None:
+            return []
+        saida = ["BOLETIM DE ORIENTAÇÃO ACADÊMICA"]
+        emissao = RE["boaEmissao"].search(linhas[cabecalho + 1]) if cabecalho + 1 < len(linhas) else None
+        if emissao:
+            saida.append(emissao.group(0))
+        for l in linhas[cabecalho + 2:]:
+            if SECAO_NE.search(l):
+                saida.append("Cursadas e Não Explicitadas")
+            elif SECAO_ELENCO.search(l):
+                saida.append("Atividades Acadêmicas Obrigatórias")
+            elif SECAO_REPROV.search(l):
+                saida.append("Frequência de reprovações")
+            elif TOTAL_NE.match(l):
+                saida.append("Total:")
+            elif RE["boaNaoExplicitada"].match(l):
+                saida.append(l)
+            else:
+                rp = RE["boaReprovacao"].match(l)
+                if rp:
+                    periodos = re.findall(r"\d{4}/\d", rp.group(4))
+                    if periodos:
+                        saida.append(l[:rp.start(4)] + " ".join(periodos))
+                    continue
+                el = RE["boaElenco"].match(l)
+                if el:
+                    situacao = re.match(r"^Cursando\b", el.group(6), re.I) or RE["origemCodigo"].match(el.group(6))
+                    if situacao:
+                        saida.append(l[:el.start(6)] + situacao.group(0))
+        return saida
+
+    cabecalho = next((i for i, l in enumerate(linhas) if COLUNAS_HIST.match(l)), None)
+    if cabecalho is None:
+        return []
+    saida, aguardando_origem = [], False
+    for l in linhas[cabecalho + 1:]:
+        registro = RE["histLinha"].match(l)
+        if registro:
+            saida.append(registro.group(0))
+            aguardando_origem = False
+        elif re.match(r"^Disciplina origem da Dispensa:?(?:\s|$)", l):
+            codigo = RE["origemCodigo"].match(RE["origemTitulo"].search(l).group(1))
+            saida.append("Disciplina origem da Dispensa:" + (" " + codigo.group(1) if codigo else ""))
+            aguardando_origem = not codigo
+        elif aguardando_origem and RE["origemCodigo"].match(l):
+            saida.append(RE["origemCodigo"].match(l).group(1))
+            aguardando_origem = False
+        elif re.match(r"^\d{4}(?:/\d)?(?:$|\s+Matr[íi]cula\b)", l, re.I):
+            saida.append(RE["histPeriodo"].match(l).group(1))
+    return saida
+
+
 def texto_pdf(caminho):
-    """Extrai o texto do PDF preservando o layout (uma linha visual por linha)."""
+    """Extrai somente as linhas acadêmicas identificadas no layout de cada página."""
     try:
         from pypdf import PdfReader
     except ImportError:
         sys.exit("Instale a dependência: pip install pypdf")
-    return "\n".join(p.extract_text(extraction_mode="layout") for p in PdfReader(caminho).pages)
+    return "\n".join(l for p in PdfReader(caminho).pages
+                     for l in filtrar_pagina_pdf(p.extract_text(extraction_mode="layout")))
 
 
 # --------------------------------------------------------------------------
@@ -102,13 +170,13 @@ def ler_boa(texto):
             e = RE["boaEmissao"].search(l)
             if e:
                 out["emissao"] = e.group(1)
-        if re.search(r"Cursadas e N[ãa]o Explicitadas", l, re.I):
+        if SECAO_NE.search(l):
             secao = "ne"; continue
-        if re.search(r"Atividades Acad[êe]micas (Obrigat[óo]rias|Optativas)", l, re.I):
+        if SECAO_ELENCO.search(l):
             secao = "elenco"; continue
-        if re.search(r"Frequ[êe]ncia de reprova", l, re.I):
+        if SECAO_REPROV.search(l):
             secao = "reprov"; continue
-        if re.match(r"^Total(:| de Livre)", l, re.I) and secao == "ne":
+        if TOTAL_NE.match(l) and secao == "ne":
             secao = None; continue
 
         if secao == "ne":
@@ -131,7 +199,7 @@ def ler_boa(texto):
                 out["cursando"].append({"code": m.group(1), "name": m.group(2).strip(),
                                         "credits": 0 if m.group(3) == "NCC" else num(m.group(3)), "ch": num(m.group(4))})
             else:
-                c = re.match(r"^([A-Z]{3}[A-Z0-9]{3})\s", resto)
+                c = RE["origemCodigo"].match(resto)
                 if c and c.group(1) != m.group(1):
                     out["equivalencias"].append({"recomendada": m.group(1), "cursada": c.group(1)})
     return out
@@ -155,7 +223,7 @@ def proximo_periodo(p):
 def montar_perfil(historicos, boa=None, curriculo=None, catalogo=None, anterior=None, hoje=None):
     curriculo, catalogo = curriculo or {}, catalogo or {}
     conhecido = lambda c: c in curriculo or c in catalogo
-    ace = lambda c: (c in catalogo and catalogo[c].get("category") == 5) or bool(re.match(r"^EEW[XYZUKE]", c))
+    ace = lambda c: (curriculo.get(c) or catalogo.get(c) or {}).get("category") == 5
 
     # 1) registros de todos os históricos, sem duplicar o bloco de transferidos
     todos = [dict(r) for h in historicos for r in h["registros"]]
@@ -172,9 +240,10 @@ def montar_perfil(historicos, boa=None, curriculo=None, catalogo=None, anterior=
         regs.append(r)
 
     # 2) dispensas
+    origens_aprovadas = {r["code"] for r in regs if r["grau"] != "T" and r["sf"] == "AP"}
     dispensas = {}
     for r in regs:
-        if r["grau"] == "T" and r.get("dispensaDe"):
+        if r["grau"] == "T" and r["sf"] == "AP" and r.get("dispensaDe") in origens_aprovadas:
             dispensas.setdefault(r["dispensaDe"], []).append(r["code"])
 
     # 3) equivalências do BOA
@@ -186,16 +255,19 @@ def montar_perfil(historicos, boa=None, curriculo=None, catalogo=None, anterior=
     # 4) períodos cursados
     periodos = {}
     for r in regs:
-        if r["grau"] == "T":
+        if r["grau"] == "T" and r["sf"] == "AP" and r.get("dispensaDe") in origens_aprovadas:
             continue
         nome = r["periodo"] if "/" in (r["periodo"] or "") else f'{r["periodo"] or "?"} (transferidas)'
         item = {"code": r["code"]}
         if not conhecido(r["code"]):
             item.update({"name": r["name"], "credits": r["credits"], "category": 3})
-        if r["code"] in equivale:
-            item["equivale"] = equivale[r["code"]]
-        if r["code"] in dispensas:
-            item["dispensa"] = list(dispensas[r["code"]])
+        if r["grau"] == "T":
+            item["nota"] = "T"
+        else:
+            if r["code"] in equivale:
+                item["equivale"] = equivale[r["code"]]
+            if r["code"] in dispensas and r["sf"] == "AP":
+                item["dispensa"] = list(dict.fromkeys(dispensas[r["code"]]))
         if r["sf"] != "AP":
             item["status"] = "reprovado"
         if re.match(r"^\d+(\.\d+)?$", r["grau"]):
@@ -237,8 +309,8 @@ def montar_perfil(historicos, boa=None, curriculo=None, catalogo=None, anterior=
     perfil = {
         "titulo": anterior.get("titulo") or "Grade ECI",
         "subtitulo": anterior.get("subtitulo") or "Engenharia de Computação e Informação · UFRJ",
-        "curso": anterior.get("curso", 1),
-        "fonte": {"geradoPor": f"siga.js {VERSAO}", "geradoEm": hoje or datetime.date.today().isoformat(),
+        "curso": anterior["curso"] if anterior.get("curso") is not None else 1,
+        "fonte": {"geradoPor": f"siga.js {VERSAO}", "geradoEm": hoje or datetime.datetime.now(datetime.timezone.utc).date().isoformat(),
                   "boaEmissao": (boa or {}).get("emissao")},
     }
     if anterior.get("nome"):
@@ -252,7 +324,7 @@ def montar_perfil(historicos, boa=None, curriculo=None, catalogo=None, anterior=
             ext.append(e)
     perfil["extensao"] = ext
     for k in ("tags", "marcacoes"):
-        if anterior.get(k):
+        if anterior.get(k) is not None:
             perfil[k] = anterior[k]
 
     if anterior.get("periodos"):
@@ -263,10 +335,13 @@ def montar_perfil(historicos, boa=None, curriculo=None, catalogo=None, anterior=
             for it in atual["disciplinas"]:
                 v = next((d for d in ant_itens if d.get("code") == it["code"]), None)
                 if v:
-                    if v.get("horarios"): it["horarios"] = v["horarios"]
+                    if v.get("horarios") is not None: it["horarios"] = v["horarios"]
                     if v.get("status"): it["status"] = v["status"]
         corte = chave_periodo(atual["nome"] if atual else ultimo)
-        saida += [p for p in anterior["periodos"] if p.get("planejado") and chave_periodo(p["nome"]) > corte]
+        nomes_ocupados = {p["nome"] for p in saida}
+        saida += [p for p in anterior["periodos"] if p.get("planejado")
+                  and (not chave_periodo(p["nome"]) or chave_periodo(p["nome"]) > corte)
+                  and p["nome"] not in nomes_ocupados]
     perfil["periodos"] = saida
     return perfil
 

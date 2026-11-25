@@ -1,14 +1,7 @@
-// Gera os diagramas da arquitetura (docs/diagramas/*.svg) com traço "desenhado à mão" (rough.js, MIT)
-// e ícones Lucide (ISC). Para regenerar:
-//   npm i --no-save playwright roughjs lucide-static && npx playwright install chromium
+// Gera os SVGs da arquitetura com as marcas locais e ícones de arquivo.
 //   node docs/diagramas/gerar.js
-// Edite os objetos `diagramas` abaixo (caixas, setas, textos); não edite os SVGs à mão.
-const { chromium } = require('playwright'); const fs = require('fs'); const path = require('path');
-const ICONES_DIR = path.join(path.dirname(require.resolve('lucide-static/package.json')), 'icons');
-const ROUGH = require.resolve('roughjs/bundled/rough.js');
-const SAIDA = __dirname;
-const icon = (n) => fs.readFileSync(path.join(ICONES_DIR, `${n}.svg`), 'utf8').replace(/<!--.*?-->/s, '').match(/>\s*([\s\S]*)<\/svg>/)[1];
-const ICONS = {}; ['globe','notebook-pen','file-text','user','cog','workflow','file-code-2','hard-drive','monitor-smartphone','lock','palette','list-tree','calendar-days','scroll-text','download','book-open-check','git-branch','clock','shield-check','users','database','graduation-cap','server-off','layers'].forEach(n => ICONS[n] = icon(n));
+const fs = require('node:fs');
+const path = require('node:path');
 
 const diagramas = {
   atual: {
@@ -20,27 +13,28 @@ const diagramas = {
       { x: 1080, y: 70, w: 400, h: 660, rot: 'GRADE INTERATIVA (no seu navegador)', destaque: true },
     ],
     nos: [
-      { id: 'siga', x: 50, y: 130, w: 240, h: 110, icon: 'globe', t: ['SIGA', 'página pública', 'do currículo'] },
-      { id: 'notion', x: 50, y: 270, w: 240, h: 110, icon: 'notebook-pen', t: ['Notion', '"Grades de ECI"', 'horários e guia'] },
-      { id: 'pdf', x: 50, y: 410, w: 240, h: 110, icon: 'file-text', t: ['PDFs do aluno', 'Histórico + BOA'] },
+      { id: 'siga', x: 50, y: 130, w: 240, h: 110, icon: 'ufrj', t: ['SIGA', 'Currículo público'] },
+      { id: 'notion', x: 50, y: 270, w: 240, h: 110, icon: 'notion', t: ['Notion', 'Horários e guia de ECI'] },
+      { id: 'pdf', x: 50, y: 410, w: 240, h: 110, icon: 'pdf', t: ['PDFs do aluno', 'Histórico e BOA'] },
       { id: 'aluno', x: 50, y: 570, w: 240, h: 110, icon: 'user', t: ['Você', 'planos, pedidos,', 'tags'] },
       { id: 'extr', x: 430, y: 200, w: 240, h: 120, icon: 'cog', t: ['Extração', '1× por semestre', '(script / à mão)'] },
-      { id: 'imp', x: 430, y: 420, w: 240, h: 120, icon: 'workflow', t: ['Importador', 'siga.js = gerar_perfil.py', 'mesmas regras'] },
-      { id: 'db', x: 785, y: 120, w: 210, h: 70, icon: 'file-code-2', t: ['database.js', 'currículo'], peq: true },
-      { id: 'opt', x: 785, y: 205, w: 210, h: 70, icon: 'file-code-2', t: ['optativas.js', 'eletivas'], peq: true },
-      { id: 'hor', x: 785, y: 290, w: 210, h: 70, icon: 'file-code-2', t: ['horarios.js', 'turmas'], peq: true },
-      { id: 'guia', x: 785, y: 375, w: 210, h: 70, icon: 'file-code-2', t: ['guia.js', 'dificuldade'], peq: true },
+      { id: 'imp', x: 430, y: 420, w: 240, h: 120, icon: 'scripts', t: ['Importador', 'siga.js e gerar_perfil.py', 'Mesmas regras'] },
+      { id: 'db', x: 785, y: 120, w: 210, h: 70, icon: 'js', t: ['database.js', 'Currículo'] },
+      { id: 'opt', x: 785, y: 205, w: 210, h: 70, icon: 'js', t: ['optativas.js', 'Eletivas'] },
+      { id: 'hor', x: 785, y: 290, w: 210, h: 70, icon: 'js', t: ['horarios.js', 'Turmas'] },
+      { id: 'guia', x: 785, y: 375, w: 210, h: 70, icon: 'js', t: ['guia.js', 'Dificuldade'] },
       { id: 'perfil', x: 785, y: 500, w: 210, h: 110, icon: 'hard-drive', t: ['Seu perfil', 'localStorage', 'ou perfil.js'], privado: true },
       { id: 'modelo', x: 1110, y: 130, w: 340, h: 90, icon: 'layers', t: ['Modelo', 'status · créditos · requisitos'] },
       { id: 'g1', x: 1110, y: 270, w: 160, h: 90, icon: 'palette', t: ['Grade', 'clássica'], peq: true },
       { id: 'g2', x: 1290, y: 270, w: 160, h: 90, icon: 'list-tree', t: ['Linha do', 'tempo'], peq: true },
       { id: 'g3', x: 1110, y: 380, w: 160, h: 90, icon: 'calendar-days', t: ['Cronograma'], peq: true },
       { id: 'g4', x: 1290, y: 380, w: 160, h: 90, icon: 'scroll-text', t: ['Equivalências', 'Extensão/ACE'], peq: true },
-      { id: 'exp', x: 1110, y: 500, w: 340, h: 100, icon: 'download', t: ['Baixar perfil.js', '(guardar / levar)'] },
-      { id: 'csp', x: 1110, y: 620, w: 340, h: 100, icon: 'shield-check', t: ['Nada sai do computador', 'bloqueio de rede (CSP)'], selo: true },
+      { id: 'g5', x: 1110, y: 490, w: 160, h: 90, icon: 'book-open-check', t: ['Optativas'] },
+      { id: 'exp', x: 1290, y: 490, w: 160, h: 90, icon: 'download', t: ['Exportar', 'perfil.js'] },
+      { id: 'csp', x: 1110, y: 620, w: 340, h: 90, icon: 'shield-check', t: ['Importação no dispositivo', 'Cabeçalhos pessoais descartados'], selo: true },
     ],
     setas: [['siga','extr'],['notion','extr'],['pdf','imp'],['aluno','perfil'],['extr','db'],['extr','opt'],['extr','hor'],['extr','guia'],['imp','perfil'],
-      ['db','modelo'],['opt','modelo'],['hor','modelo'],['guia','modelo'],['perfil','modelo'],['modelo','g1'],['modelo','g2'],['g3','exp']],
+      ['db','modelo'],['opt','modelo'],['hor','modelo'],['guia','modelo'],['perfil','modelo'],['modelo','g1'],['modelo','g2']],
   },
   alvo: {
     w: 1500, h: 560, titulo: 'PLANO: NOTION COMO FONTE DA VERDADE',
@@ -51,15 +45,15 @@ const diagramas = {
       { x: 1160, y: 90, w: 320, h: 440, rot: 'PUBLICAÇÃO', destaque: true },
     ],
     nos: [
-      { id: 'nt', x: 50, y: 130, w: 240, h: 100, icon: 'notebook-pen', t: ['Notion · Turmas', 'código, dia, hora, ativa'] },
-      { id: 'nd', x: 50, y: 250, w: 240, h: 100, icon: 'notebook-pen', t: ['Notion · Disciplinas', 'nível, presença, dicas'] },
-      { id: 'sc', x: 50, y: 400, w: 240, h: 100, icon: 'globe', t: ['SIGA', 'currículo público'] },
-      { id: 'sync', x: 420, y: 150, w: 320, h: 100, icon: 'clock', t: ['sincronizar_notion.py', 'token em Secret'] },
-      { id: 'cur', x: 420, y: 415, w: 320, h: 95, icon: 'cog', t: ['atualizar_curriculo.py'] },
+      { id: 'nt', x: 50, y: 130, w: 240, h: 100, icon: 'notion', t: ['Notion · Turmas', 'Código, dia, hora, ativa'] },
+      { id: 'nd', x: 50, y: 250, w: 240, h: 100, icon: 'notion', t: ['Notion · Disciplinas', 'Nível, presença, dicas'] },
+      { id: 'sc', x: 50, y: 400, w: 240, h: 100, icon: 'ufrj', t: ['SIGA', 'Currículo público'] },
+      { id: 'sync', x: 420, y: 150, w: 320, h: 100, icon: 'py', t: ['sincronizar_notion.py', 'Token em Secret'] },
+      { id: 'cur', x: 420, y: 415, w: 320, h: 95, icon: 'py', t: ['atualizar_curriculo.py'] },
       { id: 'val', x: 420, y: 280, w: 320, h: 105, icon: 'book-open-check', t: ['validação', 'códigos · horários'] },
-      { id: 'f1', x: 865, y: 150, w: 210, h: 70, icon: 'file-code-2', t: ['horarios.js'], peq: true },
-      { id: 'f2', x: 865, y: 240, w: 210, h: 70, icon: 'file-code-2', t: ['guia.js'], peq: true },
-      { id: 'f3', x: 865, y: 330, w: 210, h: 90, icon: 'file-code-2', t: ['optativas.js', 'database.js'], peq: true },
+      { id: 'f1', x: 865, y: 150, w: 210, h: 70, icon: 'js', t: ['horarios.js'] },
+      { id: 'f2', x: 865, y: 240, w: 210, h: 70, icon: 'js', t: ['guia.js'] },
+      { id: 'f3', x: 865, y: 330, w: 210, h: 90, icon: 'js', t: ['optativas.js', 'database.js'] },
       { id: 'gc', x: 865, y: 440, w: 210, h: 70, icon: 'git-branch', t: ['commit automático'], peq: true },
       { id: 'pg', x: 1190, y: 150, w: 260, h: 100, icon: 'globe', t: ['GitHub Pages', 'site estático'] },
       { id: 'al', x: 1190, y: 300, w: 260, h: 100, icon: 'users', t: ['Alunos', 'abrem o site'] },
@@ -69,63 +63,107 @@ const diagramas = {
   },
 };
 
-(async () => {
-  const b = await chromium.launch(); const p = await b.newPage();
-  await p.setContent('<html><body></body></html>');
-  await p.addScriptTag({ path: ROUGH });
-  for (const [nome, d] of Object.entries(diagramas)) {
-    const svg = await p.evaluate(({ d, ICONS }) => {
-      const NS = 'http://www.w3.org/2000/svg';
-      const svg = document.createElementNS(NS, 'svg');
-      svg.setAttribute('xmlns', NS); svg.setAttribute('viewBox', `0 0 ${d.w} ${d.h}`); svg.setAttribute('width', d.w); svg.setAttribute('height', d.h);
-      const rc = rough.svg(svg); let seed = 7;
-      const opt = (o) => Object.assign({ seed: seed++, roughness: 1.3, bowing: 1.1, strokeWidth: 1.6, stroke: '#1e1e1e' }, o);
-      const FONTE = "Virgil, 'Segoe Print', 'Comic Sans MS', 'Patrick Hand', cursive";
-      const fundo = document.createElementNS(NS, 'rect'); fundo.setAttribute('width', d.w); fundo.setAttribute('height', d.h); fundo.setAttribute('fill', '#ffffff'); svg.appendChild(fundo);
-      const texto = (x, y, s, tam, peso, cor = '#1e1e1e', anc = 'middle') => {
-        const t = document.createElementNS(NS, 'text'); t.setAttribute('x', x); t.setAttribute('y', y); t.setAttribute('text-anchor', anc);
-        t.setAttribute('font-family', FONTE); t.setAttribute('font-size', tam); t.setAttribute('font-weight', peso); t.setAttribute('fill', cor); t.textContent = s; svg.appendChild(t);
-      };
-      texto(d.w / 2, 46, d.titulo, 28, 700);
-      d.grupos.forEach((g) => {
-        svg.appendChild(rc.rectangle(g.x, g.y, g.w, g.h, opt(g.destaque ? { stroke: '#7c3aed', strokeWidth: 2, fill: '#f5f3ff', fillStyle: 'solid' } : { stroke: '#9ca3af', strokeLineDash: [8, 8], strokeWidth: 1.2 })));
-        texto(g.x + g.w / 2, g.y - 10, g.rot, 15, 700, g.destaque ? '#6d28d9' : '#6b7280');
-      });
-      const por = {};
-      d.nos.forEach((n) => {
-        por[n.id] = n;
-        const cor = n.selo ? { stroke: '#15803d', fill: '#dcfce7' } : n.privado ? { stroke: '#b45309', fill: '#fef3c7' } : n.peq ? { stroke: '#1e1e1e', fill: '#f8fafc' } : { stroke: '#1e1e1e', fill: '#ffffff' };
-        svg.appendChild(rc.rectangle(n.x, n.y, n.w, n.h, opt({ fill: cor.fill, fillStyle: 'solid', stroke: cor.stroke })));
-        const tamI = n.peq ? 26 : 34;
-        const ix = n.peq ? n.x + 14 : n.x + n.w / 2 - tamI / 2, iy = n.peq ? n.y + n.h / 2 - tamI / 2 : n.y + 10;
-        const g = document.createElementNS(NS, 'g');
-        g.setAttribute('transform', `translate(${ix},${iy}) scale(${tamI / 24})`);
-        g.setAttribute('fill', 'none'); g.setAttribute('stroke', cor.stroke === '#1e1e1e' ? '#334155' : cor.stroke); g.setAttribute('stroke-width', '1.8');
-        g.setAttribute('stroke-linecap', 'round'); g.setAttribute('stroke-linejoin', 'round'); g.innerHTML = ICONS[n.icon]; svg.appendChild(g);
-        if (n.peq) {
-          const cx = n.x + 50, base = n.y + n.h / 2 - (n.t.length - 1) * 9 + 5;
-          n.t.forEach((s, i) => texto(cx, base + i * 18, s, i ? 13 : 16, i ? 400 : 700, i ? '#475569' : '#1e1e1e', 'start'));
-        } else {
-          n.t.forEach((s, i) => texto(n.x + n.w / 2, n.y + 10 + tamI + 20 + i * 19, s, i ? 14 : 17, i ? 400 : 700, i ? '#475569' : '#1e1e1e'));
-        }
-      });
-      const seta = (a, c) => {
-        // liga a borda direita de "a" à borda esquerda de "c" (ou de baixo para cima se estão na mesma coluna)
-        let x1, y1, x2, y2;
-        if (c.x > a.x + a.w - 5) { x1 = a.x + a.w; y1 = a.y + a.h / 2; x2 = c.x; y2 = c.y + c.h / 2; }
-        else if (c.y > a.y) { x1 = a.x + a.w / 2; y1 = a.y + a.h; x2 = c.x + c.w / 2; y2 = c.y; }
-        else { x1 = a.x + a.w / 2; y1 = a.y; x2 = c.x + c.w / 2; y2 = c.y + c.h; }
-        const mx = (x1 + x2) / 2;
-        svg.appendChild(rc.curve([[x1, y1], [mx, y1 + (y2 - y1) * 0.15], [mx, y2 - (y2 - y1) * 0.15], [x2 - 2, y2]], opt({ strokeWidth: 1.4, roughness: 0.8 })));
-        const ang = Math.atan2(y2 - (y2 - (y2 - y1) * 0.15), x2 - mx || 0.001);
-        const a1 = ang + Math.PI * 0.85, a2 = ang - Math.PI * 0.85, L = 11;
-        svg.appendChild(rc.linearPath([[x2 + L * Math.cos(a1), y2 + L * Math.sin(a1)], [x2, y2], [x2 + L * Math.cos(a2), y2 + L * Math.sin(a2)]], opt({ strokeWidth: 1.6, roughness: 0.6 })));
-      };
-      d.setas.forEach(([a, c]) => seta(por[a], por[c]));
-      return svg.outerHTML;
-    }, { d, ICONS });
-    const cab = `<?xml version="1.0" encoding="UTF-8"?>\n<!-- Gerado por docs/diagramas/gerar.js (rough.js MIT + ícones Lucide ISC). Edite o script, não o SVG. -->\n`;
-    fs.writeFileSync(path.join(SAIDA, `${nome === 'atual' ? 'arquitetura-atual' : 'plano-notion'}.svg`), cab + svg);
+
+const arquivo = (sigla, cor, tinta = '#fff') =>
+  `<path fill="#fff" stroke="${cor}" d="M6 2h8l5 5v15H6z"/><path stroke="${cor}" d="M14 2v6h5"/>
+   <rect x="2" y="11" width="20" height="8" rx="2" fill="${cor}" stroke="none"/>
+   <text x="12" y="17" style="fill:${tinta}" stroke="none" font-family="Arial, sans-serif" font-size="6" font-weight="700" text-anchor="middle">${sigla}</text>`;
+
+const icones = {
+  pdf: arquivo('PDF', '#bd2527'),
+  js: arquivo('JS', '#f4cd47', '#2b2100'),
+  py: arquivo('PY', '#235f9c'),
+  scripts: arquivo('&lt;/&gt;', '#5145a0'),
+  user: '<circle cx="12" cy="7" r="3"/><path d="M5 21v-2a7 7 0 0 1 14 0v2z"/>',
+  cog: '<path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2" fill="white"/><circle cx="15" cy="12" r="2" fill="white"/><circle cx="10" cy="18" r="2" fill="white"/>',
+  'hard-drive': '<rect x="3" y="8" width="18" height="12" rx="2"/><path d="m3 10 3-6h12l3 6M3 15h18m-13 2h1"/>',
+  layers: '<path d="m3 8 9-5 9 5-9 5zM3 12l9 5 9-5M3 16l9 5 9-5"/>',
+  palette: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16m6-16v16M3 10h18"/>',
+  'list-tree': '<path d="M6 4v16m0-13h13m-13 5h10m-10 5h13"/><circle cx="6" cy="7" r="1.5" fill="white"/><circle cx="6" cy="12" r="1.5" fill="white"/><circle cx="6" cy="17" r="1.5" fill="white"/>',
+  'calendar-days': '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4m8-4v4m-8 7h2m4 0h2m-8 3h2"/>',
+  'scroll-text': '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 8h8m-8 4h8m-8 4h4"/>',
+  download: '<path d="M12 3v12m-4-4 4 4 4-4M4 15v5h16v-5"/>',
+  'shield-check': '<path d="M12 3 5 6v5c0 5 3 8 7 10 4-2 7-5 7-10V6zM9 12l2 2 4-4"/>',
+  'book-open-check': '<path d="M12 6c-3-2-6-2-9-1v14c3-1 6-1 9 1 3-2 6-2 9-1V5c-3-1-6-1-9 1v14m3-9 1 1 3-3"/>',
+  'git-branch': '<circle cx="6" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M6 7v10m12-10c0 7-12 4-12 10"/>',
+  globe: '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 8h20m-16 4h5m-5 4h8"/>',
+  users: '<circle cx="9" cy="7" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2zM16 4a3 3 0 0 1 0 6m1 3a5 5 0 0 1 4 5v2h-3"/>',
+};
+
+const marcas = {
+  // Use a composição horizontal completa da UFRJ, com a proporção do original.
+  ufrj: { largura: 96, arquivo: 'ufrj.svg', nome: 'UFRJ' },
+  notion: { largura: 33, arquivo: 'notion.svg', nome: 'Notion' },
+};
+for (const marca of Object.values(marcas)) {
+  const dados = fs.readFileSync(path.join(__dirname, marca.arquivo)).toString('base64');
+  marca.url = `data:image/svg+xml;base64,${dados}`;
+}
+
+const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const texto = (x, y, s, classe) => `<text x="${x}" y="${y}" class="${classe}">${esc(s)}</text>`;
+
+function desenharNo(n) {
+  const centro = n.y + n.h / 2;
+  const marca = marcas[n.icon];
+  const tam = marca ? marca.largura : n.peq ? 25 : 32;
+  const x = n.x + 16;
+  const imagem = marca
+    ? `<image href="${marca.url}" x="${x}" y="${centro - 26}" width="${tam}" height="52" aria-label="${marca.nome}"/>`
+    : `<g transform="translate(${x} ${centro - tam / 2}) scale(${tam / 24})" class="icone">${icones[n.icon]}</g>`;
+  const cor = n.selo ? ' local' : n.privado ? ' privado' : '';
+  const y = centro + 5 - (n.t.length - 1) * 9;
+  const rotulos = n.t.map((s, i) => texto(x + tam + 14, y + i * 19, s, i ? 'descricao' : 'rotulo'));
+  return [`<g id="${n.id}">`, `<rect x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="12" class="no${cor}"/>`,
+    imagem, ...rotulos, '</g>'].join('\n');
+}
+
+function desenharSeta(a, b) {
+  if (b.x >= a.x + a.w) {
+    const x = a.x + a.w, y1 = a.y + a.h / 2, y2 = b.y + b.h / 2, meio = (x + b.x) / 2;
+    return `<path d="M${x} ${y1} C${meio} ${y1} ${meio} ${y2} ${b.x - 3} ${y2}"/>`;
   }
-  await b.close();
-})();
+  const x1 = a.x + a.w / 2, x2 = b.x + b.w / 2;
+  const abaixo = b.y >= a.y + a.h;
+  const y1 = abaixo ? a.y + a.h : a.y, y2 = abaixo ? b.y - 3 : b.y + b.h + 3;
+  const meio = (y1 + y2) / 2;
+  return `<path d="M${x1} ${y1} C${x1} ${meio} ${x2} ${meio} ${x2} ${y2}"/>`;
+}
+
+function desenhar(d) {
+  const nos = new Map(d.nos.map((n) => [n.id, n]));
+  const grupos = d.grupos.flatMap((g) => [
+    `<rect x="${g.x}" y="${g.y}" width="${g.w}" height="${g.h}" rx="20" class="grupo${g.destaque ? ' destaque' : ''}"/>`,
+    texto(g.x + 22, g.y - 13, g.rot, 'coluna'),
+  ]);
+  return [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<!-- Gerado por docs/diagramas/gerar.js. Atribuição das marcas em docs/ARQUITETURA.md. -->',
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${d.w}" height="${d.h}" viewBox="0 0 ${d.w} ${d.h}" role="img" aria-labelledby="titulo">`,
+    `<title id="titulo">${esc(d.titulo)}</title>`,
+    '<style>',
+    'text{font-family:system-ui,Segoe UI,Arial,sans-serif;fill:#142238}',
+    '.titulo{font-size:28px;font-weight:750}.coluna{font-size:13px;font-weight:700;letter-spacing:.8px;fill:#384d69}',
+    '.rotulo{font-size:15px;font-weight:700}.descricao{font-size:12px;fill:#465973}',
+    '.grupo{fill:#f0f4fa;stroke:#cbd7e6}.destaque{fill:#edf0ff;stroke:#c7cbef}',
+    '.no{fill:#fff;stroke:#cbd7e6}.local{fill:#edfaf3;stroke:#a0cfb4}.privado{fill:#fff8e9;stroke:#dbbd86}',
+    '.icone{fill:none;stroke:#2a4666;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}',
+    '.setas{fill:none;stroke:#7186a2;stroke-width:1.6;marker-end:url(#seta)}',
+    '</style>',
+    '<defs><marker id="seta" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0 0 7 3.5 0 7z" fill="#7186a2"/></marker></defs>',
+    `<rect width="${d.w}" height="${d.h}" fill="#fcfdff"/>`,
+    texto(22, 47, d.titulo, 'titulo'),
+    ...grupos,
+    '<g class="setas">',
+    ...d.setas.map(([a, b]) => desenharSeta(nos.get(a), nos.get(b))),
+    '</g>',
+    ...d.nos.map(desenharNo),
+    '</svg>',
+    '',
+  ].join('\n');
+}
+
+for (const [nome, dados] of Object.entries(diagramas)) {
+  const arquivo = nome === 'atual' ? 'arquitetura-atual.svg' : 'plano-notion.svg';
+  fs.writeFileSync(path.join(__dirname, arquivo), desenhar(dados));
+}

@@ -72,7 +72,11 @@ flowchart LR
 
 ---
 
-Os desenhos são gerados por `docs/diagramas/gerar.js` (rough.js + ícones Lucide): edite o script, não o SVG.
+Para atualizar os diagramas, edite `docs/diagramas/gerar.js` e rode `node docs/diagramas/gerar.js`.
+A marca da UFRJ identifica a fonte SIGA e mantém a composição horizontal do arquivo institucional.
+As marcas são incorporadas aos SVGs para consulta offline. [Identidade visual da UFRJ](https://ufrj.br/comunicacao/identidade-visual/) ·
+[Arquivo da UFRJ no Wikimedia Commons](https://commons.wikimedia.org/wiki/File:UFRJ_logo.svg) ·
+[Marca do Notion no Simple Icons](https://github.com/simple-icons/simple-icons/blob/develop/icons/notion.svg)
 
 ## 2. Camadas do app
 
@@ -211,6 +215,6 @@ flowchart LR
 Detalhes e como verificar: [`docs/PRIVACIDADE.md`](PRIVACIDADE.md).
 
 
-- O importador **não lê** nome, matrícula, CPF, RG, filiação nem endereço (ver `js/siga.js`).
+- A extração decodifica cada página em memória e descarta os cabeçalhos pessoais (ver `js/siga.js`).
 - Os PDFs são processados no navegador (pdf.js) ou localmente (Python); nada é enviado.
 - `perfil/perfil.js`, PDFs e planilhas estão no `.gitignore`.
