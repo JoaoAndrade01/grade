@@ -11,11 +11,21 @@
   --pendente: #94a3b8; --pendente-bg: var(--surface);
   --cat1: #475569; --cat2: #d97706; --cat3: #0d9488; --cat4: #db2777; --cat5: #4f46e5;
   --req: #ef4444; --dep: #f59e0b;
+  --analise: #b45309; --analise-bg: #fffbeb;
+  --alerta: #b45309; --perigo-txt: #fff;
+  --perigo: #b91c1c; --oferta: #9a3412; --oferta-bg: #fff7ed; --foco: #1d4ed8;
   --radius: 10px;
   color-scheme: light dark;
 }
+/*
+ * Tema escuro: segue o sistema enquanto não houver escolha (sem data-tema) e a escolha explícita
+ * do botão sol/lua (data-tema, gravado por js/tema.js). Os dois blocos têm os MESMOS valores.
+ */
+:root[data-tema="claro"] { color-scheme: light; }
+:root[data-tema="escuro"] { color-scheme: dark; }
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-tema="claro"]) {
+    --alerta: #fbbf24; --perigo-txt: #1c0707;
     --bg: #0f1218; --surface: #171b23; --surface-2: #212734; --text: #e7eaf0; --muted: #9aa3b2;
     --border: #2c3341; --shadow: 0 1px 2px rgb(0 0 0 / .4);
     --aprovado: #4ade80; --aprovado-bg: #12301f;
@@ -25,7 +35,23 @@
     --reprovado: #f87171; --reprovado-bg: #2d1416;
     --pendente: #64748b;
     --cat1: #94a3b8; --cat2: #fbbf24; --cat3: #2dd4bf; --cat4: #f472b6; --cat5: #818cf8;
+    --analise: #fbbf24; --analise-bg: #2a2110;
+    --perigo: #f87171; --oferta: #fdba74; --oferta-bg: #2b1a0e; --foco: #93c5fd;
   }
+}
+:root[data-tema="escuro"] {
+  --alerta: #fbbf24; --perigo-txt: #1c0707;
+  --bg: #0f1218; --surface: #171b23; --surface-2: #212734; --text: #e7eaf0; --muted: #9aa3b2;
+  --border: #2c3341; --shadow: 0 1px 2px rgb(0 0 0 / .4);
+  --aprovado: #4ade80; --aprovado-bg: #12301f;
+  --previsto: #4ade80; --previsto-bg: #142219;
+  --cursando: #60a5fa; --cursando-bg: #14233d;
+  --planejado: #a78bfa; --planejado-bg: #1e1733;
+  --reprovado: #f87171; --reprovado-bg: #2d1416;
+  --pendente: #64748b;
+  --cat1: #94a3b8; --cat2: #fbbf24; --cat3: #2dd4bf; --cat4: #f472b6; --cat5: #818cf8;
+  --analise: #fbbf24; --analise-bg: #2a2110;
+  --perigo: #f87171; --oferta: #fdba74; --oferta-bg: #2b1a0e; --foco: #93c5fd;
 }
 
 * { box-sizing: border-box; }
@@ -43,9 +69,13 @@ code { background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
   display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; justify-content: space-between;
   padding: 16px 24px 8px;
 }
-.titulo h1 { margin: 0; font-size: 22px; letter-spacing: -.01em; }
+.titulo { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.logo { width: 44px; height: 44px; flex: 0 0 auto; border-radius: 50%; }
+.titulo h1 { margin: 0; font-size: 22px; letter-spacing: -.01em; line-height: 1.15; }
+.titulo h1 .nome-perfil { font-weight: 500; }
 .titulo p { margin: 2px 0 0; color: var(--muted); }
 .acoes { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.atalhos { display: inline-flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 
 .btn, .seg button {
   font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--border);
@@ -322,8 +352,6 @@ code { background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
 .ref-linha.ok { color: var(--aprovado); }
 
 /* ---------- v2.3: equivalências, extensão, planejamento, ativas ---------- */
-:root { --analise: #b45309; --analise-bg: #fffbeb; }
-@media (prefers-color-scheme: dark) { :root { --analise: #fbbf24; --analise-bg: #2a2110; } }
 .s-analise { --st: var(--analise); --st-bg: var(--analise-bg); }
 .card.s-analise, .opt.s-analise { border-style: dashed; }
 .barra .b-anal { background: repeating-linear-gradient(45deg, var(--analise) 0 3px, transparent 3px 6px); opacity: .8; }
@@ -469,10 +497,10 @@ small.alerta, .alerta { color: var(--dep); }
 @media (prefers-reduced-motion: reduce) { .interruptor .trilho, .interruptor .trilho::after { transition: none; } }
 
 /* modo clássico: só a grade, o resto some */
-.classico .abas, .classico #btn-limpar, .classico #subtitulo, .classico .rodape,
-.classico #btn-importar .rot, .classico .bg-legenda { display: none; }
+.classico .abas, .classico #subtitulo, .classico .rodape, .classico .bg-legenda { display: none; }
 .classico .topo { padding-top: 10px; padding-bottom: 4px; }
 .classico .titulo h1 { font-size: 18px; }
+.classico .logo { width: 36px; height: 36px; }
 .classico .barra-geral { padding-top: 2px; }
 .classico .bg-barra { height: 8px; }
 .classico .col-topo .chips { display: none; }
@@ -518,10 +546,8 @@ small.alerta, .alerta { color: var(--dep); }
   .topo { padding: 10px 12px 4px; gap: 8px; }
   .titulo h1 { font-size: 18px; }
   #subtitulo { display: none; }
-  .acoes { width: 100%; flex-wrap: nowrap; }
-  .abas { overflow-x: auto; flex: 1; scrollbar-width: none; }
+  .abas { overflow-x: auto; scrollbar-width: none; }
   .abas button { white-space: nowrap; }
-  .btn-icone .rot { display: none; }
   .barra-geral, .ferramentas { padding-left: 12px; padding-right: 12px; }
   .painel.vista-grade { display: flex; flex-direction: column; overflow: visible; padding: 8px 12px 96px; gap: 10px; }
   .vista-grade .coluna { flex: none; width: 100%; }
@@ -532,4 +558,288 @@ small.alerta, .alerta { color: var(--dep); }
   .paleta { bottom: 8px; width: calc(100vw - 16px); }
   .pal-btn { min-height: 48px; }
   .detalhes { top: auto; left: 8px; right: 8px; bottom: 8px; width: auto; max-height: 75vh; }
+}
+
+/* =====================================================================
+   v5 — tema sol/lua, logo, perfil, diálogos, aviso de oferta, foco
+   ===================================================================== */
+/* foco visível em tudo o que é interativo (teclado) */
+:where(button, a, input, select, textarea, summary, label.btn):focus-visible { outline: 2px solid var(--foco); outline-offset: 2px; }
+.card:focus-visible, .pal-btn:focus-visible { outline-color: var(--foco); }
+.interruptor input:focus-visible + .trilho { outline-color: var(--foco); }
+
+/* avisos em âmbar com contraste ≥ 4,5:1 nos dois temas (o laranja de destaque fica para contornos) */
+small.alerta, .alerta, .crono-pick small.alerta, .chip-alerta, .aviso-edicao, .ref-linha, .opt-breve .sit,
+.checks .alerta, .contas .alerta { color: var(--alerta); }
+
+.btn-icone { min-height: 40px; }
+.btn-icone:not(:has(.rot)), .btn-atalho { justify-content: center; min-width: 40px; padding-inline: 10px; }
+#btn-tema .ico { transition: transform .25s; }
+#btn-tema:hover .ico { transform: rotate(-15deg); }
+@media (prefers-reduced-motion: reduce) { #btn-tema .ico { transition: none; } }
+
+/* sem perfil válido: "Importar do SIGA" e "Criar perfil" ficam na barra mesmo sem estarem fixados */
+.btn-primario-topo { border-color: color-mix(in srgb, var(--text) 35%, var(--border)); }
+#btn-importar.btn-primario-topo { font-weight: 600; }
+
+/* aviso de oferta por semestre: texto visível (sem depender de passar o mouse) */
+.aviso-oferta { color: var(--oferta); font-weight: 600; }
+.crono-pick small.aviso-oferta { color: var(--oferta); font-weight: 600; }
+.card .sub .aviso-oferta { display: block; margin-top: 2px; }
+.lista-plano .aviso-oferta { font-weight: 500; }
+
+/* diálogos nativos */
+.dlg {
+  width: min(440px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); padding: 20px 22px 18px;
+  color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+  box-shadow: 0 24px 60px rgb(0 0 0 / .3);
+}
+dialog.dlg:modal { overscroll-behavior: contain; }
+.dlg::backdrop { background: rgb(10 12 16 / .5); overflow: hidden; overscroll-behavior: contain; }
+.dlg-titulo { margin: 0 0 6px; font-size: 18px; line-height: 1.25; }
+.dlg-texto { margin: 0 0 4px; color: var(--muted); }
+.dlg-acoes { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+.dlg .rotulo { display: block; margin-top: 14px; font-weight: 600; font-size: 13px; }
+.dlg .campo { margin-top: 6px; }
+.dlg .dica { margin: 4px 0 0; }
+.opcional { margin-left: 4px; font-weight: 400; font-size: 12px; color: var(--muted); }
+.msg-campo { min-height: 1.3em; margin: 6px 0 0; font-size: 13px; color: var(--perigo); }
+.msg-campo:empty { min-height: 0; margin: 0; }
+.campo[aria-invalid="true"] { border-color: var(--perigo); box-shadow: 0 0 0 1px var(--perigo); }
+.btn-perigo { background: var(--perigo); border-color: var(--perigo); color: var(--perigo-txt); font-weight: 600; }
+.btn-escuro { background: var(--text); border-color: var(--text); color: var(--bg); font-weight: 600; }
+.btn-perigo:hover, .btn-escuro:hover { filter: brightness(1.08); border-color: inherit; }
+
+/* importador: período atual sugerido */
+.periodo-sugerido { margin-top: 10px; }
+.periodo-sugerido .rotulo { display: block; font-weight: 600; font-size: 13px; }
+.periodo-sugerido .campo { max-width: 160px; }
+#siga-usar:disabled { opacity: .5; cursor: not-allowed; }
+
+/* cronograma: excluir período */
+.btn-perigo-ghost { color: var(--perigo); border-color: color-mix(in srgb, var(--perigo) 45%, var(--border)); box-shadow: none; background: transparent; }
+.btn-perigo-ghost:hover { border-color: var(--perigo); }
+
+/* topo: linha 1 = identidade + barra (atalhos fixados, Configurações, seletor de modo); linha 2 = abas */
+.topo { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px 16px; }
+.titulo { grid-area: 1 / 1; }
+.acoes { grid-area: 1 / 2; justify-content: flex-end; }
+.abas { grid-area: 2 / 1 / 3 / -1; justify-self: start; max-width: 100%; overflow-x: auto; scrollbar-width: thin; }
+/* celular: linha 1 = logo e título; linha 2 = barra; linha 3 = abas (as preferências de aparência continuam valendo) */
+@media (max-width: 720px) {
+  .topo { gap: 10px 8px; }
+  .titulo { gap: 10px; }
+  .acoes { grid-area: 2 / 1 / 3 / -1; justify-content: flex-start; }
+  .abas { grid-area: 3 / 1 / 4 / -1; }
+  .acoes .btn { min-height: 44px; }
+  .logo { width: 36px; height: 36px; }
+  .classico .logo { width: 32px; height: 32px; }
+  .titulo h1 { font-size: 18px; }
+  .btn-icone, .btn-icone:not(:has(.rot)), .btn-atalho { min-height: 44px; min-width: 44px; }
+  .interruptor { min-height: 44px; }
+  .dlg-acoes .btn { min-height: 44px; flex: 1 1 auto; }
+  .dlg .campo { min-height: 44px; font-size: 16px; }
+  .crono-topo .btn, .crono-topo .seg button { min-height: 40px; }
+}
+
+/* =====================================================================
+   v6 — abas com ícone, Configurações, cadeado, setas de requisitos, "A ECI por trás da Grade"
+   ===================================================================== */
+.abas button { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.abas button .ico { opacity: .85; }
+/* Aparência das abas e da barra (Configurações → Aparência). O nome acessível vem sempre do .rot. */
+:root[data-aparencia="texto"] :is(.abas, .acoes) .ico { display: none; }
+:root[data-aparencia="icone"] :is(.abas, .acoes) .rot {
+  position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+:root[data-aparencia="icone"] .abas button { padding-inline: 12px; }
+
+/* Configurações */
+.opcoes { border: 1px solid var(--border); border-radius: 10px; margin: 14px 0 0; padding: 8px 12px 10px; }
+.opcoes legend { font-weight: 600; font-size: 13px; padding: 0 4px; }
+.opcao { display: flex; align-items: center; gap: 8px; min-height: 36px; cursor: pointer; }
+.opcao input { width: 18px; height: 18px; accent-color: var(--text); }
+
+/* anúncio curto (cadeado, avisos) acima da paleta */
+.anuncio { position: fixed; left: 50%; top: 14px; transform: translate(-50%, -8px); z-index: 30; margin: 0; max-width: min(520px, calc(100vw - 32px));
+  padding: 8px 14px; border-radius: 10px; background: var(--text); color: var(--bg); font-size: 13px; box-shadow: 0 8px 24px rgb(0 0 0 / .25);
+  opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; }
+.anuncio.visivel { opacity: 1; transform: translate(-50%, 0); }
+@media (prefers-reduced-motion: reduce) { .anuncio { transition: none; } }
+
+/* cadeado da paleta e cartões protegidos */
+.pal-cadeado[aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
+.card .cad { position: absolute; top: 4px; right: 5px; color: var(--muted); line-height: 0; }
+.pintando .card.protegida { cursor: not-allowed; }
+.chip-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+/* aviso dos PDFs no importador e colisão de planos na prévia */
+.aviso-pdf { display: flex; gap: 8px; align-items: flex-start; margin: 10px 0 0; padding: 8px 10px; border-radius: 8px;
+  background: color-mix(in srgb, var(--aprovado) 10%, var(--surface)); border: 1px solid color-mix(in srgb, var(--aprovado) 35%, var(--border)); font-size: 13px; }
+.aviso-pdf .ico { color: var(--aprovado); margin-top: 1px; }
+.siga-planos .ok-planos { color: var(--aprovado); }
+.colisao-planos { margin: 10px 0 0; padding: 8px 10px; border-radius: 8px; border: 1px solid color-mix(in srgb, var(--alerta) 50%, var(--border));
+  background: color-mix(in srgb, var(--alerta) 8%, var(--surface)); font-size: 13px; }
+.colisao-planos p { margin: 0 0 6px; }
+.colisao-planos .check { color: var(--text); }
+
+/* setas de requisitos (SVG sobre a grade; não recebe cliques) */
+.painel { position: relative; }
+.setas { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; }
+.setas-foco, .setas-demo { z-index: 3; }
+.setas-todas { z-index: 0; }
+.vista-grade .card { z-index: 1; }
+.setas .halo { fill: none; stroke: var(--surface); stroke-width: 5; opacity: .9; }
+.setas-todas .halo { display: none; }
+.setas .seta { fill: none; stroke: var(--muted); stroke-width: 1.6; }
+.setas .seta.coreq { stroke-dasharray: 6 4; }
+.setas .seta.entra { stroke: var(--req); stroke-width: 2.4; }
+.setas .seta.sai { stroke: var(--alerta); stroke-width: 2.4; }
+.setas-todas .seta { opacity: .55; }
+.setas .ponta-neutra path { fill: var(--muted); }
+.setas .ponta-entra path { fill: var(--req); }
+.setas .ponta-sai path { fill: var(--alerta); }
+.leg-setas { display: inline-flex; gap: 6px; align-items: center; font-size: 12px; color: var(--muted); }
+.leg-setas i { display: inline-block; width: 22px; border-top: 2px solid var(--muted); vertical-align: middle; }
+.leg-setas i.l-coreq { border-top-style: dashed; margin-left: 6px; }
+
+/* ---------- A ECI por trás da Grade ---------- */
+.painel.vista-eci { display: block; overflow-x: visible; }
+.eci { max-width: 1100px; }
+.eci-topo h2 { margin: 0 0 4px; font-size: 20px; }
+.eci-topo p { margin: 0 0 14px; color: var(--muted); max-width: 70ch; }
+.logica { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 10px; }
+.logica summary { cursor: pointer; font-weight: 600; min-height: 32px; display: flex; align-items: center; }
+.logica p { max-width: 75ch; margin: 8px 0; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* 1. setas */
+.mini-grade { position: relative; display: grid; grid-template-columns: repeat(5, minmax(96px, 1fr)); gap: 12px 28px; overflow-x: auto; padding: 4px 2px 10px; }
+.mini-col { display: flex; flex-direction: column; gap: 14px; }
+.mini-sem { font-size: 12px; font-weight: 600; color: var(--muted); text-align: center; }
+.no { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 2px; text-align: center; font: inherit; font-size: 12px; color: var(--text); cursor: pointer;
+  padding: 8px 6px; min-height: 56px; border-radius: 10px; background: var(--surface-2); border: 1.5px solid var(--border); }
+.no b { font-size: 12px; }
+.no span { color: var(--muted); }
+.no.foco { border-color: var(--text); background: var(--surface); box-shadow: 0 0 0 2px var(--text); }
+.l-tipo { display: inline-block; width: 22px; border-top: 2.5px solid; vertical-align: middle; margin-right: 8px; }
+.l-entra { border-color: var(--req); } .l-sai { border-color: var(--alerta); } .l-tracejada { border-top-style: dashed; }
+
+
+
+@media (max-width: 720px) {
+  .mini-grade { grid-template-columns: repeat(5, 104px); }
+  .abas button { min-height: 44px; }
+}
+
+/* =====================================================================
+   v7 — Configurações com atalhos fixáveis, Referências, seletor "ECI por trás" e experiências em tela cheia
+   ===================================================================== */
+.dlg { overflow: auto; }
+.dlg-config { width: min(620px, calc(100vw - 24px)); }
+.dlg-titulo .ico { vertical-align: -3px; }
+.cfg-sec { border-top: 1px solid var(--border); margin-top: 16px; padding-top: 10px; }
+.cfg-sec h2 { margin: 0 0 6px; font-size: 15px; }
+.cfg-linha { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0; }
+.cfg-linha .cfg-abrir { display: inline-flex; align-items: center; gap: 6px; min-width: 190px; justify-content: flex-start; }
+.cfg-rot { min-width: 190px; font-size: 13px; }
+.cfg-fixar { display: inline-flex; align-items: center; gap: 6px; }
+.cfg-fixar[aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
+.cfg-linha .dica { margin: 0; }
+.opcoes .cfg-linha { margin: 6px 0 2px; }
+
+.refs li { flex-direction: column; align-items: flex-start; gap: 2px; }
+.refs a { display: inline-flex; align-items: center; gap: 5px; font-weight: 600; min-height: 28px; }
+
+/* paleta: seletor "ECI por trás" */
+.pal-eci .ico { flex: 0 0 auto; }
+.dica-eci { margin: 6px auto 0; max-width: 560px; text-align: center; font-size: 12px; color: var(--text);
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 6px 10px; }
+.card[inert] { opacity: .3; filter: grayscale(.6); }
+.card.com-eci { outline: 3px solid var(--text); outline-offset: 2px; }
+.card .selo-eci { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; font-weight: 700; color: var(--text); }
+
+/* experiência em tela cheia */
+.dlg-eci { width: 100vw; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 0; border: 0;
+  background: var(--bg); color: var(--text); overflow: auto; }
+.dlg-eci::backdrop { background: var(--bg); }
+dialog.dlg-eci:modal { overscroll-behavior: contain; }
+.eci-barra { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 14px; padding: 12px 20px;
+  background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(6px); border-bottom: 1px solid var(--border); }
+.eci-barra .dlg-titulo { margin: 0; font-size: 17px; }
+.eci-barra .btn { min-height: 44px; }
+.eci-exp { max-width: 1180px; margin: 0 auto; padding: 16px 20px 40px; }
+.eci-etq { display: block; font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 2px; }
+.eci-problema { font-size: 16px; max-width: 70ch; margin: 4px 0 14px; padding: 10px 14px; border-left: 4px solid var(--text); background: var(--surface); border-radius: 0 10px 10px 0; }
+.eci-termo { margin: 14px 0 0; padding: 10px 14px; border-radius: 10px; background: color-mix(in srgb, var(--cursando) 10%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--cursando) 35%, var(--border)); max-width: 80ch; }
+.eci-acao { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 8px 0; }
+.eci-acao .btn { min-height: 44px; }
+.selo-sim { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 99px; color: var(--alerta); border: 1px solid currentColor; }
+.aviso-sim { margin: 8px 0; padding: 8px 12px; border-radius: 10px; color: var(--alerta); border: 1px dashed var(--alerta); font-size: 13px; }
+.eci-alerta { margin: 8px 0; padding: 8px 12px; border-radius: 10px; background: var(--reprovado-bg); color: var(--reprovado);
+  border: 1px solid color-mix(in srgb, var(--reprovado) 40%, transparent); font-weight: 600; }
+.pseudo { font-family: ui-monospace, Consolas, monospace; font-size: 12px; background: var(--surface-2); padding: 10px 12px; border-radius: 8px; overflow-x: auto; }
+
+/* COS110 */
+.eci-pdf { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 16px; align-items: start; }
+.eci-col h3 { margin: 0 0 6px; font-size: 14px; }
+.linhas-lidas { margin: 6px 0 0; padding-left: 22px; display: flex; flex-direction: column; gap: 3px; font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
+.linhas-lidas li small { display: block; font-family: system-ui, sans-serif; color: var(--muted); }
+.linhas-lidas .descartada { color: var(--muted); }
+.linhas-lidas .descartada .txt { text-decoration: line-through; }
+.selo-etapa { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 99px; margin: 0 6px 6px 0; border: 1px solid currentColor; }
+.selo-etapa.real { color: var(--aprovado); }
+.selo-etapa.ilustrativa { color: var(--alerta); }
+.linha-btn { font: inherit; text-align: left; width: 100%; padding: 4px 6px; min-height: 32px; border-radius: 6px; cursor: pointer;
+  color: var(--text); background: var(--surface); border: 1px solid var(--border); }
+.linha-btn.sel, .tabela-eci tr.sel td, .previa-periodos li.sel { background: color-mix(in srgb, var(--cursando) 16%, var(--surface)); }
+.linha-btn.sel { border-color: var(--cursando); }
+.mudou, .tabela-eci tr.mudou td:first-child { box-shadow: inset 3px 0 0 var(--alerta); }
+.mudou .linha-btn { border-color: var(--alerta); }
+.tabela-eci { font-size: 12px; }
+.editor-linha { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
+.editor-linha small { flex-basis: 100%; color: var(--muted); }
+#ed-grau { width: 84px; }
+.previa-periodos ul { margin: 2px 0 6px; padding-left: 16px; }
+.previa-periodos li li { padding: 1px 4px; border-radius: 4px; }
+
+/* COS242 */
+.no small { font-size: 10px; color: var(--muted); }
+.no.est-cursada { border-color: var(--aprovado); background: var(--aprovado-bg); }
+.no.est-liberada { border-style: dashed; border-color: var(--cursando); }
+.no.est-bloqueada small { color: var(--muted); }
+.setas .seta.sim { stroke: var(--planejado); stroke-width: 2.4; stroke-dasharray: 2 4; }
+.setas .ponta-sim path { fill: var(--planejado); }
+.leg-setas i.l-sim { border-top: 2px dotted var(--planejado); margin-left: 6px; }
+.eci-dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 6px 0; }
+.eci-dl dt { font-weight: 600; } .eci-dl dd { margin: 0; }
+.simula { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.simula small { flex-basis: 100%; color: var(--muted); }
+
+/* EEL873 */
+.lados { display: flex; flex-wrap: wrap; gap: 6px 24px; font-size: 13px; }
+.lados p { margin: 4px 0; }
+.tabela-eci tr.passa td:last-child { color: var(--aprovado); font-weight: 600; }
+.tabela-eci tr.falha td:last-child { color: var(--reprovado); font-weight: 600; }
+.difs { margin: 4px 0 0; padding-left: 16px; font-weight: 400; color: var(--text); }
+.cenarios .opcao { align-items: flex-start; }
+.eci-explica-txt { max-width: 80ch; }
+
+/* aba A ECI por trás da Grade */
+.eci-sub { font-size: 15px; margin: 16px 0 6px; }
+.eci-passos { margin: 0; padding-left: 20px; max-width: 75ch; display: flex; flex-direction: column; gap: 4px; }
+.eci-lista { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; max-width: 900px; }
+.eci-lista li { display: flex; gap: 14px; align-items: center; justify-content: space-between; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); }
+.eci-lista p { margin: 4px 0 0; color: var(--muted); max-width: 70ch; }
+.eci-lista .btn { flex: 0 0 auto; min-height: 44px; }
+
+@media (max-width: 900px) { .eci-pdf { grid-template-columns: 1fr; } }
+@media (max-width: 720px) {
+  .eci-barra { padding: 8px 12px; } .eci-barra .dlg-titulo { font-size: 15px; }
+  .eci-exp { padding: 12px 12px 32px; }
+  .eci-lista li { flex-direction: column; align-items: stretch; }
+  .eci-dl { grid-template-columns: 1fr; }
+  .cfg-linha .cfg-abrir, .cfg-rot { min-width: 0; flex: 1 1 auto; }
+  .cfg-linha .btn { min-height: 44px; }
+  .opcao { min-height: 44px; }
 }

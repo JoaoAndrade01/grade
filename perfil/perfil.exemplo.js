@@ -1,5 +1,5 @@
 // Perfil de exemplo, para entender o formato (especificação completa em docs/PERFIL.md).
-// Você NÃO precisa escrever o seu à mão: use "⤓ Importar do SIGA" no app ou ferramentas/gerar_perfil.py.
+// Você NÃO precisa escrever o seu à mão: use "Importar do SIGA" no app ou ferramentas/gerar_perfil.py.
 // Se quiser editar à mão: copie para perfil/perfil.js (ignorado pelo git). O conteúdo após "window.PERFIL =" é JSON.
 //
 // Campos de cada disciplina (ou só o código, como string):

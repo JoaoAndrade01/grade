@@ -68,7 +68,8 @@ flowchart LR
 | `js/guia.js` | Dificuldade 🟢🔵🟡🟠🔴, presença e comentários | Notion "Grades de ECI (Editável)" | Hoje: cópia manual. Plano: sincronização automática | Sim (pedir autorização aos autores) |
 | `js/siga.js` | Regras de leitura do Histórico e do BOA | — (código) | Ao mudar o layout dos PDFs do SIGA | Sim |
 | `perfil/perfil.js` | Perfil pessoal (períodos, notas, planos, pedidos, extensão, tags) | PDFs do SIGA + edições do aluno | "Importar do SIGA" ou `gerar_perfil.py`; edições pelo app + "Exportar" | **Não** (`.gitignore`) |
-| `localStorage` | Perfil importado, tags, marcações, edições, preferências | Navegador | Automático | **Não** (fica no computador) |
+| `js/demo-pdf.js` | PDFs **fictícios** e saída Python pré-computada para "A ECI por trás da Grade" | `ferramentas/gerar_demo_pdf.py` | Ao mudar as regras do importador | Sim (sem dado real) |
+| `localStorage` | Perfil importado, tags, marcações, edições, preferências (lista em [PRIVACIDADE.md](PRIVACIDADE.md)) | Navegador | Automático | **Não** (fica no computador) |
 
 ---
 
@@ -83,8 +84,13 @@ Arquivos de origem das marcas. [UFRJ no Wikimedia Commons](https://commons.wikim
 
 ## 2. Camadas do app
 
-O site abre no **modo clássico** (interruptor no topo, ligado): só a grade inteira numa tela e a paleta para
-pintar. Desligando o interruptor aparecem as abas abaixo. Os dois modos usam os mesmos dados.
+O site abre no **modo clássico** (seletor de modo no topo, ligado): só a grade inteira numa tela e a paleta para
+pintar. Desligando o seletor aparecem as abas abaixo. Os dois modos usam os mesmos dados. Em **Configurações**
+(engrenagem, sempre no topo) dá para trocar o modo, ocultar o seletor, escolher a aparência e fixar atalhos na barra.
+
+Ordem de carga no `index.html`: `js/tema.js` (síncrono, no `<head>`, aplica tema e aparência antes da primeira pintura) →
+dados do curso → `js/siga.js` → `perfil/perfil.js` (opcional) → `js/eci.js` → `js/app.js` (`defer`). O pdf.js e
+`js/demo-pdf.js` só são carregados quando a importação ou uma experiência pede.
 
 ```mermaid
 flowchart TB
@@ -100,8 +106,11 @@ flowchart TB
     OP["Optativas: catálogo, ativas/inativas, liberadas, horário"]
     CR["Cronograma: grade semanal, choques, sugestões, 'para formar'"]
     EQ["Equivalências e Extensão/ACE: pedidos, contas automáticas, livre escolha"]
-    DET["Painel lateral: guia, histórico, requisitos, tags"]
+    DET["Painel lateral: guia, histórico, requisitos, tags, Privacidade, Referências"]
+    ECI["A ECI por trás da Grade: seletor na paleta + experiências em tela cheia (js/eci.js)"]
   end
+  CFG["Configurações: aparência, tema, modo, atalhos fixados, Exibir/setas/cadeado"]
+  CFG -.-> C1 & C2 & C3
   C1 --> C2 --> C3
 ```
 
@@ -116,6 +125,12 @@ flowchart TB
 | Requisito cumprido antes de um período | `cumpridoAntes`, `avisos` |
 | Equivalência deferida conta a pedida e consome as cursadas da livre escolha | `montaModelo` (bloco "Equivalências"), `analisaPedido` |
 | Sugestões sem choque para um período | `candidatos`, `montaProposta` |
+| Aviso de oferta por paridade (obrigatórias fora do ciclo básico) | `avisoOferta`, `CICLO_BASICO` |
+| Setas de requisitos (Grade → Exibir) | `arestasDe`, `desenhaSetas` (em `js/eci.js`) |
+| Cadeado: cursadas protegidas contra alterações manuais | `protegida`, `marca`, `pinta` |
+| Períodos planejados excluídos e planos preservados na prévia do SIGA | `excluiPeriodo`, `plano.removidos`, `perfilDaImportacao`, `avaliaImportacao` |
+| Barra de atalhos e Configurações | `renderAtalhos`, `renderConfig`, `ATALHOS` |
+| Experiências de "A ECI por trás da Grade" (sem ler nem gravar estado) | `js/eci.js` (`abre`, `analisaGrafo`, `rodaJs`) |
 
 ---
 
@@ -143,6 +158,8 @@ Detalhe passo a passo em [`docs/MUDANCAS.md`](MUDANCAS.md). Em resumo:
    contas automáticas e situação "a pedir".
 7. **Importador do SIGA** determinístico (navegador e Python, mesmas regras, teste de paridade).
 8. Correções no currículo (requisitos de COS231 e EEL418, créditos do Estágio).
+9. Interface: tema claro/escuro, logo, Configurações com atalhos fixáveis, setas de requisitos, cadeado, aviso de oferta,
+   exclusão de períodos e a seção didática **A ECI por trás da Grade** (COS110, COS242, EEL873).
 
 ---
 

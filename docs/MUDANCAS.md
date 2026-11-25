@@ -99,6 +99,27 @@ Serve de base para os commits/PR: cada etapa pode virar um commit.
 - Ícones Lucide embutidos (`js/icones.js`); `docs/DESIGN.md` com tokens, componentes e checklist de acessibilidade.
 - Diagramas no estilo desenhado à mão (`docs/diagramas/*.svg`, gerados por `docs/diagramas/gerar.js`).
 
+## Etapa 12 — Interface, Configurações e "A ECI por trás da Grade"
+
+- **Tema** claro/escuro (`js/tema.js`, síncrono no `<head>`): segue o sistema até a primeira escolha; vale para controles nativos.
+- **Logo do Grêmio** no topo e como favicon; aba "Grade ECI"; cabeçalho "Grade ECI — Nome" com perfil.
+- **Sem perfil:** abre no modo clássico, sem nome nem progresso; "Criar perfil" e "Importar do SIGA" no topo.
+- **Criar/Editar perfil** com nome e semestre atual opcionais, preservando marcações e planos.
+- **Configurações** (engrenagem): aparência (Ícone e texto, Somente texto, Somente ícone), tema, modo, seletor de modo
+  visível ou oculto, Exibir/setas/cadeado sincronizados com a Grade e Limpar dados salvos. Perfil, Importar do SIGA,
+  Tema, Privacidade, Referências e Tags podem ser fixados na barra; todos começam desafixados.
+- **Referências:** fonte dos horários e do guia, links para a Intranet UFRJ (SIGA), o currículo oficial e os repositórios.
+- **Abas e atalhos com ícone e texto** (Lucide, `js/icones.js`). Correção: os ícones antigos abriam um `<svg>` sem fechar e
+  escondiam o texto seguinte (ex.: "Borracha").
+- **Setas de requisitos** em Grade → Exibir: Ocultas, Disciplina em foco (mouse, teclado, toque) e Todas.
+- **Paleta:** Cursada, Cursando e Planejada; migração da paleta antiga sem mudar estados; **cadeado** que protege as cursadas.
+- **Aviso de oferta por semestre** para obrigatórias fora do ciclo básico; **Excluir período** no Cronograma.
+- **Prévia do SIGA:** período atual sugerido e corrigível; planos preservados; colisões com confirmação explícita, que sai
+  quando o conjunto de planos em conflito muda; "Usar este perfil" e "Baixar perfil.js" com a mesma validação; "Descartar prévia".
+- **Contraste** dos avisos em âmbar ajustado (≥ 4,5:1) e foco visível em todos os controles.
+- **A ECI por trás da Grade:** seletor "ECI por trás" na paleta e experiências em tela cheia para COS110, COS242 e EEL873,
+  com PDFs fictícios (`js/demo-pdf.js`, gerado por `ferramentas/gerar_demo_pdf.py`) e saída Python pré-computada.
+
 ## Sugestão de commits
 
 ```
@@ -113,6 +134,7 @@ Serve de base para os commits/PR: cada etapa pode virar um commit.
 9. feat: importador determinístico do SIGA (navegador + Python)
 10. docs: arquitetura, perfil, importador, publicação e registro de mudanças
 11. feat: modo clássico, celular, paleta, privacidade (CSP) e diagramas
+12. feat: interface (tema, Configurações, atalhos, setas, cadeado, prévia do SIGA) e A ECI por trás da Grade
 ```
 
 Não entram no git: `perfil/perfil.js`, PDFs, planilhas, a página salva do currículo e a pasta "Claude outputs".

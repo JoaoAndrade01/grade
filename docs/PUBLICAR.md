@@ -30,10 +30,11 @@ Um commit único:
 
 ```powershell
 git add -A
-git commit -m "Grade Interativa v2: modo clássico, importador do SIGA, planejamento e documentação"
+git commit -m "Descreva a mudança"
 ```
 
-Ou um commit por etapa, como sugerido no fim de [MUDANCAS.md](MUDANCAS.md).
+Mudanças grandes ficam numa branch própria (ex.: `codex/ajustes-de-interface`) e passam por revisão antes do merge
+na `master` e da publicação. Sugestão de commits por etapa no fim de [MUDANCAS.md](MUDANCAS.md).
 
 ## 4. Enviar para o fork
 
@@ -44,9 +45,17 @@ git push -u origin master
 ## 5. Ligar o GitHub Pages
 
 No GitHub: **Settings → Pages → Build and deployment → Source: Deploy from a branch → `master` / `(root)` → Save**.
-Em 1–2 minutos o site fica em **https://joaoandrade01.github.io/grade/**.
+Em 1–2 minutos o site fica em **https://joaoandrade01.github.io/grade/** (em 25/11/2026 esse endereço ainda
+respondia 404: a publicação não tinha sido feita).
 
-Mande o link para o pessoal: abrir → ícone de enviar (Importar do SIGA) → Histórico + BOA → **Usar este perfil**.
+Mande o link para o pessoal: abrir → **Importar do SIGA** (no topo enquanto não há perfil) → Histórico + BOA →
+conferir a prévia → **Usar este perfil**. Quem preferir pode só pintar a grade ou usar **Criar perfil**.
+
+Antes de publicar, confira no site:
+- abre no modo clássico, com o seletor de modo e a engrenagem no topo;
+- F12 → Rede: nenhuma requisição para fora do domínio (o 404 de `perfil/perfil.js` é esperado);
+- **Configurações → Referências** abre os links certos;
+- **A ECI por trás da Grade** funciona sem perfil.
 
 ## Mantendo sincronizado
 
@@ -59,6 +68,7 @@ Mande o link para o pessoal: abrir → ícone de enviar (Importar do SIGA) → H
 ## Observações
 
 - No site publicado não existe `perfil/perfil.js`; o navegador mostra um aviso 404 no console, que é esperado.
+- O site funciona igual por GitHub Pages e por `file://`: não há build nem dependência externa em tempo de execução.
 - O `js/guia.js` traz comentários de alunos copiados do Notion; combine com quem mantém a página antes de publicar
   (o app funciona sem esse arquivo).
 - GitHub Pages em repositório privado exige plano pago; para testes, deixe o fork público.

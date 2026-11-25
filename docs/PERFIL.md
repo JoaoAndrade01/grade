@@ -10,7 +10,8 @@ Este documento serve para entender o arquivo e para quem quiser mexer no código
 
 ```js
 window.PERFIL = {
-  "titulo": "Grade ECI",                       // texto do cabeçalho
+  "titulo": "Grade ECI",                       // perfis antigos: "Grade ECI — Fulano" também é aceito
+  "nome": "Ana",                               // opcional; o cabeçalho mostra "Grade ECI — Ana"
   "subtitulo": "…",
   "curso": 1,                                  // índice do curso em js/database.js (ECI = 1)
   "fonte": { "geradoPor": "siga.js 1.0", "geradoEm": "2026-11-26", "boaEmissao": "25/11/2026" },
@@ -18,7 +19,7 @@ window.PERFIL = {
   "equivalencias": [ … ],                      // pedidos de dispensa/equivalência
   "extensao": [ … ],                           // atividades de Extensão / ACE
   "tags": [ … ],                               // tags de cor (opcional)
-  "marcacoes": { "COS482": "aprov-esperada" }, // o que foi pintado com o pincel (opcional)
+  "marcacoes": { "COS482": "planejada" },      // o que foi pintado com o pincel (opcional)
   "periodos": [ … ]
 };
 ```
@@ -26,6 +27,8 @@ window.PERFIL = {
 ## `periodos`
 
 Cada período tem `nome` e `disciplinas`. Os períodos podem ser marcados como `"atual": true` ou `"planejado": true`.
+O nome costuma ser `AAAA/1` ou `AAAA/2`. Um período atual sem data se chama `"atual"`, como o importador gera quando o
+Histórico não tem um semestre para servir de base. Sem o formato `AAAA/n`, o aviso de oferta por semestre não compara paridade.
 
 | Tipo de período | Status padrão das disciplinas |
 |---|---|
@@ -77,9 +80,14 @@ São as disciplinas que contam como **livre escolha** e podem ser usadas em pedi
 ## `tags` e `marcacoes`
 
 ```json
-"tags": [{ "id": "aprovada", "nome": "Aprovada", "cor": "#16a34a", "status": "aprovado" }, …],
-"marcacoes": { "FIM240": "reprov-esperada", "COE363": "aprov-esperada" }
+"tags": [{ "id": "aprovada", "nome": "Cursada", "cor": "#16a34a", "status": "aprovado" }, …],
+"marcacoes": { "FIM240": "cursando", "COE363": "planejada" }
 ```
+
+A paleta padrão tem **Cursada** (`aprovada`: cursada e aprovada, conta como concluída), **Cursando** (`cursando`) e
+**Planejada** (`planejada`). Perfis com a paleta antiga de cinco tags continuam funcionando: quem nunca a personalizou
+passa para a nova, e as tags antigas que ainda pintam alguma disciplina (como `aprov-esperada` e `reprov-esperada`) são
+mantidas. Tags personalizadas não mudam.
 
 O `status` de uma tag define como ela entra nas contas (`aprovado`, `previsto`, `cursando`, `planejado`,
 `reprovado` ou `pendente`). Uma marcação **vence** o que o perfil diz; `""` significa "sem tag".

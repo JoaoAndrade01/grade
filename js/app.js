@@ -18,7 +18,13 @@
  *    perfilImportado  perfil gerado pelo "Importar do SIGA" (tem prioridade sobre perfil.js)
  *    tags, marcacoes  tags de cor e o que foi pintado com o pincel
  *    plano            edições de planejamento/pedidos/extensão ainda não exportadas
- *    modoClassico     interruptor do topo (padrão: ligado = só a grade e a paleta)
+ *                     (plano.removidos = períodos planejados do perfil excluídos no Cronograma)
+ *    tema             "claro" | "escuro": escolha do botão sol/lua (js/tema.js); sem ela, segue o sistema
+ *    modoClassico     seletor de modo do topo (padrão: ligado = só a grade e a paleta)
+ *    ocultarSeletor   esconde o seletor de modo (o modo continua o escolhido; troca em Configurações)
+ *    atalhos          atalhos fixados na barra: perfil, importar, tema, privacidade, referencias, tags (começa vazio)
+ *    aparencia        "texto" | "icone" (sem a chave = ícone e texto), aplicada por js/tema.js
+ *    cadeado          protege as cursadas contra alterações manuais
  *    vista, filtros, exibir, filtroNivel, cronoPeriodo, progressoAberto   preferências de tela
  *
  *  FLUXO
@@ -63,6 +69,15 @@
   const DIAS_NOME = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta"];
   const H_INI = 8, H_FIM = 17; // faixa do cronograma: 8h às 17h
   const PALETA = ["#2563eb", "#16a34a", "#d97706", "#db2777", "#7c3aed", "#0d9488", "#dc2626", "#4f46e5", "#65a30d", "#0891b2", "#c026d3", "#ea580c"];
+  // Obrigatórias do ciclo básico: não recebem o aviso de oferta por semestre (lista aprovada em 2026-11-25).
+  const CICLO_BASICO = new Set([
+    "MAC118", "MAC128", "MAC238", "MAC248", "MAE125", "COE241",                       // Matemática e Estatística
+    "FIT112", "FIS111", "FIT122", "FIS121", "FIT230", "FIM230", "FIN231", "FIT240",
+    "FIM240", "FIN241", "IQG111", "IQG112",                                           // Física e Química
+    "COS111", "COS110", "EEL280", "EEL480", "EEL670", "COS231",                       // Computação e Engenharia
+  ]);
+  const TITULO = "Grade ECI";
+  const semestreValido = (v) => typeof v === "string" && /^\d{4}\/[12]$/.test(v);
   const concluido = (s) => s === "aprovado" || s === "previsto";
   const emCurso = (s) => s === "planejado" || s === "cursando";
 
@@ -166,6 +181,7 @@
   }
   const planoValido = (p) => objeto(p) && listasValidas(p)
     && opcional(p.novos, (v) => listaDe(v, periodoValido))
+    && opcional(p.removidos, (v) => listaDe(v, nomePeriodo))
     && (p.periodos === undefined || (objeto(p.periodos)
       && Object.entries(p.periodos).every(([nome, itens]) => nomePeriodo(nome) && listaDe(itens, disciplinaValida))));
 
@@ -196,14 +212,32 @@
   // Cada tag tem um "status" que diz como ela entra nas contas:
   //   aprovado (concluída) · previsto (aprovação esperada, conta como cursando na barra)
   //   cursando · planejado · reprovado (não conta) · pendente (não conta)
+  // Paleta padrão: Cursada (= cursada e aprovada, conta como concluída), Cursando e Planejada.
   const TAGS_PADRAO = [
+    { id: "aprovada", nome: "Cursada", cor: "#16a34a", status: "aprovado" },
+    { id: "cursando", nome: "Cursando", cor: "#2563eb", status: "cursando" },
+    { id: "planejada", nome: "Planejada", cor: "#7c3aed", status: "planejado" },
+  ];
+  // Paleta padrão até 2026-11 (5 tags). Quem nunca a personalizou passa para a nova, mantendo as tags antigas
+  // que ainda pintam alguma disciplina (assim nenhuma marcação muda de estado).
+  const TAGS_PADRAO_V1 = [
     { id: "aprovada", nome: "Aprovada", cor: "#16a34a", status: "aprovado" },
     { id: "aprov-esperada", nome: "Aprovação esperada", cor: "#84cc16", status: "previsto" },
     { id: "cursando", nome: "Cursando", cor: "#2563eb", status: "cursando" },
     { id: "reprov-esperada", nome: "Reprovação esperada", cor: "#dc2626", status: "reprovado" },
     { id: "planejada", nome: "Planejada", cor: "#7c3aed", status: "planejado" },
   ];
-  const CONTA_COMO = { aprovado: "Concluída", previsto: "Aprovação esperada", cursando: "Em curso", planejado: "Planejada", reprovado: "Reprovação (não conta)", pendente: "Não conta" };
+  function migraTags(lista, marc) {
+    if (!lista || JSON.stringify(lista) !== JSON.stringify(TAGS_PADRAO_V1)) return lista;
+    const usadas = new Set(Object.values(marc || {}));
+    return clone(TAGS_PADRAO).concat(TAGS_PADRAO_V1.filter((t) => usadas.has(t.id) && !TAGS_PADRAO.some((n) => n.id === t.id)));
+  }
+  // Cor de estados do perfil que não têm tag na paleta (perfis antigos): o cartão continua pintado.
+  const COR_STATUS = {
+    previsto: { id: "", nome: "Aprovação esperada", cor: "#84cc16", status: "previsto" },
+    reprovado: { id: "", nome: "Reprovação esperada", cor: "#dc2626", status: "reprovado" },
+  };
+  const CONTA_COMO = { aprovado: "Concluída (cursada e aprovada)", previsto: "Aprovação esperada", cursando: "Em curso", planejado: "Planejada", reprovado: "Reprovação (não conta)", pendente: "Não conta" };
 
   // ---------- Estado ----------
   // Ordem de prioridade do perfil: importado pelo app (localStorage) > perfil/perfil.js > nenhum.
@@ -235,8 +269,17 @@
     Object.keys(antigo).filter(codigo).forEach((c) => { m[c] = antigo[c] === "aprovado" ? "aprovada" : ""; });
     return m;
   })();
+  tags = migraTags(tags, marcacoes);
   let pincel = null;                 // id da tag selecionada para pintar (null = clique abre detalhes)
-  let exibir = Object.assign({ codigo: true, notas: false, dificuldade: false, presenca: false }, load("exibir", {}));
+  let cadeado = load("cadeado", false, (v) => typeof v === "boolean"); // protege as cursadas contra alterações manuais
+  let focoSetas = null;              // disciplina em foco para as setas de requisitos
+  // Barra do topo: atalhos fixados em Configurações (todos começam desafixados) e o seletor de modo.
+  const ATALHOS = ["perfil", "importar", "tema", "privacidade", "referencias", "tags"];
+  let atalhos = load("atalhos", [], (v) => listaDe(v, (x) => ATALHOS.includes(x)));
+  let ocultarSeletor = load("ocultarSeletor", false, (v) => typeof v === "boolean");
+  let seletorECI = false;            // paleta "ECI por trás" (só nesta visita): destaca os cartões com experiência
+  let exibir = Object.assign({ codigo: true, notas: false, dificuldade: false, presenca: false, setas: "ocultas" }, load("exibir", {}));
+  if (!["ocultas", "foco", "todas"].includes(exibir.setas)) exibir.setas = "ocultas";
   let filtroNivel = load("filtroNivel", [], (v) => listaDe(v, numero));   // níveis de dificuldade em destaque (vazio = todos)
   let progressoAberto = load("progressoAberto", false);
   // Modo clássico (padrão ao abrir): só a grade inteira numa tela e a paleta para pintar.
@@ -305,7 +348,8 @@
       }
     };
 
-    const base = ((perfil && perfil.periodos) || []).map((p) => ({ ...p }));
+    const removidos = new Set(plano.removidos || []);
+    const base = ((perfil && perfil.periodos) || []).filter((p) => !(p.planejado && removidos.has(p.nome))).map((p) => ({ ...p }));
     (plano.novos || []).forEach((n) => { if (!base.some((p) => p.nome === n.nome)) base.push({ disciplinas: [], ...n }); });
 
     const periodos = base.map((p, pi) => {
@@ -413,9 +457,9 @@
       // reprovação no período atual = "reprovação esperada"
       const atual = M.periodos.find((p) => p.tipo === "atual");
       const r = (M.regs[code] || []).find((x) => x.status === "reprovado" && atual && x.pi === atual.pi);
-      return r ? tags.find((t) => t.status === "reprovado") || null : null;
+      return r ? tags.find((t) => t.status === "reprovado") || COR_STATUS.reprovado : null;
     }
-    return tags.find((t) => t.status === s) || null;
+    return tags.find((t) => t.status === s) || COR_STATUS[s] || null;
   }
   const notaDe = (code) => {
     const r = (M.regs[code] || []).filter((x) => concluido(x.status)).pop();
@@ -454,6 +498,23 @@
 
   // Eletiva "ativa" = tem turma na referência (Notion) em algum semestre
   const paridadesOferta = (code) => ["impar", "par"].filter((k) => M.ref && M.ref[k] && M.ref[k][code]);
+  /**
+   * Aviso de oferta para uma obrigatória da ECI (fora do ciclo básico) planejada no período `nome`.
+   * Só compara paridades quando o período está no formato AAAA/1 ou AAAA/2; sem referência em nenhuma
+   * paridade, avisa "Sem oferta de referência". A disciplina continua no plano.
+   * @returns {{curto: string, texto: string} | null}
+   */
+  function avisoOferta(code, nome) {
+    if (M.cursoId !== 1 || !M.ref) return null;
+    const c = M.curr[code];
+    if (!c || c.category !== 1 || CICLO_BASICO.has(code)) return null;
+    const pars = paridadesOferta(code);
+    if (!pars.length) return { curto: "Sem oferta de referência", texto: "Sem oferta de referência. Confira no SIGA." };
+    if (!semestreValido(nome)) return null;
+    if (pars.includes(nome.endsWith("/1") ? "impar" : "par")) return null;
+    const so = pars[0] === "impar" ? "/1" : "/2";
+    return { curto: `Referência só lista turmas em ${so}`, texto: `Pode não ser ofertada neste semestre. A referência só lista turmas em ${so}. Confira no SIGA.` };
+  }
   const ativa = (code) => paridadesOferta(code).length > 0;
   // Choques de uma lista de horários com as disciplinas já no período (exceto "ignorar")
   function chocaCom(horarios, nome, ignorar) {
@@ -566,7 +627,9 @@
   const periodosFuturos = () => M.periodos.filter((p) => p.tipo === "planejado");
 
   function perfilExportado() {
-    const out = perfil ? clone(perfil) : { titulo: "Grade ECI", curso: 1, periodos: [] };
+    const out = perfil ? clone(perfil) : { titulo: TITULO, curso: 1, periodos: [] };
+    const removidos = new Set(plano.removidos || []);
+    out.periodos = out.periodos.filter((p) => !(p.planejado && removidos.has(p.nome)));
     (plano.novos || []).forEach((n) => { if (!out.periodos.some((p) => p.nome === n.nome)) out.periodos.push(Object.assign({}, n, { disciplinas: [] })); });
     out.periodos.forEach((p) => { if (plano.periodos[p.nome]) p.disciplinas = clone(plano.periodos[p.nome]); });
     if (plano.equivalencias) out.equivalencias = clone(plano.equivalencias);
@@ -596,9 +659,10 @@
       ".\n// Salve como perfil/perfil.js (ignorado pelo git).\nwindow.PERFIL = " + linhas.join("\n") + ";\n";
   }
   function exportaPerfil() { baixa("perfil.js", textoPerfil(perfilExportado())); }
-  const temEdicoes = () => Object.keys(plano.periodos).length > 0 || (plano.novos || []).length > 0 || !!plano.equivalencias || !!plano.extensao
+  const temEdicoes = () => Object.keys(plano.periodos).length > 0 || (plano.novos || []).length > 0 || (plano.removidos || []).length > 0
+    || !!plano.equivalencias || !!plano.extensao
     || JSON.stringify(marcacoes) !== JSON.stringify((perfil && perfil.marcacoes) || {})
-    || JSON.stringify(tags) !== JSON.stringify((perfil && perfil.tags) || TAGS_PADRAO);
+    || JSON.stringify(tags) !== JSON.stringify(migraTags((perfil && perfil.tags) || TAGS_PADRAO, marcacoes));
 
   // ---------- Renderização: peças ----------
   const metaDe = (code, valor, cat) =>
@@ -610,6 +674,7 @@
       `class="card s-${esc(o.status)} cat-${esc(o.cat)}${temAviso ? " tem-aviso" : ""}${o.classe ? " " + o.classe : ""}"`,
       o.code ? `data-code="${esc(o.code)}"` : "",
       o.idx != null ? `data-idx="${o.idx}"` : "",
+      o.inerte ? "inert" : "",
       o.fill ? `style="--ok:${o.fill.ok}%;--prev:${o.fill.prev}%;--plan:${o.fill.plan}%"` : "",
       `title="${esc(ROTULO[o.status] || "")}${temAviso ? " — " + esc(o.aviso.join("; ")) : ""}"`,
     ].join(" ");
@@ -644,8 +709,13 @@
       exibir.dificuldade && g && g.nivel ? seloGuia(c.code, true) : "",
       exibir.presenca && g && g.presenca ? esc(PRESENCA[g.presenca]) : "",
     ].filter(Boolean).join(" · ");
-    return `<button type="button" class="card limpo${tag ? " com-tag" : ""}${s === "analise" ? " s-analise" : ""}${apagado ? " apagado" : ""}"
-      data-code="${esc(c.code)}" ${tag ? `style="--tag:${esc(tag.cor)}"` : ""} title="${esc(tag ? tag.nome : ROTULO[s])}">
+    const prot = protegida(c.code);
+    const exp = seletorECI && window.ECI.tem(c.code);
+    return `<button type="button" class="card limpo${tag ? " com-tag" : ""}${s === "analise" ? " s-analise" : ""}${apagado ? " apagado" : ""}${prot ? " protegida" : ""}${exp ? " com-eci" : ""}"
+      data-code="${esc(c.code)}" ${tag ? `style="--tag:${esc(tag.cor)}"` : ""} title="${exp ? "Abrir a experiência: " + esc(window.ECI.tem(c.code).titulo) : esc(tag ? tag.nome : ROTULO[s]) + (prot ? " · protegida pelo cadeado" : "")}"
+      ${seletorECI && !exp ? "inert" : ""}${exp ? ` aria-describedby="dica-eci"` : ""}>
+      ${exp ? `<span class="selo-eci">${icone("eci", 12)} ECI por trás</span>` : ""}
+      ${prot ? `<span class="cad" aria-hidden="true">${icone("cadeado", 11)}</span>` : ""}
       ${nota != null ? `<span class="nota">${esc(typeof nota === "number" ? nota.toFixed(1) : nota)}</span>` : ""}
       <span class="nome">${esc(c.name)}</span>
       ${extras ? `<span class="meta">${extras}</span>` : ""}
@@ -694,7 +764,7 @@
    */
   function renderPaleta() {
     const conta = {};
-    M.grade.forEach((c) => { if (!c.code) return; const t = tagDe(c.code); if (t) conta[t.id] = (conta[t.id] || 0) + 1; });
+    M.grade.forEach((c) => { if (!c.code) return; const t = tagDe(c.code); if (t && t.id) conta[t.id] = (conta[t.id] || 0) + 1; });
     const botao = (id, rotulo, cor, extra = "") => {
       const on = pincel === id;
       return `<button type="button" class="pal-btn${on ? " on" : ""}" data-pincel="${esc(id)}" aria-pressed="${on}"
@@ -703,10 +773,15 @@
     };
     return `<div class="pal-trilho" role="toolbar" aria-label="Paleta: escolha a tag e clique nas disciplinas">
       ${modoClassico ? "" : botao("__detalhes", `${icone("detalhes")} Detalhes`, null, 'title="Clique abre os detalhes da disciplina"')}
+      ${modoClassico ? "" : `<button type="button" class="pal-btn pal-eci${seletorECI ? " on" : ""}" id="pal-eci" aria-pressed="${seletorECI}"
+        title="Destaca as disciplinas com experiência de A ECI por trás da Grade">${icone("eci")} <span>ECI por trás</span></button>`}
       ${tags.map((t) => botao(t.id, `${esc(t.nome)}${conta[t.id] ? ` <small>${conta[t.id]}</small>` : ""}`, t.cor, `title="${esc(CONTA_COMO[t.status] || "")}"`)).join("")}
       ${botao("", `${icone("borracha")} Borracha`, null, 'title="Tirar a tag"')}
       <button type="button" class="pal-btn pal-icone" id="editar-tags" title="Editar tags" aria-label="Editar tags">${icone("tags")}</button>
-    </div>`;
+      <button type="button" class="pal-btn pal-icone pal-cadeado" id="cadeado" aria-pressed="${cadeado}" aria-label="Proteger disciplinas cursadas"
+        title="${cadeado ? "Cursadas protegidas: clique para liberar alterações" : "Proteger as cursadas contra alterações"}">${icone(cadeado ? "cadeado" : "cadeado-aberto")}</button>
+    </div>
+    ${seletorECI ? `<p class="dica-eci" id="dica-eci">Escolha um cartão destacado para abrir a experiência. As outras disciplinas ficam inativas até você desligar “ECI por trás”.</p>` : ""}`;
   }
 
   /** Opções de exibição e filtro (só no modo completo, aba Grade). */
@@ -715,6 +790,11 @@
     return `<div class="ferr-grupo"><span class="ferr-rot">${icone("exibir", 14)} Exibir</span>
         ${[["codigo", "Código e créditos"], ["notas", "Notas"], ["dificuldade", "Dificuldade"], ["presenca", "Presença"]].map(([k, n]) =>
           `<label class="check"><input type="checkbox" data-exibir="${k}" ${exibir[k] ? "checked" : ""}> ${n}</label>`).join("")}
+      </div>
+      <div class="ferr-grupo" role="radiogroup" aria-label="Setas de requisitos"><span class="ferr-rot">${icone("setas", 14)} Setas</span>
+        ${[["ocultas", "Ocultas"], ["foco", "Disciplina em foco"], ["todas", "Todas"]].map(([v, n]) =>
+          `<label class="check"><input type="radio" name="setas" value="${v}" ${exibir.setas === v ? "checked" : ""}> ${n}</label>`).join("")}
+        ${exibir.setas !== "ocultas" ? `<span class="leg-setas"><i class="l-req"></i>pré-requisito <i class="l-coreq"></i>co-requisito</span>` : ""}
       </div>
       ${niveis.length ? `<div class="ferr-grupo"><span class="ferr-rot">Dificuldade</span>
         ${niveis.map((k) => `<button type="button" class="chip chip-btn${filtroNivel.includes(+k) ? " on" : ""}" data-nivel="${k}" title="${esc(M.guia.niveis[k].nome)}">${M.guia.niveis[k].emoji}</button>`).join("")}
@@ -757,7 +837,7 @@
             + (f.nomes.length > 4 ? `<span class="mini">+${f.nomes.length - 4}</span>` : "");
           const pc = (v) => (v / c.credits) * 100;
           return card({
-            idx: c.idx, name: c.name, cat: c.category, status: st, classe: "bloco",
+            idx: c.idx, name: c.name, cat: c.category, status: st, classe: "bloco", inerte: seletorECI,
             meta: `${fmt(feito)}${f.plan ? ` (+${fmt(f.plan)} plan.)` : ""} / ${metaDe(null, c.credits, c.category)}`,
             sub: modoClassico ? "" : nomes, fill: { ok: pc(f.ok), prev: pc(f.ok + f.prev), plan: pc(tudo) },
           });
@@ -765,8 +845,8 @@
         if (concluido(statusDe(c.code))) feitos++;
         return cardLimpo(c);
       }).join("");
-      const chip = `<span class="chip ${feitos === cs.length ? "chip-ok" : ""}">${feitos}/${cs.length}</span>`;
-      html += coluna(`${s}º período`, chip, cards, feitos === cs.length ? "col-completa" : "");
+      const chip = perfil ? `<span class="chip ${feitos === cs.length ? "chip-ok" : ""}">${feitos}/${cs.length}</span>` : "";
+      html += coluna(`${s}º período`, chip, cards, perfil && feitos === cs.length ? "col-completa" : "");
     }
     return html;
   }
@@ -776,8 +856,8 @@
     return `<div class="sem-perfil">
       <h2>Nenhum perfil carregado</h2>
       <p>${texto}</p>
-      <p>Copie <code>perfil/perfil.exemplo.js</code> para <code>perfil/perfil.js</code> e preencha,
-      ou use <b>Importar perfil</b> com um arquivo .json no mesmo formato.</p></div>`;
+      <p>Use <b>Criar perfil</b> para começar do zero, ou <b>Importar do SIGA</b> com os PDFs do Histórico e do BOA.
+      Também dá para carregar um <code>perfil.js</code> pronto pelo painel de importação.</p></div>`;
   }
 
   function renderTimeline() {
@@ -791,6 +871,8 @@
         if (it.equivale && M.curr[it.equivale]) subs.push(`≡ ${esc(it.equivale)} ${esc(M.curr[it.equivale].name)}`);
         if (it.dispensas.length) subs.push("dispensa " + it.dispensas.map(esc).join(", "));
         const aviso = p.tipo !== "cursado" && it.status !== "reprovado" ? avisos(it.alvo, p.pi) : [];
+        const oferta = p.tipo === "planejado" && it.status !== "reprovado" ? avisoOferta(it.alvo, p.nome) : null;
+        if (oferta) { aviso.push(oferta.texto); subs.push(`<span class="aviso-oferta">${esc(oferta.curto)}</span>`); }
         return card({
           code: it.alvo, name: it.name, cat: it.category, status: it.status, nota: it.nota,
           meta: metaDe(it.code, it.category == 5 ? it.horas : it.credits, it.category), sub: subs.join("<br>"), aviso,
@@ -1063,7 +1145,7 @@
     const T5 = tot[5];
 
     return `<div class="pedidos">
-      ${temEdicoes() ? `<p class="aviso-edicao">Há edições só neste navegador. <button type="button" class="btn btn-sm" id="exportar">⤒ Exportar perfil.js</button></p>` : ""}
+      ${temEdicoes() ? `<p class="aviso-edicao">Há edições só neste navegador. <button type="button" class="btn btn-sm" id="exportar">${icone("baixar", 14)} Exportar perfil.js</button></p>` : ""}
       ${contas}
       <section class="sec">
         <h2>Pedidos de dispensa / equivalência</h2>
@@ -1159,6 +1241,11 @@
       const outras = paridadesOferta(it.alvo).filter((x) => x !== paridade(q.nome));
       avisosPlan.push(`<li><b>${esc(it.code)}</b> em ${esc(q.nome)}: ${esc(av.join("; "))}. ${outras.length ? `Também tem turma em semestres ${outras[0] === "par" ? "pares (/2)" : "ímpares (/1)"}.` : `Sem turma de referência em semestres ${paridade(q.nome) === "impar" ? "pares (/2)" : "ímpares (/1)"} — se ficar para depois, só volta em ${q.nome.replace(/\d{4}/, (a) => +a + 1)}.`} Alternativa: pedir à coordenação quebra de requisito (cursar junto com o requisito).</li>`);
     }));
+    periodosFuturos().forEach((q) => q.itens.forEach((it) => {
+      if (it.status === "reprovado") return;
+      const of = avisoOferta(it.alvo, q.nome);
+      if (of) avisosPlan.push(`<li><b>${esc(it.code)}</b> em ${esc(q.nome)}: <span class="aviso-oferta">${esc(of.texto)}</span></li>`);
+    }));
     const pend = semPeriodo.map((c) => {
       const pars = paridadesOferta(c.code);
       return `<li><b>${esc(c.code)}</b> ${esc(c.name)} <small>${pars.length ? `turma em ${pars.map((x) => (x === "impar" ? "/1" : "/2")).join(" e ")}` : "sem horário fixo"}</small></li>`;
@@ -1210,8 +1297,9 @@
         <button type="button" class="btn btn-sm" id="novo-periodo">+ Período</button>
         <span class="espaco"></span>
         ${temEdicoes() ? `<span class="chip chip-alerta">edições não exportadas</span>` : ""}
-        <button type="button" class="btn btn-sm" id="exportar" title="Baixar perfil.js com as edições">⤒ Exportar perfil.js</button>
-        ${p && p.editado ? `<button type="button" class="btn btn-sm btn-ghost" id="descartar">Descartar edições de ${esc(p.nome)}</button>` : ""}
+        <button type="button" class="btn btn-sm" id="exportar" title="Baixar perfil.js com as edições">${icone("baixar", 14)} Exportar perfil.js</button>
+        ${p && p.editado && periodoDoPerfil(p.nome) ? `<button type="button" class="btn btn-sm btn-ghost" id="descartar" title="Volta ao conteúdo original do perfil">Descartar edições de ${esc(p.nome)}</button>` : ""}
+        ${p && p.tipo === "planejado" ? `<button type="button" class="btn btn-sm btn-perigo-ghost" id="excluir-periodo">${icone("lixeira", 14)} Excluir período</button>` : ""}
       </div>`;
     if (!p) return `<div class="crono">${topo}<p class="dica">Crie um período para começar.</p></div>`;
 
@@ -1235,11 +1323,13 @@
       if (it.status !== "reprovado" && it.category != 5) cr += it.credits;
       hs += it.cel.size;
       const aviso = p.tipo !== "cursado" && it.status !== "reprovado" ? avisos(it.alvo, p.pi) : [];
+      const oferta = p.tipo === "planejado" && it.status !== "reprovado" ? avisoOferta(it.alvo, p.nome) : null;
       return `<li class="crono-item${cronoSel === it.code ? " sel" : ""} s-${esc(it.status)}" style="--cor:${cor[it.code]}">
         <button type="button" class="crono-pick" data-csel="${esc(it.code)}">
           <i class="sw"></i><span><b>${seloGuia(it.alvo, true)} ${esc(it.name)}</b><small>${esc(metaDe(it.code, it.category == 5 ? it.horas : it.credits, it.category))}${it.status !== "planejado" ? " · " + ROTULO[it.status].toLowerCase() : ""}${textoPresenca(it.alvo) ? " · " + esc(textoPresenca(it.alvo)) : ""}</small>
           <small class="${it.cel.size ? "" : "alerta"}">${it.cel.size ? `${formataHorarios(it.cel).join(", ")} · ${it.cel.size} h/sem` : "sem horário"}</small>
-          ${aviso.length ? `<small class="alerta">⚠ ${esc(aviso.join("; "))}</small>` : ""}</span>
+          ${aviso.length ? `<small class="alerta">⚠ ${esc(aviso.join("; "))}</small>` : ""}
+          ${oferta ? `<small class="aviso-oferta">⚠ ${esc(oferta.texto)}</small>` : ""}</span>
         </button>
         <button type="button" class="x" data-cremove="${esc(it.code)}" title="Remover do período">×</button>
         ${(() => {
@@ -1368,22 +1458,181 @@
       `Não foi possível usar ${origem}. Campo inválido: ${erro}.`).join(" ");
   }
 
+  /** Nome pessoal do perfil: campo "nome" ou, em perfis antigos, o "Fulano" de "Grade ECI — Fulano". */
+  function nomeDoPerfil(p) {
+    if (!p) return "";
+    if (texto(p.nome) && p.nome.trim()) return p.nome.trim();
+    const m = /^\s*Grade ECI\s*[—–-]\s*(.+?)\s*$/.exec(texto(p.titulo) ? p.titulo : "");
+    return m ? m[1] : "";
+  }
+  /** Logo + "Grade ECI — Nome" (nome e progresso só com perfil válido). A aba do navegador fica "Grade ECI". */
+  function renderCabecalho() {
+    const nome = nomeDoPerfil(perfil);
+    const h1 = $("#titulo");
+    h1.textContent = TITULO;
+    if (nome) {
+      const s = document.createElement("span");
+      s.className = "nome-perfil"; s.textContent = ` — ${nome}`;
+      h1.append(s);
+    }
+    $("#subtitulo").textContent = (perfil && texto(perfil.subtitulo) && perfil.subtitulo) || "Fluxograma interativo do curso";
+    document.title = TITULO;
+    document.body.classList.toggle("com-perfil", !!perfil);
+    document.body.classList.toggle("sem-perfil-valido", !perfil);
+    renderAtalhos();
+  }
+
+  // ---------- Barra de atalhos e Configurações ----------
+  const temaAtual = () => (window.TEMA ? window.TEMA.atual() : "claro");
+  function infoAtalho(id) {
+    const escuro = temaAtual() === "escuro";
+    return {
+      perfil: { btn: "btn-perfil", ic: perfil ? "perfil" : "perfil-novo", rot: perfil ? "Editar perfil" : "Criar perfil", nome: "Perfil" },
+      importar: { btn: "btn-importar", ic: "importar", rot: "Importar do SIGA", nome: "Importar do SIGA" },
+      tema: { btn: "btn-tema", ic: escuro ? "sol" : "lua", rot: escuro ? "Modo claro" : "Modo escuro", aria: escuro ? "Ativar modo claro" : "Ativar modo escuro", nome: "Tema" },
+      privacidade: { btn: "btn-privacidade", ic: "privacidade", rot: "Privacidade", nome: "Privacidade" },
+      referencias: { btn: "btn-referencias", ic: "referencias", rot: "Referências", nome: "Referências" },
+      tags: { btn: "btn-tags", ic: "tags", rot: "Tags", nome: "Tags" },
+    }[id];
+  }
+  const ACAO_ATALHO = {
+    perfil: () => abreDialogoPerfil(), importar: () => abreImportador(), tema: () => window.TEMA && window.TEMA.alterna(),
+    privacidade: () => abrePrivacidade(), referencias: () => abreReferencias(), tags: () => abreEditorTags(),
+  };
+  /** Atalhos visíveis: os fixados e, sem perfil válido, "Criar perfil" e "Importar do SIGA". */
+  function renderAtalhos() {
+    $("#seletor-modo").hidden = ocultarSeletor;
+    const vis = ATALHOS.filter((id) => atalhos.includes(id) || (!perfil && (id === "perfil" || id === "importar")));
+    const box = $("#atalhos");
+    const chave = `${vis.join(",")}|${!!perfil}|${temaAtual()}`;
+    if (box.dataset.chave === chave) return;
+    const foco = document.activeElement && box.contains(document.activeElement) ? document.activeElement.id : null;
+    box.dataset.chave = chave;
+    box.innerHTML = vis.map((id) => {
+      const a = infoAtalho(id), primario = !perfil && !atalhos.includes(id);
+      return `<button type="button" id="${a.btn}" class="btn btn-icone btn-atalho${primario ? " btn-primario-topo" : ""}" title="${esc(a.aria || a.rot)}"${a.aria ? ` aria-label="${esc(a.aria)}"` : ""}>${icone(a.ic)}<span class="rot">${esc(a.rot)}</span></button>`;
+    }).join("");
+    if (foco && document.getElementById(foco)) document.getElementById(foco).focus();
+  }
+  function linhaAtalho(id, rotulo) {
+    const a = infoAtalho(id), fix = atalhos.includes(id);
+    return `<div class="cfg-linha">
+      ${rotulo ? `<span class="cfg-rot">${rotulo}</span>` : `<button type="button" class="btn btn-sm cfg-abrir" data-abrir-atalho="${id}">${icone(a.ic, 16)} ${esc(a.rot)}</button>`}
+      <button type="button" class="btn btn-sm cfg-fixar" data-fixar="${id}" aria-pressed="${fix}" title="${fix ? "Fixado na barra: clique para desafixar" : "Mostrar também na barra do topo"}">${icone("fixar", 15)}<span>${fix ? "Fixado" : "Fixar"}</span><span class="sr"> ${esc(a.nome)} na barra</span></button>
+    </div>`;
+  }
+  function renderConfig() {
+    const ap = window.TEMA ? window.TEMA.aparencia() : "icone-texto";
+    const te = window.TEMA ? window.TEMA.escolha() || "sistema" : "sistema";
+    const radio = (nome, v, rot, marcado) => `<label class="opcao"><input type="radio" name="${nome}" value="${v}"${marcado ? " checked" : ""}> ${rot}</label>`;
+    $("#config-corpo").innerHTML = `
+      <h1 id="dlg-config-titulo" class="dlg-titulo">${icone("configuracoes", 20)} Configurações</h1>
+      <p class="dlg-texto">As escolhas valem na hora e ficam salvas neste navegador. Fixe um item para ele aparecer também na barra do topo; ele continua aqui.</p>
+      <section class="cfg-sec" aria-labelledby="cfg-h-perfil"><h2 id="cfg-h-perfil">Perfil e dados</h2>
+        ${linhaAtalho("perfil")}${linhaAtalho("importar")}${linhaAtalho("privacidade")}
+        <div class="cfg-linha"><button type="button" class="btn btn-sm btn-perigo-ghost" id="btn-limpar">${icone("limpar", 16)} Limpar dados salvos</button>
+          <span class="dica">Apaga marcações, planos e o perfil salvo neste navegador.</span></div>
+      </section>
+      <section class="cfg-sec" aria-labelledby="cfg-h-ap"><h2 id="cfg-h-ap">Aparência</h2>
+        <fieldset class="opcoes"><legend>Abas e barra</legend>
+          ${radio("aparencia", "icone-texto", "Ícone e texto", ap === "icone-texto")}${radio("aparencia", "texto", "Somente texto", ap === "texto")}${radio("aparencia", "icone", "Somente ícone", ap === "icone")}
+        </fieldset>
+        <fieldset class="opcoes"><legend>Tema</legend>
+          ${radio("tema", "sistema", "Igual ao sistema", te === "sistema")}${radio("tema", "claro", "Claro", te === "claro")}${radio("tema", "escuro", "Escuro", te === "escuro")}
+          ${linhaAtalho("tema", "Botão sol/lua na barra")}
+        </fieldset>
+        <fieldset class="opcoes"><legend>Modo</legend>
+          ${radio("modo", "classico", "Clássico: só a grade e a paleta", modoClassico)}${radio("modo", "completo", "Completo: com as abas", !modoClassico)}
+          <label class="opcao"><input type="checkbox" id="cfg-seletor"${ocultarSeletor ? "" : " checked"}> Mostrar o seletor de modo no topo</label>
+        </fieldset>
+      </section>
+      <section class="cfg-sec" aria-labelledby="cfg-h-grade"><h2 id="cfg-h-grade">Grade</h2>
+        <fieldset class="opcoes"><legend>Exibir nos cartões</legend>
+          ${[["codigo", "Código e créditos"], ["notas", "Notas"], ["dificuldade", "Dificuldade"], ["presenca", "Presença"]].map(([k, n]) =>
+            `<label class="opcao"><input type="checkbox" data-exibir="${k}"${exibir[k] ? " checked" : ""}> ${n}</label>`).join("")}
+        </fieldset>
+        <fieldset class="opcoes"><legend>Setas de requisitos</legend>
+          ${radio("setas", "ocultas", "Ocultas", exibir.setas === "ocultas")}${radio("setas", "foco", "Disciplina em foco", exibir.setas === "foco")}${radio("setas", "todas", "Todas", exibir.setas === "todas")}
+        </fieldset>
+        <label class="opcao"><input type="checkbox" id="cfg-cadeado"${cadeado ? " checked" : ""}> Proteger as disciplinas cursadas (cadeado da paleta)</label>
+        ${linhaAtalho("tags")}
+      </section>
+      <section class="cfg-sec" aria-labelledby="cfg-h-ref"><h2 id="cfg-h-ref">Referências</h2>
+        ${linhaAtalho("referencias")}
+      </section>
+      <div class="dlg-acoes"><button type="submit" value="" class="btn btn-escuro">Fechar</button></div>`;
+  }
+  /** Redesenha Configurações aberta (após uma mudança) e devolve o foco ao mesmo controle. */
+  function atualizaConfig() {
+    const d = $("#dlg-config"); if (!d.open) return;
+    const a = document.activeElement;
+    let sel = null;
+    if (a && d.contains(a)) {
+      if (a.id) sel = "#" + a.id;
+      else if (a.dataset.fixar) sel = `[data-fixar="${a.dataset.fixar}"]`;
+      else if (a.dataset.abrirAtalho) sel = `[data-abrir-atalho="${a.dataset.abrirAtalho}"]`;
+      else if (a.dataset.exibir) sel = `[data-exibir="${a.dataset.exibir}"]`;
+      else if (a.name) sel = `input[name="${a.name}"][value="${a.value}"]`;
+    }
+    renderConfig();
+    const el = sel && d.querySelector(sel); if (el) el.focus();
+  }
+  function defineModo(classico) {
+    modoClassico = classico; save("modoClassico", modoClassico);
+    if (!modoClassico) pincel = null;   // no modo completo o clique volta a abrir detalhes
+    seletorECI = false;
+    fechaDetalhes(); render();
+  }
+  function limpaDados() {
+    const temImportado = !perfilArquivo && perfilLocalAntigo();
+    if (!confirm("Apagar tudo o que foi salvo neste navegador (marcações manuais, edições de planejamento" + (temImportado ? ", perfil importado" : "") + ")?")) return;
+    marcacoes = {}; creditosManuais = {}; plano = { periodos: {}, novos: [] }; proposta = null; cronoSlot = null;
+    ["manual", "marcacoes", "creditos", "plano", "perfilImportado"].forEach((k) => save(k, null));
+    avisosPerfil.delete("perfil importado");
+    if (perfilImportado) { perfilImportado = null; perfil = perfilArquivo || perfilLocalAntigo(); }
+    if (temImportado) { save("perfil", null); perfil = null; }
+    montaModelo(); render(); atualizaConfig();
+  }
+
+  // ---------- Referências (os links só abrem por clique; nada externo é carregado aqui) ----------
+  const LINKS = [
+    { url: "https://intranet.ufrj.br/", nome: "Intranet UFRJ (acesso ao SIGA)", txt: "Histórico, BOA e inscrição em disciplinas." },
+    { url: "https://www.siga.ufrj.br/sira/repositorio-curriculo/distribuicoes/A46B41C8-92A4-F79C-7383-BE627D84214E.html",
+      nome: "Currículo oficial da ECI", txt: "Repositório público de currículos do SIGA (2012/1 em diante)." },
+    { url: "https://github.com/JoaoAndrade01/grade", nome: "Repositório deste site", txt: "Código, documentação e registro de mudanças." },
+    { url: "https://github.com/gremio-eci/grade", nome: "Projeto original do Grêmio de ECI", txt: "A grade interativa que deu origem a este fork." },
+  ];
+  function abreReferencias() {
+    const box = $("#detalhes");
+    const ref = (M.ref && M.ref.fonte) || "Notion — Grades de ECI (Editável)";
+    box.innerHTML = `<header><span class="cat-pill">${icone("referencias", 14)} Referências</span><button type="button" class="fechar" aria-label="Fechar">×</button></header>
+      <h3>De onde vêm os dados</h3>
+      <ul class="lista refs">
+        <li><span><b>Horários de referência e guia dos alunos</b><br><small>${esc(ref)}${M.ref && M.ref.consultado ? `, consultado em ${esc(M.ref.consultado)}` : ""}.
+          Página mantida por alunos de ECI; os horários mudam a cada semestre. Confira sempre no SIGA.</small></span></li>
+        <li><span><b>Currículo e catálogo de optativas</b><br><small>Copiados do currículo oficial no SIGA para js/database.js e js/optativas.js.</small></span></li>
+      </ul>
+      <h4>Links</h4>
+      <ul class="lista refs">${LINKS.map((l) => `<li><a href="${l.url}" target="_blank" rel="noopener noreferrer">${esc(l.nome)} ${icone("externo", 13)}<span class="sr"> (abre em outra aba)</span></a><small>${esc(l.txt)}</small></li>`).join("")}</ul>
+      <p class="dica">Os links abrem em outra aba só quando você clica. Abrir esta lista não carrega nada de fora deste site.</p>`;
+    box.hidden = false;
+    box.dataset.alvo = "referencias";
+  }
+
   function render() {
     // Modo clássico: força a aba Grade e mantém um pincel sempre ativo
     document.body.classList.toggle("classico", modoClassico);
     $("#modo-classico").checked = modoClassico;
     if (modoClassico) { if (pincel === null) pincel = (tags[0] || {}).id || ""; }
     const vista = modoClassico ? "grade" : vistaAtual;
-    if (perfil) {
-      $("#titulo").textContent = perfil.titulo || "Grade ECI";
-      $("#subtitulo").textContent = perfil.subtitulo || (perfil.nome ? `Fluxograma de ${perfil.nome}` : "");
-      document.title = `${perfil.titulo || "Grade ECI"} — Grade Interativa`;
-    }
+    renderCabecalho();
     document.querySelectorAll("[data-vista]").forEach((b) =>
       b.setAttribute("aria-selected", String(b.dataset.vista === vista)));
     document.body.classList.toggle("pintando", pincel !== null);
-    renderBarraGeral();
-    const detalhado = vista === "timeline" || progressoAberto;
+    // Sem perfil válido, os indicadores de progresso ficam ocultos (a grade continua utilizável).
+    $("#barra-geral").hidden = !perfil;
+    if (perfil) renderBarraGeral();
+    const detalhado = !!perfil && (vista === "timeline" || progressoAberto);
     $("#progresso").hidden = !detalhado;
     $("#legenda").hidden = vista !== "timeline";
     if (detalhado) renderProgresso();
@@ -1395,16 +1644,20 @@
     const imp = $("#aviso-importado");
     renderAvisoPerfil();
     imp.hidden = !perfilImportado;
-    if (perfilImportado) imp.innerHTML = `Usando o perfil importado do SIGA${perfilImportado.fonte && perfilImportado.fonte.boaEmissao ? ` (BOA de ${esc(perfilImportado.fonte.boaEmissao)})` : ""}, guardado neste navegador.
+    const doSiga = /^siga/i.test((perfilImportado && perfilImportado.fonte && perfilImportado.fonte.geradoPor) || "");
+    if (perfilImportado) imp.innerHTML = `${doSiga ? "Usando o perfil importado do SIGA" : "Usando o perfil salvo"}${perfilImportado.fonte && perfilImportado.fonte.boaEmissao ? ` (BOA de ${esc(perfilImportado.fonte.boaEmissao)})` : ""}, guardado neste navegador.
       <button type="button" class="link" id="baixar-importado">Baixar perfil.js</button> ·
-      <button type="button" class="link" id="descartar-importado">Voltar ao perfil/perfil.js</button>`;
+      <button type="button" class="link" id="descartar-importado">${perfilArquivo ? "Voltar ao perfil/perfil.js" : "Descartar perfil salvo"}</button>`;
     const painel = $("#painel");
     const scroll = painel.dataset.vista === vista ? { x: painel.scrollLeft, y: window.scrollY } : null;
     painel.className = `painel vista-${vista}`;
     painel.dataset.vista = vista;
     const foco = document.activeElement && document.activeElement.id === "busca-opt" ? document.activeElement.selectionStart : null;
-    const fn = { timeline: renderTimeline, optativas: renderOptativas, cronograma: renderCronograma, pedidos: renderPedidos }[vista] || renderGrade;
+    const fn = { timeline: renderTimeline, optativas: renderOptativas, cronograma: renderCronograma, pedidos: renderPedidos,
+      eci: () => window.ECI.renderSecao(contextoECI()) }[vista] || renderGrade;
     painel.innerHTML = fn();
+    if (vista === "eci") window.ECI.montado(painel, contextoECI());
+    desenhaSetas();
     if (scroll) { painel.scrollLeft = scroll.x; window.scrollTo(0, scroll.y); }
     else {
       painel.scrollLeft = 0;
@@ -1441,6 +1694,11 @@
         <p class="det-meta">${esc(metaDe(code, valorCat(i), i.category))}${i.workload ? ` · ${i.workload} h` : ""} · ${esc(fonte)}</p>
         <p class="det-status s-${s}"><i class="dot s-${s}"></i>${ROTULO[s]}${Object.prototype.hasOwnProperty.call(marcacoes, code) ? " (marcada com o pincel)" : ""}</p>
         ${(() => {
+          const lst = periodosFuturos().filter((p) => p.itens.some((it) => it.alvo === code && it.status !== "reprovado"))
+            .map((p) => [p.nome, avisoOferta(code, p.nome)]).filter((x) => x[1]);
+          return lst.length ? `<ul class="lista avisos-det">${lst.map(([n, a]) => `<li class="aviso-oferta">${esc(n)}: ${esc(a.texto)}</li>`).join("")}</ul>` : "";
+        })()}
+        ${(() => {
           const g = guiaDe(code); if (!g) return "";
           const n = g.nivel ? M.guia.niveis[g.nivel] : null;
           return `<h4>Guia dos alunos</h4><div class="guia">
@@ -1459,9 +1717,10 @@
           const dentro = p.itens.some((it) => it.alvo === code);
           return `<button type="button" class="mini-btn${dentro ? " on" : ""}" data-plan="${esc(p.nome)}" data-pcode="${esc(code)}">${dentro ? "✓" : "+"} ${esc(p.nome)}</button>`;
         }).join("")}</div>` : ""}
-        <h4>Tag</h4><div class="chips">${tags.map((t) => `<button type="button" class="chip chip-btn tag-chip${tagDe(code) === t ? " on" : ""}" style="--tag:${esc(t.cor)}" data-settag="${esc(code)}" data-tag="${esc(t.id)}"><i></i>${esc(t.nome)}</button>`).join("")}
-          <button type="button" class="chip chip-btn" data-settag="${esc(code)}" data-tag="">sem tag</button></div>
-        ${Object.prototype.hasOwnProperty.call(marcacoes, code) ? `<button type="button" class="btn btn-ghost" data-reset="${esc(code)}">Voltar ao que o perfil diz</button>` : ""}`;
+        <h4>Tag</h4>${protegida(code) ? `<p class="det-meta">${icone("cadeado", 14)} Protegida pelo cadeado: desligue o cadeado na paleta para alterar.</p>` : ""}
+        <div class="chips">${tags.map((t) => `<button type="button" class="chip chip-btn tag-chip${tagDe(code) === t ? " on" : ""}" style="--tag:${esc(t.cor)}" data-settag="${esc(code)}" data-tag="${esc(t.id)}"${protegida(code) ? " disabled" : ""}><i></i>${esc(t.nome)}</button>`).join("")}
+          <button type="button" class="chip chip-btn" data-settag="${esc(code)}" data-tag=""${protegida(code) ? " disabled" : ""}>sem tag</button></div>
+        ${Object.prototype.hasOwnProperty.call(marcacoes, code) && !protegida(code) ? `<button type="button" class="btn btn-ghost" data-reset="${esc(code)}">Voltar ao que o perfil diz</button>` : ""}`;
       box.dataset.alvo = "c:" + code;
     } else if (alvo.idx != null) {
       const c = M.grade[+alvo.idx];
@@ -1490,18 +1749,38 @@
     if (box.dataset.alvo === "tags") return abreEditorTags();
     if (box.dataset.alvo === "importar") return abreImportador();
     if (box.dataset.alvo === "privacidade") return abrePrivacidade();
+    if (box.dataset.alvo === "referencias") return abreReferencias();
     const t = box.dataset.alvo.slice(0, 1), v = box.dataset.alvo.slice(2);
     abreDetalhes(t === "c" ? { code: v } : { idx: v });
   }
 
+  /** Cadeado ligado: aprovadas pelo perfil ou marcadas como Cursada (tag que conta como concluída) não mudam. */
+  function protegida(code) {
+    if (!cadeado || !code) return false;
+    if (statusPerfil(code) === "aprovado") return true;
+    return Object.prototype.hasOwnProperty.call(marcacoes, code) && statusDaTag(marcacoes[code]) === "aprovado";
+  }
+  let anuncioTempo = null;
+  function anuncia(msg) {
+    const el = $("#anuncio");
+    el.textContent = msg; el.classList.add("visivel");
+    clearTimeout(anuncioTempo);
+    anuncioTempo = setTimeout(() => { el.classList.remove("visivel"); }, 3500);
+  }
   /** Aplica a tag `id` (ou "" = sem tag) à disciplina; null remove a marcação e volta ao perfil. */
   function marca(code, id) {
+    if (protegida(code)) { anuncia(`${code} está protegida pelo cadeado. Desligue o cadeado na paleta para alterar.`); return; }
     if (id === null) delete marcacoes[code]; else marcacoes[code] = id;
     save("marcacoes", marcacoes);
     render(); reabreDetalhes();
   }
   /** Clique com o pincel: aplica a tag; clicar de novo com a mesma tag tira a tag. */
   function pinta(code) {
+    if (protegida(code)) {   // o clique continua mostrando os detalhes e as setas
+      destaca(code); defineFoco(code); abreDetalhes({ code });
+      anuncia(`${code} está protegida pelo cadeado. Desligue o cadeado na paleta para alterar.`);
+      return;
+    }
     const atual = tagDe(code);
     marca(code, atual && atual.id === pincel ? "" : pincel);
   }
@@ -1583,7 +1862,8 @@
         <li>Escolha os PDFs abaixo (pode selecionar todos de uma vez).</li>
         <li>Confira o resumo e clique em <b>Usar este perfil</b>. Planos, pedidos, extensão e tags que você já tinha são mantidos.</li>
       </ol>
-      <input type="file" id="siga-pdfs" accept="application/pdf,.pdf" multiple class="campo">
+      <p class="aviso-pdf" id="siga-aviso-pdf">${icone("cadeado", 16)} <span>O BOA e o Histórico são lidos neste navegador. Os PDFs não são enviados ao GitHub.</span></p>
+      <input type="file" id="siga-pdfs" accept="application/pdf,.pdf" multiple class="campo" aria-describedby="siga-aviso-pdf">
       <button type="button" class="btn btn-primario" id="siga-gerar">Gerar perfil</button>
       <p class="dica" id="siga-status">Os PDFs são processados neste navegador. Os cabeçalhos com dados pessoais são descartados.</p>
       ${r ? `<div class="resumo-import">
@@ -1591,14 +1871,25 @@
         <ul class="lista">
           <li>${r.perfil.periodos.filter((p) => !p.planejado).length} períodos cursados/atuais${r.perfil.periodos.some((p) => p.planejado) ? ` + ${r.perfil.periodos.filter((p) => p.planejado).length} planejados (mantidos)` : ""}</li>
           <li>${r.perfil.periodos.reduce((a, p) => a + (p.planejado ? 0 : p.disciplinas.filter((d) => d.status !== "reprovado").length), 0)} disciplinas aprovadas ou em curso</li>
-          ${(r.perfil.periodos.find((p) => p.atual) || null) ? `<li>Período atual: <b>${esc(r.perfil.periodos.find((p) => p.atual).nome)}</b> (${r.perfil.periodos.find((p) => p.atual).disciplinas.length} disciplinas)</li>` : ""}
+          ${r.atual ? `<li>Período atual: ${r.atual.disciplinas.length} disciplina(s) cursando no BOA</li>` : ""}
           ${r.boa ? `<li>BOA de ${esc(r.boa.emissao || "?")}: ${r.boa.naoExplicitadas.length} não explicitadas, ${r.boa.equivalencias.length} equivalência(s) automática(s)</li>`
             : `<li class="alerta">Sem BOA: nenhuma disciplina em curso foi atualizada.${r.perfil.periodos.some((p) => p.atual) ? " O período atual do perfil anterior foi mantido." : ""}</li>`}
           ${r.semCategoria.length ? `<li class="alerta">Atividades sem créditos fora do currículo e catálogo. Confira se são ACE: ${r.semCategoria.map(esc).join(", ")}.</li>` : ""}
           <li>Documentos reconhecidos: ${r.historicos} Histórico(s)${r.boa ? " e 1 BOA" : ""}</li>
         </ul>
-        <button type="button" class="btn btn-primario" id="siga-usar">Usar este perfil</button>
-        <button type="button" class="btn btn-ghost" id="siga-baixar">Baixar perfil.js</button>
+        ${r.atual ? `<div class="periodo-sugerido">
+          <label class="rotulo" for="siga-atual">Período atual sugerido</label>
+          <input id="siga-atual" class="campo campo-sm" value="${esc(r.atualEscolhido)}" placeholder="sem data" maxlength="6"
+            inputmode="numeric" autocomplete="off" aria-describedby="siga-atual-dica siga-atual-msg"${r.conflito ? ' aria-invalid="true"' : ""}>
+          <p class="dica" id="siga-atual-dica">${r.ultimoReal
+            ? `Semestre seguinte ao último semestre do histórico (${esc(r.ultimoReal)}).`
+            : "O histórico não tem um semestre para servir de base."} Corrija se precisar, no formato AAAA/1 ou AAAA/2, ou deixe em branco para manter o período sem data.</p>
+          <p class="msg-campo" id="siga-atual-msg" aria-live="polite">${esc(r.conflito || "")}</p>
+        </div>` : ""}
+        <div id="siga-planos" class="siga-planos" aria-live="polite">${htmlPlanosImportacao(r)}</div>
+        <button type="button" class="btn btn-primario" id="siga-usar"${importacaoBloqueada(r) ? " disabled" : ""}>Usar este perfil</button>
+        <button type="button" class="btn btn-ghost" id="siga-baixar"${importacaoBloqueada(r) ? " disabled" : ""}>Baixar perfil.js</button>
+        <button type="button" class="btn btn-ghost" id="siga-descartar">Descartar prévia</button>
       </div>` : ""}
       <h4>Ou carregar um perfil pronto</h4>
       <label class="btn btn-sm">Escolher perfil.js / .json<input type="file" id="importar" accept=".json,.js" hidden></label>`;
@@ -1626,10 +1917,21 @@
       const boaL = lidos.find((x) => x.tipo === "BOA");
       const boa = boaL ? window.SIGA.lerBOA(boaL.linhas) : null;
       if (!historicos.some((h) => h.registros.length) && !boa) throw new Error("não reconheci nenhum Histórico ou BOA do SIGA nesses arquivos");
-      const novo = window.SIGA.montarPerfil({ historicos, boa, curriculo, catalogo, anterior: perfilExportado() });
+      const anterior = perfilExportado();
+      const novo = window.SIGA.montarPerfil({ historicos, boa, curriculo, catalogo, anterior });
+      // O importador descarta os planejados até o semestre inferido. Guardamos esses planos para devolvê-los
+      // depois da escolha do período atual (ou pedir uma decisão explícita se ainda colidirem).
+      const planosFora = clone(anterior.periodos.filter((p) => p.planejado
+        && !novo.periodos.some((q) => q.planejado && q.nome === p.nome)));
       const semCategoria = [...new Set((boa?.cursando || [])
         .filter((c) => c.ncc && !curriculo[c.code] && !catalogo[c.code]).map((c) => c.code))].sort();
-      resultadoImportacao = { perfil: novo, boa, semCategoria, historicos: historicos.filter((h) => h.registros.length).length };
+      // Período atual inferido pelo importador (semestre seguinte ao último real); só com BOA. Pode ser corrigido na prévia.
+      const atual = boa ? novo.periodos.find((p) => p.atual) || null : null;
+      const ultimoReal = novo.periodos.filter((p) => !p.atual && !p.planejado && semestreValido(p.nome)).map((p) => p.nome).pop() || null;
+      resultadoImportacao = { perfil: novo, boa, semCategoria, historicos: historicos.filter((h) => h.registros.length).length,
+        atual, ultimoReal, atualEscolhido: atual && semestreValido(atual.nome) ? atual.nome : "", conflito: null,
+        planosFora, descartarPlanos: false };
+      avaliaImportacao(resultadoImportacao);
       abreImportador();
     } catch (e) {
       status.textContent = "Não deu certo: " + e.message;
@@ -1644,7 +1946,186 @@
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   }
 
-  function usaPerfilImportado(novo) {
+  /** Conflito de nome do período atual com outro período do mesmo perfil (o atual pode manter o próprio nome). */
+  function conflitoPeriodo(p, nome) {
+    const atual = p.periodos.find((x) => x.atual);
+    const outro = p.periodos.find((x) => x.nome === nome && x !== atual);
+    return outro ? `${nome} já existe como período ${outro.planejado ? "planejado" : "cursado"}. Escolha outro semestre ou deixe em branco; nada foi alterado.` : null;
+  }
+  /** Renomeia o período atual de `p` (perfil já clonado) e acompanha as atividades de extensão daquele período. */
+  function renomeiaPeriodoAtual(p, para) {
+    const atual = p.periodos.find((x) => x.atual);
+    if (!atual || atual.nome === para) return;
+    const de = atual.nome;
+    atual.nome = para;
+    (p.extensao || []).forEach((a) => { if (a.periodo === de) a.periodo = para; });
+  }
+  /** Valida o semestre digitado na prévia do SIGA. Vazio = período atual sem data ("atual"). */
+  function validaAtualImportado(r) {
+    const v = (r.atualEscolhido || "").trim();
+    if (v && !semestreValido(v)) return "Use o formato AAAA/1 ou AAAA/2, ou deixe em branco.";
+    return conflitoPeriodo(r.perfil, v || "atual");
+  }
+  /** Perfil da prévia com o período atual escolhido, sem os planos guardados à parte. */
+  function perfilBaseImportacao(r) {
+    const novo = clone(r.perfil);
+    if (r.atual) renomeiaPeriodoAtual(novo, (r.atualEscolhido || "").trim() || "atual");
+    return novo;
+  }
+  /** Planos anteriores que ainda colidem com algum período do perfil importado (com o atual escolhido). */
+  function colisoesDePlanos(r) {
+    const base = perfilBaseImportacao(r);
+    return (r.planosFora || []).map((p) => {
+      const q = base.periodos.find((x) => x.nome === p.nome);
+      return q ? { nome: p.nome, n: (p.disciplinas || []).length, com: q.atual ? "atual" : q.planejado ? "planejado" : "historico" } : null;
+    }).filter(Boolean);
+  }
+  function avaliaImportacao(r) {
+    r.conflito = validaAtualImportado(r);
+    r.colisoes = r.conflito ? [] : colisoesDePlanos(r);
+    // A confirmação vale só para o conjunto de planos que a pessoa viu: se ele muda, a marcação sai.
+    const chave = r.colisoes.map((c) => `${c.nome}:${c.com}`).join("|");
+    if (chave !== r.chaveColisoes) { r.descartarPlanos = false; r.chaveColisoes = chave; }
+  }
+  const importacaoBloqueada = (r) => !!r.conflito || (r.colisoes.length > 0 && !r.descartarPlanos);
+  function htmlPlanosImportacao(r) {
+    const voltam = (r.planosFora || []).filter((p) => !r.colisoes.some((c) => c.nome === p.nome));
+    const disc = (n) => `${n} disciplina${n === 1 ? "" : "s"}`;
+    const motivo = { atual: "é o período atual escolhido", planejado: "já existe no perfil importado", historico: "já está no histórico importado" };
+    return (voltam.length ? `<p class="dica ok-planos">Planos mantidos: ${voltam.map((p) => `<b>${esc(p.nome)}</b> (${disc((p.disciplinas || []).length)})`).join(", ")}.</p>` : "")
+      + (r.colisoes.length ? `<div class="colisao-planos">
+          <p>${r.colisoes.map((c) => `O plano de <b>${esc(c.nome)}</b> (${disc(c.n)}) ${motivo[c.com]}.`).join(" ")}
+          ${r.colisoes.some((c) => c.com === "atual") ? "Escolha outro semestre para o período atual ou confirme a substituição." : "Confirme para continuar."}</p>
+          <label class="check"><input type="checkbox" id="siga-descartar-planos"${r.descartarPlanos ? " checked" : ""}>
+            Substituir ${r.colisoes.length === 1 ? "esse plano" : "esses planos"} pelos dados do SIGA</label>
+        </div>` : "");
+  }
+  /** Ordem cronológica para devolver um plano ("2026/2" -> 20262; nomes sem data ficam no fim). */
+  const chaveSemestre = (n) => { const m = /^(\d{4})(?:\/(\d))?/.exec(n || ""); return m ? +m[1] * 10 + (m[2] != null ? +m[2] : 0) : 0; };
+  function perfilDaImportacao(r) {
+    const novo = perfilBaseImportacao(r);
+    (r.planosFora || []).forEach((p) => {
+      if (novo.periodos.some((q) => q.nome === p.nome)) return;     // colisão: só sai com a confirmação explícita
+      const k = chaveSemestre(p.nome);
+      const i = k ? novo.periodos.findIndex((q) => chaveSemestre(q.nome) > k) : -1;
+      novo.periodos.splice(i < 0 ? novo.periodos.length : i, 0, clone(p));
+    });
+    return novo;
+  }
+
+  // ---------- Criar / editar perfil ----------
+  function mensagemCampo(campo, texto) {
+    const c = $(campo), msg = $(`#${c.id}-msg`);
+    msg.textContent = texto || "";
+    if (texto) c.setAttribute("aria-invalid", "true"); else c.removeAttribute("aria-invalid");
+  }
+  function abreDialogoPerfil() {
+    const d = $("#dlg-perfil");
+    const rot = perfil ? "Editar perfil" : "Criar perfil";
+    $("#dlg-perfil-titulo").textContent = rot;
+    $("#perfil-nome").value = nomeDoPerfil(perfil);
+    const atual = perfil && (perfil.periodos || []).find((p) => p.atual);
+    $("#perfil-semestre").value = atual && semestreValido(atual.nome) ? atual.nome : "";
+    mensagemCampo("#perfil-semestre", "");
+    if (typeof d.showModal === "function") d.showModal(); else d.setAttribute("open", "");
+  }
+  /**
+   * Cria (ou edita) o perfil a partir do que já está no navegador: marcações, tags, planos, pedidos e extensão
+   * continuam. Nome e semestre atual são opcionais. Devolve a mensagem de erro, ou null se salvou.
+   */
+  function salvaPerfilCriado(nomeTxt, semTxt) {
+    const nome = String(nomeTxt || "").trim().replace(/\s+/g, " ");
+    const sem = String(semTxt || "").trim();
+    if (sem && !semestreValido(sem)) return "Use o formato AAAA/1 ou AAAA/2, ou deixe em branco.";
+    const novo = perfilExportado();
+    novo.titulo = TITULO;
+    if (nome) novo.nome = nome; else delete novo.nome;
+    if (novo.curso == null) novo.curso = 1;
+    const atual = novo.periodos.find((p) => p.atual);
+    // Vazio: período atual datado passa a "atual" (sem data); um nome fora do padrão AAAA/n é mantido como está.
+    const alvo = sem || (atual ? (semestreValido(atual.nome) ? "atual" : atual.nome) : "");
+    if (alvo) {
+      const conflito = conflitoPeriodo(novo, alvo);
+      if (conflito) return conflito;
+      if (atual) renomeiaPeriodoAtual(novo, alvo);
+      else {
+        const i = novo.periodos.findIndex((p) => p.planejado);
+        novo.periodos.splice(i < 0 ? novo.periodos.length : i, 0, { nome: alvo, atual: true, disciplinas: [] });
+      }
+    }
+    if (!novo.fonte) novo.fonte = { geradoPor: "Grade ECI (Criar perfil)", geradoEm: new Date().toISOString().slice(0, 10) };
+    try { usaPerfilImportado(novo, { irParaLinhaDoTempo: false }); }
+    catch (e) { return "Não consegui salvar o perfil: " + e.message; }
+    return null;
+  }
+
+  // ---------- Diálogo de confirmação (substitui o confirm() nas ações destrutivas novas) ----------
+  function confirma({ titulo, texto, ok = "Confirmar" }) {
+    const d = $("#dlg-confirma");
+    if (typeof d.showModal !== "function") return Promise.resolve(window.confirm(`${titulo}\n\n${texto}`));
+    $("#dlg-confirma-titulo").textContent = titulo;
+    $("#dlg-confirma-texto").textContent = texto;
+    $("#dlg-confirma-ok").textContent = ok;
+    d.returnValue = "";
+    return new Promise((fim) => {
+      d.addEventListener("close", () => { const sim = d.returnValue === "ok"; d.returnValue = ""; fim(sim); }, { once: true });
+      d.showModal();
+    });
+  }
+  const focaPeriodo = (nome) => {
+    const b = nome && document.querySelector(`[data-cperiodo="${CSS.escape(nome)}"]`);
+    (b || $("#novo-periodo") || $("#painel")).focus();
+  };
+
+  // ---------- Configurações (aparência e tema) ----------
+  function abreConfiguracoes() {
+    const d = $("#dlg-config");
+    renderConfig();
+    d.showModal();
+    d.querySelector(".cfg-abrir").focus();
+  }
+
+  // ---------- "A ECI por trás da Grade": só leitura do currículo, sem tocar no perfil ----------
+  function contextoECI() {
+    const info = (code) => { const i = M.info(code); return i && { code: i.code, name: i.name, semester: i.semester, req: i.req.slice(), coreq: i.coreq.slice() }; };
+    const curriculo = {}, catalogo = {};
+    M.grade.forEach((c) => { if (c.code) curriculo[c.code] = { category: c.category }; });
+    M.catalogo.forEach((o) => { catalogo[o.code] = { category: o.category || 2 }; });
+    return { info, esc, icone: window.icone, carregaScript, carregaPdfJs, curriculo, catalogo, anuncia, codigos: Object.keys(M.curr) };
+  }
+
+  // ---------- Excluir período planejado ----------
+  const periodoDoPerfil = (nome) => ((perfil && perfil.periodos) || []).some((p) => p.nome === nome);
+  async function excluiPeriodo(nome) {
+    const p = M.periodos.find((x) => x.nome === nome);
+    if (!p || p.tipo !== "planejado") return;   // atual e cursados ficam protegidos
+    const n = p.itens.length;
+    const lista = p.itens.map((it) => it.code).join(", ");
+    const ok = await confirma({
+      titulo: `Excluir o período ${nome}?`,
+      texto: n ? `${n} ${n === 1 ? "disciplina sairá" : "disciplinas sairão"} do plano: ${lista}. O período também sai do perfil.js exportado.`
+        : "O período está vazio. Ele também sai do perfil.js exportado.",
+      ok: "Excluir período",
+    });
+    if (!ok) return;
+    const ordem = periodosPlanejaveis().map((x) => x.nome);
+    const i = ordem.indexOf(nome);
+    plano.novos = (plano.novos || []).filter((x) => x.nome !== nome);
+    delete plano.periodos[nome];
+    if (periodoDoPerfil(nome)) plano.removidos = [...new Set([...(plano.removidos || []), nome])];
+    if (proposta && proposta.periodo === nome) proposta = null;
+    save("plano", plano);
+    montaModelo();
+    const resta = periodosPlanejaveis().map((x) => x.nome);
+    const futuros = periodosFuturos().map((x) => x.nome);
+    cronoPeriodo = futuros.find((x) => ordem.indexOf(x) > i) || futuros.filter((x) => ordem.indexOf(x) < i).pop() || resta[0] || null;
+    save("cronoPeriodo", cronoPeriodo);
+    cronoSel = null; cronoSlot = null;
+    render();
+    focaPeriodo(cronoPeriodo);
+  }
+
+  function usaPerfilImportado(novo, opcoes = {}) {
     const erro = erroPerfil(novo);
     if (erro) throw new Error(`perfil com campos inválidos (${erro}). Confira a estrutura em docs/PERFIL.md`);
     const anterior = { perfilImportado, perfil, plano, tags, marcacoes, vistaAtual, M };
@@ -1652,7 +2133,7 @@
     plano = { periodos: {}, novos: [] };
     tags = novo.tags ?? tags;
     marcacoes = novo.marcacoes ?? marcacoes;
-    vistaAtual = "timeline";
+    if (opcoes.irParaLinhaDoTempo !== false) vistaAtual = "timeline";
     try {
       montaModelo();
       render();
@@ -1683,6 +2164,35 @@
   }
   function limpaDestaque() {
     document.querySelectorAll(".hl-req,.hl-dep,.hl-self").forEach((el) => el.classList.remove("hl-req", "hl-dep", "hl-self"));
+  }
+
+  // ---------- Setas de requisitos (Grade → Exibir) ----------
+  // A seta parte do requisito e aponta para a disciplina que o exige: contínua = pré-requisito, tracejada = co-requisito.
+  function arestasDe(code) {
+    const i = M.info(code); if (!i) return [];
+    const out = i.req.map((r) => ({ de: r, para: code, tipo: "req" })).concat(i.coreq.map((r) => ({ de: r, para: code, tipo: "coreq" })));
+    Object.keys(M.curr).forEach((c) => {
+      const j = M.info(c);
+      if (j.req.includes(code)) out.push({ de: code, para: c, tipo: "req" });
+      if (j.coreq.includes(code)) out.push({ de: code, para: c, tipo: "coreq" });
+    });
+    return out;
+  }
+  const todasArestas = () => Object.keys(M.curr).flatMap((c) => {
+    const i = M.info(c);
+    return i.req.map((r) => ({ de: r, para: c, tipo: "req" })).concat(i.coreq.map((r) => ({ de: r, para: c, tipo: "coreq" })));
+  });
+  function defineFoco(code) {
+    if (focoSetas === code) return;
+    focoSetas = code;
+    if (exibir.setas === "foco") desenhaSetas();
+  }
+  function desenhaSetas() {
+    const painel = $("#painel");
+    const ativo = !modoClassico && vistaAtual === "grade" && exibir.setas !== "ocultas";
+    const arestas = !ativo ? [] : exibir.setas === "todas" ? todasArestas() : focoSetas ? arestasDe(focoSetas) : [];
+    window.ECI.desenhaSetas(painel, arestas, (code) => painel.querySelector(`.card[data-code="${CSS.escape(code)}"]`),
+      { classe: `setas-grade setas-${exibir.setas}`, destaque: exibir.setas === "foco" ? focoSetas : null, vao: exibir.setas !== "todas" });
   }
 
   // ---------- Eventos ----------
@@ -1785,20 +2295,24 @@
       if (ur) return usaReferencia(cronoPeriodo, ur.dataset.usaref);
       if (t.closest("#exportar")) return exportaPerfil();
       if (t.closest("#descartar")) {
-        if (confirm(`Descartar as edições de ${cronoPeriodo} feitas neste navegador?`)) {
-          delete plano.periodos[cronoPeriodo];
-          plano.novos = (plano.novos || []).filter((n) => n.nome !== cronoPeriodo);
-          save("plano", plano); montaModelo(); render();
-        }
+        const nome = cronoPeriodo;
+        confirma({ titulo: `Descartar as edições de ${nome}?`, texto: "O período volta ao conteúdo original do perfil. As outras edições continuam.", ok: "Descartar edições" })
+          .then((sim) => {
+            if (!sim) return;
+            delete plano.periodos[nome];
+            save("plano", plano); montaModelo(); render(); focaPeriodo(nome);
+          });
         return;
       }
+      if (t.closest("#excluir-periodo")) { excluiPeriodo(cronoPeriodo); return; }
       if (t.closest("#novo-periodo")) {
         const ult = M.periodos[M.periodos.length - 1];
         let sug = "";
         if (ult && /^(\d{4})\/(\d)$/.test(ult.nome)) { const [a, s] = ult.nome.split("/").map(Number); sug = s >= 2 ? `${a + 1}/1` : `${a}/2`; }
         const nome = (prompt("Nome do novo período planejado:", sug) || "").trim();
         if (!nomePeriodo(nome) || M.periodos.some((p) => p.nome === nome)) return;
-        plano.novos = (plano.novos || []).concat([{ nome, planejado: true }]);
+        if ((plano.removidos || []).includes(nome)) plano.removidos = plano.removidos.filter((x) => x !== nome);   // recria vazio
+        else plano.novos = (plano.novos || []).concat([{ nome, planejado: true }]);
         plano.periodos[nome] = [];
         cronoPeriodo = nome; save("cronoPeriodo", nome); save("plano", plano); montaModelo(); render();
         return;
@@ -1806,8 +2320,10 @@
       if (t.closest(".cel")) return; // tratado no mousedown
       // cartões
       const el = t.closest(".card"); if (!el) return;
+      if (seletorECI && el.dataset.code && window.ECI.tem(el.dataset.code)) return window.ECI.abre(el.dataset.code, contextoECI(), el);
       if (pincel !== null && el.dataset.code) return pinta(el.dataset.code);
       destaca(el.dataset.code);
+      if (el.dataset.code) defineFoco(el.dataset.code);
       abreDetalhes(el.dataset.code ? { code: el.dataset.code } : { idx: el.dataset.idx });
     });
 
@@ -1836,10 +2352,23 @@
         return;
       }
       const el = ev.target.closest(".card[data-code], .opt[data-code]");
-      if (el) destaca(el.dataset.code);
+      if (el) { destaca(el.dataset.code); defineFoco(el.dataset.code); }
     });
+    // teclado: o foco num cartão mostra as ligações dele
+    painel.addEventListener("focusin", (ev) => {
+      const el = ev.target.closest(".card[data-code]");
+      if (el) { destaca(el.dataset.code); defineFoco(el.dataset.code); }
+    });
+    // as setas acompanham a grade quando a janela muda de tamanho
+    if (window.ResizeObserver) new ResizeObserver(() => desenhaSetas()).observe(painel);
     document.addEventListener("mouseup", () => { arrasto = null; });
-    painel.addEventListener("mouseleave", limpaDestaque);
+    painel.addEventListener("mouseleave", () => {
+      limpaDestaque();
+      // com o painel de detalhes aberto (ex.: toque), as setas continuam na disciplina aberta
+      const aberto = !$("#detalhes").hidden && ($("#detalhes").dataset.alvo || "").startsWith("c:") ? $("#detalhes").dataset.alvo.slice(2) : null;
+      defineFoco(aberto);
+      if (aberto) destaca(aberto);
+    });
 
     painel.addEventListener("input", (ev) => {
       if (ev.target.id === "busca-opt") { filtros.busca = ev.target.value; save("filtros", filtros); render(); }
@@ -1875,14 +2404,36 @@
     document.addEventListener("click", (ev) => {
       const t = ev.target.closest("button"); if (!t) return;
       if (t.id === "bg-detalhes") { progressoAberto = !progressoAberto; save("progressoAberto", progressoAberto); return render(); }
-      if (t.dataset.pincel != null) { pincel = t.dataset.pincel === "__detalhes" ? null : t.dataset.pincel; return render(); }
+      if (t.dataset.pincel != null) { pincel = t.dataset.pincel === "__detalhes" ? null : t.dataset.pincel; seletorECI = false; return render(); }
+      if (t.id === "pal-eci") {
+        seletorECI = !seletorECI; if (seletorECI) { pincel = null; fechaDetalhes(); }
+        render(); $("#pal-eci").focus();
+        return anuncia(seletorECI ? "ECI por trás ligado: escolha uma disciplina destacada." : "ECI por trás desligado.");
+      }
       if (t.dataset.nivel) {
         const n = +t.dataset.nivel;
         filtroNivel = filtroNivel.includes(n) ? filtroNivel.filter((x) => x !== n) : filtroNivel.concat([n]);
         save("filtroNivel", filtroNivel); return render();
       }
       if (t.id === "editar-tags") return abreEditorTags();
+      if (t.id === "cadeado") {
+        cadeado = !cadeado; save("cadeado", cadeado); render(); $("#cadeado").focus(); atualizaConfig();
+        return anuncia(cadeado ? "Cadeado ligado: as cursadas estão protegidas." : "Cadeado desligado: as cursadas podem ser alteradas.");
+      }
+      if (t.id === "btn-config") return abreConfiguracoes();
+      if (t.id === "btn-tema") return window.TEMA && window.TEMA.alterna();
+      if (t.id === "btn-referencias") return abreReferencias();
+      if (t.id === "btn-tags") return abreEditorTags();
+      if (t.id === "btn-limpar") return limpaDados();
+      if (t.dataset.fixar) {
+        const id = t.dataset.fixar;
+        atalhos = atalhos.includes(id) ? atalhos.filter((x) => x !== id) : ATALHOS.filter((x) => x === id || atalhos.includes(x));
+        save("atalhos", atalhos); renderAtalhos(); atualizaConfig();
+        return anuncia(atalhos.includes(id) ? `${infoAtalho(id).nome} fixado na barra.` : `${infoAtalho(id).nome} saiu da barra; continua em Configurações.`);
+      }
+      if (t.dataset.abrirAtalho) { $("#dlg-config").close(); return ACAO_ATALHO[t.dataset.abrirAtalho](); }
       if (t.id === "btn-importar") return abreImportador();
+      if (t.id === "btn-perfil") return abreDialogoPerfil();
       if (t.id === "btn-privacidade") return abrePrivacidade();
       if (t.id === "baixar-importado") return baixa("perfil.js", textoPerfil(perfilExportado()));
       if (t.id === "apagar-tudo") {
@@ -1891,7 +2442,11 @@
         location.reload(); return;
       }
       if (t.id === "descartar-importado") {
-        if (!confirm("Voltar a usar o perfil/perfil.js e descartar o perfil importado deste navegador?")) return;
+        // O perfil salvo guarda também os planos, pedidos e extensão que estavam no navegador quando foi criado/importado.
+        if (!confirm(`${perfilArquivo ? "Voltar a usar o perfil/perfil.js" : "Ficar sem perfil"} e descartar o perfil salvo neste navegador?
+
+`
+          + "Os planos, pedidos e a extensão guardados nele também saem. Use \"Baixar perfil.js\" antes, se quiser guardar uma cópia.")) return;
         perfilImportado = null; save("perfilImportado", null); perfil = perfilArquivo || perfilLocalAntigo();
         avisosPerfil.delete("perfil importado");
         montaModelo(); return render();
@@ -1899,12 +2454,17 @@
     });
     document.addEventListener("change", (ev) => {
       const t = ev.target;
-      if (t.id === "modo-classico") {
-        modoClassico = t.checked; save("modoClassico", modoClassico);
-        if (!modoClassico) pincel = null;   // no modo completo o clique volta a abrir detalhes
-        fechaDetalhes(); return render();
+      if (t.id === "modo-classico") return defineModo(t.checked);
+      if (t.name === "modo") { defineModo(t.value === "classico"); return atualizaConfig(); }
+      if (t.id === "cfg-seletor") { ocultarSeletor = !t.checked; save("ocultarSeletor", ocultarSeletor); renderAtalhos(); return atualizaConfig(); }
+      if (t.id === "cfg-cadeado") { cadeado = t.checked; save("cadeado", cadeado); render(); return atualizaConfig(); }
+      if (t.dataset.exibir) { exibir[t.dataset.exibir] = t.checked; save("exibir", exibir); render(); atualizaConfig(); }
+      if (t.name === "setas") {
+        exibir.setas = t.value; save("exibir", exibir); render(); atualizaConfig();
+        if (!t.closest("dialog")) document.querySelector(`#ferramentas input[name="setas"][value="${t.value}"]`)?.focus();
       }
-      if (t.dataset.exibir) { exibir[t.dataset.exibir] = t.checked; save("exibir", exibir); render(); }
+      if (t.name === "aparencia" && window.TEMA) { window.TEMA.defineAparencia(t.value); atualizaConfig(); }
+      if (t.name === "tema" && window.TEMA) window.TEMA.define(t.value === "sistema" ? null : t.value);
     });
 
     $("#detalhes").addEventListener("click", (ev) => {
@@ -1923,15 +2483,20 @@
       // importador
       if (t.id === "siga-gerar") return geraPerfilDoSiga();
       if (t.id === "siga-usar" && resultadoImportacao) {
+        if (!previaLiberada()) return;
         try {
-          usaPerfilImportado(resultadoImportacao.perfil);
+          usaPerfilImportado(perfilDaImportacao(resultadoImportacao));
           resultadoImportacao = null;
         } catch (e) {
           $("#siga-status").textContent = "Não consegui usar o perfil: " + e.message;
         }
         return;
       }
-      if (t.id === "siga-baixar" && resultadoImportacao) return baixa("perfil.js", textoPerfil(resultadoImportacao.perfil));
+      if (t.id === "siga-descartar") { resultadoImportacao = null; abreImportador(); $("#siga-pdfs").focus(); return; }
+      if (t.id === "siga-baixar" && resultadoImportacao) {
+        if (!previaLiberada()) return;
+        return baixa("perfil.js", textoPerfil(perfilDaImportacao(resultadoImportacao)));
+      }
       if (t.dataset.settag != null) return marca(t.dataset.settag, t.dataset.tag);
       if (t.dataset.reset) return marca(t.dataset.reset, null);
       if (t.dataset.plan) return alternaPlano(t.dataset.plan, t.dataset.pcode);
@@ -1953,8 +2518,50 @@
         save("creditos", creditosManuais); render(); reabreDetalhes();
       }
     });
+    // Período atual sugerido na prévia do SIGA: valida enquanto digita, sem redesenhar o painel.
+    $("#detalhes").addEventListener("input", (ev) => {
+      if (ev.target.id !== "siga-atual" || !resultadoImportacao) return;
+      resultadoImportacao.atualEscolhido = ev.target.value;
+      atualizaPreviaImportacao();
+    });
+    $("#detalhes").addEventListener("change", (ev) => {
+      if (ev.target.id !== "siga-descartar-planos" || !resultadoImportacao) return;
+      resultadoImportacao.descartarPlanos = ev.target.checked;
+      atualizaPreviaImportacao();
+      $("#siga-descartar-planos").focus();
+    });
+    /** Validação única da prévia, usada por "Usar este perfil" e "Baixar perfil.js" (também no próprio clique). */
+    function previaLiberada() {
+      atualizaPreviaImportacao();
+      return !importacaoBloqueada(resultadoImportacao);
+    }
+    function atualizaPreviaImportacao() {
+      const r = resultadoImportacao;
+      avaliaImportacao(r);
+      if ($("#siga-atual")) mensagemCampo("#siga-atual", r.conflito);
+      $("#siga-planos").innerHTML = htmlPlanosImportacao(r);
+      const bloq = importacaoBloqueada(r);
+      $("#siga-usar").disabled = bloq; $("#siga-baixar").disabled = bloq;
+      const caixa = $("#siga-descartar-planos"); if (caixa) caixa.checked = !!r.descartarPlanos;
+    }
+
+    // Criar / editar perfil
+    $("#perfil-cancelar").addEventListener("click", () => $("#dlg-perfil").close());
+    $("#perfil-semestre").addEventListener("input", () => mensagemCampo("#perfil-semestre", ""));
+    $("#form-perfil").addEventListener("submit", (ev) => {
+      const erro = salvaPerfilCriado($("#perfil-nome").value, $("#perfil-semestre").value);
+      if (erro) { ev.preventDefault(); mensagemCampo("#perfil-semestre", erro); $("#perfil-semestre").focus(); }
+    });
+
+    // Configurações é redesenhada a cada abertura; ao fechar, sai do DOM (sem controles duplicados escondidos).
+    $("#dlg-config").addEventListener("close", () => { $("#config-corpo").innerHTML = ""; });
+    // Tema: o atalho sol/lua mostra a ação disponível; Configurações acompanha a escolha.
+    if (window.TEMA) window.TEMA.aoMudar(() => { renderAtalhos(); atualizaConfig(); });
+
     document.addEventListener("keydown", (ev) => {
       if (ev.key !== "Escape") return;
+      if (document.querySelector("dialog[open]")) return;   // o próprio <dialog> trata o Esc
+      if (seletorECI) { seletorECI = false; render(); return; }
       if (pincel !== null && !modoClassico) { pincel = null; render(); }
       fechaDetalhes();
       if (cronoSel) { cronoSel = null; render(); }
@@ -1964,16 +2571,6 @@
       vistaAtual = b.dataset.vista; save("vista", vistaAtual); fechaDetalhes(); render();
     }));
 
-    $("#btn-limpar").addEventListener("click", () => {
-      const temImportado = !perfilArquivo && perfilLocalAntigo();
-      if (!confirm("Apagar tudo o que foi salvo neste navegador (marcações manuais, edições de planejamento" + (temImportado ? ", perfil importado" : "") + ")?")) return;
-      marcacoes = {}; creditosManuais = {}; plano = { periodos: {}, novos: [] }; proposta = null; cronoSlot = null;
-      ["manual", "marcacoes", "creditos", "plano", "perfilImportado"].forEach((k) => save(k, null));
-      avisosPerfil.delete("perfil importado");
-      if (perfilImportado) { perfilImportado = null; perfil = perfilArquivo || perfilLocalAntigo(); }
-      if (temImportado) { save("perfil", null); perfil = null; }
-      montaModelo(); render();
-    });
   }
 
   /** "Ou carregar um perfil pronto": aceita perfil.js (window.PERFIL = {...}) ou JSON puro. */
@@ -1988,7 +2585,8 @@
   }
 
   // Ganchos para testes e para quem quiser depurar no console do navegador.
-  window.GradeInterativa = { carregaPdfJs, linhasPDF, perfilExportado: () => perfilExportado(), totais: () => totais() };
+  window.GradeInterativa = { carregaPdfJs, linhasPDF, perfilExportado: () => perfilExportado(), totais: () => totais(),
+    avisoOferta: (c, p) => avisoOferta(c, p), avisos: (c, nome) => { const p = M.periodos.find((x) => x.nome === nome); return p ? avisos(c, p.pi) : null; } };
 
   montaModelo();
   liga();
