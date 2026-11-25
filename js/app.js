@@ -367,10 +367,13 @@
           pedidosComConflito.add(e);
           return;
         }
-        const pis = cs.map((c) => (regs[c.code] || []).filter((x) => x.status === "aprovado").pop()?.pi);
-        const completas = pis.every((i) => i != null);
-        const pi = completas ? Math.max(...pis) : null;
-        const status = completas ? "aprovado" : "previsto";
+        const registros = cs.map((c) => {
+          const datados = (regs[c.code] || []).filter((r) => r.pi != null);
+          return datados.filter((r) => r.status === "aprovado").pop()
+            || datados.filter((r) => r.status === "previsto" || emCurso(r.status)).pop();
+        });
+        const pi = registros.every(Boolean) ? Math.max(...registros.map((r) => r.pi)) : null;
+        const status = registros.every((r) => r?.status === "aprovado") ? "aprovado" : "previsto";
         registra(e.pedida, { pi, status, nota: "E", via: `equivalência deferida: ${cs.map((c) => c.code).join(" + ")}` });
         cs.forEach((c) => consumidas.add(c.code));
       } else if (pendente(e)) {
