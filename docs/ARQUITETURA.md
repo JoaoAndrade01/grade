@@ -73,10 +73,13 @@ flowchart LR
 ---
 
 Para atualizar os diagramas, edite `docs/diagramas/gerar.js` e rode `node docs/diagramas/gerar.js`.
-A marca da UFRJ identifica a fonte SIGA e mantém a composição horizontal do arquivo institucional.
-As marcas são incorporadas aos SVGs para consulta offline. [Identidade visual da UFRJ](https://ufrj.br/comunicacao/identidade-visual/) ·
-[Arquivo da UFRJ no Wikimedia Commons](https://commons.wikimedia.org/wiki/File:UFRJ_logo.svg) ·
-[Marca do Notion no Simple Icons](https://github.com/simple-icons/simple-icons/blob/develop/icons/notion.svg)
+As marcas identificam as fontes dos dados e são incorporadas aos SVGs para consulta offline.
+A Grade Interativa é um projeto da comunidade de ECI. Para publicação, consulte as orientações de uso
+das marcas de seus titulares. [Identidade visual da UFRJ](https://ufrj.br/comunicacao/identidade-visual/) ·
+[Diretrizes de marca do Notion](https://notion.notion.site/Notion-Trademark-Usage-Guidelines-9826313c686a4f6e9d8a48347162714b)
+
+Arquivos de origem das marcas. [UFRJ no Wikimedia Commons](https://commons.wikimedia.org/wiki/File:UFRJ_logo.svg) ·
+[Notion no Simple Icons](https://github.com/simple-icons/simple-icons/blob/develop/icons/notion.svg)
 
 ## 2. Camadas do app
 

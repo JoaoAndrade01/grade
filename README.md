@@ -87,11 +87,22 @@ python -m http.server --bind 127.0.0.1 --directory "$gradePublica" 8000
 
 Abra `http://127.0.0.1:8000` e selecione os documentos pelo botão de importação.
 
+Ao terminar, pare o servidor com Ctrl+C e remova a cópia de teste com os comandos abaixo na mesma janela.
+
+```powershell
+$gradePasta = Resolve-Path -LiteralPath $gradePublica
+if ((Split-Path -Parent $gradePasta.Path) -eq (Resolve-Path -LiteralPath $env:TEMP).Path) {
+  Remove-Item -LiteralPath $gradePasta.Path -Recurse -Force
+  Remove-Item -LiteralPath "$gradePublica.zip"
+}
+```
+
 ## Créditos e licença
 
 - Projeto original: Grêmio ECI / [carloseduardov8](https://github.com/carloseduardov8/Interactive-Flowchart) — AGPL-3.0.
 - Currículo e catálogo: SIGA/UFRJ (repositório público de currículos).
 - Horários e guia dos alunos: página "Grades de ECI (Editável)" no Notion, feita por alunos de ECI.
-- pdf.js: Mozilla, Apache-2.0 (`js/vendor/LICENSE-pdfjs.txt`). Ícones: Lucide, ISC. Diagramas: rough.js, MIT.
+- pdf.js: Mozilla, Apache-2.0 (`js/vendor/LICENSE-pdfjs.txt`). Ícones da interface: Lucide, ISC.
+  As fontes das marcas dos diagramas estão na [arquitetura](docs/ARQUITETURA.md).
 
 Licença: AGPL-3.0 (ver `LICENSE`).

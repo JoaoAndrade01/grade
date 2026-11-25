@@ -196,8 +196,9 @@ def ler_boa(texto):
                 continue
             resto = m.group(6).strip()
             if re.match(r"^Cursando\b", resto, re.I):
+                ncc = m.group(3) == "NCC"
                 out["cursando"].append({"code": m.group(1), "name": m.group(2).strip(),
-                                        "credits": 0 if m.group(3) == "NCC" else num(m.group(3)), "ch": num(m.group(4))})
+                                        "credits": 0 if ncc else num(m.group(3)), "ch": num(m.group(4)), "ncc": ncc})
             else:
                 c = RE["origemCodigo"].match(resto)
                 if c and c.group(1) != m.group(1):
@@ -290,7 +291,7 @@ def montar_perfil(historicos, boa=None, curriculo=None, catalogo=None, anterior=
     saida = [{"nome": n, "disciplinas": periodos[n]} for n in nomes]
 
     # 6) período atual (Cursando no BOA)
-    ultimo = ([n for n in nomes if re.match(r"^\d{4}/\d$", n)] or [None])[-1]
+    ultimo = ([n for n in nomes if re.fullmatch(r"\d{4}/[12]", n)] or [None])[-1]
     atual_nome = proximo_periodo(ultimo) or "atual"
     extensao_boa, atual_itens = [], []
     for c in (boa or {}).get("cursando", []):
@@ -330,8 +331,12 @@ def montar_perfil(historicos, boa=None, curriculo=None, catalogo=None, anterior=
     if anterior.get("periodos"):
         ant_atual = next((p for p in anterior["periodos"] if p.get("atual")), None)
         atual = next((p for p in saida if p.get("atual")), None)
-        if ant_atual and atual and ant_atual["nome"] == atual["nome"]:
-            ant_itens = [{"code": d} if isinstance(d, str) else d for d in ant_atual.get("disciplinas", [])]
+        if (boa is None and ant_atual and re.fullmatch(r"\d{4}/[12]", ant_atual["nome"])
+                and chave_periodo(ant_atual["nome"]) > chave_periodo(ultimo)):
+            atual = ant_atual
+            saida.append(atual)
+        elif ant_atual and atual and ant_atual["nome"] == atual["nome"]:
+            ant_itens = [{"code": d} if isinstance(d, str) else d for d in ant_atual.get("disciplinas") or []]
             for it in atual["disciplinas"]:
                 v = next((d for d in ant_itens if d.get("code") == it["code"]), None)
                 if v:
@@ -434,10 +439,16 @@ def main():
     if not a.historico and not a.boa:
         ap.error("informe ao menos um --historico ou --boa")
     ler = (lambda c: open(c, encoding="utf-8").read()) if a.texto else texto_pdf
+    boa = ler_boa(ler(a.boa)) if a.boa else None
+    curriculo, catalogo = ler_curriculo(a.curso), ler_catalogo(a.curso)
+    sem_categoria = sorted({c["code"] for c in (boa or {}).get("cursando", [])
+                             if c["ncc"] and c["code"] not in curriculo and c["code"] not in catalogo})
+    if sem_categoria:
+        print("Atividades sem créditos fora do currículo e catálogo. Confira se são ACE: "
+              + ", ".join(sem_categoria), file=sys.stderr)
     perfil = montar_perfil(
         historicos=[ler_historico(ler(h)) for h in a.historico],
-        boa=ler_boa(ler(a.boa)) if a.boa else None,
-        curriculo=ler_curriculo(a.curso), catalogo=ler_catalogo(a.curso),
+        boa=boa, curriculo=curriculo, catalogo=catalogo,
         anterior=ler_perfil_js(a.mesclar) if a.mesclar else None, hoje=a.hoje)
     saida = json.dumps(perfil, ensure_ascii=False, sort_keys=True) if a.json else texto_perfil(perfil)
     if a.saida:

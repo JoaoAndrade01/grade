@@ -26,11 +26,11 @@ const diagramas = {
       { id: 'perfil', x: 785, y: 500, w: 210, h: 110, icon: 'hard-drive', t: ['Seu perfil', 'localStorage', 'ou perfil.js'], privado: true },
       { id: 'modelo', x: 1110, y: 130, w: 340, h: 90, icon: 'layers', t: ['Modelo', 'status · créditos · requisitos'] },
       { id: 'g1', x: 1110, y: 270, w: 160, h: 90, icon: 'palette', t: ['Grade', 'clássica'], peq: true },
-      { id: 'g2', x: 1290, y: 270, w: 160, h: 90, icon: 'list-tree', t: ['Linha do', 'tempo'], peq: true },
+      { id: 'g2', x: 1286, y: 270, w: 174, h: 90, icon: 'list-tree', t: ['Linha do tempo'], peq: true },
       { id: 'g3', x: 1110, y: 380, w: 160, h: 90, icon: 'calendar-days', t: ['Cronograma'], peq: true },
-      { id: 'g4', x: 1290, y: 380, w: 160, h: 90, icon: 'scroll-text', t: ['Equivalências', 'Extensão/ACE'], peq: true },
+      { id: 'g4', x: 1286, y: 380, w: 174, h: 90, icon: 'scroll-text', t: ['Equivalências', 'Extensão/ACE'], peq: true },
       { id: 'g5', x: 1110, y: 490, w: 160, h: 90, icon: 'book-open-check', t: ['Optativas'] },
-      { id: 'exp', x: 1290, y: 490, w: 160, h: 90, icon: 'download', t: ['Exportar', 'perfil.js'] },
+      { id: 'exp', x: 1286, y: 490, w: 174, h: 90, icon: 'download', t: ['Exportar', 'perfil.js'], peq: true },
       { id: 'csp', x: 1110, y: 620, w: 340, h: 90, icon: 'shield-check', t: ['Importação no dispositivo', 'Cabeçalhos pessoais descartados'], selo: true },
     ],
     setas: [['siga','extr'],['notion','extr'],['pdf','imp'],['aluno','perfil'],['extr','db'],['extr','opt'],['extr','hor'],['extr','guia'],['imp','perfil'],
@@ -113,7 +113,7 @@ function desenharNo(n) {
     : `<g transform="translate(${x} ${centro - tam / 2}) scale(${tam / 24})" class="icone">${icones[n.icon]}</g>`;
   const cor = n.selo ? ' local' : n.privado ? ' privado' : '';
   const y = centro + 5 - (n.t.length - 1) * 9;
-  const rotulos = n.t.map((s, i) => texto(x + tam + 14, y + i * 19, s, i ? 'descricao' : 'rotulo'));
+  const rotulos = n.t.map((s, i) => texto(x + tam + 14, y + i * 19, s, i ? 'descricao' : n.peq ? 'rotulo compacto' : 'rotulo'));
   return [`<g id="${n.id}">`, `<rect x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="12" class="no${cor}"/>`,
     imagem, ...rotulos, '</g>'].join('\n');
 }
@@ -144,7 +144,7 @@ function desenhar(d) {
     '<style>',
     'text{font-family:system-ui,Segoe UI,Arial,sans-serif;fill:#142238}',
     '.titulo{font-size:28px;font-weight:750}.coluna{font-size:13px;font-weight:700;letter-spacing:.8px;fill:#384d69}',
-    '.rotulo{font-size:15px;font-weight:700}.descricao{font-size:12px;fill:#465973}',
+    '.rotulo{font-size:15px;font-weight:700}.rotulo.compacto{font-size:14px}.descricao{font-size:12px;fill:#465973}',
     '.grupo{fill:#f0f4fa;stroke:#cbd7e6}.destaque{fill:#edf0ff;stroke:#c7cbef}',
     '.no{fill:#fff;stroke:#cbd7e6}.local{fill:#edfaf3;stroke:#a0cfb4}.privado{fill:#fff8e9;stroke:#dbbd86}',
     '.icone{fill:none;stroke:#2a4666;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}',

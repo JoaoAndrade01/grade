@@ -92,16 +92,30 @@
   const codigo = (v) => texto(v) && /^[A-Z]{3}[A-Z0-9]{3}$/.test(v);
   const nomePeriodo = (v) => texto(v) && v.trim() !== "" && !Object.hasOwn(Object.prototype, v);
   const statusDisciplina = (v) => texto(v) && Object.hasOwn(FORCA, v);
-  const dadosDisciplina = (d) => objeto(d) && codigo(d.code) && opcional(d.name, texto)
-    && opcional(d.credits, numero) && opcional(d.horas, numero)
-    && opcional(d.category, (v) => [1, 2, 3, 4, 5].includes(v));
-  const disciplinaValida = (d) => codigo(d) || (dadosDisciplina(d)
-    && opcional(d.status, statusDisciplina) && opcional(d.nota, (v) => texto(v) || numero(v))
-    && opcional(d.equivale, codigo) && opcional(d.horarios, (v) => listaDe(v, texto))
-    && opcional(d.dispensa, (v) => listaDe(v, (x) => codigo(x) || dadosDisciplina(x))));
-  const periodoValido = (p) => objeto(p) && nomePeriodo(p.nome)
-    && opcional(p.atual, (v) => typeof v === "boolean") && opcional(p.planejado, (v) => typeof v === "boolean")
-    && opcional(p.nota, (v) => texto(v) || numero(v)) && opcional(p.disciplinas, (v) => listaDe(v, disciplinaValida));
+  function erroCampos(dados, campos, caminho) {
+    if (!objeto(dados)) return caminho;
+    const campo = Object.keys(campos).find((k) => !campos[k](dados[k]));
+    return campo ? (caminho ? caminho + "." : "") + campo : null;
+  }
+  const camposDisciplina = {
+    code: codigo, name: (v) => opcional(v, texto), credits: (v) => opcional(v, numero),
+    horas: (v) => opcional(v, numero), category: (v) => opcional(v, (c) => [1, 2, 3, 4, 5].includes(c)),
+  };
+  const dadosDisciplina = (d) => !erroCampos(d, camposDisciplina, "disciplina");
+  const camposItem = {
+    ...camposDisciplina,
+    status: (v) => opcional(v, statusDisciplina), nota: (v) => opcional(v, (n) => texto(n) || numero(n)),
+    equivale: (v) => opcional(v, codigo), horarios: (v) => opcional(v, (h) => listaDe(h, texto)),
+    dispensa: (v) => opcional(v, (d) => listaDe(d, (x) => codigo(x) || dadosDisciplina(x))),
+  };
+  const erroDisciplina = (d, caminho) => codigo(d) ? null : erroCampos(d, camposItem, caminho);
+  const disciplinaValida = (d) => !erroDisciplina(d, "disciplina");
+  const camposPeriodo = {
+    nome: nomePeriodo, atual: (v) => opcional(v, (b) => typeof b === "boolean"),
+    planejado: (v) => opcional(v, (b) => typeof b === "boolean"), nota: (v) => opcional(v, (n) => texto(n) || numero(n)),
+  };
+  const periodoValido = (p) => !erroCampos(p, camposPeriodo, "periodo")
+    && opcional(p.disciplinas, (v) => listaDe(v, disciplinaValida));
   const pedidoValido = (e) => objeto(e) && codigo(e.pedida)
     && opcional(e.status, (v) => EQ_STATUS.includes(v)) && opcional(e.obs, texto)
     && (Array.isArray(e.cursadas)
@@ -109,18 +123,47 @@
       : codigo(e.cursada));
   const extensaoValida = (a) => objeto(a) && opcional(a.nome, texto) && opcional(a.code, texto)
     && opcional(a.horas, numero) && opcional(a.periodo, texto) && opcional(a.status, (v) => EXT_STATUS.includes(v));
-  const tagsValidas = (v) => listaDe(v, (t) => objeto(t) && texto(t.id) && texto(t.nome)
-    && texto(t.cor) && /^#[\da-f]{6}$/i.test(t.cor) && texto(t.status) && Object.hasOwn(CONTA_COMO, t.status));
+  const camposTag = {
+    id: texto, nome: texto, cor: (v) => texto(v) && /^#[\da-f]{6}$/i.test(v),
+    status: (v) => texto(v) && Object.hasOwn(CONTA_COMO, v),
+  };
+  const tagsValidas = (v) => listaDe(v, (t) => !erroCampos(t, camposTag, "tag"));
   const marcacoesValidas = (v) => objeto(v) && Object.entries(v).every(([c, t]) => codigo(c) && texto(t));
   const listasValidas = (v) => opcional(v.equivalencias, (e) => listaDe(e, pedidoValido))
     && opcional(v.extensao, (e) => listaDe(e, extensaoValida));
-  const perfilValido = (p) => objeto(p) && listaDe(p.periodos, periodoValido) && listasValidas(p)
-    && opcional(p.curso, (v) => Number.isInteger(v) && Array.isArray((window.courses || [])[v]))
-    && opcional(p.titulo, texto) && opcional(p.subtitulo, texto) && opcional(p.nome, texto)
-    && opcional(p.fonte, (f) => objeto(f) && opcional(f.boaEmissao, texto))
-    && opcional(p.tags, tagsValidas) && opcional(p.marcacoes, marcacoesValidas)
-    && opcional(p.boa, (b) => objeto(b) && listaDe(b.naoExplicitadas, (d) => dadosDisciplina(d)
-      && numero(d.credits) && numero(d.ch) && (texto(d.grau) || numero(d.grau))));
+  function erroPerfil(p) {
+    if (!objeto(p)) return "objeto do perfil";
+    if (!Array.isArray(p.periodos)) return "periodos";
+    for (const [i, periodo] of p.periodos.entries()) {
+      const caminho = `periodos[${i}]`;
+      const erro = erroCampos(periodo, camposPeriodo, caminho);
+      if (erro) return erro;
+      if (periodo.disciplinas != null) {
+        if (!Array.isArray(periodo.disciplinas)) return caminho + ".disciplinas";
+        for (const [j, d] of periodo.disciplinas.entries()) {
+          const erro = erroDisciplina(d, `${caminho}.disciplinas[${j}]`);
+          if (erro) return erro;
+        }
+      }
+    }
+    if (p.tags != null) {
+      if (!Array.isArray(p.tags)) return "tags";
+      for (const [i, t] of p.tags.entries()) {
+        const erro = erroCampos(t, camposTag, `tags[${i}]`);
+        if (erro) return erro;
+      }
+    }
+    return erroCampos(p, {
+      equivalencias: (v) => opcional(v, (e) => listaDe(e, pedidoValido)),
+      extensao: (v) => opcional(v, (e) => listaDe(e, extensaoValida)),
+      curso: (v) => opcional(v, (i) => Number.isInteger(i) && Array.isArray((window.courses || [])[i])),
+      titulo: (v) => opcional(v, texto), subtitulo: (v) => opcional(v, texto), nome: (v) => opcional(v, texto),
+      fonte: (v) => opcional(v, (f) => objeto(f) && opcional(f.boaEmissao, texto)),
+      marcacoes: (v) => opcional(v, marcacoesValidas),
+      boa: (v) => opcional(v, (b) => objeto(b) && listaDe(b.naoExplicitadas, (d) => dadosDisciplina(d)
+        && numero(d.credits) && numero(d.ch) && (texto(d.grau) || numero(d.grau)))),
+    }, "");
+  }
   const planoValido = (p) => objeto(p) && listasValidas(p)
     && opcional(p.novos, (v) => listaDe(v, periodoValido))
     && (p.periodos === undefined || (objeto(p.periodos)
@@ -164,9 +207,26 @@
 
   // ---------- Estado ----------
   // Ordem de prioridade do perfil: importado pelo app (localStorage) > perfil/perfil.js > nenhum.
-  const perfilArquivo = perfilValido(window.PERFIL) ? window.PERFIL : null;
-  const perfilLocalAntigo = () => load("perfil", null, perfilValido);
-  let perfilImportado = load("perfilImportado", null, perfilValido);
+  const avisosPerfil = new Map();
+  function perfilOuAviso(p, origem) {
+    const erro = erroPerfil(p);
+    if (!erro) return p;
+    avisosPerfil.set(origem, erro);
+    return null;
+  }
+  function lerPerfilSalvo(chave, origem) {
+    let salvo;
+    try { salvo = localStorage.getItem(STORE + chave); } catch { return null; }
+    if (salvo == null) return null;
+    try { return perfilOuAviso(JSON.parse(salvo), origem); }
+    catch {
+      avisosPerfil.set(origem, "JSON inválido");
+      return null;
+    }
+  }
+  const perfilArquivo = window.PERFIL === undefined ? null : perfilOuAviso(window.PERFIL, "perfil/perfil.js");
+  const perfilLocalAntigo = () => lerPerfilSalvo("perfil", "perfil antigo do navegador");
+  let perfilImportado = lerPerfilSalvo("perfilImportado", "perfil importado");
   let perfil = perfilImportado || perfilArquivo || perfilLocalAntigo();
   let tags = load("tags", null, tagsValidas) || (perfil && perfil.tags) || clone(TAGS_PADRAO);
   // marcações feitas com o pincel: código -> id da tag ("" = sem tag)
@@ -308,8 +368,10 @@
           return;
         }
         const pis = cs.map((c) => (regs[c.code] || []).filter((x) => x.status === "aprovado").pop()?.pi);
-        const pi = pis.every((i) => i != null) ? Math.max(...pis) : null;
-        registra(e.pedida, { pi, status: "aprovado", nota: "E", via: `equivalência deferida: ${cs.map((c) => c.code).join(" + ")}` });
+        const completas = pis.every((i) => i != null);
+        const pi = completas ? Math.max(...pis) : null;
+        const status = completas ? "aprovado" : "previsto";
+        registra(e.pedida, { pi, status, nota: "E", via: `equivalência deferida: ${cs.map((c) => c.code).join(" + ")}` });
         cs.forEach((c) => consumidas.add(c.code));
       } else if (pendente(e)) {
         if (cs.some((c) => dispensou[c.code] || usosDeferidos.has(c.code) || usosPendentes.get(c.code) > 1)) {
@@ -1296,6 +1358,13 @@
       + (M.guia ? `<span class="leg-sep"></span>` + Object.values(M.guia.niveis).map((n) => `<span class="leg-niv" title="${esc(n.texto)}">${n.emoji} ${esc(n.nome)}</span>`).join("") : "");
   }
 
+  function renderAvisoPerfil() {
+    const el = $("#aviso-perfil");
+    el.hidden = !avisosPerfil.size;
+    el.textContent = [...avisosPerfil].map(([origem, erro]) =>
+      `Não foi possível usar ${origem}. Campo inválido: ${erro}.`).join(" ");
+  }
+
   function render() {
     // Modo clássico: força a aba Grade e mantém um pincel sempre ativo
     document.body.classList.toggle("classico", modoClassico);
@@ -1321,6 +1390,7 @@
     $("#paleta").hidden = vista !== "grade";
     if (vista === "grade") $("#paleta").innerHTML = renderPaleta();
     const imp = $("#aviso-importado");
+    renderAvisoPerfil();
     imp.hidden = !perfilImportado;
     if (perfilImportado) imp.innerHTML = `Usando o perfil importado do SIGA${perfilImportado.fonte && perfilImportado.fonte.boaEmissao ? ` (BOA de ${esc(perfilImportado.fonte.boaEmissao)})` : ""}, guardado neste navegador.
       <button type="button" class="link" id="baixar-importado">Baixar perfil.js</button> ·
@@ -1357,7 +1427,7 @@
       if (!i) return;
       const s = statusDe(code);
       const hist = (M.regs[code] || []).map((r) =>
-        `<li><b>${esc(M.periodos[r.pi].nome)}</b> — ${ROTULO[r.status]}${r.nota != null ? ` · nota ${esc(r.nota)}` : ""}${r.via ? `<br><small>${esc(r.via)}</small>` : ""}</li>`).join("");
+        `<li><b>${esc(M.periodos[r.pi]?.nome ?? "Período não confirmado")}</b> — ${ROTULO[r.status]}${r.nota != null ? ` · nota ${esc(r.nota)}` : ""}${r.via ? `<br><small>${esc(r.via)}</small>` : ""}</li>`).join("");
       const ds = M.deps[code] || [];
       const fonte = i.fonte === "grade" ? `${i.semester}º período recomendado` : i.fonte === "catalogo" ? (GRUPOS_OPT[i.category] || "optativa") : "fora do currículo";
       const futuros = periodosFuturos();
@@ -1496,39 +1566,8 @@
     await carregaScript("js/vendor/pdf.min.js");
     window.pdfjsLib.GlobalWorkerOptions.workerSrc = "js/vendor/pdf.worker.min.js";
   }
-  /**
-   * Extrai as linhas visuais de um PDF. Cada trecho de texto é projetado na direção da própria
-   * escrita (funciona também em páginas giradas, como o BOA em paisagem): trechos com a mesma
-   * posição "transversal" formam uma linha, ordenados pela posição "ao longo" do texto.
-   */
   async function linhasPDF(arquivo) {
-    const doc = await window.pdfjsLib.getDocument({ data: await arquivo.arrayBuffer(), isEvalSupported: false }).promise;
-    const linhas = [];
-    try {
-      for (let n = 1; n <= doc.numPages; n++) {
-        const conteudo = await (await doc.getPage(n)).getTextContent();
-        const itens = conteudo.items.filter((i) => i.str && i.str.trim()).map((i) => {
-          const [a, b, , , x, y] = i.transform;
-          const k = Math.hypot(a, b) || 1, dx = a / k, dy = b / k;
-          return { ao: dx * x + dy * y, tr: -dy * x + dx * y, w: i.width, s: i.str };
-        }).sort((p, q) => q.tr - p.tr || p.ao - q.ao);
-        const grupos = [];
-        itens.forEach((i) => {
-          const g = grupos[grupos.length - 1];
-          if (g && Math.abs(g.tr - i.tr) <= 2.5) g.itens.push(i); else grupos.push({ tr: i.tr, itens: [i] });
-        });
-        const pagina = grupos.map((g) => {
-          g.itens.sort((p, q) => p.ao - q.ao);
-          let txt = "", fim = null;
-          g.itens.forEach((i) => { txt += (fim != null && i.ao - fim > 0.8 ? " " : "") + i.s; fim = i.ao + i.w; });
-          return txt;
-        });
-        linhas.push(...window.SIGA.filtrarPaginaPDF(pagina));
-      }
-    } finally {
-      await doc.destroy();
-    }
-    return linhas;
+    return window.SIGA.extrairLinhasPDF(window.pdfjsLib, await arquivo.arrayBuffer());
   }
 
   function abreImportador() {
@@ -1550,7 +1589,9 @@
           <li>${r.perfil.periodos.filter((p) => !p.planejado).length} períodos cursados/atuais${r.perfil.periodos.some((p) => p.planejado) ? ` + ${r.perfil.periodos.filter((p) => p.planejado).length} planejados (mantidos)` : ""}</li>
           <li>${r.perfil.periodos.reduce((a, p) => a + (p.planejado ? 0 : p.disciplinas.filter((d) => d.status !== "reprovado").length), 0)} disciplinas aprovadas ou em curso</li>
           ${(r.perfil.periodos.find((p) => p.atual) || null) ? `<li>Período atual: <b>${esc(r.perfil.periodos.find((p) => p.atual).nome)}</b> (${r.perfil.periodos.find((p) => p.atual).disciplinas.length} disciplinas)</li>` : ""}
-          ${r.boa ? `<li>BOA de ${esc(r.boa.emissao || "?")}: ${r.boa.naoExplicitadas.length} não explicitadas, ${r.boa.equivalencias.length} equivalência(s) automática(s)</li>` : "<li class='alerta'>Sem BOA: período atual e não explicitadas ficam de fora.</li>"}
+          ${r.boa ? `<li>BOA de ${esc(r.boa.emissao || "?")}: ${r.boa.naoExplicitadas.length} não explicitadas, ${r.boa.equivalencias.length} equivalência(s) automática(s)</li>`
+            : `<li class="alerta">Sem BOA: nenhuma disciplina em curso foi atualizada.${r.perfil.periodos.some((p) => p.atual) ? " O período atual do perfil anterior foi mantido." : ""}</li>`}
+          ${r.semCategoria.length ? `<li class="alerta">Atividades sem créditos fora do currículo e catálogo. Confira se são ACE: ${r.semCategoria.map(esc).join(", ")}.</li>` : ""}
           <li>Documentos reconhecidos: ${r.historicos} Histórico(s)${r.boa ? " e 1 BOA" : ""}</li>
         </ul>
         <button type="button" class="btn btn-primario" id="siga-usar">Usar este perfil</button>
@@ -1583,7 +1624,9 @@
       const boa = boaL ? window.SIGA.lerBOA(boaL.linhas) : null;
       if (!historicos.some((h) => h.registros.length) && !boa) throw new Error("não reconheci nenhum Histórico ou BOA do SIGA nesses arquivos");
       const novo = window.SIGA.montarPerfil({ historicos, boa, curriculo, catalogo, anterior: perfilExportado() });
-      resultadoImportacao = { perfil: novo, boa, historicos: historicos.filter((h) => h.registros.length).length };
+      const semCategoria = [...new Set((boa?.cursando || [])
+        .filter((c) => c.ncc && !curriculo[c.code] && !catalogo[c.code]).map((c) => c.code))].sort();
+      resultadoImportacao = { perfil: novo, boa, semCategoria, historicos: historicos.filter((h) => h.registros.length).length };
       abreImportador();
     } catch (e) {
       status.textContent = "Não deu certo: " + e.message;
@@ -1599,7 +1642,8 @@
   }
 
   function usaPerfilImportado(novo) {
-    if (!perfilValido(novo)) throw new Error("perfil com campos inválidos. Confira a estrutura em docs/PERFIL.md");
+    const erro = erroPerfil(novo);
+    if (erro) throw new Error(`perfil com campos inválidos (${erro}). Confira a estrutura em docs/PERFIL.md`);
     const anterior = { perfilImportado, perfil, plano, tags, marcacoes, vistaAtual, M };
     perfilImportado = perfil = novo;
     plano = { periodos: {}, novos: [] };
@@ -1619,6 +1663,8 @@
     save("tags", tags);
     save("marcacoes", marcacoes);
     save("vista", vistaAtual);
+    avisosPerfil.delete("perfil importado");
+    renderAvisoPerfil();
     fechaDetalhes();
   }
 
@@ -1844,6 +1890,7 @@
       if (t.id === "descartar-importado") {
         if (!confirm("Voltar a usar o perfil/perfil.js e descartar o perfil importado deste navegador?")) return;
         perfilImportado = null; save("perfilImportado", null); perfil = perfilArquivo || perfilLocalAntigo();
+        avisosPerfil.delete("perfil importado");
         montaModelo(); return render();
       }
     });
@@ -1919,6 +1966,7 @@
       if (!confirm("Apagar tudo o que foi salvo neste navegador (marcações manuais, edições de planejamento" + (temImportado ? ", perfil importado" : "") + ")?")) return;
       marcacoes = {}; creditosManuais = {}; plano = { periodos: {}, novos: [] }; proposta = null; cronoSlot = null;
       ["manual", "marcacoes", "creditos", "plano", "perfilImportado"].forEach((k) => save(k, null));
+      avisosPerfil.delete("perfil importado");
       if (perfilImportado) { perfilImportado = null; perfil = perfilArquivo || perfilLocalAntigo(); }
       if (temImportado) { save("perfil", null); perfil = null; }
       montaModelo(); render();

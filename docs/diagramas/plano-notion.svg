@@ -5,7 +5,7 @@
 <style>
 text{font-family:system-ui,Segoe UI,Arial,sans-serif;fill:#142238}
 .titulo{font-size:28px;font-weight:750}.coluna{font-size:13px;font-weight:700;letter-spacing:.8px;fill:#384d69}
-.rotulo{font-size:15px;font-weight:700}.descricao{font-size:12px;fill:#465973}
+.rotulo{font-size:15px;font-weight:700}.rotulo.compacto{font-size:14px}.descricao{font-size:12px;fill:#465973}
 .grupo{fill:#f0f4fa;stroke:#cbd7e6}.destaque{fill:#edf0ff;stroke:#c7cbef}
 .no{fill:#fff;stroke:#cbd7e6}.local{fill:#edfaf3;stroke:#a0cfb4}.privado{fill:#fff8e9;stroke:#dbbd86}
 .icone{fill:none;stroke:#2a4666;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
@@ -99,7 +99,7 @@ text{font-family:system-ui,Segoe UI,Arial,sans-serif;fill:#142238}
 <g id="gc">
 <rect x="865" y="440" width="210" height="70" rx="12" class="no"/>
 <g transform="translate(881 462.5) scale(1.0416666666666667)" class="icone"><circle cx="6" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M6 7v10m12-10c0 7-12 4-12 10"/></g>
-<text x="920" y="480" class="rotulo">commit automático</text>
+<text x="920" y="480" class="rotulo compacto">commit automático</text>
 </g>
 <g id="pg">
 <rect x="1190" y="150" width="260" height="100" rx="12" class="no"/>

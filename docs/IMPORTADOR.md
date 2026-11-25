@@ -32,7 +32,9 @@ dois no navegador). Para manter planos, pedidos, extensão e tags, use `--mescla
       períodos `AAAA/0` são ignorados;
    5. o período atual é o semestre seguinte ao último do histórico, com as disciplinas "Cursando"
       (atividades ACE vão para `extensao`);
-   6. mescla com o perfil anterior: títulos, pedidos, extensão, tags, horários do período atual e períodos planejados.
+   6. mescla com o perfil anterior: títulos, pedidos, extensão, tags e períodos planejados. Preserva
+      horários e status das disciplinas que continuam no período atual. Sem BOA, mantém o período atual
+      anterior quando seu semestre é posterior ao último semestre do Histórico.
 
 As expressões regulares estão no objeto `RE` de `js/siga.js` e no dicionário `RE` de `gerar_perfil.py`.
 
@@ -42,13 +44,18 @@ As expressões regulares estão no objeto `RE` de `js/siga.js` e no dicionário 
 bash ferramentas/testar_paridade.sh historico_anterior.pdf historico.pdf boa.pdf [perfil/perfil.js]
 ```
 
-Extrai o texto uma vez e confere se o Python e o JavaScript geram **o mesmo** perfil.
-Rode sempre que mudar uma regra. (Requer Python com pypdf e Node.)
+Compara o perfil em duas etapas. Primeiro, as duas implementações recebem o texto filtrado
+pelo pypdf. Depois, o Node extrai os mesmos PDFs com o PDF.js que o navegador usa e o teste
+compara o perfil com a saída do Python. As linhas extraídas podem variar entre os leitores.
+Requer Python com pypdf e Node. No Git Bash, defina `GRADE_PYTHON` se o executável do Python
+tiver outro nome ou caminho.
 
 ## Limitações conhecidas
 
 - Reprovações com período `AAAA/0` (transferência) não têm semestre real e ficam de fora.
 - Dispensas (`T`) são registradas sem nota numérica.
+- Quando o BOA lista uma atividade em curso como `NCC` e o código está fora do currículo e
+  do catálogo, o importador sinaliza a atividade para conferência antes de classificá-la como ACE.
 - Se o SIGA mudar o layout dos PDFs, ajuste as expressões em `RE` (nos dois arquivos) e rode o teste.
 
 ## Privacidade

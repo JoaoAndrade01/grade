@@ -57,6 +57,42 @@
   }
 
   const num = (s) => Number(String(s).replace(/\.(?=\d{3}\b)/g, "").replace(",", "."));
+
+  /**
+   * Extrai as linhas visuais de um PDF. Cada trecho de texto é projetado na direção da própria
+   * escrita (funciona também em páginas giradas, como o BOA em paisagem): trechos com a mesma
+   * posição "transversal" formam uma linha, ordenados pela posição "ao longo" do texto.
+   */
+  async function extrairLinhasPDF(pdfjsLib, data) {
+    const doc = await pdfjsLib.getDocument({ data, isEvalSupported: false }).promise;
+    const linhas = [];
+    try {
+      for (let n = 1; n <= doc.numPages; n++) {
+        const conteudo = await (await doc.getPage(n)).getTextContent();
+        const itens = conteudo.items.filter((i) => i.str && i.str.trim()).map((i) => {
+          const [a, b, , , x, y] = i.transform;
+          const k = Math.hypot(a, b) || 1, dx = a / k, dy = b / k;
+          return { ao: dx * x + dy * y, tr: -dy * x + dx * y, w: i.width, s: i.str };
+        }).sort((p, q) => q.tr - p.tr || p.ao - q.ao);
+        const grupos = [];
+        itens.forEach((i) => {
+          const g = grupos[grupos.length - 1];
+          if (g && Math.abs(g.tr - i.tr) <= 2.5) g.itens.push(i); else grupos.push({ tr: i.tr, itens: [i] });
+        });
+        const pagina = grupos.map((g) => {
+          g.itens.sort((p, q) => p.ao - q.ao);
+          let txt = "", fim = null;
+          g.itens.forEach((i) => { txt += (fim != null && i.ao - fim > 0.8 ? " " : "") + i.s; fim = i.ao + i.w; });
+          return txt;
+        });
+        linhas.push(...filtrarPaginaPDF(pagina));
+      }
+    } finally {
+      await doc.destroy();
+    }
+    return linhas;
+  }
+
   const tituloBOA = /^BOLETIM DE ORIENTA[ÇC][ÃA]O ACAD[ÊE]MICA\b/i;
   const colunasBOA = /^Aluno\s+Matr[íi]cula\b.*\bEmiss[ãa]o\s*$/i;
   const colunasHist = /^Per[íi]odo\s+C[óo]digo\b.*\bCrR\s+CH\s+Grau\s+CrO\s+Pontos\s+SF\b/i;
@@ -164,7 +200,7 @@
   // ---------------------------------------------------------------------------
   /**
    * Lê o BOA do SIGA.
-   * @returns {{emissao, cursando: Array<{code,name,credits,ch}>, equivalencias: Array<{recomendada, cursada}>,
+   * @returns {{emissao, cursando: Array<{code,name,credits,ch,ncc}>, equivalencias: Array<{recomendada, cursada}>,
    *            naoExplicitadas: Array<{code,name,credits,ch,grau}>, reprovacoes: Array<{code,name,periodos}>}}
    */
   function lerBOA(texto) {
@@ -195,7 +231,8 @@
         if (!m) continue;
         const resto = m[6].trim();
         if (/^Cursando\b/i.test(resto)) {
-          out.cursando.push({ code: m[1], name: m[2].trim(), credits: m[3] === "NCC" ? 0 : num(m[3]), ch: num(m[4]) });
+          const ncc = m[3] === "NCC";
+          out.cursando.push({ code: m[1], name: m[2].trim(), credits: ncc ? 0 : num(m[3]), ch: num(m[4]), ncc });
         } else {
           const c = RE.origemCodigo.exec(resto);
           if (c && c[1] !== m[1]) out.equivalencias.push({ recomendada: m[1], cursada: c[1] });
@@ -293,7 +330,7 @@
     const saida = nomes.map((nome) => ({ nome, disciplinas: periodos[nome] }));
 
     // 6) Período atual = disciplinas "Cursando" no BOA (ACE vai para a lista de extensão)
-    const ultimo = nomes.filter((n) => /^\d{4}\/\d$/.test(n)).pop();
+    const ultimo = nomes.filter((n) => /^\d{4}\/[12]$/.test(n)).pop();
     const atualNome = proximoPeriodo(ultimo) || "atual";
     const cursando = (a.boa && a.boa.cursando) || [];
     const extensaoBOA = [];
@@ -325,8 +362,12 @@
     if (anterior && Array.isArray(anterior.periodos)) {
       // horários e status já anotados no período atual anterior são preservados
       const antAtual = anterior.periodos.find((p) => p.atual);
-      const atual = saida.find((p) => p.atual);
-      if (antAtual && atual && antAtual.nome === atual.nome) {
+      let atual = saida.find((p) => p.atual);
+      if (!a.boa && antAtual && /^\d{4}\/[12]$/.test(antAtual.nome)
+        && chavePeriodo(antAtual.nome) > chavePeriodo(ultimo)) {
+        atual = antAtual;
+        saida.push(atual);
+      } else if (antAtual && atual && antAtual.nome === atual.nome) {
         atual.disciplinas.forEach((it) => {
           const v = (antAtual.disciplinas || []).map((d) => (typeof d === "string" ? { code: d } : d)).find((d) => d.code === it.code);
           if (v) {
@@ -344,5 +385,5 @@
     return perfil;
   }
 
-  return { VERSAO, RE, normalizarLinhas, filtrarPaginaPDF, lerHistorico, lerBOA, montarPerfil, proximoPeriodo };
+  return { VERSAO, RE, normalizarLinhas, filtrarPaginaPDF, extrairLinhasPDF, lerHistorico, lerBOA, montarPerfil, proximoPeriodo };
 });
