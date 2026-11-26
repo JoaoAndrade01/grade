@@ -6,7 +6,7 @@
       "arquivos": ["horarios"],
       "curso": 1,
       "origem": "js/horarios.js, eletivas de período ímpar e par (Notion, Grades de ECI, consultado em 2026-11-25)",
-      "motivo": "pendente de conferência no Notion",
+      "motivo": "conferido no Notion em 2026-11-26: Tecnologia e Desenvolvimento Social, disciplina de outro curso",
       "efeito": "somente-informativo"
     },
     {
@@ -14,15 +14,7 @@
       "arquivos": ["horarios"],
       "curso": 1,
       "origem": "js/horarios.js, eletivas de período ímpar e par (Notion, Grades de ECI, consultado em 2026-11-25)",
-      "motivo": "pendente de conferência no Notion",
-      "efeito": "somente-informativo"
-    },
-    {
-      "nome": "Comp 3 (condicionada)",
-      "arquivos": ["horarios", "guia"],
-      "curso": 1,
-      "origem": "js/horarios.js (semCodigo.impar) e js/guia.js (semCodigo), Notion, Grades de ECI, consultado em 2026-11-25",
-      "motivo": "pendente de conferência no Notion",
+      "motivo": "conferido no Notion em 2026-11-26: Introdução ao Aprendizado de Máquina; costuma ser aproveitada como Tóp. Esp. em IA (COS623) por pedido de equivalência (a Grade não afirma a equivalência)",
       "efeito": "somente-informativo"
     },
     {
@@ -30,7 +22,7 @@
       "arquivos": ["horarios"],
       "curso": 1,
       "origem": "js/horarios.js (semCodigo.impar), Notion, Grades de ECI, consultado em 2026-11-25",
-      "motivo": "pendente de conferência no Notion",
+      "motivo": "conferido no Notion em 2026-11-26: turma sem código no SIGA",
       "efeito": "somente-informativo"
     },
     {
@@ -38,7 +30,7 @@
       "arquivos": ["horarios"],
       "curso": 1,
       "origem": "js/horarios.js (semCodigo.impar), Notion, Grades de ECI, consultado em 2026-11-25",
-      "motivo": "pendente de conferência no Notion",
+      "motivo": "conferido no Notion em 2026-11-26: turma sem código no SIGA",
       "efeito": "somente-informativo"
     },
     {
@@ -46,7 +38,7 @@
       "arquivos": ["horarios"],
       "curso": 1,
       "origem": "js/horarios.js (semCodigo.par), Notion, Grades de ECI, consultado em 2026-11-25",
-      "motivo": "pendente de conferência no Notion",
+      "motivo": "conferido no Notion em 2026-11-26: disciplina de mestrado",
       "efeito": "somente-informativo"
     }
   ]

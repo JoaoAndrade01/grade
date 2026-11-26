@@ -1913,12 +1913,12 @@ def t_m6_somente_informativo(b):
     lista = pg.locator(".sem-codigo")
     assert lista.count() == 1
     txt = lista.inner_text()
-    assert "Comp 3 (condicionada)" in txt and ("cabe" in txt or "choca" in txt), txt
+    assert "Mapas (livre escolha)" in txt and ("cabe" in txt or "choca" in txt), txt
     assert lista.locator("button, [data-plan], [data-sugadd]").count() == 0       # nada para planejar ou incluir
     assert "Outras turmas na referência de 2027/1" in pg.locator("#painel").inner_text()
     pg.click('[data-vista="cronograma"]'); pg.click('[data-cperiodo="2027/1"]')
     sug = pg.locator(".lista-sug").inner_text()
-    for fora in ("EET100", "EEL891", "Comp 3", "Mapas", "Estrutura de Dados"): assert fora not in sug, (fora, sug)
+    for fora in ("EET100", "EEL891", "Mapas", "Estrutura de Dados"): assert fora not in sug, (fora, sug)
     pg.click('[data-cperiodo="2027/2"]')
     sug = pg.locator(".lista-sug").inner_text()
     for fora in ("EET100", "EEL891", "Grafos de Interseção"): assert fora not in sug, (fora, sug)

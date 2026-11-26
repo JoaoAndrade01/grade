@@ -49,6 +49,7 @@ window.horarios[1] = {
     COP509: ["seg 13-17"],                // Trabalho do Futuro
     EEL816: ["ter 15-17", "qui 15-17"],
     EEL891: ["ter 15-17", "qui 15-17"],
+    COS013: ["ter 13-15", "qui 13-15"],   // Tóp. Esp. em ECI (turma "Comp 3", condicionada)
     EEL817: ["ter 15-17", "qui 15-17"],   // Redes Neurais (turma do mestrado)
   },
   par: {
@@ -92,7 +93,6 @@ window.horarios[1] = {
   // Turmas da página sem código identificável no currículo
   semCodigo: {
     impar: [
-      { name: "Comp 3 (condicionada)", horarios: ["ter 13-15", "qui 13-15"] },
       { name: "Tóp. Ciência de Dados: Estrutura de Dados", horarios: ["ter 15-17", "qui 15-17"] },
       { name: "Mapas (livre escolha)", horarios: ["ter 13-15", "qui 13-15"] },
     ],

@@ -301,9 +301,9 @@ def casos_reais(ref_git=None):
     registra("Dados reais: horarios.js e guia.js passam com as exceções versionadas", not r["erros"], " | ".join(r["erros"]))
     registra("Dados reais: nenhuma exceção sobrando (todas usadas)", not r["excecoes_sem_uso"], str(r["excecoes_sem_uso"]))
     sem = ref.valida(dados, dups, {"excecoes": []})
-    esperados = ["EET100", "EEL891", "Comp 3 (condicionada)", "Tóp. Ciência de Dados: Estrutura de Dados",
+    esperados = ["EET100", "EEL891", "Tóp. Ciência de Dados: Estrutura de Dados",
                  "Mapas (livre escolha)", "Grafos de Interseção (mestrado)"]
-    registra("Dados reais sem exceções: falha e identifica as seis pendências conhecidas",
+    registra("Dados reais sem exceções: falha e identifica as cinco exceções conhecidas",
              all(any(x in e for e in sem["erros"]) for x in esperados), " | ".join(sem["erros"]))
     return r, sem
 

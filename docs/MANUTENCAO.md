@@ -44,15 +44,12 @@ Estas duas fontes são **não oficiais**, mantidas por alunos. A Grade avisa dis
 Mantenha o último par bom. A nota da Grade já mostra a data da consulta e diz que os horários podem mudar.
 Se a fonte não voltar no semestre seguinte, avise no README e siga "Se o projeto parar ou o currículo mudar".
 
-**Pendência de identificação antes de publicar:** conferir no Notion os códigos de EET100 e EEL891 e de quatro
-turmas que estão sem código ("Comp 3", "Tóp. Ciência de Dados: Estrutura de Dados", "Mapas" e "Grafos de
-Interseção (mestrado)"). Enquanto não houver código, elas ficam como exceção justificada, só como informação.
-
-**Estado em 2026-11-26:** a conferência no Notion **ainda não foi feita**. As seis exceções de
-`testes/fixtures/excecoes-referencia.json` continuam com o motivo "pendente de conferência no Notion" e o efeito
-"somente informativo", e o validador as relata como exceções cadastradas. Isto é uma **limitação conhecida** do candidato:
-a conferência é obrigatória antes de publicar, e o resultado (códigos resolvidos ou exceções mantidas com o motivo)
-substitui este parágrafo e atualiza essa lista.
+**Identificação das turmas sem código (conferida no Notion em 2026-11-26):** "Comp 3 (condicionada)" é a COS013
+(Tóp. Esp. em Eng. de Computação e Informação) e passou a usar o código nos horários e no guia. Seguem como exceção
+justificada, só como informação: EET100 (Tecnologia e Desenvolvimento Social, disciplina de outro curso); EEL891
+(Introdução ao Aprendizado de Máquina, que costuma ser aproveitada como Tóp. Esp. em IA, COS623, por pedido de
+equivalência; a Grade não afirma a equivalência); "Tóp. Ciência de Dados: Estrutura de Dados" e "Mapas (livre
+escolha)" (sem código no SIGA); e "Grafos de Interseção (mestrado)" (disciplina de mestrado).
 
 **Exceções do validador.** Cada exceção declara origem, motivo e efeito ([PUB-10](DECISOES.md#pub-10--exceções-do-validador-aviso-por-fonte-e-efeito-somente-informativo)).
 Uma exceção sem uso gera aviso por fonte; **remova as exceções vencidas na revisão semestral**.

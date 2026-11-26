@@ -140,7 +140,5 @@ window.guia[1] = {
     EEL880: { nivel: 2, descricao: "Tópicos Especiais em Sistemas Digitais (parece Computação Gráfica)." },
   },
   // turmas sem código no currículo
-  semCodigo: {
-    "Comp 3 (condicionada)": { nivel: 3 },
-  },
+  semCodigo: {},
 };
