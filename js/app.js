@@ -1196,7 +1196,7 @@
         : `BOA: <b>indisponível</b> <small>(${esc(n.motivo)})</small>`}</li>
     </ul>${notaHtml(NOTA_RA13)}`;
   }
-  // Notas de estimativa de D-06 (texto aprovado pelo João em textos-aviso.md). A data de RA-20 vem de `consultado`.
+  // Notas de estimativa de D-06 (textos em docs/REGRAS-ACADEMICAS.md#textos-de-aviso). A data de RA-20 vem de `consultado`.
   const dataBR = (iso) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ""); return m ? `${m[3]}/${m[2]}/${m[1]}` : String(iso || ""); };
   const NOTA_RA13 = "Estimativa da Grade. No BOA, os créditos usados em equivalências podem continuar aparecendo na livre escolha.";
   const NOTA_RA09 = "Idade estimada pelo semestre de aprovação. Para quem reingressou, a data que vale pode ser outra; confira com a coordenação.";

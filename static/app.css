@@ -858,38 +858,38 @@ body:has(.paleta:not([hidden])) .rodape { padding-bottom: 84px; }
 .checks .orientacao-carga { color: var(--muted); }   /* D-01: orientação, sem estilo de aprovação ou falha */
 .papel-historico .alerta { color: var(--text); font-weight: 600; border-left: 3px solid var(--alerta); padding-left: 8px; }   /* ≥ 4,5:1 nos dois temas */
 
-/* ---------- B2.5 · B1: situação e origem em texto, também no toque ---------- */
+/* ---------- situação e origem em texto, também no toque ---------- */
 .card .estado { font-size: 11px; font-weight: 600; line-height: 1.25; color: var(--text); overflow-wrap: anywhere; }
 .vista-grade .card .estado { font-size: clamp(9px, .62vw, 11px); }
 .paleta .consulta { margin: 0 0 6px; padding: 8px 12px; border-radius: 12px; font-size: 13px; line-height: 1.35;
   background: var(--surface); color: var(--text); border: 1px solid var(--border); box-shadow: 0 10px 30px rgb(0 0 0 / .18); }
 .paleta .consulta .btn { margin-left: 4px; min-height: 32px; }
 
-/* ---------- B2.5 · B2: foco e rolagem com a faixa e a paleta fixas ---------- */
+/* ---------- foco e rolagem com a faixa e a paleta fixas ---------- */
 .principal { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 .painel:focus { outline: none; }
 /* Só a margem de baixo é CSS: scroll-padding-top fazia o Chromium rolar 10 px ao recarregar a página (restauração de rolagem).
    A margem de cima, sob a faixa, é corrigida pelo script (focusin em js/app.js), que também cobre o Firefox. */
 html { scroll-padding-bottom: calc(var(--paleta-h, 0px) + 20px); }
 
-/* ---------- B2.5 · B4: células da grade de horários operáveis por teclado ---------- */
+/* ---------- células da grade de horários operáveis por teclado ---------- */
 .crono-grade .cel { appearance: none; margin: 0; padding: 0; border-radius: 0; font: inherit; color: inherit; background: transparent; border-right: 0; border-bottom: 0; text-align: left; }
 .crono-grade .cel:focus-visible { outline: 3px solid var(--foco); outline-offset: -3px; position: relative; z-index: 2; }
 
-/* ---------- B2.5 · B5: o painel de detalhes fica acima da paleta fixa ---------- */
+/* ---------- o painel de detalhes fica acima da paleta fixa ---------- */
 body:has(.paleta:not([hidden])) .detalhes {
   bottom: calc(var(--paleta-h, 0px) + 16px);
   max-height: calc(100vh - var(--paleta-h, 0px) - var(--faixa-h, 0px) - 28px);
 }
 
-/* ---------- B2.5 · B7: Pedidos sem rolagem horizontal do documento ---------- */
+/* ---------- Pedidos sem rolagem horizontal do documento ---------- */
 /* A tabela rola dentro da própria região (alcançável por Tab, setas rolam); o resto da página fica em 320 px. */
 .tabela-rolagem { max-width: 100%; overflow-x: auto; overflow-y: hidden; }
 .tabela-rolagem:focus-visible { outline: 2px solid var(--foco); outline-offset: 2px; }
 .pedidos, .pedidos .sec { min-width: 0; max-width: 100%; }
 .pedidos .add { flex-wrap: wrap; }
 
-/* ---------- B2.5 · B8: alvos de 24 × 24 CSS px (WCAG 2.5.8) ---------- */
+/* ---------- alvos de 24 × 24 CSS px (WCAG 2.5.8) ---------- */
 .mini-btn { min-height: 24px; min-width: 24px; padding: 3px 10px; }
 .chip-btn { min-height: 24px; }
 .aviso-importado .link { display: inline-flex; align-items: center; min-height: 24px; padding: 2px 4px; text-decoration: underline; }
