@@ -70,12 +70,12 @@ arquivos); seção do BOA (ausente, vazia, presente); ocorrências de ACE (mesmo
 período); dispensa (uma, duas ou mais, alvo fora do catálogo); horário (malformado, início igual ou posterior ao
 fim, duplicata).
 
-**Lacunas conhecidas** (também marcadas na matriz): os casos 11a–11d (optativas, guia e oferta), o 06n (NCC
-desconhecida) e as partes de 12 e 14 que dependem de leitor de tela não têm teste automatizado dirigido
-versionado; o teste de sentinelas de privacidade de RNF-01 e o desempenho (RNF-10) ainda são verificações da
-integração. Cada lacuna é conferida e registrada no resultado do candidato ou fica no backlog.
-
-<!-- INTEGRAÇÃO: confirmar, no candidato integrado, quais lacunas ficaram cobertas (casos 11a–11d, 06n, 12c, 14e–14g, sentinelas de RNF-01, desempenho de RNF-10) e atualizar este parágrafo e a coluna "Cobertura" da matriz. -->
+**Lacunas conhecidas** (também marcadas na matriz): os casos 11a–11d (resultado dos filtros e do guia nas
+optativas) e o 06n (atividade em curso desconhecida) **não têm teste automatizado**; os casos 12c a 12e e 14e a 14g
+têm teste só em parte; a navegação por leitor de tela, o Safari no Mac e o iPhone real não são cobertos. O teste de
+sentinelas de privacidade (RNF-01) cobre o armazenamento e a página (`t_siga`) e a restrição das requisições à origem
+(`testes/auditoria.py`); a conferência do arquivo exportado e a medida de desempenho (RNF-10) foram feitas por sonda
+avulsa, não versionada, descrita na seção 8. Nada disso foi dado como coberto sem teste.
 
 ## 4. Critérios de entrada, saída, interrupção e reexecução
 
@@ -113,8 +113,6 @@ Cada linha liga **história → requisito → casos → teste → código**. Os 
 (`t_…`), oráculos de `testes/fixtures/oraculos.json`, ou os outros arquivos indicados. O **código** é o ponto do app
 que implementa a regra. **Cobertura**: *direta* (o teste verifica o resultado esperado do caso), *parcial* (verifica
 parte dele) ou *sem teste* (conferir na integração).
-
-<!-- INTEGRAÇÃO: a matriz foi montada sobre os testes versionados no commit 651972e. Acrescentar as linhas dos testes de acessibilidade e de aviso por fonte posteriores a esse commit (por exemplo, os que verificam foco, nomes acessíveis, contraste, refluxo a 320 px, alvos, papéis ARIA, mensagens do PDF, efeito "somente informativo" e o recorte do axe) e atualizar as colunas Teste e Cobertura. -->
 
 | Histórias | Requisito | Casos | Testes | Código | Cobertura |
 | --- | --- | --- | --- | --- | --- |
@@ -156,14 +154,16 @@ parte dele) ou *sem teste* (conferir na integração).
 | H10 | RF-08 | 08e, 08f | `t_rf08_periodo_atual` | `perfilDaImportacao` | direta |
 | H10 | RF-08 | 08l | `t_rf08_deduzido_regras` | `perfilDaImportacao` | direta |
 | H10 | RF-08 | 08g, 08h | `t_rf08_oferta` | `notaRA20` | direta |
-| H10 | RF-08 | 08i, 08j, 08k | `t_rf08_rodape` (destino real no fork: conferir na publicação) | `index.html`, `js/database.js` (`consultado`) | parcial |
-| H4 | [RF-10](REQUISITOS.md#rf-10--planejamento-de-períodos-e-choques-de-horário-h4) | 10a–10b | `t_regressao` (horários por clique), `t_excluir` | `montaModelo` | parcial |
+| H10 | RF-08 | 08i, 08j, 08k | `t_rf08_rodape`; `t_m3_mensagens` (o link de relato na falha da importação). Destino real no fork: conferir na publicação | `index.html`, `js/database.js` (`consultado`) | parcial |
+| H4 | [RF-10](REQUISITOS.md#rf-10--planejamento-de-períodos-e-choques-de-horário-h4) | 10a | `t_regressao` (horários por clique), `t_excluir` | `montaModelo` | parcial |
+| H4 | RF-10 | 10b | `t_b4_grade_horarios` (teclado: configurar, ver o choque nas duas, limpar); `t_regressao` (clique) | `montaModelo`, grade de horários de `js/app.js` | direta |
 | H4 | RF-10 | 10c | `t_cr01_proposta` | `montaProposta` | direta |
 | H4 | RF-10 | 10d–10e | `t_excluir` | `excluiPeriodo` | direta |
-| H9 | [RF-11](REQUISITOS.md#rf-11--optativas-guia-e-oferta-h9) | 11a–11d | sem teste dirigido (`t_regressao` cobre só busca e foco) | `candidatos`, `js/horarios.js`, `js/guia.js` | sem teste |
+| H9 | [RF-11](REQUISITOS.md#rf-11--optativas-guia-e-oferta-h9) | 11a–11d | sem teste do resultado dos filtros e do guia (`t_regressao` cobre busca e foco; `t_b2_foco_filtros` cobre o foco ao filtrar) | `candidatos`, `js/horarios.js`, `js/guia.js` | sem teste |
+| H9 | RF-11, RF-17 | turmas sem código | `t_m6_somente_informativo` (lista informativa "cabe"/"choca", sem ação; fora das sugestões e dos cálculos) | `js/horarios.js`, `js/optativas.js` | direta |
 | H11 | [RF-12](REQUISITOS.md#rf-12--perfil-e-dados-locais-h11) | 12a | `t_criar_perfil` | `salvaPerfilCriado` | direta |
 | H11 | RF-12 | 12b | `t_regressao` (exportação e recarga), `testes/reimportacao.py` | exportação de `js/app.js` | direta |
-| H11 | RF-12 | 12c | `t_compat` (carga por arquivo) | `erroPerfil` | parcial |
+| H11 | RF-12 | 12c | `t_compat` (carga por arquivo), `t_b5_escolher_perfil` (válido aplicado; inválido preserva o anterior). A mensagem de erro do inválido não é verificada | `erroPerfil` | parcial |
 | H11 | RF-12 | 12d | `t_descartar_salvo`, `t_regressao` ("Apagar tudo") | `js/app.js` | parcial |
 | H11 | RF-12 | 12e | inspeção heurística; `t_aviso_pdf` | — | parcial |
 | H12 | [RF-13](REQUISITOS.md#rf-13--a-eci-por-trás-da-grade-h12) | 13a–13c | `t_experiencias`, `t_exp_com_perfil`, `t_seletor_eci`, `t_fecha_durante_leitura` | `js/eci.js`, `js/demo-pdf.js` | direta |
@@ -173,11 +173,21 @@ parte dele) ou *sem teste* (conferir na integração).
 | H1, H3 | RF-14 | 14e | `t_tema`, `t_modo`, `t_atalhos`, `t_formatos` | `renderAtalhos`, `renderConfig` | parcial (anúncio ao desafixar: conferir) |
 | H1, H3 | RF-14 | 14f | `t_tags` | `renderConfig` (editor de tags) | parcial |
 | H10 | RF-14 | 14g | `t_atalhos` (Referências sem requisição externa) | `abreReferencias` | parcial |
-| H14 | [RF-17](REQUISITOS.md#rf-17--validação-dos-dados-de-referência-h14) | 17a–17e | `testes/referencia_casos.py` (casos sintéticos e dados reais) | `testes/referencia.py` | direta |
+| H14 | [RF-17](REQUISITOS.md#rf-17--validação-dos-dados-de-referência-h14) | 17a–17e | `testes/referencia_casos.py` (80 casos sintéticos, inclusive gramática do horário, dígitos não ASCII, exceção sem uso e efeito recusado; e os dados reais) | `testes/referencia.py` | direta |
 | H14 | RF-17 | 17f | `testes/referencia_casos.py --browser` | detalhe da optativa em `js/app.js` | direta (sem controle negativo) |
-| H11 | [RNF-01](REQUISITOS.md#5-requisitos-não-funcionais) | — | `testes/auditoria.py` (todas as requisições restritas à origem); sentinelas: sem teste | CSP em `index.html` | parcial |
+| H11 | [RNF-01](REQUISITOS.md#5-requisitos-não-funcionais) | — | `t_siga` (o perfil salvo e a página não contêm o nome, o CPF nem o RG do cabeçalho); `testes/auditoria.py` (todas as requisições restritas à origem); `testes/reimportacao.py` (`classico.html` e o código sem referência externa). Arquivo exportado: sonda avulsa (seção 8) | CSP em `index.html` | parcial |
 | H1–H11 | RNF-02, RNF-04 | — | matriz de seis pares (`testes/runner.py`) | — | direta |
-| H1, H2, H3, H10, H11 | RNF-03 | — | `t_a11y` e axe (ver seção 7) | `static/app.css`, `js/app.js` | parcial |
+| H1, H3, H10 | [RNF-03](REQUISITOS.md#5-requisitos-não-funcionais) | 1.4.1 | `t_b1_estado_dos_cartoes` (situação e origem em texto, sem cor nem hover; no toque, a 1ª ativação só consulta) | rótulo de estado dos cartões (`js/app.js`, `static/app.css`) | direta |
+| H2, H4, H11 | RNF-03 | 2.4.3, 2.4.7, 2.4.11 | `t_b2_importacao`, `t_b2_foco_filtros`, `t_b2_foco_visivel` (foco entra no painel, segue ao resultado, volta ao disparador; não fica sob a faixa nem a paleta) | foco e rolagem (`js/app.js`, `static/app.css`) | direta |
+| H2, H5, H8 | RNF-03 | 3.3.2, 4.1.2 | `t_b3_nomes` (seletor de PDF, campos de Pedidos e de ACE; prévia anunciada) | nomes acessíveis (`js/app.js`, `index.html`) | direta |
+| H4 | RNF-03, RF-10 | 2.1.1 | `t_b4_grade_horarios` (grade de horários por teclado) | grade de horários (`js/app.js`) | direta |
+| H2, H11 | RNF-03, RF-12 | 2.1.1, 2.5.8 | `t_b5_escolher_perfil` ("Escolher perfil" por Tab e por toque, a 320 e 390 px) | `js/app.js`, `static/app.css` | direta |
+| H1, H3, H10 | RNF-03 | 1.4.3, 1.4.11 | `t_b6_contraste`, `t_a11y` (contraste de texto e dos limites das células, nos dois temas; axe `color-contrast`) | variantes de cor (`static/app.css`) | direta |
+| H5, H8 | RNF-03 | 1.4.10 | `t_b7_pedidos_320` (Pedidos a 320 px sem rolagem horizontal do documento; tabelas rolam na região, por teclado) | `static/app.css`, `js/app.js` | direta |
+| H1 a H11 | RNF-03 | 2.5.8 | `t_b8_alvos` (alvos de 24 × 24 px nos controles secundários; axe `target-size`) | `static/app.css` | direta |
+| H1 a H4 | RNF-03 | 4.1.2 | `t_b9_aria` (abas com painel associado, setas, Home e End; sem `aria-selected` inválido) | abas (`js/app.js`, `index.html`) | direta |
+| H2 | RNF-03 | 3.3.1, 4.1.3 | `t_m3_mensagens` (falha de leitura do PDF em português, com orientação e sem dados do arquivo; BOA por extenso) | `js/app.js`, `js/siga.js` | direta |
+| H1, H2, H3, H10, H11 | RNF-03 | axe-core | `t_axe_recorte` (recorte de telas e estados, claro e escuro, 1440 e 320 px: sem ocorrência grave ou crítica) | `static/app.css`, `js/app.js` | parcial (o recorte não inclui perfil real, leitor de tela, Safari nem iPhone) |
 | H2, H7 | RNF-05 | — | `ferramentas/testar_paridade.sh`; `testes/importador.py` | `js/siga.js`, `gerar_perfil.py` | direta |
 | H10, H14 | RNF-08 | — | `t_rf08_rodape` | `js/database.js`, `js/horarios.js`, `js/guia.js` | parcial |
 | H13, H14, H15 | RNF-07 | P13, P14, P15 | processos descritos em [REQUISITOS.md](REQUISITOS.md#1-histórias-de-usuário), sem tela | [CONTRIBUTING.md](../CONTRIBUTING.md), [MANUTENCAO.md](MANUTENCAO.md), [AGENTS.md](../AGENTS.md) | por leitura |

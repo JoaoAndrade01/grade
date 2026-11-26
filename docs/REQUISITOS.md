@@ -9,9 +9,13 @@ Como rodar os testes: [testes/README.md](../testes/README.md).
 
 - **Estes requisitos descrevem a v2.0.0.** O que ficou para depois aparece como "versão seguinte" ou
   "planejado".
-- **Estado.** Todo requisito tem um:
-  - **v2.0.0 · a verificar na C2:** está no escopo da v2.0.0 e ainda não tem evidência no candidato final.
-    A C2 é a etapa de verificação do candidato, que preenche o estado definitivo e a evidência de cada item;
+- **Estado.** Todo requisito tem um, medido no candidato da v2.0.0 (hash e resultado em
+  [PLANO-DE-TESTE.md](PLANO-DE-TESTE.md#8-resultado-por-candidato)):
+  - **cumprido:** está no escopo da v2.0.0 e todos os seus casos têm teste automatizado ou verificação registrada
+    com o resultado esperado;
+  - **parcial:** está no escopo da v2.0.0 e implementado, mas parte dos casos tem teste só em parte ou nenhum teste
+    automatizado. A linha do requisito diz quais, e a coluna "Cobertura" da
+    [matriz de rastreabilidade](PLANO-DE-TESTE.md#5-matriz-de-rastreabilidade) traz o detalhe;
   - **planejado:** mapeado e ainda não feito;
   - **versão seguinte:** pronto ou previsto para depois da v2.0.0.
 - **Casos.** Cada caso é *situação → ação → resultado esperado*, com dados **fictícios**. Códigos como
@@ -24,8 +28,6 @@ Como rodar os testes: [testes/README.md](../testes/README.md).
 - **Verificações do importador.** *Paridade* (RNF-05): as versões JavaScript e Python geram o mesmo perfil;
   detecta divergência entre elas, não erro compartilhado. *Oráculo independente*: um perfil esperado, escrito
   à mão, contra o qual as duas saídas são comparadas.
-
-<!-- INTEGRAÇÃO: depois da verificação do candidato integrado, trocar todo "v2.0.0 · a verificar na C2" (esta legenda, a tabela de RF, RNF-01 e a tabela de RNF) por "cumprido", "parcial" ou "planejado", com a evidência por estado (caso, teste e hash), e reescrever o item "v2.0.0 · a verificar na C2" desta legenda para os três estados finais. Confirmar também 11a–11d, 12c, 06n, 14e–14g e os casos H13 a H15 (P13 a P15). -->
 
 ## 1. Histórias de usuário
 
@@ -152,23 +154,23 @@ dispositivo (RNF-01).
 
 | ID | Requisito | Histórias | Estado |
 | --- | --- | --- | --- |
-| RF-01 | Progresso por grupo | H3, H8 | v2.0.0 · a verificar na C2. O caso 01g está em **versão seguinte** |
-| RF-02 | Requisitos e co-requisitos | H1, H4 | v2.0.0 · a verificar na C2 |
-| RF-03 | Análise de um pedido de equivalência | H5, H7 | v2.0.0 · a verificar na C2 |
-| RF-04 | A mesma origem não conta duas vezes | H5 | v2.0.0 · a verificar na C2 |
-| RF-05 | Créditos de um pedido deferido | H6 | v2.0.0 · a verificar na C2 |
-| RF-06 | Importação do SIGA | H2, H7, H11 | v2.0.0 · a verificar na C2 |
-| RF-07 | Aviso de oferta e horários de referência | H4 | v2.0.0 · a verificar na C2 |
-| RF-08 | Aviso de que a Grade não é oficial | H10 | v2.0.0 · a verificar na C2 |
+| RF-01 | Progresso por grupo | H3, H8 | **Parcial.** 01b a 01f têm teste direto (`t_pc02_manual_credito`, `t_cr03_historico`, `t_cr03_lista`); 01a só em parte (confere os 7 cr concluídos). O caso 01g está em **versão seguinte** |
+| RF-02 | Requisitos e co-requisitos | H1, H4 | **Cumprido.** 02a a 02j: `t_cr01_pre`, `t_mac`, `t_cr01_sugestoes`, `t_cr01_co`, `t_pc03_manual_requisito` |
+| RF-03 | Análise de um pedido de equivalência | H5, H7 | **Parcial.** 03d a 03j têm teste direto (`t_d01_carga`, `t_d01_conteudo`, `t_cr04_reingresso`); 03a a 03c só em parte (`t_rf08_notas_credito`, `t_cr04_fronteira`) |
+| RF-04 | A mesma origem não conta duas vezes | H5 | **Cumprido.** 04a a 04e: `t_cr02_pedidos`, `t_cr02_duas_dispensas`, `t_cr02_dispensa_unica`, `t_cr02_alvo_fora_do_catalogo` |
+| RF-05 | Créditos de um pedido deferido | H6 | **Cumprido.** 05a a 05h: `t_d02_dois_numeros`, `t_d02_ausente_e_vazia`, `t_d02_importacao`, `t_d02_outros_grupos` e os oráculos `boa-p5-*` |
+| RF-06 | Importação do SIGA | H2, H7, H11 | **Parcial.** 06a a 06m têm teste direto (`t_siga`, `t_cr04_*`, `t_previa_*`, paridade, oráculos e `testes/reimportacao.py`); 06n (atividade em curso desconhecida) **sem teste**; em 06k, a confirmação vale para a prévia e o arquivo baixado fica por conferir |
+| RF-07 | Aviso de oferta e horários de referência | H4 | **Cumprido.** 07a a 07e: `t_oferta`, `t_rf08_oferta` |
+| RF-08 | Aviso de que a Grade não é oficial | H10 | **Parcial.** 08a a 08h e 08l têm teste direto (`t_rf08_faixa`, `t_rf08_notas_credito`, `t_rf08_periodo_atual`, `t_rf08_oferta`, `t_rf08_deduzido_regras`); 08i a 08k só em parte: `t_rf08_rodape` confere presença, texto e destino dos links, e o destino no fork se confere na publicação |
 | RF-09 | Procedimentos de estágio, equivalência e ACE | H5, H8 | planejado |
-| RF-10 | Planejamento de períodos e choques | H4 | v2.0.0 · a verificar na C2 |
-| RF-11 | Optativas, guia e oferta | H9 | v2.0.0 · a verificar na C2 |
-| RF-12 | Perfil e dados locais | H11 | v2.0.0 · a verificar na C2 |
-| RF-13 | A ECI por trás da Grade | H12 | experiências atuais: v2.0.0 · a verificar na C2; novas: planejado |
-| RF-14 | Marcação manual, aparência, tags e Referências | H1, H3, H10 | v2.0.0 · a verificar na C2 |
+| RF-10 | Planejamento de períodos e choques | H4 | **Parcial.** 10b (choque, também pelo teclado: `t_b4_grade_horarios`), 10c a 10e têm teste direto; 10a só em parte (`t_regressao`, `t_excluir`) |
+| RF-11 | Optativas, guia e oferta | H9 | **Parcial.** 11a a 11d **sem teste** do resultado dos filtros e do guia. Há teste do foco ao filtrar (`t_b2_foco_filtros`) e da lista informativa de turmas sem código (`t_m6_somente_informativo`) |
+| RF-12 | Perfil e dados locais | H11 | **Parcial.** 12a e 12b têm teste direto (`t_criar_perfil`, `t_regressao`, `testes/reimportacao.py`); 12c a 12e só em parte (`t_compat`, `t_b5_escolher_perfil`, `t_descartar_salvo`, `t_aviso_pdf`; a mensagem de erro do arquivo inválido não é verificada) |
+| RF-13 | A ECI por trás da Grade | H12 | experiências atuais: **cumprido** (13a a 13c: `t_experiencias`, `t_exp_com_perfil`, `t_seletor_eci`, `t_fecha_durante_leitura`); novas: planejado |
+| RF-14 | Marcação manual, aparência, tags e Referências | H1, H3, H10 | **Parcial.** 14a a 14d têm teste direto (`t_cr01_manual`, `t_pc02_manual_credito`, `t_cadeado`, `t_setas`, `t_b1_estado_dos_cartoes`); 14e a 14g só em parte (`t_tema`, `t_modo`, `t_atalhos`, `t_formatos`, `t_tags`; o anúncio ao desafixar um atalho e o cancelamento de "Restaurar padrão" ficam por conferir) |
 | RF-15 | Sincronização dos dados do Notion | H16 | planejado |
 | RF-16 | Atualização do currículo a partir do SIGA | H14 | planejado |
-| RF-17 | Validação dos dados de referência | H14 | v2.0.0 · a verificar na C2 |
+| RF-17 | Validação dos dados de referência | H14 | **Cumprido.** 17a a 17f: `testes/referencia_casos.py` (80 casos sintéticos e os dados reais) e, com `--browser`, o 17f nos seis pares; o 17f não tem controle negativo |
 | RF-18 | Aviso de dado desatualizado | H14 | planejado |
 | RF-19 | Previsão de formatura calculada | H4 | planejado (primeiro item de produto depois da publicação) |
 
@@ -443,15 +445,12 @@ catálogo já fica fora de cálculos e sugestões. As turmas sem código aparece
 "choca"), sem ação para planejar. O validador recusa o efeito "entra no cálculo" para um nome sem código e avisa, por
 fonte, quando uma exceção não é usada (a remoção fica para a revisão semestral).
 
-<!-- INTEGRAÇÃO: depois de integrar os testes, conferir os nomes dos arquivos e do comando acima, e acrescentar aos casos 17b–17d o que o validador passou a checar nesta etapa (por exemplo, dígitos e quebras de linha fora da gramática de horário, exceção sem uso por fonte e efeito recusado para nome sem código). -->
-
-
 | Caso | Situação | Ação | Resultado esperado |
 | --- | --- | --- | --- |
 | 17a | Horário e guia válidos | Rodar o validador | Passa |
-| 17b | Em cada arquivo, por vez, um código ausente do currículo, do catálogo e da lista de exceções | Rodar o validador | Falha e identifica o código |
-| 17c | O mesmo código cadastrado como exceção, com origem, motivo e efeito no cálculo | Rodar o validador | A entrada passa e a exceção é reportada. Se o efeito registrado for "somente informativo", a entrada fica fora de cálculos e sugestões |
-| 17d | Uma variante por execução: campo obrigatório ausente, tipo inválido, horário malformado (inclusive início igual ou posterior ao fim) e duplicata, mesmo idêntica, conforme a identidade da entrada | Rodar o validador separadamente para cada variante | Cada variante falha e identifica a entrada |
+| 17b | Em cada arquivo, por vez, um código ausente do currículo, do catálogo e da lista de exceções; ou um código com dígito fora do alfabeto ASCII (por exemplo, arábico-índico ou de largura total) ou com quebra de linha no final | Rodar o validador | Falha e identifica o código |
+| 17c | O mesmo código cadastrado como exceção, com origem, motivo e efeito no cálculo; ou o efeito "entra no cálculo" para uma turma sem código; ou uma exceção que nenhuma fonte usa | Rodar o validador | A entrada passa e a exceção é reportada. Se o efeito registrado for "somente informativo", a entrada fica fora de cálculos e sugestões. O efeito "entra no cálculo" para turma sem código falha. A exceção sem uso gera **aviso por fonte**, sem falhar |
+| 17d | Uma variante por execução: campo obrigatório ausente, tipo inválido, horário malformado (dia fora de `seg` a `sex`, formato diferente de `HH-HH`, dígito não ASCII, espaço sobrando, quebra de linha no final, ou início igual ou posterior ao fim) e duplicata, mesmo idêntica, conforme a identidade da entrada | Rodar o validador separadamente para cada variante | Cada variante falha e identifica a entrada |
 | 17e | Turmas sem código | Rodar o validador | O relatório lista todas as turmas sem código e permite conferir as exceções justificadas |
 | 17f | Fixture local válida de guia com uma optativa cuja descrição contém `<`, `&` e aspas | Abrir o detalhe da optativa no navegador | Os caracteres aparecem literalmente e o trecho não cria elementos HTML |
 

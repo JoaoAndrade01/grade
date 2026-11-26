@@ -9,13 +9,15 @@ tipografia:
   base: 14px
   nome-da-disciplina: 600, clamp(10px, .78vw, 13px) na grade de uma tela; 13px no celular
 cores:
-  aprovado: "#16a34a"
+  aprovado: "#16a34a"   # preenchimentos e barras; para texto usa texto-de-estado
   aprovacao-esperada: "#84cc16"
   cursando: "#2563eb"
   reprovacao-esperada: "#dc2626"
   planejado: "#7c3aed"
   analise: "#b45309"
   pendente: "#94a3b8"
+  texto-de-estado: { claro: { aprovado: "#166534", reprovado: "#b91c1c", requisito: "#b91c1c", dependencia: "#92400e" }, escuro: { aprovado: "#4ade80", reprovado: "#f87171", requisito: "#f87171", dependencia: "#f59e0b" } }   # texto verde, vermelho e âmbar, contraste >= 4,5:1
+  borda-forte: { claro: "#8a93a2", escuro: "#667085" }   # limites das células da grade de horários, >= 3:1
   alerta: { claro: "#b45309", escuro: "#fbbf24" }   # avisos em texto, contraste >= 4,5:1
   foco: { claro: "#1d4ed8", escuro: "#93c5fd" }
   grupos: { obrigatorias: "#475569", condicionadas: "#d97706", livre: "#0d9488", humanas: "#db2777", ace: "#4f46e5" }
@@ -48,8 +50,8 @@ movimento: só transições curtas; respeita prefers-reduced-motion
 
 | Componente | Estados | Regras |
 | --- | --- | --- |
-| Cartão de disciplina (`.card.limpo`) | sem tag · com tag (fundo 22% da cor + borda) · equivalência pedida (contorno tracejado âmbar) · apagado pelo filtro (25%) · destaque de requisito (contorno vermelho/laranja) | Nome em destaque; extras só se "Exibir" pedir |
-| Paleta (`.paleta .pal-btn`) | normal · ativa (fundo da cor, texto com contraste) · foco (contorno azul) | 44px; rola na horizontal no celular |
+| Cartão de disciplina (`.card.limpo`) | sem tag · com tag (fundo 22% da cor + borda) · equivalência pedida (contorno tracejado âmbar) · apagado pelo filtro (25%) · destaque de requisito (contorno vermelho/laranja) · reprovada (borda pontilhada e texto riscado, **sem esmaecer**) | Nome em destaque; extras só se "Exibir" pedir. A **situação** ("Aprovada", "Aprovação prevista", "Planejada") e a **origem** ("perfil" ou "marcação") aparecem em **texto** no cartão, sem depender de cor nem de passar o mouse |
+| Paleta (`.paleta .pal-btn`) | normal · ativa (fundo da cor, texto com contraste) · foco (contorno azul) | 44px; rola na horizontal no celular. No **toque**, com um pincel ativo, o primeiro toque num cartão só **consulta** (linha "Toque de novo para marcar…", com "Detalhes") e o segundo marca; mouse e teclado marcam com uma ativação |
 | Interruptor (`#seletor-modo`) | ligado (verde) = modo clássico · desligado = completo · oculto (Configurações) · foco visível | `aria-label="Modo clássico"` |
 | Barra de atalhos (`#atalhos`, `.btn-atalho`) | fixado · desafixado · primário sem perfil | ícone e texto por padrão; o nome acessível vem do texto (escondido só visualmente em "Somente ícone") |
 | Configurações (`#dlg-config`) | `<dialog>` modal; seções Perfil e dados, Aparência, Grade, Referências | cada atalho tem abrir + "Fixar" (`aria-pressed`); controles sincronizados com a Grade |
@@ -58,7 +60,9 @@ movimento: só transições curtas; respeita prefers-reduced-motion
 | Seletor "ECI por trás" (`#pal-eci`) | desligado · ligado: cartões com experiência contornados, os demais `inert` e atenuados | Esc desliga |
 | Experiência (`#dlg-eci`) | `<dialog>` em tela cheia | "Voltar" e Esc fecham; o foco volta ao cartão ou botão que abriu |
 | Barra geral (`.bg-barra`) | concluída · cursando · planejada · não planejada | 8px no modo clássico; 14px com legenda no completo |
-| Painel lateral (`.detalhes`) | aberto · fechado | lateral no computador; folha inferior no celular |
+| Painel lateral (`.detalhes`) | aberto · fechado | lateral no computador; folha inferior no celular; fica **acima da paleta** em qualquer largura. O foco entra no painel ao abrir e volta ao disparador ao fechar |
+| Abas (`.abas [role="tab"]`) | ativa · inativa · foco | `tablist` com painel associado (`aria-controls`, `aria-labelledby`); só a aba ativa entra no Tab; setas, Home e End movem e ativam |
+| Grade de horários (`.cel`) | livre · com disciplina · choque · foco | 45 células com nome ("Segunda 08h: livre"); uma só entra no Tab; setas movem, Espaço ou Enter marca, Home e End vão ao começo e ao fim; as linhas têm contraste de 3:1 |
 | Faixa de aviso (`#faixa-aviso`) | visível em todas as telas | texto estático curto ("Feita por alunos de ECI. Não substitui o SIGA, o BOA nem a coordenação."), `role="note"`, na ordem de leitura, fora do caminho dos controles; não recebe foco |
 | Nota de estimativa (`role="note"`) | junto do cálculo a que se refere | texto além da cor; nunca depende de passar o mouse ([RF-08](REQUISITOS.md#rf-08--aviso-de-que-a-grade-não-é-oficial-versão-e-relato-d-06)) |
 | Prévia de importação | resumo · escolha do histórico atual · colisões · ações | **Usar este perfil** e **Baixar perfil.js** ficam desativados enquanto houver colisão ou dúvida; **Descartar prévia** sempre disponível |
@@ -104,7 +108,22 @@ assistiva. O texto normativo está em [W3C, WCAG 2.2](https://www.w3.org/TR/WCAG
 axe-core complementa o teclado e a inspeção visual. Leitor de tela real e o teste com colegas ficam no backlog
 ([MANUTENCAO.md](MANUTENCAO.md)).
 
-<!-- INTEGRAÇÃO: registrar aqui, com o hash do candidato, os resultados do axe, do contraste, do refluxo a 320 px, dos alvos e dos fluxos de teclado após as correções de acessibilidade, e conferir cada critério da tabela acima. -->
+**Resultado no candidato** (hash `@@HASH@@`; contagens e versões em
+[PLANO-DE-TESTE.md](PLANO-DE-TESTE.md#8-resultado-por-candidato)):
+
+| Medida | Resultado | Teste |
+| --- | --- | --- |
+| axe-core 4.10.3 (regras WCAG A e AA, 2.0 a 2.2) | Nenhuma ocorrência **grave** ou **crítica** nos três motores. Recorte: grade clássica, Configurações, importador e prévia, grade completa e detalhes de uma disciplina, linha do tempo, Optativas, Cronograma com choque, Pedidos e "A ECI por trás da Grade"; tema claro e escuro; 1440 e 320 px | `t_axe_recorte` |
+| Contraste | Texto ≥ 4,5:1 e limites das células ≥ 3:1 nos dois temas, sem ocorrência de `color-contrast` | `t_b6_contraste`, `t_a11y` |
+| Refluxo a 320 px | Pedidos sem rolagem horizontal do documento; as tabelas rolam na própria região, que se alcança por teclado | `t_b7_pedidos_320` |
+| Alvos | 24 × 24 px nos botões de período, de usar e nos avisos de perfil; 44 px nos atalhos; sem ocorrência de `target-size` | `t_b8_alvos` |
+| Teclado | Foco entra no painel, segue ao resultado e volta ao disparador (importação, filtros e seleção do Cronograma); foco visível sob a faixa e a paleta, com Tab e Shift+Tab; grade de horários e "Escolher perfil" por teclado; abas com setas, Home e End | `t_b2_importacao`, `t_b2_foco_filtros`, `t_b2_foco_visivel`, `t_b4_grade_horarios`, `t_b5_escolher_perfil`, `t_b9_aria` |
+| Pistas além da cor | Situação e origem dos cartões em texto, em ambos os modos e a 320 px | `t_b1_estado_dos_cartoes` |
+| Nomes e papéis | Nenhum controle sem nome nos fluxos de Pedidos, ACE e importação; abas com painel associado e sem `aria-selected` inválido | `t_b3_nomes`, `t_b9_aria` |
+
+**Não verificado.** Leitor de tela real (NVDA), Safari no Mac, iPhone real, axe com perfil real e teste com colegas. Os
+percursos de teclado de "marcar com a paleta", de "Configurações" e de "criar período" não têm teste automatizado de
+ponta a ponta. O resultado acima não declara conformidade integral com a WCAG.
 
 ## Alvos de toque
 
