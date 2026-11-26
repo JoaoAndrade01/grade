@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Gerado por docs/diagramas/gerar.js. Atribuição das marcas em docs/ARQUITETURA.md. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="600" viewBox="0 0 1500 600" role="img" aria-labelledby="titulo" aria-describedby="descricao">
+<title id="titulo">FLUXO DE MANUTENÇÃO (ESTADO: v2.0.0 (manual))</title>
+<desc id="descricao">Uma mudança vira um commit candidato, é testada pelo kit, pela paridade, pelo validador e pelas verificações de acessibilidade, é revisada por outra pessoa e só então o mesmo hash é publicado no GitHub Pages.</desc>
+<style>
+text{font-family:system-ui,Segoe UI,Arial,sans-serif;fill:#142238}
+.titulo{font-size:28px;font-weight:750}.coluna{font-size:13px;font-weight:700;letter-spacing:.8px;fill:#384d69}
+.estado{font-size:14px;font-weight:700;letter-spacing:.6px;fill:#384d69}.estado.plan{fill:#8a4b00}
+.rotulo{font-size:15px;font-weight:700}.rotulo.compacto{font-size:14px}.descricao{font-size:12px;fill:#465973}
+.rel{font-size:12px;fill:#2a4666;paint-order:stroke;stroke:#fcfdff;stroke-width:5px;stroke-linejoin:round}
+.grupo{fill:#f0f4fa;stroke:#cbd7e6}.destaque{fill:#edf0ff;stroke:#c7cbef}.grupo.plan{stroke:#d3a766;stroke-dasharray:8 5;fill:#fffaf1}
+.no{fill:#fff;stroke:#cbd7e6}.local{fill:#edfaf3;stroke:#a0cfb4}.privado{fill:#fff8e9;stroke:#dbbd86}
+.pessoa{fill:#eef6ff;stroke:#9fc0e6}.sistema{fill:#e6ecff;stroke:#8da4e6;stroke-width:2}.externo{fill:#f3f4f6;stroke:#b6bec9}
+.aviso{fill:#fff3e2;stroke:#e0b06a}.planejado{stroke:#d3a766;stroke-dasharray:8 5;fill:#fffdf8}
+.icone{fill:none;stroke:#2a4666;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.setas{fill:none;stroke:#7186a2;stroke-width:1.6;marker-end:url(#seta)}
+</style>
+<defs><marker id="seta" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0 0 7 3.5 0 7z" fill="#7186a2"/></marker></defs>
+<rect width="1500" height="600" fill="#fcfdff"/>
+<text x="22" y="47" class="titulo">FLUXO DE MANUTENÇÃO</text>
+<text x="1478" y="47" class="estado" text-anchor="end">ESTADO: v2.0.0 (manual)</text>
+<rect x="20" y="90" width="300" height="470" rx="20" class="grupo"/>
+<text x="42" y="77" class="coluna">CONTRIBUIÇÃO</text>
+<rect x="390" y="90" width="470" height="470" rx="20" class="grupo destaque"/>
+<text x="412" y="77" class="coluna">VERIFICAÇÃO DO CANDIDATO (por hash)</text>
+<rect x="930" y="90" width="550" height="470" rx="20" class="grupo"/>
+<text x="952" y="77" class="coluna">REVISÃO E PUBLICAÇÃO</text>
+<g class="setas">
+<path d="M290 205 C355 205 355 180 417 180"/>
+<path d="M625 220 C625 233.5 625 233.5 625 247"/>
+<path d="M625 220 C625 276 625 276 625 332"/>
+<path d="M625 220 C625 318.5 625 318.5 625 417"/>
+<path d="M625 220 C625 353.5 625 353.5 625 487"/>
+<path d="M830 285 C895 285 895 295 957 295"/>
+<path d="M830 370 C895 370 895 295 957 295"/>
+<path d="M830 447.5 C895 447.5 895 295 957 295"/>
+<path d="M830 517.5 C895 517.5 895 295 957 295"/>
+<path d="M1190 295 C1210 295 1210 205 1227 205"/>
+<path d="M1340 260 C1340 293.5 1340 293.5 1340 327"/>
+<path d="M170 400 C170 331.5 170 331.5 170 263"/>
+</g>
+<g id="colab">
+<rect x="50" y="150" width="240" height="110" rx="12" class="no pessoa"/>
+<g transform="translate(66 189) scale(1.3333333333333333)" class="icone"><circle cx="9" cy="7" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2zM16 4a3 3 0 0 1 0 6m1 3a5 5 0 0 1 4 5v2h-3"/></g>
+<text x="112" y="192" class="rotulo">Alunos e quem mantém</text>
+<text x="112" y="211" class="descricao">Issue, branch e</text>
+<text x="112" y="230" class="descricao">Pull Request</text>
+</g>
+<g id="issues">
+<rect x="50" y="400" width="240" height="110" rx="12" class="no externo"/>
+<g transform="translate(66 439) scale(1.3333333333333333)" class="icone"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 8h8m-8 4h8m-8 4h4"/></g>
+<text x="112" y="442" class="rotulo">Issues públicas</text>
+<text x="112" y="461" class="descricao">relatos com dados</text>
+<text x="112" y="480" class="descricao">fictícios</text>
+</g>
+<g id="cand">
+<rect x="420" y="140" width="410" height="80" rx="12" class="no"/>
+<g transform="translate(436 164) scale(1.3333333333333333)" class="icone"><circle cx="6" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M6 7v10m12-10c0 7-12 4-12 10"/></g>
+<text x="482" y="176" class="rotulo">Commit candidato</text>
+<text x="482" y="195" class="descricao">hash completo</text>
+</g>
+<g id="kit">
+<rect x="420" y="250" width="410" height="70" rx="12" class="no"/>
+<g transform="translate(436 272.5) scale(1.0416666666666667)" class="icone"><path fill="#fff" stroke="#235f9c" d="M6 2h8l5 5v15H6z"/><path stroke="#235f9c" d="M14 2v6h5"/>
+   <rect x="2" y="11" width="20" height="8" rx="2" fill="#235f9c" stroke="none"/>
+   <text x="12" y="17" style="fill:#fff" stroke="none" font-family="Arial, sans-serif" font-size="6" font-weight="700" text-anchor="middle">PY</text></g>
+<text x="475" y="281" class="rotulo compacto">Kit de interface</text>
+<text x="475" y="300" class="descricao">seis pares motor × abertura</text>
+</g>
+<g id="par">
+<rect x="420" y="335" width="410" height="70" rx="12" class="no"/>
+<g transform="translate(436 357.5) scale(1.0416666666666667)" class="icone"><path fill="#fff" stroke="#235f9c" d="M6 2h8l5 5v15H6z"/><path stroke="#235f9c" d="M14 2v6h5"/>
+   <rect x="2" y="11" width="20" height="8" rx="2" fill="#235f9c" stroke="none"/>
+   <text x="12" y="17" style="fill:#fff" stroke="none" font-family="Arial, sans-serif" font-size="6" font-weight="700" text-anchor="middle">PY</text></g>
+<text x="475" y="366" class="rotulo compacto">Paridade JS × Python</text>
+<text x="475" y="385" class="descricao">e oráculos escritos à mão</text>
+</g>
+<g id="val">
+<rect x="420" y="420" width="410" height="55" rx="12" class="no"/>
+<g transform="translate(436 435) scale(1.0416666666666667)" class="icone"><path d="M12 6c-3-2-6-2-9-1v14c3-1 6-1 9 1 3-2 6-2 9-1V5c-3-1-6-1-9 1v14m3-9 1 1 3-3"/></g>
+<text x="475" y="452.5" class="rotulo compacto">Validador dos dados (RF-17)</text>
+</g>
+<g id="acc">
+<rect x="420" y="490" width="410" height="55" rx="12" class="no"/>
+<g transform="translate(436 505) scale(1.0416666666666667)" class="icone"><path d="M12 3 5 6v5c0 5 3 8 7 10 4-2 7-5 7-10V6zM9 12l2 2 4-4"/></g>
+<text x="475" y="522.5" class="rotulo compacto">axe, contraste, teclado, CSP</text>
+</g>
+<g id="rev">
+<rect x="960" y="230" width="230" height="130" rx="12" class="no pessoa"/>
+<g transform="translate(976 279) scale(1.3333333333333333)" class="icone"><circle cx="9" cy="7" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2zM16 4a3 3 0 0 1 0 6m1 3a5 5 0 0 1 4 5v2h-3"/></g>
+<text x="1022" y="282" class="rotulo">Revisão</text>
+<text x="1022" y="301" class="descricao">por outra pessoa</text>
+<text x="1022" y="320" class="descricao">e aprovação do hash</text>
+</g>
+<g id="pages">
+<rect x="1230" y="150" width="220" height="110" rx="12" class="no externo"/>
+<g transform="translate(1246 189) scale(1.3333333333333333)" class="icone"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 8h20m-16 4h5m-5 4h8"/></g>
+<text x="1292" y="201" class="rotulo">GitHub Pages</text>
+<text x="1292" y="220" class="descricao">o mesmo hash</text>
+</g>
+<g id="rel">
+<rect x="1230" y="330" width="220" height="110" rx="12" class="no externo"/>
+<g transform="translate(1246 369) scale(1.3333333333333333)" class="icone"><circle cx="6" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M6 7v10m12-10c0 7-12 4-12 10"/></g>
+<text x="1292" y="381" class="rotulo">Tag v2.0.0</text>
+<text x="1292" y="400" class="descricao">e release com notas</text>
+</g>
+<g class="rotulos">
+<text x="355" y="187" class="rel" text-anchor="middle">envia a mudança</text>
+<text x="1210" y="244" class="rel" text-anchor="middle">publica</text>
+<text x="1340" y="288" class="rel" text-anchor="middle">registra</text>
+<text x="170" y="326" class="rel" text-anchor="middle">relatos</text>
+</g>
+</svg>
