@@ -12,10 +12,8 @@ Visão em [docs/VISAO.md](docs/VISAO.md); arquitetura em [docs/ARQUITETURA.md](d
 
 - **Só dados fictícios.** Nunca leia, copie nem cole PDFs do SIGA, `perfil/perfil.js` ou qualquer dado
   pessoal. Para testar, use `testes/fixtures`. Não afrouxe a CSP nem adicione recursos de outros domínios.
-- **Vermelho → verde.** Para corrigir um defeito, escreva primeiro o caso que falha, depois a correção que o
-  faz passar. Comandos em [testes/README.md](testes/README.md).
-- **Paridade do importador.** `js/siga.js` e `ferramentas/gerar_perfil.py` devem gerar o mesmo perfil. Mude os
-  dois e rode a paridade.
+- **Testes e paridade.** Para corrigir defeitos ou alterar o importador, siga os passos de teste (vermelho → verde) e de paridade
+  JS × Python do [CONTRIBUTING.md](CONTRIBUTING.md). Comandos em [testes/README.md](testes/README.md).
 - **Decisões** ficam em [docs/DECISOES.md](docs/DECISOES.md). Antes de mudar um comportamento, confira lá e em
   [docs/REQUISITOS.md](docs/REQUISITOS.md) e [docs/REGRAS-ACADEMICAS.md](docs/REGRAS-ACADEMICAS.md). Mudança de
   requisito registra uma decisão nova.
