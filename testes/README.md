@@ -1,9 +1,10 @@
 # Testes da Grade ECI
 
-A suíte tem 37 cenários de interface e cinco do kit de reimportação. Os casos A–D
+A suíte tem 80 cenários de interface e cinco do kit de reimportação. Os casos A–D
 testam a preservação de anotações e a igualdade entre baixar e aplicar. O caso P
-ensaia a publicação com HTTP estático sob `/grade/`. Por `file://`, rodam 41
-cenários. Por HTTP, rodam 42.
+ensaia a publicação com HTTP estático sob `/grade/`. Por `file://`, rodam 85
+cenários. Por HTTP, rodam 86. Os casos B1 a B9, M3 e M6 e o do axe-core vêm da
+inspeção de UX e acessibilidade (B2.5).
 
 O executor testa a versão indicada por `--ref`. Ele exporta apenas os caminhos
 públicos do commit para uma cópia fora do checkout. Os PDFs são gerados das
@@ -60,6 +61,21 @@ fora dos eventos de requisição e do roteamento. Nesse par, a cópia pública l
 os arquivos preparados para o teste, e o monitor cobre o console e os erros de
 página. O ensaio por HTTP verifica as requisições pelo monitor nesse motor.
 
+## Axe-core (acessibilidade)
+
+O axe-core fica fora do repositório. Instale a versão 4.10.3 numa pasta irmã do
+checkout (`.b11-runtime/axe`) ou aponte `GRADE_AXE` para o `axe.min.js`:
+
+```powershell
+New-Item -ItemType Directory -Force "$gradeRuntimexe" | Out-Null
+npm install --prefix "$gradeRuntimexe" axe-core@4.10.3
+$env:GRADE_AXE = "$gradeRuntimexe
+ode_modulesxe-corexe.min.js"   # opcional: este é o caminho padrão
+```
+
+Os casos B6, B8 e B9 e o caso "Axe-core no recorte da inspeção" usam o axe. Sem
+ele, esses casos falham com a mensagem do caminho procurado.
+
 ## Validar os dados de referência
 
 ```powershell
@@ -70,6 +86,9 @@ Roda os casos 17a a 17e (dados fictícios) e valida `js/horarios.js` e `js/guia.
 (formato, códigos contra currículo, catálogo e `fixtures/excecoes-referencia.json`,
 duplicatas, turmas sem código). Com `--browser chromium --transport file --out <dir novo>`
 roda também o 17f no navegador. `testes/referencia.py` valida só os dados reais.
+A gramática do horário é estrita (`seg|ter|qua|qui|sex HH-HH`, só dígitos ASCII, sem
+espaço sobrando nem LF final). Exceção sem uso numa fonte gera aviso por fonte e não
+falha; o efeito `entra-no-calculo` não vale para nome sem código.
 
 ## Rodar a paridade do importador
 
