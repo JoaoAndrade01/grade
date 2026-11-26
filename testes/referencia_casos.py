@@ -154,6 +154,39 @@ def casos_sinteticos():
     registra("17c Exceção sem entrada correspondente passa, mas aparece como 'sem uso'",
              not r["erros"] and any(x.get("codigo") == "ZZZ999" for x in r["excecoes_sem_uso"]), str(r["erros"]))
 
+    # M6: validar antes de indexar, diagnóstico de uso por arquivo e efeito coerente com a identidade
+    for rotulo, muda in (("'arquivos' nulo", {"arquivos": None}), ("'arquivos' como texto", {"arquivos": "horarios"}),
+                         ("'nome' como lista", {"nome": ["x"]}), ("'codigo' numérico", {"codigo": 5}),
+                         ("'curso' como texto", {"curso": "1"}), ("'origem' numérica", {"origem": 7})):
+        try:
+            r = roda(excecoes={"excecoes": EXC_BASE["excecoes"] + [excecao(**{"codigo": "ZZZ999", **muda})]})
+            falha_com(f"M6 Exceção com {rotulo} vira erro identificado, sem exceção do Python", r, "exceção #3", so_essas=False)
+        except Exception as ex:
+            registra(f"M6 Exceção com {rotulo} vira erro identificado, sem exceção do Python", False, f"{type(ex).__name__}: {ex}")
+    for rotulo, exc in (("lista no lugar do objeto", []), ("'excecoes' que não é lista", {"excecoes": {"a": 1}}),
+                        ("item que não é objeto", {"excecoes": EXC_BASE["excecoes"] + [1, "x", None]})):
+        try:
+            r = roda(excecoes=exc)
+            registra(f"M6 Arquivo de exceções com {rotulo} vira erro, sem exceção do Python", bool(r["erros"]), "nenhum erro")
+        except Exception as ex:
+            registra(f"M6 Arquivo de exceções com {rotulo} vira erro, sem exceção do Python", False, f"{type(ex).__name__}: {ex}")
+    r = roda(excecoes={"excecoes": [EXC_BASE["excecoes"][0], excecao(nome="Turma Ficticia Dois", arquivos=["horarios", "guia"])]})
+    sem = [(x.get("nome"), x.get("arquivo")) for x in r["excecoes_sem_uso"]]
+    registra("M6 Exceção usada só em horarios e declarada também para guia: aviso por fonte, sem falha",
+             not r["erros"] and sem == [("Turma Ficticia Dois", "guia")] and any("js/guia.js" in a for a in r.get("avisos", [])),
+             f"{r['erros']} {sem} {r.get('avisos')}")
+    usada = [x for x in r["excecoes_usadas"] if x.get("nome") == "Turma Ficticia Dois"]
+    registra("M6 A exceção parcialmente usada informa onde foi usada", len(usada) == 1 and usada[0].get("usada_em") == ["horarios"], str(usada))
+    r = roda(excecoes={"excecoes": EXC_BASE["excecoes"] + [excecao(codigo="ZZZ999", arquivos=["horarios", "guia"])]})
+    registra("M6 Exceção que nenhuma fonte usa: um aviso por fonte (horarios e guia), sem falha",
+             not r["erros"] and sorted(x.get("arquivo") for x in r["excecoes_sem_uso"]) == ["guia", "horarios"] and len(r.get("avisos", [])) == 2,
+             f"{r['erros']} {r['excecoes_sem_uso']}")
+    saida = __import__("io").StringIO()
+    ref.imprime(r, saida)
+    registra("M6 O relatório impresso nomeia a fonte sem uso", "ZZZ999: sem uso em js/guia.js" in saida.getvalue(), saida.getvalue())
+    r = roda(excecoes={"excecoes": [excecao(nome="Turma Ficticia Um", arquivos=["horarios", "guia"], efeito="entra-no-calculo"), EXC_BASE["excecoes"][1]]})
+    falha_com("M6 Efeito 'entra-no-calculo' para nome sem código falha e identifica a exceção", r, "Turma Ficticia Um", "entra-no-calculo", so_essas=False)
+
     # 17d: uma variante por execução, cada uma falha e identifica a entrada
     H, G = "horarios", "guia"
     variantes = [

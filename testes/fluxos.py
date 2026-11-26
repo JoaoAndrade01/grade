@@ -1863,7 +1863,27 @@ def t_b2_foco_visivel(b):
     assert not ruins, ruins[:6]
     ctx.close()
 
-CASOS4 = [t_b2_foco_visivel, t_b2_foco_filtros, t_b2_importacao, t_b1_estado_dos_cartoes]
+@caso("M6: o efeito 'somente informativo': turmas sem código só informam cabe/choca; códigos fora do currículo ficam fora de sugestões e cálculos")
+def t_m6_somente_informativo(b):
+    ctx, pg = abre(b, perfil=PERFIL, extra={"modoClassico": False, "vista": "optativas"}, nome="m6-informativo")
+    antes = pg.evaluate("JSON.stringify(window.GradeInterativa.totais())")
+    pg.locator('[data-falvo]').select_option("2027/1")
+    lista = pg.locator(".sem-codigo")
+    assert lista.count() == 1
+    txt = lista.inner_text()
+    assert "Comp 3 (condicionada)" in txt and ("cabe" in txt or "choca" in txt), txt
+    assert lista.locator("button, [data-plan], [data-sugadd]").count() == 0       # nada para planejar ou incluir
+    assert "Outras turmas na referência de 2027/1" in pg.locator("#painel").inner_text()
+    pg.click('[data-vista="cronograma"]'); pg.click('[data-cperiodo="2027/1"]')
+    sug = pg.locator(".lista-sug").inner_text()
+    for fora in ("EET100", "EEL891", "Comp 3", "Mapas", "Estrutura de Dados"): assert fora not in sug, (fora, sug)
+    pg.click('[data-cperiodo="2027/2"]')
+    sug = pg.locator(".lista-sug").inner_text()
+    for fora in ("EET100", "EEL891", "Grafos de Interseção"): assert fora not in sug, (fora, sug)
+    assert pg.evaluate("JSON.stringify(window.GradeInterativa.totais())") == antes        # os totais não mudam
+    ctx.close()
+
+CASOS4 = [t_m6_somente_informativo, t_b2_foco_visivel, t_b2_foco_filtros, t_b2_importacao, t_b1_estado_dos_cartoes]
 CASOS += CASOS4
 
 

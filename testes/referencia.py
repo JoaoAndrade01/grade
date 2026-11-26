@@ -213,22 +213,47 @@ def carrega_excecoes(caminho=EXCECOES):
     return json.loads(Path(caminho).read_text(encoding="utf-8"))
 
 
+def lista_de_excecoes(excecoes):
+    bruto = excecoes.get("excecoes") if isinstance(excecoes, dict) else None
+    return bruto if isinstance(bruto, list) else []
+
+
+def valida_uma_excecao(e, n):
+    """Erros de UMA exceção (vazio = utilizável). Confere os tipos antes de qualquer uso como chave ou índice."""
+    if not isinstance(e, dict):
+        return [f"exceção #{n + 1}: esperava um objeto"]
+    rot = f"exceção #{n + 1} ({e.get('codigo') or e.get('nome') or '?'})"
+    erros = []
+    codigo, nome = e.get("codigo"), e.get("nome")
+    if bool(codigo) == bool(nome):
+        erros.append(f"{rot}: informe 'codigo' ou 'nome' (exatamente um)")
+    for campo, v in (("codigo", codigo), ("nome", nome)):
+        if v is not None and (not isinstance(v, str) or not v.strip()):
+            erros.append(f"{rot}: '{campo}' deve ser texto não vazio")
+    for campo in ("origem", "motivo"):
+        if not isinstance(e.get(campo), str) or not e[campo].strip():
+            erros.append(f"{rot}: '{campo}' ausente ou vazio")
+    if e.get("efeito") not in EFEITOS:
+        erros.append(f"{rot}: 'efeito' deve ser um de {', '.join(EFEITOS)}")
+    elif e["efeito"] == "entra-no-calculo" and nome and not codigo:
+        erros.append(f"{rot}: o efeito 'entra-no-calculo' não vale para nome sem código (a turma sem código só informa, nunca entra no cálculo)")
+    arqs = e.get("arquivos")
+    if not isinstance(arqs, list) or not arqs or any(not isinstance(a, str) or a not in ("horarios", "guia") for a in arqs):
+        erros.append(f"{rot}: 'arquivos' deve listar 'horarios' e/ou 'guia'")
+    curso = e.get("curso", 1)
+    if isinstance(curso, bool) or not isinstance(curso, int):
+        erros.append(f"{rot}: 'curso' deve ser inteiro")
+    return erros
+
+
 def valida_excecoes(excecoes):
     erros = []
-    for n, e in enumerate(excecoes.get("excecoes", [])):
-        rot = f"exceção #{n + 1} ({e.get('codigo') or e.get('nome') or '?'})"
-        if bool(e.get("codigo")) == bool(e.get("nome")):
-            erros.append(f"{rot}: informe 'codigo' ou 'nome' (exatamente um)")
-        for campo in ("origem", "motivo"):
-            if not isinstance(e.get(campo), str) or not e[campo].strip():
-                erros.append(f"{rot}: '{campo}' ausente ou vazio")
-        if e.get("efeito") not in EFEITOS:
-            erros.append(f"{rot}: 'efeito' deve ser um de {', '.join(EFEITOS)}")
-        arqs = e.get("arquivos")
-        if not isinstance(arqs, list) or not arqs or any(a not in ("horarios", "guia") for a in arqs):
-            erros.append(f"{rot}: 'arquivos' deve listar 'horarios' e/ou 'guia'")
-        if not isinstance(e.get("curso", 1), int):
-            erros.append(f"{rot}: 'curso' deve ser inteiro")
+    if not isinstance(excecoes, dict):
+        return ["o arquivo de exceções deve ser um objeto {\"excecoes\": [...]}"]
+    if "excecoes" in excecoes and not isinstance(excecoes["excecoes"], list):
+        erros.append("'excecoes' deve ser uma lista")
+    for n, e in enumerate(lista_de_excecoes(excecoes)):
+        erros += valida_uma_excecao(e, n)
     return erros
 
 
@@ -268,18 +293,16 @@ def valida(dados, duplicadas, excecoes, curriculo_ou_catalogo=None):
     """Devolve dict(erros, excecoes_usadas, excecoes_sem_uso, sem_codigo, avisos)."""
     erros, usadas, sem_codigo = [], set(), []
     conhecidos = codigos_conhecidos(dados) if curriculo_ou_catalogo is None else curriculo_ou_catalogo
-    lista_exc = excecoes.get("excecoes", [])
+    lista_exc = lista_de_excecoes(excecoes)
     erros += [f"exceções: {e}" for e in valida_excecoes(excecoes)]
-    por_codigo = {}
-    for n, e in enumerate(lista_exc):
-        if e.get("codigo"):
-            for a in e.get("arquivos", []):
-                por_codigo.setdefault((e.get("curso", 1), a, e["codigo"]), []).append(n)
-    por_nome = {}
-    for n, e in enumerate(lista_exc):
-        if e.get("nome"):
-            for a in e.get("arquivos", []):
-                por_nome.setdefault((e.get("curso", 1), a, e["nome"]), []).append(n)
+    # Só as exceções válidas entram no índice: um campo com tipo errado vira erro, nunca TypeError.
+    validas = [n for n, e in enumerate(lista_exc) if not valida_uma_excecao(e, n)]
+    por_codigo, por_nome = {}, {}
+    for n in validas:
+        e = lista_exc[n]
+        indice = por_codigo if e.get("codigo") else por_nome
+        for a in e["arquivos"]:
+            indice.setdefault((e.get("curso", 1), a, e.get("codigo") or e["nome"]), []).append(n)
 
     def confere_codigo(curso, arq, codigo, rot):
         if not (isinstance(codigo, str) and CODIGO.fullmatch(codigo)):
@@ -289,7 +312,7 @@ def valida(dados, duplicadas, excecoes, curriculo_ou_catalogo=None):
             return
         achou = por_codigo.get((curso, arq, codigo))
         if achou:
-            usadas.update(achou)
+            usadas.update((n, arq) for n in achou)
             if any(lista_exc[n].get("efeito") == "entra-no-calculo" for n in achou):
                 erros.append(f"{rot}: código {codigo} fora do currículo e do catálogo não pode ter efeito 'entra-no-calculo'")
             return
@@ -350,7 +373,7 @@ def valida(dados, duplicadas, excecoes, curriculo_ou_catalogo=None):
                 vistos[nome] = it.get("horarios")
                 achou = por_nome.get((curso, "horarios", nome))
                 if achou:
-                    usadas.update(achou)
+                    usadas.update((n, "horarios") for n in achou)
                 sem_codigo.append({"arquivo": "horarios", "curso": curso, "paridade": par, "nome": nome,
                                    "horarios": it.get("horarios"), "excecao": bool(achou)})
                 if not achou:
@@ -410,7 +433,7 @@ def valida(dados, duplicadas, excecoes, curriculo_ou_catalogo=None):
             entrada_guia(e, rot)
             achou = por_nome.get((curso, "guia", nome))
             if achou:
-                usadas.update(achou)
+                usadas.update((n, "guia") for n in achou)
             sem_codigo.append({"arquivo": "guia", "curso": curso, "nome": nome, "excecao": bool(achou)})
             if not achou:
                 erros.append(f"{rot}: entrada sem código e sem exceção justificada")
@@ -419,9 +442,16 @@ def valida(dados, duplicadas, excecoes, curriculo_ou_catalogo=None):
         if not dados[arq]:
             erros.append(f"{ARQUIVOS[arq]}: nenhum 'window.{arq}[N] = ...' encontrado")
 
-    usadas_det = [lista_exc[n] for n in sorted(usadas)]
-    sem_uso = [e for n, e in enumerate(lista_exc) if n not in usadas]
-    return {"erros": erros, "excecoes_usadas": usadas_det, "excecoes_sem_uso": sem_uso, "sem_codigo": sem_codigo}
+    usadas_det = [dict(lista_exc[n], usada_em=sorted(a for m, a in usadas if m == n)) for n in sorted({m for m, _ in usadas})]
+    sem_uso, avisos = [], []
+    for n in validas:
+        e = lista_exc[n]
+        for a in e["arquivos"]:
+            if (n, a) not in usadas:
+                sem_uso.append(dict(e, arquivo=a))
+                avisos.append(f"exceção {e.get('codigo') or e.get('nome')!r}: sem uso em {ARQUIVOS[a]}"
+                              " (aviso; confira se ainda é necessária, a remoção fica para a revisão semestral)")
+    return {"erros": erros, "avisos": avisos, "excecoes_usadas": usadas_det, "excecoes_sem_uso": sem_uso, "sem_codigo": sem_codigo}
 
 
 def valida_textos(textos, excecoes):
@@ -439,11 +469,11 @@ def imprime(r, out=sys.stdout):
         p(f"  - {s['arquivo']}{par}: {s['nome']}{hs} · {'exceção cadastrada' if s['excecao'] else 'SEM EXCEÇÃO'}")
     p(f"Exceções usadas ({len(r['excecoes_usadas'])}):")
     for e in r["excecoes_usadas"]:
-        p(f"  - {e.get('codigo') or e.get('nome')} [{', '.join(e['arquivos'])}] efeito: {e['efeito']} · motivo: {e['motivo']} · origem: {e['origem']}")
+        p(f"  - {e.get('codigo') or e.get('nome')} [usada em: {', '.join(e.get('usada_em', e['arquivos']))}] efeito: {e['efeito']} · motivo: {e['motivo']} · origem: {e['origem']}")
     if r["excecoes_sem_uso"]:
-        p(f"Exceções sem uso ({len(r['excecoes_sem_uso'])}, confira se ainda são necessárias):")
+        p(f"Avisos: exceção sem uso, por fonte ({len(r['excecoes_sem_uso'])}; não falham, confira se ainda são necessárias):")
         for e in r["excecoes_sem_uso"]:
-            p(f"  - {e.get('codigo') or e.get('nome')} [{', '.join(e.get('arquivos', []))}]")
+            p(f"  - {e.get('codigo') or e.get('nome')}: sem uso em {ARQUIVOS[e['arquivo']]}")
     p(f"Erros ({len(r['erros'])}):")
     for e in r["erros"]:
         p(f"  - {e}")
