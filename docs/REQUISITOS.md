@@ -49,13 +49,34 @@ Como rodar os testes: [testes/README.md](../testes/README.md).
 **Critério de H16:** só entram linhas com aprovação editorial ("Pronto para republicar") nas bases Turmas e
 Disciplinas, por Pull Request revisado por uma pessoa.
 
+**Casos por história.** Os casos estão nas seções dos RF indicados.
+
+| História | Casos | Seções |
+| --- | --- | --- |
+| H1 | 02a–02b, 14a–14f | [RF-02](#rf-02--requisitos-e-co-requisitos-ra-03-ra-04), [RF-14](#rf-14--marcação-manual-aparência-tags-e-referências-h1-h3-h10) |
+| H2 | 06a–06g | [RF-06](#rf-06--importação-do-siga-ra-05-ra-06-ra-17-ra-19-ra-21) |
+| H3 | 01a–01b, 14a–14b | [RF-01](#rf-01--progresso-por-grupo-ra-01-ra-05-ra-06-ra-16), [RF-14](#rf-14--marcação-manual-aparência-tags-e-referências-h1-h3-h10) |
+| H4 | 02a–02i, 07a–07e, 10a–10e | [RF-02](#rf-02--requisitos-e-co-requisitos-ra-03-ra-04), [RF-07](#rf-07--aviso-de-oferta-e-horários-de-referência-ra-20), [RF-10](#rf-10--planejamento-de-períodos-e-choques-de-horário-h4) |
+| H5 | 03a–03h, 03j, 04a–04e | [RF-03](#rf-03--análise-de-um-pedido-de-equivalência-ra-07-ra-09-ra-11-ra-12-ra-21), [RF-04](#rf-04--a-mesma-origem-não-conta-duas-vezes-ra-08) |
+| H6 | 05a–05h | [RF-05](#rf-05--créditos-de-um-pedido-deferido-ra-13-d-02) |
+| H7 | 03i, 06h–06m | [RF-03](#rf-03--análise-de-um-pedido-de-equivalência-ra-07-ra-09-ra-11-ra-12-ra-21), [RF-06](#rf-06--importação-do-siga-ra-05-ra-06-ra-17-ra-19-ra-21) |
+| H8 | 01c–01f, 06m (01g na versão seguinte) | [RF-01](#rf-01--progresso-por-grupo-ra-01-ra-05-ra-06-ra-16), [RF-06](#rf-06--importação-do-siga-ra-05-ra-06-ra-17-ra-19-ra-21) |
+| H9 | 11a–11d | [RF-11](#rf-11--optativas-guia-e-oferta-h9) |
+| H10 | 08a–08k, 14g | [RF-08](#rf-08--aviso-de-que-a-grade-não-é-oficial-versão-e-relato-d-06), [RF-14](#rf-14--marcação-manual-aparência-tags-e-referências-h1-h3-h10) |
+| H11 | 06f–06g, 12a–12e, RNF-01 | [RF-06](#rf-06--importação-do-siga-ra-05-ra-06-ra-17-ra-19-ra-21), [RF-12](#rf-12--perfil-e-dados-locais-h11) |
+| H12 | 13a–13c | [RF-13](#rf-13--a-eci-por-trás-da-grade-h12) |
+| H13 | P13: seguir o `CONTRIBUTING.md` e propor uma experiência fictícia | [CONTRIBUTING.md](../CONTRIBUTING.md) |
+| H14 | P14: percorrer o guia semestral com o validador | [MANUTENCAO.md](MANUTENCAO.md), [RF-17](#rf-17--validação-dos-dados-de-referência-h14) |
+| H15 | P15: localizar as instruções de privacidade, revisão e declaração de IA no PR, com atribuição fictícia de exemplo | [CONTRIBUTING.md](../CONTRIBUTING.md#contribuir-com-ia), [AGENTS.md](../AGENTS.md) |
+| H16 (planejada) | Validações planejadas de RF-15, RNF-11 e RNF-13 | [RF-15](#rf-15--sincronização-dos-dados-do-notion-h16--planejado) |
+
 **Como se comprovam as histórias de documentação e processo** (não são casos de interface):
 
-- **H13:** uma pessoa roda o kit com dados fictícios seguindo o `CONTRIBUTING.md` e apresenta uma proposta de
+- **H13 (P13):** uma pessoa roda o kit com dados fictícios seguindo o `CONTRIBUTING.md` e apresenta uma proposta de
   experiência.
-- **H14:** o roteiro semestral de `docs/MANUTENCAO.md` é seguido de ponta a ponta e o validador (RF-17) passa.
-- **H15:** `AGENTS.md` e `CONTRIBUTING.md` trazem as instruções públicas, e o modelo de Pull Request pede a
-  declaração de uso de IA.
+- **H14 (P14):** o roteiro semestral de `docs/MANUTENCAO.md` é seguido de ponta a ponta e o validador (RF-17) passa.
+- **H15 (P15):** `AGENTS.md` e `CONTRIBUTING.md` trazem as instruções públicas de privacidade, revisão e declaração
+  de uso de IA no PR, com atribuição fictícia de exemplo. Se houver modelo de PR público, a comprovação aponta para ele.
 
 ## 2. Mapa função → história
 
@@ -96,28 +117,31 @@ histórico anterior. Os arquivos ficam no dispositivo.
 
 **Alternativas**
 
-- **A1 · Só o Histórico, sem BOA.** A importação segue; nenhum período atual novo é criado e o número "BOA"
-  fica indisponível (06b, 05c). Um período atual que já existia no perfil é preservado (06c).
+- **A1 · Só o Histórico, sem BOA.** Sem perfil anterior: não cria período atual e o número do BOA fica
+  indisponível (06b, 05c). Com perfil anterior, o período preservado é verificado em 06c.
 - **A2 · Reimportação com perfil existente.** Horários e status do período atual são preservados nas
   disciplinas que continuam; as anotações de outro período não migram (06d, 06e).
-- **A3 · Planos que colidem com o período atual.** A prévia pede uma escolha. **Usar este perfil** e **Baixar
-  perfil.js** ficam desativados até lá (06k).
-- **A4 · Dois históricos (reingresso).** A Grade reconhece o do curso atual. Se as datas não permitem decidir,
-  a prévia pede a escolha e, até lá, o prazo de 5 anos é só estimativa (06h, 06j).
+- **A3 · Planos que colidem com o período atual.** A colisão com plano existente bloqueia **Usar este perfil** e
+  **Baixar perfil.js** até a confirmação explícita (06k).
+- **A4 · Dois históricos (reingresso).** A Grade reconhece o do curso atual. Quando as datas não permitem
+  definir o histórico atual, a prévia informa a escolha, e aplicar e baixar ficam desativados até a pessoa
+  escolher. Quando o prazo for exibido, vale a nota de RA-09 (06h, 06j).
 - **A5 · Cancelar.** **Descartar prévia** sai sem mudar nada (06f).
 - **A6 · Terminal.** `ferramentas/gerar_perfil.py` gera o mesmo perfil. Com dois históricos e dúvida, exige
   `--atual` (06h). Ver [IMPORTADOR.md](IMPORTADOR.md).
+- **A7 · Só BOA.** Com disciplinas em curso, sem histórico nem período anterior: o período fica sem data e sem
+  a nota de dedução (08f).
 
 **Falhas**
 
-- **F1 · Arquivo que não é PDF do SIGA ou sem texto.** A Grade mostra erro, não grava nada e oferece o link
-  "Achou um erro? Crie uma nova issue" (08k).
+- **F1 · Nada reconhecido.** Nenhum Histórico ou BOA reconhecido, ou falha de leitura do PDF: há erro e o link
+  "Achou um erro? Crie uma nova issue", e o perfil anterior é preservado (08k).
 - **F2 · Linha fora do formato.** O importador a ignora **sem aviso**, nas duas implementações, e a paridade
   não a detecta. É uma limitação conhecida; a experiência de EEL873 a mostra com dados fictícios.
-- **F3 · Layout do PDF mudou.** As regras de leitura precisam de ajuste e o kit de paridade passa a falhar. É
-  tratado no guia semestral ([MANUTENCAO.md](MANUTENCAO.md)).
-- **F4 · Atividade em curso fora do catálogo.** Aparece um aviso para conferência antes de ser tratada como
-  ACE.
+- **F3 · Layout do PDF mudou.** Um novo layout pode causar falha ou omissão de linhas. Conferir o resultado com
+  um oráculo fictício, como no guia semestral ([MANUTENCAO.md](MANUTENCAO.md)).
+- **F4 · Atividade em curso desconhecida.** Uma NCC em curso, sem créditos e fora do currículo e do catálogo,
+  aparece na prévia para conferência (06n).
 
 **Pós-condições:** o perfil salvo é igual ao do arquivo baixado (06g). Nenhum dado do documento sai do
 dispositivo (RNF-01).
@@ -131,7 +155,7 @@ dispositivo (RNF-01).
 | RF-03 | Análise de um pedido de equivalência | H5, H7 | v2.0.0 · a verificar na C2 |
 | RF-04 | A mesma origem não conta duas vezes | H5 | v2.0.0 · a verificar na C2 |
 | RF-05 | Créditos de um pedido deferido | H6 | v2.0.0 · a verificar na C2 |
-| RF-06 | Importação do SIGA | H2, H7 | v2.0.0 · a verificar na C2 |
+| RF-06 | Importação do SIGA | H2, H7, H11 | v2.0.0 · a verificar na C2 |
 | RF-07 | Aviso de oferta e horários de referência | H4 | v2.0.0 · a verificar na C2 |
 | RF-08 | Aviso de que a Grade não é oficial | H10 | v2.0.0 · a verificar na C2 |
 | RF-09 | Procedimentos de estágio, equivalência e ACE | H5, H8 | planejado |
@@ -188,8 +212,8 @@ como **alerta**: não há linha de aprovação ("dentro de 5 anos"). Toda idade 
 
 | Caso | Situação | Ação | Resultado esperado |
 | --- | --- | --- | --- |
-| 03a | Cursada `XYZ101` aprovada em 2021/2 | Abrir o pedido | Idade de 5,0 anos: sem alerta de mais de 5 anos e sem linha de aprovação; nota de estimativa |
-| 03b | `XYZ101` aprovada em 2021/1 | Abrir o pedido | Idade de 5,5 anos: alerta de mais de 5 anos, com o motivo "pode exigir exame de suficiência" e a referência ao art. 47 |
+| 03a | Cursada `XYZ101` aprovada em 2021/2 (idade de 5,0 anos no cenário) | Abrir o pedido | Exibe a nota aprovada, sem alerta nem aprovação de prazo |
+| 03b | `XYZ101` aprovada em 2021/1 (5,5 anos) | Abrir o pedido | Alerta de mais de 5 anos com "pode exigir exame de suficiência". A base normativa consta de RA-09 |
 | 03c | `XYZ101` em período "atual" sem data | Abrir o pedido | "Data de aprovação não confirmada"; nenhum alerta de idade |
 | 03d · D-01 | Uma cursada de conteúdo com 45 h | Abrir o pedido | Linha de orientação "45 h de 60 h: abaixo da carga da pedida", sem ✓, ✗ nem estilo de aprovação ou falha |
 | 03e · D-01 | O mesmo com 60 h | Abrir o pedido | "60 h de 60 h: igual", com o mesmo estilo neutro |
@@ -207,7 +231,7 @@ como **alerta**: não há linha de aprovação ("dentro de 5 anos"). Toda idade 
 | 04b | `XYZ101` (4 cr) aprovada em 2024/1 com dispensa aprovada de FIS111 (grau T, 1 cr) no histórico; um pedido **deferido** usando `XYZ101` para COP232 | Abrir Pedidos e o progresso | O pedido mostra o conflito e COP232 não conta; FIS111 continua concluída com 1 cr. `XYZ101` é origem de dispensa: contribui com **0 cr** na livre escolha, antes e depois do pedido (D-07) |
 | 04c · CR-02 | MAC118 aprovada (6 cr) com duas dispensas importadas para alvos A e B de 4 cr cada, grupo obrigatórias | Abrir o progresso | **8 cr** = 0 (origem) + 4 (A) + 4 (B), com aviso de que a origem aparece em duas dispensas e de que o art. 46, II, da CEG 01/2017 veda reutilizá-la (D-07) |
 | 04d · D-07 | `XYZ101` (4 cr, fora do currículo) aprovada em 2024/1 com uma única dispensa importada de FIS111 (1 cr) | Abrir o progresso | FIS111 com 1 cr; `XYZ101` com 0 cr; **sem** aviso de reutilização |
-| 04e · CR-02 | `XYZ101` aprovada em 2024/1 com dispensa importada para o alvo `DEF456`, fora do catálogo, com 3 cr na linha do histórico | Abrir o progresso | `DEF456` conta os 3 cr do histórico; `XYZ101` conta 0. O alvo fora do catálogo não é zerado |
+| 04e · CR-02 | PDF fictício com `XYZ101` aprovada e uma dispensa única para `ABC123`, de 4 cr, fora do catálogo | Importar, abrir o progresso, exportar e reimportar | O alvo conserva código, nome, 4 cr e grupo de livre escolha; a origem soma 0; não há aviso de reutilização. Exportar e reimportar produz a mesma contagem |
 
 ### RF-05 · Créditos de um pedido deferido (RA-13, D-02)
 
@@ -221,7 +245,7 @@ prova o total oficial. A Grade distingue seção **ausente** de seção **presen
 
 | Caso | Situação | Ação | Resultado esperado |
 | --- | --- | --- | --- |
-| 05a | P5 | Abrir o progresso e Pedidos | COP232 concluída com 4 cr nas obrigatórias. Livre escolha com **dois números rotulados**: "Grade: 2 cr" (regra da Grade, estimativa) e "BOA, soma das não explicitadas: 6 cr" (com a data de emissão do BOA). Nenhum é rotulado como total oficial |
+| 05a | P5 | Abrir o progresso e Pedidos | COP232 concluída com 4 cr nas obrigatórias. Livre escolha com **dois números rotulados**: "Grade: 2 cr" (regra da Grade, estimativa) e "BOA, soma das não explicitadas: 6 cr" (com a data de emissão do BOA). Nenhum é rotulado como total oficial. A lista de livre escolha contém os dois valores rotulados, sem um terceiro total solto. Datas e qualificadores permanecem vinculados à fonte correspondente |
 | 05b | P5 com `ABC123` cursando em 2026/2 | Abrir o progresso | COP232 prevista em 2026/2; livre escolha "Grade: 2 cr" |
 | 05c | P5 **sem BOA** importado | Abrir o progresso | "Grade: 2 cr" e "BOA: indisponível"; nenhum valor apresentado como do BOA |
 | 05d | P5 com BOA importado em que a seção "Cursadas e Não Explicitadas" não foi encontrada | Abrir o progresso | Igual a 05c, com o motivo da indisponibilidade |
@@ -243,7 +267,7 @@ com atividade em curso de estágio (NCC), Projeto de Graduação e uma ACE do ca
 | 06d | I1; perfil anterior com o mesmo período atual, com horários e status | Reimportar com BOA | Horários e status preservados nas disciplinas que continuam |
 | 06e | I1; perfil anterior com outro período atual | Reimportar | As anotações do período anterior não migram para o novo |
 | 06f | Prévia de I1 aberta | Cancelar | Perfil salvo igual, campo a campo, ao de antes |
-| 06g | Prévia de I1 aberta | Baixar o arquivo e aplicar na mesma configuração | O perfil salvo no navegador e o JSON do arquivo baixado (sem o prefixo `window.PERFIL =`) são iguais |
+| 06g | Prévia de I1 aberta | Baixar o arquivo e aplicar na mesma configuração | Compare o objeto extraído de `window.PERFIL` no arquivo baixado com o objeto salvo: são iguais |
 
 **06h · CR-04 · reingresso.** Relógio fixo em 2026-11-26. Históricos fictícios, com o papel de cada um
 marcado no texto do PDF:
@@ -262,13 +286,13 @@ marcado no texto do PDF:
 
 **Papel dos históricos (PC-05).** O atual é o de data mais recente, considerando o semestre real mais
 recente e o ano do bloco de transferidos. **Em dúvida, a Grade pergunta:** a prévia pede a escolha, e **Usar
-este perfil** e **Baixar perfil.js** ficam desativados até lá. A escolha explícita sempre vence. Antes dela, a
-idade das cursadas aparece como estimativa. O perfil gerado não grava "dúvida" como papel do histórico.
+este perfil** e **Baixar perfil.js** ficam desativados até lá. A escolha explícita sempre vence. Antes dela, o
+cálculo do prazo mantém a nota de RA-09. O perfil gerado não grava "dúvida" como papel do histórico.
 
 | Cenário | Ação | Resultado esperado |
 | --- | --- | --- |
 | Atual só com bloco 2025, anterior com 2024/2 real | Importar os dois | O atual é reconhecido pelo bloco 2025, sem pedir escolha |
-| Atual com bloco 2024, anterior com 2024/2 real | Importar os dois | Dúvida: a prévia pede a escolha; até lá, idade como estimativa e aplicar/baixar desativados |
+| Atual com bloco 2024, anterior com 2024/2 real | Importar os dois | Dúvida: a prévia pede a escolha; até lá, aplicar e baixar ficam desativados, e o cálculo do prazo mantém a nota de RA-09 |
 | Mesmo cenário, com a pessoa escolhendo o anterior como atual | Confirmar a escolha | A escolha vence a regra automática |
 | CLI com `--atual` apontando um dos arquivos | Gerar o perfil | O papel segue a opção |
 | CLI sem `--atual`, com dúvida | Gerar o perfil | O CLI exige `--atual` e termina com erro, sem dados do documento na mensagem |
@@ -282,7 +306,7 @@ com MAC118 nos anos abaixo; pedido usando MAC118.
 | 2021 | 5,0 a 5,5 anos | Aviso de precisão insuficiente ("só o ano é conhecido; pode passar de 5 anos"), sem inventar `/1` nem `/2` (PC-06) |
 | 2020 | 6,0 a 6,5 anos | Alerta de mais de 5 anos |
 
-Casos de regressão do importador (achados da revisão independente):
+Casos de regressão e de conferência do importador:
 
 | Caso | Situação | Ação | Resultado esperado |
 | --- | --- | --- | --- |
@@ -290,6 +314,7 @@ Casos de regressão do importador (achados da revisão independente):
 | 06k · confirmação de colisão | Perfil com plano em 2025/1, dois históricos e BOA. Na prévia inicial, o plano não colide | Escolher o histórico cujo último semestre real é 2024/2; depois voltar à escolha inicial e repetir a troca | A prévia sugere 2025/1 e lista o plano em colisão. Usar e baixar ficam desativados até confirmar o descarte. Voltar à escolha inicial remove a colisão; repetir a troca exige nova confirmação. Depois de confirmar, o perfil salvo ou baixado tem 2025/1 como atual e não contém o plano descartado |
 | 06l · ordem dos arquivos | O histórico anterior tem MAC118 no bloco de 2019 e em 2020/1. O atual tem MAC118 no bloco de 2025 | Importar nas duas ordens, com os mesmos arquivos e relógio | A saída canônica contém um único registro de MAC118 no bloco de 2025, com `aprovadaEm: "2020/1"` só como origem. O prazo usa 2025 nas duas ordens, sem usar 2019 |
 | 06m · ACE no reingresso | O histórico anterior registra a mesma ACE fictícia de 30 h (EEW002 no teste) em 2020/1 e em 2021/1. O atual traz o mesmo código e grau no bloco de 2025 | Importar nas duas ordens e abrir o progresso de ACE | O perfil mantém a ocorrência em 2021/1 e a do bloco de 2025, com `aprovadaEm: "2020/1"`. O progresso exibe 30 h confirmadas e 30 h a confirmar; o total das duas parcelas é 60 h. Descreve o comportamento atual; muda se a regra da ACE no reingresso for decidida de outro modo |
+| 06n · NCC desconhecida | BOA com uma NCC fictícia sem créditos e fora do currículo e do catálogo | Gerar a prévia | A Grade identifica a atividade e pede conferência |
 
 ### RF-07 · Aviso de oferta e horários de referência (RA-20)
 
@@ -319,13 +344,13 @@ sem sobreposição. A passada com leitor de tela real está no backlog ([MANUTEN
 | 08b · faixa, completo | Sem perfil e com P1; modo completo; desktop e celular | Percorrer as seis abas: Grade, Linha do tempo, Optativas, Cronograma, Equivalências e Extensão / ACE, A ECI por trás da Grade | Faixa visível em todas, sem cobrir conteúdo, com texto na ordem de leitura e na árvore de acessibilidade. Tab percorre os controles com foco visível |
 | 08c · RA-13 | P5 | Abrir o progresso e Pedidos | Nota de estimativa junto dos dois números de livre escolha de 05a |
 | 08d · RA-09 | Cursada com idade calculada (03a ou 03b) | Abrir o pedido e a tabela de livre escolha | Nota de estimativa junto da idade. A nota permanece enquanto a regra de reingresso (RA-21) não tiver sido implementada e testada; retirá-la depois é decisão registrada em [DECISOES.md](DECISOES.md) |
-| 08e · RA-19 | Perfil importado com período atual deduzido | Abrir a linha do tempo e a prévia de importação | Nota de estimativa no período atual |
-| 08f · RA-19 | Perfil com período atual informado pela pessoa | Abrir a linha do tempo | **Sem** nota de período deduzido |
+| 08e · RA-19 | Perfil importado com período atual deduzido | Abrir a linha do tempo e a prévia de importação | Nota de estimativa no período atual. A nota volta ao reimportar os mesmos PDFs enquanto o semestre real deduzido for mantido |
+| 08f · RA-19 | Perfil com período atual informado pela pessoa; depois, importação só de BOA sem data inferível | Abrir a linha do tempo | **Sem** nota de período deduzido. Só BOA sem data inferível não gera nota nem campo `deduzido` |
 | 08g · RA-20 | 07a | Abrir a linha do tempo e o Cronograma | Nota de estimativa no aviso de oferta |
-| 08h · RA-20 | MAC238 planejada em 2027/1 (referência: ter 10-12 e qui 10-12) | Abrir o Cronograma de 2027/1 | Os horários de referência aparecem com a fonte (Notion), a data da fonte registrada em `js/horarios.js` e a nota de estimativa |
-| 08i · versão e currículo | Qualquer tela | Ler o rodapé | Aparecem a versão (`v2.0.0`) e "Currículo conferido no SIGA em AAAA-MM-DD", a data do campo `consultado` de `js/database.js` |
-| 08j · relato, rodapé | Qualquer tela | Seguir o link "Achou um erro? Crie uma nova issue" com Tab e Enter | Abre a página de nova Issue do repositório. A URL não carrega dado da pessoa. O texto da Issue pede esperado, observado e passos, e avisa para não anexar PDFs, prints identificáveis nem o perfil |
-| 08k · relato, importação | Arquivo inválido na importação | Importar | A mensagem de erro traz o mesmo link, sem copiar conteúdo do arquivo |
+| 08h · RA-20 | MAC238 planejada em 2027/1, sem horários no perfil | Abrir o Cronograma e adotar a referência | Antes, o item está sem horário e a referência traz ter e qui 10–12, a fonte, a data e a nota. Depois, os horários ficam gravados como iguais à referência |
+| 08i · versão e currículo | Modo clássico e modo completo | Ler o rodapé | Exibe `v2.0.0` e a data `consultado` de `js/database.js`. A data representa o recorte de conferência descrito nas [regras acadêmicas](REGRAS-ACADEMICAS.md#fontes) |
+| 08j · relato, rodapé | Cada modo | Seguir com Tab e Enter o link de relato | O destino é a criação de Issue no fork da Grade, sem dados da pessoa na URL. Com o modelo disponível na branch padrão, a tela pede esperado, observado e passos e orienta a não anexar PDFs, capturas identificáveis nem perfil |
+| 08k · relato, importação | Perfil salvo | Importar um PDF fictício inválido | A mensagem oferece o mesmo link, não inclui dados do arquivo e preserva o perfil salvo |
 
 ### RF-09 · Procedimentos de estágio, equivalência e ACE (planejado)
 
@@ -360,7 +385,7 @@ Descreve o comportamento atual. Melhorias de comportamento estão no backlog ([M
 | Caso | Situação | Ação | Resultado esperado |
 | --- | --- | --- | --- |
 | 12a | Sem perfil | Criar perfil com campos em branco | Perfil salvo; marcações anteriores continuam |
-| 12b | Perfil com edições | Exportar `perfil.js` | O arquivo contém as edições; reimportado, reproduz o mesmo estado |
+| 12b | Perfil com edições | Exportar `perfil.js` e reimportar | Após reimportar, o arquivo recupera os campos exportáveis: períodos, planos, pedidos, extensão, tags e marcações |
 | 12c | Navegador limpo | Carregar um arquivo de perfil válido; depois, um inválido | O válido é aplicado direto e recupera os campos exportáveis. O inválido mostra erro e preserva o perfil anterior. Prévia, cancelamento e escolha são casos de RF-06 |
 | 12d | Dados salvos | Configurações → Limpar dados salvos, confirmando | Marcações, planos e perfil apagados; cancelar não apaga nada |
 | 12e | Primeira visita com edições não exportadas | Usar o app | A pessoa encontra a indicação de que os dados ficam só neste navegador e o botão de exportar (critério de UX) |
@@ -388,9 +413,9 @@ dados da pessoa, funciona por HTTP e por `file://`, com teclado e sem biblioteca
 | 14b | Disciplina aprovada pelo pincel | Abrir detalhe e legenda | Identificada como marcação manual, não registro importado (PC-02, PC-03) |
 | 14c | Cadeado ligado | Tentar pintar uma cursada importada | A cursada não muda |
 | 14d | Setas em "Disciplina em foco" | Passar o mouse ou focar uma disciplina | Pré-requisitos e o que ela libera acendem, também pelo teclado |
-| 14e | Configurações → Aparência | Trocar o tema (sistema, claro, escuro), o modo (clássico ou completo) e fixar um item na barra do topo; recarregar | As escolhas são aplicadas e persistem. Fixar e desafixar anuncia o resultado e o item continua em Configurações |
-| 14f | Configurações → Grade → Tags | Editar uma tag e depois escolher "Restaurar padrão" e confirmar | A edição aparece na paleta e na Grade; restaurar volta às tags padrão; cancelar a confirmação não muda nada |
-| 14g | Configurações → Referências | Abrir a seção e navegar pelos links com Tab | As fontes são listadas e nenhum link externo é carregado ou aberto antes do clique |
+| 14e | Configurações → Aparência | Alterar tema e modo, fixar um atalho e recarregar; depois desafixar o atalho e recarregar de novo | As escolhas persistem. Em ambas as ações há anúncio, e o item permanece acessível em Configurações |
+| 14f | Tag em uso e disciplina marcada | Editar a tag usada e limpar a marcação de uma disciplina; depois pedir "Restaurar padrão", cancelar, pedir de novo e confirmar | A edição e a limpeza aparecem na paleta e na Grade. Cancelar a restauração preserva a edição. Confirmar restaura as tags padrão |
+| 14g | Configurações → Referências | Abrir Referências, percorrer por Tab e ativar um link com Enter | Antes da ativação, as fontes estão listadas e a seção não abre nova aba nem carrega recursos externos. Enter abre o destino em outra aba |
 
 ### RF-15 · Sincronização dos dados do Notion (H16) · planejado
 
@@ -437,7 +462,7 @@ hipóteses usou. Nenhum número aparece sem aviso. Até lá, a pessoa monta a pr
 
 | ID | Requisito | Histórias | Critério verificável | Estado |
 | --- | --- | --- | --- | --- |
-| RNF-01 | Os dados pessoais não saem do dispositivo | H11 | Com PDFs fictícios contendo marcadores sentinela no cabeçalho: nenhuma requisição externa durante a importação; nenhuma requisição à própria origem contém dados do documento; o perfil salvo e o arquivo exportado não contêm os marcadores. A página substituta `classico.html` não carrega script nem recurso externo e leva ao modo clássico; o teste dela é registrado na C2 | v2.0.0 · a verificar na C2 |
+| RNF-01 | Dados acadêmicos importados e do perfil permanecem no dispositivo | H11 | Com PDFs fictícios contendo marcadores sentinela no cabeçalho: nenhuma requisição externa durante a importação; nenhuma requisição à própria origem contém dados do documento; o perfil salvo e o arquivo exportado não contêm os marcadores. A página substituta `classico.html` não carrega script nem recurso externo e leva ao modo clássico; o teste dela é registrado na C2 | v2.0.0 · a verificar na C2 |
 | RNF-02 | Funciona por abertura direta (`file://`) e por hospedagem estática, sem servidor próprio do app | H1 a H11 | O kit, numa versão fixa e com dados fictícios, passa nos dois modos, em ambiente isolado de perfil real e sem rede externa | v2.0.0 · a verificar na C2 |
 | RNF-03 | Acessibilidade | H1, H2, H3, H10, H11 | Versão fixa do axe-core sem ocorrências "serious" ou "critical" nas telas e estados listados, nos dois temas; percursos de teclado enumerados com foco visível. Leitor de tela real fica no backlog | v2.0.0 · a verificar na C2 |
 | RNF-04 | Compatibilidade | H1 a H11 | O kit passa em Chromium, WebKit e Firefox, nas versões registradas, por `file://` e HTTP. O WebKit automatizado é a aproximação do Safari; não há teste em iPhone real | v2.0.0 · a verificar na C2 |
