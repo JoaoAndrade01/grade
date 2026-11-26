@@ -26,8 +26,9 @@ Estas duas fontes são **não oficiais**, mantidas por alunos. A Grade avisa dis
 2. **Atualize os dois arquivos juntos** (`js/horarios.js` e `js/guia.js`), no formato atual, e ponha a data
    editorial em `consultado` (AAAA-MM-DD). Horário usa o formato `ter 10-12` (dia com 3 letras, hora de início
    e fim). Um arquivo atualizado sem o outro deixa a Grade incoerente.
-3. **Use só turmas com oferta confirmada** e de um único semestre. Uma turma "a confirmar" fica de fora. Não
-   misture anos. Se a mesma disciplina tiver turmas alternativas com horários incompatíveis, escolha uma
+3. **Use só turmas com oferta confirmada.** Use uma edição de referência conferida para cada paridade (ímpar
+   e par). Registre o semestre exato de cada edição, sem misturar anos no mesmo mapa. Uma turma "a confirmar"
+   fica de fora. Se a mesma disciplina tiver turmas alternativas com horários incompatíveis, escolha uma
    referência e registre; juntar as duas pode inventar um choque de horário.
 4. **Registre a procedência de cada exceção.** Um código que não está no currículo nem no catálogo só entra se
    tiver uma exceção justificada, com **origem**, **motivo** e **efeito no cálculo**. Não renomeie um código
@@ -36,8 +37,8 @@ Estas duas fontes são **não oficiais**, mantidas por alunos. A Grade avisa dis
    formato, os códigos, as duplicatas e lista as turmas sem código. Depois rode a matriz do kit.
 6. **Compare o diff.** Confira que só mudaram os horários esperados. Desconfie de remoção em massa, de
    disciplina que trocou de paridade e de código novo.
-7. **Guarde o último par bom.** O commit anterior à troca é o último par de arquivos validado. Cite o hash
-   dele no Pull Request e não o apague, para poder voltar.
+7. **Guarde o último par bom.** Registre no Pull Request o hash do último par validado, para poder voltar.
+   O commit anterior à troca só serve de referência se tiver passado pelo validador.
 
 **Se a fonte sumir** (página apagada, sem acesso ou estrutura mudada): não apague os arquivos nem os esvazie.
 Mantenha o último par bom. A nota da Grade já mostra a data da consulta e diz que os horários podem mudar.
@@ -80,19 +81,19 @@ Comandos e instalação: [testes/README.md](../testes/README.md).
 | Interface ou regras de crédito | Matriz do kit (seis pares de navegador e modo de abertura) |
 | Documentos | Conferir os links relativos |
 
-Um defeito corrigido prova **vermelho → verde**: o caso novo falha antes e passa depois, ou o registro diz por
-que o cenário já passava. Uma mudança intencional de requisito atualiza o oráculo. Uma falha intermitente de
-aceitação não se resolve com um rerun verde.
+Para defeitos, siga o procedimento de [CONTRIBUTING.md](../CONTRIBUTING.md#corrigir-um-defeito-vermelho--verde).
+Para comandos, use [testes/README.md](../testes/README.md). Uma falha intermitente de aceitação não se resolve
+com um rerun verde.
 
 ## Backlog e dívida
 
-Itens para depois da publicação. A ordem é a de prioridade dentro de cada grupo.
+Itens para depois da publicação. A ordem é a de prioridade dentro de cada grupo; o backlog guarda a ordem, e o aceite de cada item com requisito está no requisito.
 
 ### Qualidade e processo
 
 | # | Item | Critério de pronto |
 | --- | --- | --- |
-| 1 | CI mínima: paridade e kit em um motor a cada push | Falha bloqueia o merge (RNF-12) |
+| 1 | CI mínima: paridade e kit em um motor a cada push | Ver RNF-12 em [REQUISITOS.md](REQUISITOS.md#5-requisitos-não-funcionais) |
 | 2 | Testes de unidade das regras de crédito: extrair funções puras de `js/app.js`, uma a uma | Cada regra extraída com teste, coberta pelos casos de [REQUISITOS.md](REQUISITOS.md), sem mudar comportamento |
 | 3 | PR ao Grêmio com as correções de `js/database.js` e conversa sobre manutenção conjunta | PR aberto em [`gremio-eci/grade`](https://github.com/gremio-eci/grade) |
 | 4 | Passada com leitor de tela (NVDA) no fluxo principal | Problemas registrados por severidade |
@@ -108,14 +109,14 @@ Itens para depois da publicação. A ordem é a de prioridade dentro de cada gru
 
 | # | Item | Critério de pronto |
 | --- | --- | --- |
-| 1 | **Previsão de formatura calculada** (RF-19), o primeiro item de produto | Casos com planos completos, incompletos, com equivalências e ACE; nenhum número sem aviso |
-| 2 | Aviso de dado desatualizado (RF-18), logo depois da previsão | Casos com dado do semestre atual, anterior e sem data |
-| 3 | Marcar atividades de extensão como distintas (caso 01g); a implementação está pronta numa branch de trabalho | Revisão e integração na versão seguinte |
+| 1 | **Previsão de formatura calculada**, o primeiro item de produto | Ver [RF-19](REQUISITOS.md#rf-19--previsão-de-formatura-calculada-h4--planejado) |
+| 2 | Aviso de dado desatualizado, logo depois da previsão | Ver [RF-18](REQUISITOS.md#rf-18--aviso-de-dado-desatualizado-h14--planejado) |
+| 3 | Marcar atividades de extensão como distintas; a implementação está pronta numa branch de trabalho | Ver o caso 01g em [RF-01](REQUISITOS.md#rf-01--progresso-por-grupo-ra-01-ra-05-ra-06-ra-16); revisão e integração na versão seguinte |
 | 4 | Melhorias de optativas e perfil: filtro "só liberadas" com elegibilidade por semestre planejado; data de consulta do guia no detalhe; prévia antes de aplicar um perfil pronto | Casos próprios em RF-11 e RF-12, vermelho → verde |
-| 5 | Automação com o Notion (RF-15), combinada com os autores: bases Turmas e Disciplinas, piloto por CSV, depois a API de leitura e uma rotina semanal que propõe um PR revisado, com falha fechada | Dados gerados sem edição manual, diff só das mudanças reais e validador verde |
-| 6 | Atualização do currículo a partir do SIGA (RF-16) | Relatório de divergências e dados preservados em falha |
-| 7 | Diagrama vivo da arquitetura, como experiência de "A ECI por trás da Grade" (EEL873) e depois COS231 (choques de horário) | Por HTTP e `file://`, com teclado, sem tocar nos dados da pessoa (RF-13) |
-| 8 | Procedimentos de estágio, equivalência e ACE (RF-09) | A definir |
+| 5 | Automação com o Notion, combinada com os autores | Ver [RF-15](REQUISITOS.md#rf-15--sincronização-dos-dados-do-notion-h16--planejado), RNF-11 e RNF-13 |
+| 6 | Atualização do currículo a partir do SIGA | Ver [RF-16](REQUISITOS.md#rf-16--atualização-do-currículo-a-partir-do-siga-h14--planejado) |
+| 7 | Novas experiências de "A ECI por trás da Grade", nesta ordem: diagrama vivo da arquitetura (EEL873), depois COS231 (choques de horário) | Ver [RF-13](REQUISITOS.md#rf-13--a-eci-por-trás-da-grade-h12) |
+| 8 | Procedimentos de estágio, equivalência e ACE | Ver [RF-09](REQUISITOS.md#rf-09--procedimentos-de-estágio-equivalência-e-ace-planejado) |
 
 **Fora, de propósito:** análise de uso (analytics), por causa da condição 1 de privacidade.
 
