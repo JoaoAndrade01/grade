@@ -698,6 +698,19 @@ def t_cr02_dispensa_unica(b):
     exporta_e_reimporta(b, pg, perfil, "cr02-04d-reimporta")
     ctx.close()
 
+@caso("CR-02: dispensa importada com alvo fora do catálogo conta o alvo (4 cr) e não a origem (04e)")
+def t_cr02_alvo_fora_do_catalogo(b):
+    # o perfil sai do importador (PDF fictício), não é injetado: XYZ101 aprovada e ABC123 dispensada, ambas fora do catálogo
+    ctx, pg = importa_cenario(b, "dispensa-fora-catalogo", "cr02-04e")
+    pg.click("#siga-usar")
+    perfil = ls(pg, "perfilImportado")
+    confere_oraculo(perfil, "dispensa-fora-catalogo")
+    completo(pg, "pedidos")
+    assert creditos_por_grupo(pg) == {"1": 0, "2": 0, "3": 4, "4": 0}, creditos_por_grupo(pg)    # ABC123 4 cr; XYZ101 0 cr
+    assert pg.locator(".aviso-dispensa").count() == 0                                           # dispensa única: sem aviso
+    exporta_e_reimporta(b, pg, perfil, "cr02-04e-reimporta")
+    ctx.close()
+
 # ------------------------------------------------------------------ D-02 / PC-04: dois números na livre escolha
 DEF456 = {"code": "DEF456", "name": "Livre fictícia B", "credits": 2, "category": 3}
 BOA_P5 = {"emissao": "20/11/2026", "naoExplicitadasPresente": True, "naoExplicitadas": [
@@ -1566,7 +1579,7 @@ CASOS = [
     t_cr01_pre, t_cr01_co, t_cr01_sugestoes, t_cr01_proposta, t_cr01_equivalencia, t_cr01_manual,
     t_cr03_historico, t_cr03_lista,
     t_cr04_reingresso, t_cr04_ordem_dos_arquivos, t_cr04_ace_duas_ocorrencias, t_cr04_controles, t_cr04_papel, t_cr04_fronteira,
-    t_cr02_pedidos, t_cr02_duas_dispensas, t_cr02_dispensa_unica,
+    t_cr02_pedidos, t_cr02_duas_dispensas, t_cr02_dispensa_unica, t_cr02_alvo_fora_do_catalogo,
     t_d02_dois_numeros, t_d02_ausente_e_vazia, t_d02_outros_grupos, t_d02_importacao,
     t_rf08_faixa, t_rf08_notas_credito, t_rf08_periodo_atual, t_rf08_oferta, t_rf08_rodape, t_rf08_ace,
     t_pc02_manual_credito, t_pc03_manual_requisito,

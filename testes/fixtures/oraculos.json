@@ -526,6 +526,35 @@
     }
    ],
    "historicoAtual": "automatico"
+  },
+  "dispensa-fora-catalogo": {
+   "arquivos": [
+    "dispensa-fora-catalogo"
+   ],
+   "atual": null,
+   "periodos": [
+    {
+     "nome": "2024/1",
+     "disciplinas": [
+      {
+       "code": "XYZ101",
+       "name": "Origem fictícia",
+       "credits": 4,
+       "category": 3,
+       "nota": 7,
+       "dispensa": [
+        {
+         "code": "ABC123",
+         "name": "Livre fictícia",
+         "credits": 4,
+         "category": 3
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "historicoAtual": null
   }
  }
 }

@@ -319,10 +319,12 @@ def montar_perfil(historicos, boa=None, curriculo=None, catalogo=None, anterior=
 
     # 2) dispensas
     origens_aprovadas = {r["code"] for r in regs if r["grau"] != "T" and r["sf"] == "AP"}
-    dispensas = {}
+    dispensas = {}   # origem -> [alvos]; alvo fora do currículo e do catálogo leva nome e créditos (D-07)
     for r in regs:
         if r["grau"] == "T" and r["sf"] == "AP" and r.get("dispensaDe") in origens_aprovadas:
-            dispensas.setdefault(r["dispensaDe"], []).append(r["code"])
+            lista = dispensas.setdefault(r["dispensaDe"], [])
+            if not any((x["code"] if isinstance(x, dict) else x) == r["code"] for x in lista):
+                lista.append(r["code"] if conhecido(r["code"]) else {"code": r["code"], "name": r["name"], "credits": r["credits"], "category": 3})
 
     # 3) equivalências do BOA
     equivale = {}
@@ -345,7 +347,7 @@ def montar_perfil(historicos, boa=None, curriculo=None, catalogo=None, anterior=
             if r["code"] in equivale:
                 item["equivale"] = equivale[r["code"]]
             if r["code"] in dispensas and r["sf"] == "AP":
-                item["dispensa"] = list(dict.fromkeys(dispensas[r["code"]]))
+                item["dispensa"] = list(dispensas[r["code"]])
         if r["sf"] != "AP":
             item["status"] = "reprovado"
         if re.match(r"^\d+(\.\d+)?$", r["grau"]):

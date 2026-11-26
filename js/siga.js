@@ -362,9 +362,11 @@
 
     // 2) A dispensa acompanha a origem aprovada quando ela está nos documentos.
     const origensAprovadas = new Set(regs.filter((r) => r.grau !== "T" && r.sf === "AP").map((r) => r.code));
-    const dispensas = {}; // origem -> [alvos]
-    regs.filter((r) => r.grau === "T" && r.sf === "AP" && origensAprovadas.has(r.dispensaDe)).forEach((r) =>
-      (dispensas[r.dispensaDe] = dispensas[r.dispensaDe] || []).push(r.code));
+    const dispensas = {}; // origem -> [alvos]; alvo fora do currículo e do catálogo leva nome e créditos (D-07)
+    regs.filter((r) => r.grau === "T" && r.sf === "AP" && origensAprovadas.has(r.dispensaDe)).forEach((r) => {
+      const lista = (dispensas[r.dispensaDe] = dispensas[r.dispensaDe] || []);
+      if (!lista.some((x) => (x.code || x) === r.code)) lista.push(conhecido(r.code) ? r.code : { code: r.code, name: r.name, credits: r.credits, category: 3 });
+    });
 
     // 3) Equivalências do BOA (recomendada ← cursada): ex. COS231 ← EEL470
     const equivale = {};
@@ -381,7 +383,7 @@
       if (r.grau === "T") item.nota = "T";
       else {
         if (equivale[r.code]) item.equivale = equivale[r.code];
-        if (dispensas[r.code] && r.sf === "AP") item.dispensa = [...new Set(dispensas[r.code])];
+        if (dispensas[r.code] && r.sf === "AP") item.dispensa = dispensas[r.code].slice();
       }
       if (r.sf !== "AP") item.status = "reprovado";
       if (/^\d+(\.\d+)?$/.test(r.grau)) item.nota = num(r.grau);

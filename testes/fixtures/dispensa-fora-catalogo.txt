@@ -1,0 +1,7 @@
+UNIVERSIDADE FEDERAL DO RIO DE JANEIRO - HISTÓRICO ESCOLAR
+Histórico do curso atual
+Nome: PESSOA FICTICIA DE TESTE   CPF: 000.000.000-00   RG: 00.000.000-0
+Período Código Nome CrR CH Grau CrO Pontos SF
+2024/1 XYZ101 Origem fictícia 4.0 60 7.0 1.0 3.0 AP
+ABC123 Livre fictícia 4.0 60 T 4.0 ***** AP
+Disciplina origem da Dispensa: XYZ101 Origem fictícia
