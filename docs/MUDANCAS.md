@@ -1,7 +1,95 @@
 # Registro de mudanças
 
-Registro passo a passo de tudo que mudou em relação ao fork original (`gremio-eci/grade`, commit `b0f49fe`).
-Serve de base para os commits/PR: cada etapa pode virar um commit.
+**Pergunta que este documento responde:** o que mudou em cada versão e o que ainda não funciona. As decisões por trás das
+mudanças estão em [DECISOES.md](DECISOES.md); os critérios, em [REQUISITOS.md](REQUISITOS.md). A versão atual aparece no
+rodapé da Grade.
+
+## v2.0.0 — primeira versão pública
+
+<!-- INTEGRAÇÃO: preencher a data de publicação (AAAA-MM-DD) e usar este texto, de "O que mudou" até "Limitações conhecidas", como notas da release. -->
+
+Primeira versão pública da Grade ECI, a partir do fork de [`gremio-eci/grade`](https://github.com/gremio-eci/grade).
+É um site estático para alunos de Engenharia de Computação e Informação da UFRJ planejarem o curso, com os dados
+acadêmicos só no navegador. A Grade orienta; não substitui o SIGA, o BOA nem a coordenação.
+
+### O que mudou para quem usa
+
+- **Aviso de que a Grade não é oficial.** Uma faixa curta no topo ("Feita por alunos de ECI. Não substitui o SIGA, o BOA
+  nem a coordenação.") e uma nota junto de cada cálculo que é estimativa: livre escolha, prazo de 5 anos, período atual
+  deduzido do histórico e horários de referência.
+- **Livre escolha com dois números.** A conta da Grade e a soma das "Cursadas e Não Explicitadas" do BOA aparecem lado
+  a lado, rotuladas, porque o BOA pode continuar contando créditos de um pedido já deferido.
+- **Prazo de 5 anos com mais honestidade.** O prazo só aparece como alerta (some a linha "dentro de 5 anos"). Para quem
+  reingressou, vale o ano do bloco de créditos transferidos do histórico do curso atual, e a data original da aprovação
+  fica só como informação. Se não dá para saber qual histórico é o do curso atual, a prévia **pergunta** e só libera
+  **Usar este perfil** e **Baixar perfil.js** depois da escolha.
+- **Carga horária como orientação.** A comparação deixa de usar ✓ e ✗ e aparece como dica neutra.
+- **Marcação manual identificada.** A disciplina aprovada pelo pincel é identificada como marcação manual no detalhe e na
+  legenda do progresso, e a disciplina que dela depende mostra que o requisito foi satisfeito por marcação manual.
+- **Horas de extensão "a confirmar".** Quando não dá para saber se duas entradas são a mesma atividade, a Grade confirma o
+  maior valor e mostra o restante como "a confirmar", com aviso.
+- **Rodapé.** Versão, data de conferência do currículo no SIGA e o link "Achou um erro? Crie uma nova issue", que também
+  aparece quando a importação falha.
+- **Acessibilidade.** Revisão de foco, teclado, nomes acessíveis, contraste e telas pequenas.
+  <!-- INTEGRAÇÃO: listar aqui as correções de acessibilidade efetivamente feitas no candidato (foco e ordem do teclado, nomes dos campos, contraste, refluxo a 320 px, alvos, papéis das abas, pistas além da cor, edição de horários e escolha de perfil pelo teclado) e confirmar que esta frase condiz com elas. -->
+- **Página antiga retirada.** `classico.html` agora é uma página curta, sem script, que leva ao modo clássico do app. A
+  versão antiga fica guardada na tag `legado-classico` e no repositório do Grêmio. As cores que ela guardava em cookies
+  não são migradas.
+
+### Correções de cálculo
+
+Erros encontrados antes da publicação, cada um com um caso de teste permanente ([REQUISITOS.md](REQUISITOS.md)):
+
+| Caso | Antes | Agora |
+| --- | --- | --- |
+| CR-01 · requisito e semestre | O aviso de pré-requisito comparava a posição na lista de períodos, não o semestre; a ordem da lista mudava o resultado | Compara o semestre; a ordem não muda aviso, co-requisito nem sugestão |
+| CR-02 · origem em duas dispensas | Uma origem de 6 cr com duas dispensas somava 14 cr (origem mais os dois alvos) | Os alvos contam como no histórico (8 cr) e a origem não soma; há aviso quando a origem aparece em duas ou mais dispensas. O alvo fora do catálogo mantém nome, créditos e grupo |
+| CR-03 · ACE contada duas vezes | A mesma atividade de 30 h, no catálogo e na extensão, somava 60 h | Mesma identidade: o maior valor é confirmado e o resto fica "a confirmar". Períodos conhecidos diferentes somam |
+| CR-04 · reingresso | O prazo dependia da ordem dos arquivos e do semestre antigo; ocorrências distintas de ACE se perdiam | O prazo usa o ano do bloco do histórico atual, nas duas ordens; ocorrências distintas continuam distintas |
+
+Outras correções: trocar o histórico atual na prévia agora recalcula os planos que ficam de fora, com confirmação antes
+de descartar; a escolha explícita do histórico vale mesmo sem datas; o período atual só é marcado como deduzido
+quando o semestre é real e a marca é mantida ao reimportar os mesmos PDFs; perfis antigos com histórico em dúvida
+continuam abrindo, com o aviso de estimativa; os links do rodapé apontam para o fork (relato e GitHub) e para o
+Grêmio (crédito); e o importador de terminal passou a exigir `--atual` quando não consegue decidir.
+
+### Validação dos dados de referência
+
+Um validador local confere o formato, os códigos (contra o currículo, o catálogo ou uma exceção justificada) e as
+duplicatas de `js/horarios.js` e `js/guia.js`, e lista as turmas sem código. Ver [PLANO-DE-TESTE.md](PLANO-DE-TESTE.md).
+
+### Limitações conhecidas
+
+- **Interpretação do reingresso.** Contar o prazo de 5 anos pelo ano do bloco do histórico atual é uma regra local; a
+  interpretação do art. 47 da Resolução CEG 01/2017 para quem reingressa está sob consulta à coordenação
+  ([REGRAS-ACADEMICAS.md](REGRAS-ACADEMICAS.md#o-que-a-grade-não-confirma)).
+- **Livre escolha.** O segundo número é a soma das não explicitadas do BOA, uma estimativa: o importador não lê o total
+  oficial. O comportamento do BOA com pedidos deferidos foi observado em um caso.
+- **Extensão.** Com uma única entrada no histórico do curso atual, a Grade mostra 30 h confirmadas e 30 h a confirmar.
+  Marcar atividades como distintas fica para uma versão seguinte.
+- **Horários e guia.** Vêm de uma página mantida por alunos e não confirmam a oferta oficial. Alguns códigos e quatro
+  turmas ainda dependem de conferência e aparecem só como informação ([MANUTENCAO.md](MANUTENCAO.md)).
+- **Layout do SIGA.** Se o SIGA mudar o layout dos PDFs, a importação pode falhar ou omitir linhas
+  ([IMPORTADOR.md](IMPORTADOR.md#limitações-conhecidas)).
+- **Previsão de formatura.** A Grade não calcula uma data: você monta a previsão com o planejamento. A previsão calculada
+  é o primeiro item planejado depois desta versão.
+- **Navegação por teclado nos links do Safari.** A verificação automatizada de Tab nos links cobre Chromium e Firefox; o
+  Safari no Mac, o iPhone real e a passada com leitor de tela estão pendentes
+  ([PLANO-DE-TESTE.md](PLANO-DE-TESTE.md#6-limite-do-ambiente-webkit)).
+- **Terminal.** Para uma atividade em curso sem créditos e fora do catálogo, o importador em Python imprime o código dela
+  no `stderr`.
+
+### Para quem contribui
+
+Documentação nova: visão, requisitos, regras acadêmicas, plano de teste, decisões, manutenção, privacidade, formato do
+perfil e guia de contribuição, além de instruções públicas para agentes de IA ([AGENTS.md](../AGENTS.md)) e modelo de
+Issue. O que está previsto para depois está em [MANUTENCAO.md](MANUTENCAO.md).
+
+---
+
+## Histórico de etapas do fork
+
+Registro das etapas anteriores à v2.0.0, em relação ao fork original (`gremio-eci/grade`, commit `b0f49fe`).
 
 ## Etapa 1 — Correções no currículo (`js/database.js`)
 
@@ -12,7 +100,7 @@ Serve de base para os commits/PR: cada etapa pode virar um commit.
 
 ## Etapa 2 — App novo, sem dependências
 
-- `index.html` novo; a versão original foi renomeada para `classico.html` (continua funcionando).
+- `index.html` novo; a versão original foi renomeada para `classico.html` (retirada depois, na v2.0.0; ver acima).
 - `js/app.js`: reescrito em JavaScript puro, estado em `localStorage` indexado por **código** da disciplina
   (a versão original usava cookies indexados pela posição na lista).
 - `static/app.css`: visual novo com tema claro/escuro automático.
@@ -120,21 +208,3 @@ Serve de base para os commits/PR: cada etapa pode virar um commit.
 - **A ECI por trás da Grade:** seletor "ECI por trás" na paleta e experiências em tela cheia para COS110, COS242 e EEL873,
   com PDFs fictícios (`js/demo-pdf.js`, gerado por `ferramentas/gerar_demo_pdf.py`) e saída Python pré-computada.
 
-## Sugestão de commits
-
-```
-1. fix(database): requisitos de COS231/EEL418/COS360 e créditos do estágio
-2. feat: app novo sem dependências (index.html, app.js, app.css); original em classico.html
-3. feat: perfil pessoal e linha do tempo
-4. feat: catálogo de optativas e cronograma
-5. feat: horários de referência e guia (Notion)
-6. feat: planejamento para formar e sugestões
-7. feat: equivalências e extensão/ACE
-8. feat: página inicial limpa com tags de cor
-9. feat: importador determinístico do SIGA (navegador + Python)
-10. docs: arquitetura, perfil, importador, publicação e registro de mudanças
-11. feat: modo clássico, celular, paleta, privacidade (CSP) e diagramas
-12. feat: interface (tema, Configurações, atalhos, setas, cadeado, prévia do SIGA) e A ECI por trás da Grade
-```
-
-Não entram no git: `perfil/perfil.js`, PDFs, planilhas, a página salva do currículo e a pasta "Claude outputs".
