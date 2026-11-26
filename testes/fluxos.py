@@ -1883,7 +1883,26 @@ def t_m6_somente_informativo(b):
     assert pg.evaluate("JSON.stringify(window.GradeInterativa.totais())") == antes        # os totais não mudam
     ctx.close()
 
-CASOS4 = [t_m6_somente_informativo, t_b2_foco_visivel, t_b2_foco_filtros, t_b2_importacao, t_b1_estado_dos_cartoes]
+@caso("B3: nomes acessíveis do seletor de PDF e dos campos de ACE e Pedidos; prévia anunciada")
+def t_b3_nomes(b):
+    perfil = perfil_carga(["COS231", "EEL881"], boa_com(("COS231", 60), ("EEL881", 60)))
+    perfil["extensao"] = [{"nome": "Projeto fictício", "code": "", "horas": 30, "periodo": "2026/1", "status": "validada"}]
+    ctx, pg = abre(b, perfil=perfil, extra={"modoClassico": False, "vista": "pedidos"}, nome="b3-pedidos")
+    assert pg.evaluate(SEM_NOME, "#painel") == [], pg.evaluate(SEM_NOME, "#painel")
+    ctx.close()
+    ctx, pg = abre(b, nome="b3-importador", relogio=RELOGIO)
+    pg.click("#btn-importar")
+    assert pg.evaluate(SEM_NOME, "#detalhes") == [], pg.evaluate(SEM_NOME, "#detalhes")
+    nome = pg.locator("#siga-pdfs").evaluate("e => e.getAttribute('aria-label') || (e.labels[0] && e.labels[0].textContent) || ''")
+    assert "PDF" in nome and "Histórico" in nome and "BOA" in nome, nome
+    pg.set_input_files("#siga-pdfs", [str(PDFS / f) for f in ("historico-ficticio.pdf", "boa-ficticio.pdf")]); pg.click("#siga-gerar")
+    pg.wait_for_selector("#siga-usar", timeout=30000)
+    assert pg.evaluate(SEM_NOME, "#detalhes") == [], pg.evaluate(SEM_NOME, "#detalhes")
+    assert "Prévia pronta" in pg.locator("#anuncio").inner_text(), pg.locator("#anuncio").inner_text()
+    assert pg.locator("#anuncio").get_attribute("role") == "status"
+    ctx.close()
+
+CASOS4 = [t_b3_nomes, t_m6_somente_informativo, t_b2_foco_visivel, t_b2_foco_filtros, t_b2_importacao, t_b1_estado_dos_cartoes]
 CASOS += CASOS4
 
 

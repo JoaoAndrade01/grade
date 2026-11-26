@@ -967,10 +967,10 @@
       <h3>Tags de cor</h3>
       <p class="det-meta">Cada tag pinta as disciplinas e diz como elas entram na barra de progresso.</p>
       <ul class="lista tags-edit">${tags.map((t, k) => `<li>
-        <input type="color" value="${esc(t.cor)}" data-tagcor="${k}">
-        <input class="campo campo-sm" value="${esc(t.nome)}" data-tagnome="${k}">
-        <select class="campo campo-sm" data-tagstatus="${k}">${Object.entries(CONTA_COMO).map(([v, n]) => `<option value="${v}" ${t.status === v ? "selected" : ""}>${n}</option>`).join("")}</select>
-        <button type="button" class="x" data-tagdel="${k}" title="Apagar tag">×</button></li>`).join("")}</ul>
+        <input type="color" value="${esc(t.cor)}" data-tagcor="${k}" aria-label="Cor da tag ${esc(t.nome)}">
+        <input class="campo campo-sm" value="${esc(t.nome)}" data-tagnome="${k}" aria-label="Nome da tag ${k + 1}">
+        <select class="campo campo-sm" data-tagstatus="${k}" aria-label="Como a tag ${esc(t.nome)} conta no progresso">${Object.entries(CONTA_COMO).map(([v, n]) => `<option value="${v}" ${t.status === v ? "selected" : ""}>${n}</option>`).join("")}</select>
+        <button type="button" class="x" data-tagdel="${k}" title="Apagar tag" aria-label="Apagar a tag ${esc(t.nome)}">×</button></li>`).join("")}</ul>
       <div class="add"><button type="button" class="btn btn-sm" id="tag-nova">+ Nova tag</button>
       <button type="button" class="btn btn-sm btn-ghost" id="tag-padrao">Restaurar padrão</button></div>`;
     box.hidden = false;
@@ -1130,7 +1130,7 @@
     return `<div class="optativas">
       <div class="filtros">
         <div class="seg seg-sm">${Object.entries(GRUPOS_OPT).map(([k, n]) => `<button type="button" data-fgrupo="${k}" aria-selected="${filtros.grupo == k}">${n}</button>`).join("")}</div>
-        <input type="search" class="campo busca" id="busca-opt" placeholder="Buscar por nome ou código…" value="${esc(filtros.busca)}">
+        <input type="search" class="campo busca" id="busca-opt" aria-label="Buscar optativas por nome ou código" placeholder="Buscar por nome ou código…" value="${esc(filtros.busca)}">
         ${M.ref ? `<label class="check"><input type="checkbox" data-fcheck="ativas" ${filtros.ativas ? "checked" : ""}> só ativas</label>` : ""}
         <label class="check"><input type="checkbox" data-fcheck="liberadas" ${filtros.liberadas ? "checked" : ""}> só liberadas</label>
         <label class="check"><input type="checkbox" data-fcheck="ocultarFeitas" ${filtros.ocultarFeitas ? "checked" : ""}> ocultar cursadas</label>
@@ -1310,10 +1310,10 @@
         const id = base ? base.max : null;
         const infoBase = textoBase(base);
         return `<div class="cur">${descr(c.code)}${infoBase ? `<br><small class="base-prazo">${esc(infoBase)}${papelEmDuvida() ? " Estimativa: o histórico do curso atual não foi confirmado." : ""}</small>` : ""}
-          <div class="cur-acoes"><select class="campo campo-sm" data-eqpapel="${k}:${j}"><option value="conteudo" ${c.papel !== "horas" ? "selected" : ""}>conteúdo</option><option value="horas" ${c.papel === "horas" ? "selected" : ""}>só horas</option></select>
+          <div class="cur-acoes"><select class="campo campo-sm" data-eqpapel="${k}:${j}" aria-label="Papel de ${esc(c.code)} no pedido ${k + 1}"><option value="conteudo" ${c.papel !== "horas" ? "selected" : ""}>conteúdo</option><option value="horas" ${c.papel === "horas" ? "selected" : ""}>só horas</option></select>
           ${base && base.min > 5 ? `<small class="alerta" title="Res. CEG 01/2017">⚠ ${base.ano != null ? "mais de 5 anos" : fmt(Math.floor(id * 2) / 2) + " anos"}: pode exigir exame de suficiência</small>` : ""}
-          ${a.cs.length > 1 ? `<button type="button" class="x" data-eqrmc="${k}:${j}" title="Tirar do pedido">×</button>` : ""}</div></div>`;
-      }).join("") + `<div class="add add-cur"><input class="campo campo-sm" list="eq-cursadas" data-eqnovo="${k}" placeholder="+ cursada"><button type="button" class="mini-btn" data-eqaddc="${k}">juntar</button></div>`;
+          ${a.cs.length > 1 ? `<button type="button" class="x" data-eqrmc="${k}:${j}" title="Tirar do pedido" aria-label="Tirar ${esc(c.code)} do pedido ${k + 1}">×</button>` : ""}</div></div>`;
+      }).join("") + `<div class="add add-cur"><input class="campo campo-sm" list="eq-cursadas" data-eqnovo="${k}" aria-label="Juntar outra cursada ao pedido ${k + 1}" placeholder="+ cursada"><button type="button" class="mini-btn" data-eqaddc="${k}">juntar</button></div>`;
       const checks = [
         // D-01: a comparação de carga horária é orientação (a CEG 01/2017 pede conteúdo e orientação, não percentual): sem ✓/✗.
         a.chPed ? `<li class="orientacao-carga">Carga horária: ${a.ch} h de ${a.chPed} h: ${a.ch < a.chPed ? "abaixo da carga da pedida" : a.ch === a.chPed ? "igual" : "acima"}</li>`
@@ -1332,9 +1332,9 @@
       return `<tr class="eq-${(e.status || "a pedir").replace(/\W+/g, "-")}">
         <td>${cursCell}</td><td class="seta">→</td><td>${descr(e.pedida)}</td>
         <td><ul class="checks">${checks}</ul></td>
-        <td><select class="campo campo-sm" data-eqstatus="${k}">${EQ_STATUS.map((x) => `<option ${x === (e.status || "a pedir") ? "selected" : ""}>${x}</option>`).join("")}</select>
-          <input class="campo campo-sm" data-eqobs="${k}" value="${esc(e.obs || "")}" placeholder="processo, data, motivo…"></td>
-        <td><button type="button" class="x" data-eqdel="${k}" title="Remover pedido">×</button></td></tr>`;
+        <td><select class="campo campo-sm" data-eqstatus="${k}" aria-label="Situação do pedido ${k + 1}">${EQ_STATUS.map((x) => `<option ${x === (e.status || "a pedir") ? "selected" : ""}>${x}</option>`).join("")}</select>
+          <input class="campo campo-sm" data-eqobs="${k}" aria-label="Observação do pedido ${k + 1}" value="${esc(e.obs || "")}" placeholder="processo, data, motivo…"></td>
+        <td><button type="button" class="x" data-eqdel="${k}" title="Remover pedido" aria-label="Remover o pedido ${k + 1}">×</button></td></tr>`;
     }).join("");
 
     const cursadasOpc = neCodes.map((c) => { const u = usosDe(c); return `<option value="${esc(c)}">${esc(c)} — ${esc((boaDe(c) || M.info(c) || {}).name || "")}${u.length ? ` (${esc(u.map((x) => x.txt).join("; "))})` : ""}</option>`; }).join("");
@@ -1358,13 +1358,13 @@
     }).join("");
 
     const linhasExt = ext.map((a, k) => `<tr>
-        <td><input class="campo campo-sm" data-ext="${k}" data-campo="nome" value="${esc(a.nome || "")}" placeholder="Atividade"></td>
-        <td><input class="campo campo-sm" list="ace-list" data-ext="${k}" data-campo="code" value="${esc(a.code || "")}" placeholder="Código ACE"></td>
-        <td><input class="campo campo-sm num" type="number" min="0" data-ext="${k}" data-campo="horas" value="${esc(a.horas || 0)}"></td>
-        <td><input class="campo campo-sm" data-ext="${k}" data-campo="periodo" value="${esc(a.periodo || "")}" placeholder="2027/1"></td>
+        <td><input class="campo campo-sm" data-ext="${k}" data-campo="nome" aria-label="Nome da atividade ${k + 1}" value="${esc(a.nome || "")}" placeholder="Atividade"></td>
+        <td><input class="campo campo-sm" list="ace-list" data-ext="${k}" data-campo="code" aria-label="Código ACE da atividade ${k + 1}" value="${esc(a.code || "")}" placeholder="Código ACE"></td>
+        <td><input class="campo campo-sm num" type="number" min="0" data-ext="${k}" data-campo="horas" aria-label="Horas da atividade ${k + 1}" value="${esc(a.horas || 0)}"></td>
+        <td><input class="campo campo-sm" data-ext="${k}" data-campo="periodo" aria-label="Período da atividade ${k + 1}" value="${esc(a.periodo || "")}" placeholder="2027/1"></td>
         <td><span class="situ situ-${(a.status || "planejada").replace(/\W+/g, "-")}">${esc(a.status || "planejada")}</span>
-          <select class="campo campo-sm" data-ext="${k}" data-campo="status">${EXT_STATUS.map((x) => `<option ${x === (a.status || "planejada") ? "selected" : ""}>${x}</option>`).join("")}</select></td>
-        <td><button type="button" class="x" data-extdel="${k}" title="Remover">×</button></td></tr>`).join("");
+          <select class="campo campo-sm" data-ext="${k}" data-campo="status" aria-label="Situação da atividade ${k + 1}">${EXT_STATUS.map((x) => `<option ${x === (a.status || "planejada") ? "selected" : ""}>${x}</option>`).join("")}</select></td>
+        <td><button type="button" class="x" data-extdel="${k}" title="Remover" aria-label="Remover a atividade ${k + 1}">×</button></td></tr>`).join("");
     const T5 = tot[5];
 
     return `<div class="pedidos">
@@ -1377,9 +1377,9 @@
         <table class="tabela"><thead><tr><th>Cursada(s)</th><th></th><th>Eletiva pedida</th><th>Checagens</th><th>Situação</th><th></th></tr></thead>
         <tbody>${linhasEq || `<tr><td colspan="6" class="vazio">Nenhum pedido.</td></tr>`}</tbody></table>
         <div class="add">
-          <input class="campo" list="eq-cursadas" id="eq-c" placeholder="Cursada(s): ex. EET100 + EEL170">
+          <input class="campo" list="eq-cursadas" id="eq-c" aria-label="Cursadas do pedido" placeholder="Cursada(s): ex. EET100 + EEL170">
           <span class="seta">→</span>
-          <input class="campo" list="eq-pedidas" id="eq-p" placeholder="Eletiva pedida (código)">
+          <input class="campo" list="eq-pedidas" id="eq-p" aria-label="Eletiva pedida" placeholder="Eletiva pedida (código)">
           <button type="button" class="btn btn-sm" id="eq-add">Adicionar pedido</button>
           <datalist id="eq-cursadas">${cursadasOpc}</datalist><datalist id="eq-pedidas">${pedidasOpc}</datalist>
         </div>
@@ -1563,7 +1563,7 @@
           ${aviso.length ? `<small class="alerta">⚠ ${esc(aviso.join("; "))}</small>` : ""}
           ${oferta ? `<small class="aviso-oferta">⚠ ${esc(oferta.texto)}</small>` : ""}</span>
         </button>
-        <button type="button" class="x" data-cremove="${esc(it.code)}" title="Remover do período">×</button>
+        <button type="button" class="x" data-cremove="${esc(it.code)}" title="Remover do período" aria-label="Remover ${esc(it.code)} do período">×</button>
         ${(() => {
           const of = ofertaDe(it.code, p.nome);
           if (!of) return "";
@@ -1639,7 +1639,7 @@
           <ul>${lista || `<li class="vazio">Nenhuma disciplina.</li>`}</ul>
           ${M.ref && p.tipo !== "cursado" ? notaHtml(notaRA20()) : ""}
           <div class="add">
-            <input class="campo" list="opcoes-add" id="add-code" placeholder="Adicionar disciplina (código ou nome)…">
+            <input class="campo" list="opcoes-add" id="add-code" aria-label="Adicionar disciplina ao período (código ou nome)" placeholder="Adicionar disciplina (código ou nome)…">
             <datalist id="opcoes-add">${opcoes}</datalist>
             <button type="button" class="btn btn-sm" id="add-btn">Adicionar</button>
           </div>
@@ -1988,7 +1988,7 @@
         ${GRUPOS_OPT[c.category] ? `<button type="button" class="btn btn-ghost" data-ver-opt="${c.category}">Ver catálogo: ${esc(GRUPOS_OPT[c.category])}</button>` : ""}
         <h4>Créditos extras (manual)</h4>
         <p class="det-meta">Some aqui ${CATS[c.category].un} de ${CATS[c.category].nome.toLowerCase()} que não estão no perfil.</p>
-        <input type="number" min="0" step="1" value="${v}" data-creditos="${c.category}" class="campo">`;
+        <input type="number" min="0" step="1" value="${v}" data-creditos="${c.category}" class="campo" aria-label="Créditos extras de ${esc(CATS[c.category].nome.toLowerCase())}">`;
       box.dataset.alvo = "i:" + c.idx;
     } else return;
     box.innerHTML = html;
@@ -2209,7 +2209,7 @@
         <li>Confira o resumo e clique em <b>Usar este perfil</b>. Planos, pedidos, extensão e tags que você já tinha são mantidos.</li>
       </ol>
       <p class="aviso-pdf" id="siga-aviso-pdf">${icone("cadeado", 16)} <span>O BOA e o Histórico são lidos neste navegador. Os PDFs não são enviados ao GitHub.</span></p>
-      <input type="file" id="siga-pdfs" accept="application/pdf,.pdf" multiple class="campo" aria-describedby="siga-aviso-pdf">
+      <input type="file" id="siga-pdfs" accept="application/pdf,.pdf" multiple class="campo" aria-label="Arquivos PDF do Histórico e do BOA" aria-describedby="siga-aviso-pdf">
       <button type="button" class="btn btn-primario" id="siga-gerar">Gerar perfil</button>
       <p class="dica" id="siga-status" role="status">${previaObsoleta ? PREVIA_OBSOLETA : "Os PDFs são processados neste navegador. Os cabeçalhos com dados pessoais são descartados."}</p>
       ${r ? `<div class="resumo-import">
