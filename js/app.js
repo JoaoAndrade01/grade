@@ -1277,7 +1277,6 @@
         a.velhas.length ? `<li class="alerta">⚠ mais de 5 anos: ${a.velhas.map((v) => esc(v.code)).join(", ")}</li>` : "",
         a.imprecisas.length ? `<li class="alerta">Precisão insuficiente: só o ano é conhecido; pode passar de 5 anos (${a.imprecisas.map((v) => esc(v.code)).join(", ")}).</li>` : "",
         a.semData.length ? `<li class="alerta">Data de aprovação não confirmada: ${a.semData.map((v) => esc(v.code)).join(", ")}</li>` : "",
-        a.cs.length && !a.velhas.length && !a.imprecisas.length && !a.semData.length ? `<li class="ok">✓ dentro de 5 anos pela estimativa semestral</li>` : "",
         a.cs.some((c) => baseDoPrazo(c.code)) ? `<li class="nota-estimativa">${esc(NOTA_RA09)}</li>` : "",
         a.repetidas.length ? `<li class="alerta">⚠ já usada em outro pedido/dispensa: ${a.repetidas.map(esc).join(", ")}</li>` : "",
         M.pedidosComConflito.has(e) ? `<li class="alerta">Créditos fora da soma até resolver o uso em duplicidade.</li>` : "",
@@ -1298,9 +1297,9 @@
     const aceOpc = M.catalogo.filter((o) => o.category == 5).map((o) => `<option value="${esc(o.code)}">${esc(o.code)} — ${esc(o.name)} (${o.horas} h)</option>`).join("");
 
     // ----- livre escolha: de onde vem e para onde vai -----
-    let somaLivre = 0, somaUsada = 0;
+    let somaUsada = 0;
     const linhasLivre = neCodes.map((c) => {
-      const cr = crDe(c); if (!M.origensDispensa.has(c)) somaLivre += cr;
+      const cr = crDe(c);
       const u = usosDe(c);
       const usada = M.consumidas.has(c);
       if (usada) somaUsada += cr;
@@ -1343,7 +1342,7 @@
       <section class="sec">
         <h2>Livre escolha ${M.boa ? `<small>cursadas não explicitadas no BOA${M.boa.emissao ? ` de ${esc(M.boa.emissao)}` : ""}</small>` : ""}</h2>
         ${htmlNumerosLivre(tot)}
-        <p class="dica">${fmt(somaLivre)} cr no total · exigido ${fmt(livreExig)} cr · já consumidos por deferimento ${fmt(somaUsada)} cr · reservados por pedidos pendentes ${fmt(reservado)} cr.</p>
+        <p class="dica">Exigido ${fmt(livreExig)} cr · já consumidos por deferimento ${fmt(somaUsada)} cr · reservados por pedidos pendentes ${fmt(reservado)} cr.</p>
         <table class="tabela"><thead><tr><th>Disciplina</th><th>Cursada há</th><th>Uso</th></tr></thead><tbody>${linhasLivre}</tbody></table>
         ${neCodes.some((c) => baseDoPrazo(c)) ? notaHtml(NOTA_RA09) : ""}
       </section>

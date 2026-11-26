@@ -776,6 +776,22 @@ def numeros_livre(pg):
     assert not re.search(r"total do boa", " ".join(pedidos), re.I), pedidos
     return pedidos
 
+@caso("D-02/PC-06: Pedidos mostra só os dois números (sem total sem origem) e não mostra a linha positiva de 5 anos")
+def t_pedidos_sem_total_e_sem_check(b):
+    ctx, pg = abre(b, perfil=p5(), nome="d02-sem-total")
+    completo(pg, "pedidos")
+    secao = pg.locator(".pedidos .sec:has(.livre-numeros)").inner_text()
+    assert "no total" not in secao and re.search(r"Exigido \d+ cr", secao), secao
+    assert pg.locator(".pedidos .livre-numeros li").count() == 2
+    texto = pg.locator(".pedidos").inner_text()
+    assert "dentro de 5 anos" not in texto and "✓ dentro" not in texto, texto
+    ctx.close()
+    for cenario in ("so-atual", "reingresso-antigo-atual"):                       # prazo bom: nenhuma linha positiva
+        ctx, pg = importa_cenario(b, cenario, f"d02-sem-check-{cenario}")
+        _, linha = aplica_e_le_pedido(pg)
+        assert "dentro de 5 anos" not in linha and "mais de 5 anos" not in linha, linha
+        ctx.close()
+
 @caso("D-02/PC-04: dois números rotulados na livre escolha (05a, 05b, 05g)")
 def t_d02_dois_numeros(b):
     ctx, pg = abre(b, perfil=p5(), nome="d02-05a")
@@ -986,6 +1002,11 @@ def t_rf08_rodape(b):
             assert link.inner_text() == "Achou um erro? Crie uma nova issue"
             href = link.get_attribute("href")
             assert href.startswith("https://github.com/") and href.endswith("/issues/new"), href      # sem dados da pessoa
+            credito = pg.locator("#link-credito"); expect(credito).to_be_visible()          # crédito ao Grêmio, nos dois modos
+            assert credito.inner_text() == "Baseado na Grade do Grêmio ECI" and credito.get_attribute("href") == "https://github.com/gremio-eci/grade"
+            if modo == "completo":
+                expect(pg.locator("#link-github")).to_be_visible()
+                assert pg.locator("#link-github").get_attribute("href") == "https://github.com/JoaoAndrade01/grade"
             if rotulo == "desktop" and modo == "classico": foto(pg, "rf08-rodape-classico")
         ctx.close()
     ctx, pg = abre(b, nome="rf08-relato-falha")
@@ -1635,7 +1656,7 @@ CASOS = [
     t_cr03_historico, t_cr03_lista,
     t_cr04_reingresso, t_cr04_ordem_dos_arquivos, t_cr04_escolha_sem_datas, t_cr04_troca_recalcula_planos, t_cr04_ace_duas_ocorrencias, t_cr04_controles, t_cr04_papel, t_cr04_fronteira,
     t_cr02_pedidos, t_cr02_duas_dispensas, t_cr02_dispensa_unica, t_cr02_alvo_fora_do_catalogo,
-    t_d02_dois_numeros, t_d02_ausente_e_vazia, t_d02_outros_grupos, t_d02_importacao,
+    t_d02_dois_numeros, t_pedidos_sem_total_e_sem_check, t_d02_ausente_e_vazia, t_d02_outros_grupos, t_d02_importacao,
     t_rf08_faixa, t_rf08_notas_credito, t_rf08_periodo_atual, t_rf08_deduzido_regras, t_rf08_oferta, t_rf08_rodape, t_rf08_ace,
     t_pc02_manual_credito, t_pc03_manual_requisito,
     t_d01_carga, t_d01_conteudo,
