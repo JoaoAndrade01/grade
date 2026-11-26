@@ -78,7 +78,7 @@ decisão registrada em [DECISOES.md](DECISOES.md).
 | --- | --- | --- |
 | H1 · calouro, sem perfil | Na primeira tela, a pessoa vê a grade, o botão **Criar perfil** e o **Importar do SIGA**, e sabe que pode consultar sem alterar a Grade | Inspeção da primeira visita, nos dois modos e a 320 px |
 | H2 · importar | Os passos, o estado de leitura e o que foi reconhecido estão visíveis; um erro de leitura diz o que fazer e oferece o relato; **Cancelar** não muda nada | Casos 06a–06g e falhas do caso de uso |
-| H3 · progresso | O que falta em cada grupo aparece sem abrir outra tela; situação e origem da marcação aparecem **em texto**, não só em cor | Casos 01a–01b e 14a–14b; teste de contraste e de pistas além da cor |
+| H3 · progresso | O que falta em cada grupo aparece sem abrir outra tela; situação e origem da marcação aparecem **em texto**, não só em cor | Casos 01a–01b, 14a–14b e 14h–14i; teste de contraste e de pistas além da cor |
 | H4 · planejar | Aviso de requisito e de choque diz **qual** disciplina e **por quê**; o horário é editável pelo teclado | Casos 02, 07 e 10 |
 | H5, H6 · pedidos | A carga horária aparece como orientação neutra; os dois números de livre escolha têm rótulo e nota | Casos 03d–03g e 05a |
 | H7 · reingresso | Quando há dúvida sobre o histórico atual, a prévia pede a escolha e explica por que as ações estão desativadas | Casos 06h–06k |
