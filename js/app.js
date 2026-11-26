@@ -289,7 +289,8 @@
   let progressoAberto = load("progressoAberto", false);
   // Modo clássico (padrão ao abrir): só a grade inteira numa tela e a paleta para pintar.
   // Desligado = modo completo, com as abas (linha do tempo, optativas, cronograma, pedidos).
-  let modoClassico = load("modoClassico", true);
+  const abrirNoModoClassico = new URLSearchParams(window.location.search).get("modo") === "classico";
+  let modoClassico = abrirNoModoClassico || load("modoClassico", true);
   let creditosManuais = load("creditos", {}, (v) => objeto(v)
     && Object.entries(v).every(([k, n]) => Object.hasOwn(CATS, k) && numero(n))); // categoria -> créditos extras
   let plano = { periodos: {}, novos: [], ...load("plano", {}, planoValido) }; // edições de planejamento
