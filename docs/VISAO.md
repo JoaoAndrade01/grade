@@ -16,7 +16,9 @@ próprio caminho, de forma agradável e intuitiva.
 
 A Grade orienta. A confirmação acadêmica fica com o SIGA, o BOA e a coordenação do curso.
 
-Os PDFs e o perfil são processados no seu dispositivo, no navegador. Os links externos só abrem quando você
+Os PDFs e o perfil são processados no seu dispositivo, no navegador. O arquivo exportado é uma cópia sob seu
+controle e pode incluir dados acadêmicos e o nome que você informou. Guarde-o em local privado. Para usar o
+planejamento em outro navegador, exporte antes de limpar os dados. Os links externos só abrem quando você
 clica. Relatos de erro e propostas são Issues e Pull Requests do GitHub: são públicos e voluntários.
 
 ## Por que esta Grade existe
@@ -39,8 +41,8 @@ A ideia é inspirar: mostrar que cada disciplina tem utilidade, usando o própri
 si mesmo. O objetivo é cobrir, com o tempo, a maioria das disciplinas do curso. É um espaço aberto: qualquer
 aluno pode propor uma nova experiência. Como propor está em [CONTRIBUTING.md](../CONTRIBUTING.md).
 
-Hoje há três experiências (COS110, COS242 e EEL873). A próxima, planejada, é COS231 com a detecção de choques
-de horário.
+Hoje há três experiências (COS110, COS242 e EEL873). Entre as experiências planejadas estão COS231 e o diagrama
+vivo de EEL873.
 
 ## 5W2H
 
@@ -48,7 +50,7 @@ de horário.
 | --- | --- |
 | **O quê** | Um agregador para planejar, gerir e acompanhar o curso de ECI, e um exemplo didático do próprio curso |
 | **Por quê** | Planejar exigia vários lugares, com perda de documentos e sem meta clara; e consolidar engenharia e qualidade de software num exemplo útil |
-| **Quem** | Alunos de ECI usam. Hoje um aluno mantém, com apoio de IA para escrever e revisar. O plano é que alunos de ECI mantenham e contribuam |
+| **Quem** | Alunos de ECI usam e podem contribuir. Quem mantém revisa as fontes e coordena as atualizações |
 | **Onde** | No navegador, pelo GitHub Pages ou por uma cópia local. Sem servidor próprio do app: os dados acadêmicos não saem do dispositivo |
 | **Quando** | A primeira versão pública é a v2.0.0. Depois, o plano é manter a Grade a cada semestre ([MANUTENCAO.md](MANUTENCAO.md)). Sem data-alvo |
 | **Como** | Etapas pequenas, revisão independente, testes com dados fictícios e condições claras para publicar (abaixo) |
