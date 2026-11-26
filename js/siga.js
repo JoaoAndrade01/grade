@@ -34,6 +34,8 @@
     // ex.: "2020/1 EEL170 Computacao I 5.0 90.0 10.0 5.0 50.0 AP"
     //      "MAC248 Cálculo Diferen e Integral IV 4.0 60.0 T 4.0 ***** AP"
     histLinha: /^(?:(\d{4}(?:\/\d)?)\s+)?([A-Z]{3}[A-Z0-9]{3})\s+(.+?)\s+(\d+\.\d)\s+([\d.,]+)\s+(\d+(?:\.\d+)?|T|\*+|-+)\s+(\d+\.\d)\s+([\d.,]+|\*+)\s+(AP|RM|RF|RFM|TR|DP|IN|CA)\b/,
+    // Linha acadêmica reconhecível (código e situação) que a regra acima não leu
+    histIlegivel: /^(?:\d{4}(?:\/\d)?\s+)?[A-Z]{3}[A-Z0-9]{3}\s+.+\s(?:AP|RM|RF|RFM|TR|DP|IN|CA)$/,
     // Linha que só abre um período (ex.: "2025/1 Matrícula Canc Opção Curso")
     histPeriodo: /^(\d{4}(?:\/\d)?)\b/,
     // Origem de uma dispensa ("Disciplina origem da Dispensa:" + "EEL356 NOME")
@@ -49,6 +51,9 @@
     // BOA — "Frequência de reprovações": CÓDIGO Nome -> N vez(es) P1 P2 ...
     boaReprovacao: /^([A-Z]{3}[A-Z0-9]{3})\s+(.+?)\s*->\s*(\d+)\s+vez\(es\)\s+(.*)$/,
   };
+
+  /** Marca, no texto filtrado, uma linha acadêmica que não pôde ser lida (sem o conteúdo da linha). */
+  const LINHA_ILEGIVEL = "Linha acadêmica ilegível";
 
   /** Colapsa espaços e remove linhas vazias. */
   function normalizarLinhas(texto) {
@@ -151,6 +156,8 @@
         aguardandoOrigem = false;
       } else if (/^\d{4}(?:\/\d)?(?:$|\s+Matr[íi]cula\b)/i.test(l)) {
         saida.push(RE.histPeriodo.exec(l)[1]);
+      } else if (RE.histIlegivel.test(l)) {
+        saida.push(LINHA_ILEGIVEL);
       }
     }
     return saida;
@@ -161,7 +168,8 @@
   // ---------------------------------------------------------------------------
   /**
    * Lê um Histórico do SIGA.
-   * @returns {{registros: Array<{periodo, code, name, credits, ch, grau, sf, dispensaDe?}>}}
+   * @returns {{registros: Array<{periodo, code, name, credits, ch, grau, sf, dispensaDe?}>, ignoradas: number}}
+   *  - ignoradas: linhas acadêmicas reconhecíveis que não puderam ser lidas (a prévia avisa)
    *  - periodo: "2020/1", ou "2025" quando é bloco de créditos transferidos
    *  - grau "T" = disciplina dispensada; dispensaDe = código da disciplina de origem
    */
@@ -169,8 +177,10 @@
     const linhas = normalizarLinhas(texto);
     const registros = [];
     let periodo = null;
+    let ignoradas = 0;
     let aguardandoOrigem = null; // registro "T" esperando a linha de origem
     for (const l of linhas) {
+      if (l === LINHA_ILEGIVEL) { ignoradas++; continue; }
       const m = RE.histLinha.exec(l);
       if (m) {
         if (m[1]) periodo = m[1];
@@ -192,7 +202,7 @@
       const p = RE.histPeriodo.exec(l);
       if (p) periodo = p[1];
     }
-    return { registros };
+    return { registros, ignoradas };
   }
 
   // ---------------------------------------------------------------------------

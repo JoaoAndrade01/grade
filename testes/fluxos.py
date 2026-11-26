@@ -2151,6 +2151,21 @@ def t_m3_mensagens(b):
     assert msg.startswith("Não deu certo: ") and "Invalid" not in msg and "invalido" not in msg.lower(), msg
     assert "PDF" in msg and "tente de novo" in msg and "Achou um erro? Crie uma nova issue" in msg, msg
     ctx.close()
+    # linha acadêmica ilegível: a prévia avisa junto da contagem, sem trecho do documento; o controle fica limpo
+    AVISO_LINHA = "1 linha(s) do Histórico não puderam ser lidas; confira a lista antes de usar o perfil."
+    ctx, pg = abre(b, nome="m3-linha-parcial")
+    gera(pg, ["historico-ficticio.pdf"])
+    previa = pg.locator(".resumo-import").inner_text()
+    assert "10 disciplinas aprovadas ou em curso" in previa and "não puderam ser lidas" not in previa, previa
+    ctx.close()
+    ctx, pg = abre(b, nome="m3-linha-parcial")
+    gera(pg, ["historico-ficticio-colunas-a-menos.pdf"])
+    previa = pg.locator(".resumo-import").inner_text()
+    assert "9 disciplinas aprovadas ou em curso" in previa and AVISO_LINHA in previa, previa
+    assert "COS111" not in previa and "Engenharia" not in previa, previa           # sem trecho do documento
+    assert previa.index("disciplinas aprovadas") < previa.index("não puderam ser lidas") < previa.index("Usar este perfil"), previa
+    assert pg.locator(".resumo-import .alerta", has_text="não puderam ser lidas").count() == 1
+    ctx.close()
 
 AXE_RECORTE = [("grade-classica", {}), ("grade-completa", {"modoClassico": False, "vista": "grade"}), ("linha-do-tempo", {"modoClassico": False, "vista": "timeline"}),
                ("optativas", {"modoClassico": False, "vista": "optativas"}), ("cronograma", {"modoClassico": False, "vista": "cronograma", "cronoPeriodo": "2027/1"}),

@@ -27,6 +27,7 @@ VERSAO = "1.0"
 # --------------------------------------------------------------------------
 RE = {
     "histLinha": re.compile(r"^(?:(\d{4}(?:/\d)?)\s+)?([A-Z]{3}[A-Z0-9]{3})\s+(.+?)\s+(\d+\.\d)\s+([\d.,]+)\s+(\d+(?:\.\d+)?|T|\*+|-+)\s+(\d+\.\d)\s+([\d.,]+|\*+)\s+(AP|RM|RF|RFM|TR|DP|IN|CA)\b"),
+    "histIlegivel": re.compile(r"^(?:\d{4}(?:/\d)?\s+)?[A-Z]{3}[A-Z0-9]{3}\s+.+\s(?:AP|RM|RF|RFM|TR|DP|IN|CA)$"),
     "histPeriodo": re.compile(r"^(\d{4}(?:/\d)?)\b"),
     "origemTitulo": re.compile(r"Disciplina origem da Dispensa:?\s*(.*)$"),
     "origemCodigo": re.compile(r"^([A-Z]{3}[A-Z0-9]{3})\b"),
@@ -41,6 +42,9 @@ def num(s):
     """'7.4' -> 7.4 ; '10.0' -> 10 (inteiros saem sem casa decimal, como no JavaScript)."""
     v = float(re.sub(r"\.(?=\d{3}\b)", "", str(s)).replace(",", "."))
     return int(v) if v.is_integer() else v
+
+
+LINHA_ILEGIVEL = "Linha acadêmica ilegível"   # espelho de LINHA_ILEGIVEL em siga.js
 
 
 def normalizar_linhas(texto):
@@ -112,6 +116,8 @@ def filtrar_pagina_pdf(texto):
             aguardando_origem = False
         elif re.match(r"^\d{4}(?:/\d)?(?:$|\s+Matr[íi]cula\b)", l, re.I):
             saida.append(RE["histPeriodo"].match(l).group(1))
+        elif RE["histIlegivel"].match(l):
+            saida.append(LINHA_ILEGIVEL)
     return saida
 
 
@@ -129,8 +135,11 @@ def texto_pdf(caminho):
 # Histórico
 # --------------------------------------------------------------------------
 def ler_historico(texto):
-    registros, periodo, aguardando = [], None, None
+    registros, periodo, aguardando, ignoradas = [], None, None, 0
     for l in normalizar_linhas(texto):
+        if l == LINHA_ILEGIVEL:
+            ignoradas += 1
+            continue
         m = RE["histLinha"].search(l)
         if m:
             if m.group(1):
@@ -156,7 +165,7 @@ def ler_historico(texto):
         p = RE["histPeriodo"].search(l)
         if p:
             periodo = p.group(1)
-    return {"registros": registros}
+    return {"registros": registros, "ignoradas": ignoradas}
 
 
 # --------------------------------------------------------------------------
@@ -540,6 +549,9 @@ def main():
         print("Atividades sem créditos fora do currículo e catálogo. Confira se são ACE: "
               + ", ".join(sem_categoria), file=sys.stderr)
     historicos = [ler_historico(ler(h)) for h in a.historico]
+    ignoradas = sum(h["ignoradas"] for h in historicos)
+    if ignoradas:      # só a contagem: nada do documento
+        print(f"{ignoradas} linha(s) do Histórico não puderam ser lidas; confira a lista antes de usar o perfil.", file=sys.stderr)
     atual_idx = None
     if a.atual:
         caminhos = [os.path.abspath(h) for h in a.historico]

@@ -151,9 +151,10 @@ regras mudarem, gere de novo esse arquivo com `python ferramentas/gerar_demo_pdf
 - **O SIGA pode mudar o layout dos PDFs.** O importador lê o texto com expressões regulares: um novo layout pode
   fazer a leitura **falhar ou omitir linhas**. Confira o resultado na prévia e, ao suspeitar, reproduza com um PDF
   fictício no novo layout e ajuste as expressões nos **dois** importadores ([MANUTENCAO.md](MANUTENCAO.md)).
-- Uma linha fora do formato (por exemplo, sem as colunas CrO e Pontos) é ignorada **sem aviso** pelas duas
-  implementações. O teste de paridade não pega esse caso, porque as duas erram igual. A experiência de EEL873 mostra
-  o exemplo.
+- Uma linha acadêmica reconhecível que está fora do formato (por exemplo, sem as colunas CrO e Pontos) não é lida. A
+  prévia avisa com a contagem ("N linha(s) do Histórico não puderam ser lidas; confira a lista antes de usar o
+  perfil."), sem mostrar trechos do documento, e o script em Python avisa o mesmo no stderr. A disciplina da linha
+  não entra no perfil. O teste de paridade não pega esse caso, porque as duas erram igual; o aviso cobre.
 - A importação cobre a estrutura suportada: Histórico e BOA no formato atual do SIGA.
 - Reprovações com período `AAAA/0` (transferência) não têm semestre real e ficam de fora.
 - Dispensas (`T`) são registradas sem nota numérica.

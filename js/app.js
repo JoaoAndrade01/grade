@@ -2224,6 +2224,7 @@
         <ul class="lista">
           <li>${r.perfil.periodos.filter((p) => !p.planejado).length} períodos cursados/atuais${r.perfil.periodos.some((p) => p.planejado) ? ` + ${r.perfil.periodos.filter((p) => p.planejado).length} planejados (mantidos)` : ""}</li>
           <li>${r.perfil.periodos.reduce((a, p) => a + (p.planejado ? 0 : p.disciplinas.filter((d) => d.status !== "reprovado").length), 0)} disciplinas aprovadas ou em curso</li>
+          ${r.ignoradas ? `<li class="alerta">${r.ignoradas} linha(s) do Histórico não puderam ser lidas; confira a lista antes de usar o perfil.</li>` : ""}
           ${r.atual ? `<li>Período atual: ${r.atual.disciplinas.length} disciplina(s) cursando no BOA</li>` : ""}
           ${r.boa ? `<li>BOA de ${esc(r.boa.emissao || "?")}: ${r.boa.naoExplicitadasPresente ? `${r.boa.naoExplicitadas.length} não explicitadas` : "seção de não explicitadas não encontrada"}, ${r.boa.equivalencias.length} equivalência(s) automática(s)</li>`
             : `<li class="alerta">Sem BOA: nenhuma disciplina em curso foi atualizada.${r.perfil.periodos.some((p) => p.atual) ? " O período atual do perfil anterior foi mantido." : ""}</li>`}
@@ -2277,8 +2278,9 @@
       const curriculo = {}, catalogo = {};
       M.grade.forEach((c) => { if (c.code) curriculo[c.code] = { category: c.category }; });
       M.catalogo.forEach((o) => { catalogo[o.code] = { category: o.category || 2 }; });
-      const historicos = lidos.filter((x) => x.tipo === "Histórico").map((x) => window.SIGA.lerHistorico(x.linhas))
-        .filter((h) => h.registros.length);
+      const lidosHistorico = lidos.filter((x) => x.tipo === "Histórico").map((x) => window.SIGA.lerHistorico(x.linhas));
+      const ignoradas = lidosHistorico.reduce((n, h) => n + h.ignoradas, 0);
+      const historicos = lidosHistorico.filter((h) => h.registros.length);
       const boaL = lidos.find((x) => x.tipo === "BOA");
       const boa = boaL ? window.SIGA.lerBOA(boaL.linhas) : null;
       if (!historicos.length && !boa) throw new Error("não reconheci nenhum Histórico ou BOA do SIGA nesses arquivos");
@@ -2290,7 +2292,7 @@
       const semCategoria = [...new Set((boa?.cursando || [])
         .filter((c) => c.ncc && !curriculo[c.code] && !catalogo[c.code]).map((c) => c.code))].sort();
       previaObsoleta = false;
-      resultadoImportacao = { boa, semCategoria, historicos: historicos.length,
+      resultadoImportacao = { boa, semCategoria, ignoradas, historicos: historicos.length,
         entrada: { historicos, boa, curriculo, catalogo, base, anterior, atualAnterior },
         atualAnterior, conflito: null, atualEditado: false, descartarPlanos: false };
       derivaPrevia(resultadoImportacao, null);
