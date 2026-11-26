@@ -246,7 +246,7 @@
     const regOrig = sel != null ? regsAntes[regDaLinha[sel]] : null;
     return `<div class="eci-pdf">
       <div class="eci-col">
-        <h3>1. Linhas lidas do PDF</h3>
+        <h2>1. Linhas lidas do PDF</h2>
         ${selo(true, "SIGA.extrairLinhasPDF")} ${selo(false, "lista do texto bruto, para mostrar o descarte")}
         <ol class="linhas-lidas">
           ${r.brutas.filter((l) => !mantidaSet.has(l)).map((l) => `<li class="descartada"><span class="sr">${esc(descarte(l))}: </span><span class="txt">${esc(l)}</span><small>${esc(descarte(l))}</small></li>`).join("")}
@@ -259,7 +259,7 @@
         </ol>
       </div>
       <div class="eci-col">
-        <h3>2. Registros reconhecidos</h3>
+        <h2>2. Registros reconhecidos</h2>
         ${selo(true, "SIGA.lerHistorico")}
         <table class="tabela tabela-eci"><thead><tr><th>Período</th><th>Código</th><th>Grau</th><th>Situação</th></tr></thead><tbody>
           ${regs.map((g, j) => { const o = regsAntes[j] || {}; const m = o.grau !== g.grau || o.sf !== g.sf;
@@ -274,7 +274,7 @@
         </fieldset>` : `<p class="dica">Escolha uma linha em “Linhas lidas” para ver de onde vem cada registro e editar a nota ou a situação.</p>`}
       </div>
       <div class="eci-col">
-        <h3>3. Prévia do perfil</h3>
+        <h2>3. Prévia do perfil</h2>
         ${selo(true, "SIGA.montarPerfil")}
         <ul class="previa-periodos">${perfil.periodos.map((p) => `<li><b>${esc(p.nome)}</b>
           <ul>${p.disciplinas.map((d) => { const mud = !antesSet.has(itemPrevia(p, d)); const s = regSel && d.code === regSel.code;
@@ -365,7 +365,7 @@ para cada linha do PDF:
       ${g.ciclo ? `<p class="eci-alerta" role="alert">Ciclo: ${g.ciclo.map(esc).join(" → ")}. Nenhuma ordem de períodos atende a todas as ligações,
         então não existe cadeia de pré-requisitos. O cálculo parou ao encontrar o ciclo e a grade continua utilizável.</p>` : ""}
       <div class="eci-explica" aria-live="polite">
-        <h3>${nome(f)}</h3>
+        <h2>${nome(f)}</h2>
         <dl class="eci-dl">
           <dt><span class="l-tipo l-entra"></span>Dependência direta</dt>
           <dd>Precisa de: ${lista(diretos)}${foraReq.length ? ` (e ${foraReq.map(esc).join(", ")}, fora desta mini-grade)` : ""}.

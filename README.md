@@ -104,8 +104,9 @@ armazenamento do navegador. Próxima etapa: COS231 · Estruturas de Dados, com a
 ## Salvar e levar para outro computador
 
 O site guarda tudo no navegador (`localStorage`). Para ter um arquivo, use **Exportar perfil.js** (Cronograma ou
-Equivalências) ou **Baixar perfil.js** no aviso do topo. Coloque o arquivo em `perfil/perfil.js` (ele está no
-`.gitignore`) ou carregue-o em **Importar do SIGA → Ou carregar um perfil pronto**.
+Equivalências) ou **Baixar perfil.js** no aviso do topo. Carregue o arquivo em **Importar do SIGA → Ou carregar
+um perfil pronto**. Se abrir o app direto do disco (`file://`), também pode colocar o arquivo em
+`perfil/perfil.js`, que fica no `.gitignore`.
 
 ## Para quem quer mexer no código
 

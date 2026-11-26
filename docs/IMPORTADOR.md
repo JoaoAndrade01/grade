@@ -42,9 +42,13 @@ As expressões regulares estão no objeto `RE` de `js/siga.js` e no dicionário 
 
 A prévia fica no app (`js/app.js`), fora das regras compartilhadas: não muda o que `js/siga.js` e `gerar_perfil.py` produzem.
 
-- **Período atual sugerido** (só com BOA): o semestre seguinte ao último semestre real do Histórico. A pessoa pode corrigir
-  (`AAAA/1` ou `AAAA/2`) ou deixar em branco, e o período fica sem data (`"atual"`). Um semestre que já existe como período
-  cursado ou planejado é sinalizado.
+- **Período atual sugerido** (só com BOA): a prévia mantém o semestre atual anterior se ele ainda vier depois do Histórico.
+  Caso contrário, sugere o semestre seguinte ao último semestre real do Histórico. A pessoa pode corrigir
+  (`AAAA/1` ou `AAAA/2`) ou deixar em branco, e o período fica sem data (`"atual"`). Se o BOA tiver a mesma data de
+  emissão da importação anterior, a prévia mantém o período sem data. Um semestre que já existe como período cursado
+  ou planejado é sinalizado.
+- **Horários e status:** se o período escolhido for o mesmo do perfil anterior, a prévia mantém as anotações das
+  disciplinas que continuam no período atual.
 - **Planos preservados:** `montarPerfil` deixa de fora os planejados até o semestre inferido. A prévia guarda esses planos
   e os devolve, em ordem cronológica, depois da escolha do período atual. Exemplo: com o atual corrigido de `2026/2` para
   `2027/1`, o plano de `2026/2` volta com disciplinas e horários.
@@ -53,6 +57,8 @@ A prévia fica no app (`js/app.js`), fora das regras compartilhadas: não muda o
   pessoa viu: se o conjunto mudar (por exemplo, ao trocar o semestre atual), a marcação sai.
 - **Usar este perfil** e **Baixar perfil.js** usam a mesma validação: ficam desabilitados e também recusam o clique
   enquanto houver conflito.
+- Se o perfil, o planejamento, as marcações ou as tags mudarem depois de gerar a prévia, gere uma nova prévia
+  para aplicar ou baixar o perfil com os dados atualizados.
 - **Descartar prévia** (ou fechar o painel) não altera o perfil salvo. Baixar o arquivo também não.
 
 ## Teste de paridade

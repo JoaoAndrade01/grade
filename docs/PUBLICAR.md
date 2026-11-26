@@ -53,7 +53,7 @@ conferir a prévia → **Usar este perfil**. Quem preferir pode só pintar a gra
 
 Antes de publicar, confira no site:
 - abre no modo clássico, com o seletor de modo e a engrenagem no topo;
-- F12 → Rede: nenhuma requisição para fora do domínio (o 404 de `perfil/perfil.js` é esperado);
+- F12 → Rede: nenhuma requisição para fora do domínio ao usar a Grade e nenhuma busca por `perfil/perfil.js`;
 - **Configurações → Referências** abre os links certos;
 - **A ECI por trás da Grade** funciona sem perfil.
 
@@ -67,7 +67,8 @@ Antes de publicar, confira no site:
 
 ## Observações
 
-- No site publicado não existe `perfil/perfil.js`; o navegador mostra um aviso 404 no console, que é esperado.
+- A busca automática pelo perfil opcional `perfil/perfil.js` só ocorre ao abrir o app direto do disco (`file://`).
+  No site publicado, use **Importar do SIGA → Ou carregar um perfil pronto** para escolher um arquivo.
 - O site funciona igual por GitHub Pages e por `file://`: não há build nem dependência externa em tempo de execução.
 - O `js/guia.js` traz comentários de alunos copiados do Notion; combine com quem mantém a página antes de publicar
   (o app funciona sem esse arquivo).

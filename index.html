@@ -19,22 +19,19 @@
   <!--
     Ordem de carga (ver docs/ARQUITETURA.md):
       1. Dados do curso (públicos, versionados): currículo, catálogo de optativas, horários e guia.
-      2. siga.js: regras do importador dos PDFs do SIGA (as mesmas de ferramentas/gerar_perfil.py).
-      3. perfil/perfil.js: perfil pessoal OPCIONAL, fora do git. Se não existir, o app funciona vazio.
-      4. app.js: modelo + telas.
-    O pdf.js (js/vendor) só é carregado quando você usa "Importar do SIGA".
+      2. eci.js: setas de requisitos e experiências didáticas.
+      3. app.js: modelo + telas. Só por file:// tenta carregar perfil/perfil.js (opcional, fora do git).
+    siga.js e pdf.js são carregados ao ler PDFs, na importação ou nas experiências didáticas.
   -->
-  <script src="js/icones.js"></script>
-  <script src="js/database.js"></script>
-  <script src="js/optativas.js"></script>
-  <script src="js/horarios.js"></script>
-  <script src="js/guia.js"></script>
-  <script src="js/siga.js"></script>
-  <script src="perfil/perfil.js"></script>
-  <script src="js/eci.js"></script>
+  <script src="js/icones.js" defer></script>
+  <script src="js/database.js" defer></script>
+  <script src="js/optativas.js" defer></script>
+  <script src="js/horarios.js" defer></script>
+  <script src="js/guia.js" defer></script>
+  <script src="js/eci.js" defer></script>
   <script src="js/app.js" defer></script>
 </head>
-<body>
+<body class="classico">
   <header class="topo">
     <div class="titulo">
       <img class="logo" src="static/logo-gremio-eci.png" width="200" height="200" alt="Grêmio de ECI">
@@ -50,7 +47,7 @@
       <button type="button" id="btn-config" class="btn btn-icone btn-atalho" data-icone="configuracoes" title="Configurações"><span class="rot">Configurações</span></button>
       <!-- interruptor do modo clássico (ligado ao abrir) -->
       <label class="interruptor" id="seletor-modo" title="Modo clássico">
-        <input type="checkbox" id="modo-classico" role="switch" aria-label="Modo clássico">
+        <input type="checkbox" id="modo-classico" role="switch" aria-label="Modo clássico" checked>
         <span class="trilho" aria-hidden="true"></span>
       </label>
     </nav>
@@ -68,7 +65,7 @@
   <p id="aviso-importado" class="aviso-importado" hidden></p>
   <p id="aviso-perfil" class="aviso-importado" role="status" hidden></p>
   <!-- Camada 1: barra única de progresso (todas as telas) -->
-  <section id="barra-geral" class="barra-geral" aria-label="Progresso geral"></section>
+  <section id="barra-geral" class="barra-geral" aria-label="Progresso geral" hidden></section>
   <!-- Camada 2: detalhes por grupo e legenda de situações (linha do tempo, ou "detalhes ▾") -->
   <section id="progresso" class="progresso" aria-label="Progresso por grupo" hidden></section>
   <div id="legenda" class="legenda" hidden></div>

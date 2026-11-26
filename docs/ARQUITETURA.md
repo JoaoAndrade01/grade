@@ -88,9 +88,10 @@ O site abre no **modo clássico** (seletor de modo no topo, ligado): só a grade
 pintar. Desligando o seletor aparecem as abas abaixo. Os dois modos usam os mesmos dados. Em **Configurações**
 (engrenagem, sempre no topo) dá para trocar o modo, ocultar o seletor, escolher a aparência e fixar atalhos na barra.
 
-Ordem de carga no `index.html`: `js/tema.js` (síncrono, no `<head>`, aplica tema e aparência antes da primeira pintura) →
-dados do curso → `js/siga.js` → `perfil/perfil.js` (opcional) → `js/eci.js` → `js/app.js` (`defer`). O pdf.js e
-`js/demo-pdf.js` só são carregados quando a importação ou uma experiência pede.
+Ordem de carga no `index.html`: `js/tema.js` aplica tema e aparência antes da primeira pintura. Os ícones,
+os dados do curso, `js/eci.js` e `js/app.js` executam em ordem com `defer`. Na abertura direta por `file://`,
+o app procura o perfil local opcional antes de montar a grade. `js/siga.js` e pdf.js são carregados ao ler
+PDFs. `js/demo-pdf.js` só é carregado ao abrir uma experiência que usa os PDFs fictícios.
 
 ```mermaid
 flowchart TB

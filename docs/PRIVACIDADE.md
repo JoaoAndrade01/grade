@@ -2,6 +2,7 @@
 
 **A importação ocorre no seu dispositivo.** A página lê os PDFs do SIGA e guarda o perfil no navegador.
 Junto do seletor de PDFs o app lembra: *“O BOA e o Histórico são lidos neste navegador. Os PDFs não são enviados ao GitHub.”*
+Esta página descreve o app em `index.html`, incluindo seu modo clássico.
 
 ## As garantias, uma a uma
 
@@ -38,7 +39,13 @@ Junto do seletor de PDFs o app lembra: *“O BOA e o Histórico são lidos neste
 4. **No código:** procure por `fetch(`, `XMLHttpRequest` e `sendBeacon` em `js/app.js`, `js/siga.js`, `js/eci.js` e `js/tema.js`:
    não há nenhum. O pdf.js (`js/vendor/`) tem código de rede para abrir PDFs por URL, mas o app sempre entrega o arquivo
    em memória, e a CSP bloquearia qualquer conexão externa. Os únicos scripts carregados depois da página são arquivos
-   locais (`js/vendor/pdf*.js` e `js/demo-pdf.js`).
+   locais (`js/siga.js`, `js/vendor/pdf*.js`, `js/demo-pdf.js` e o perfil opcional na abertura por `file://`).
+
+## Página legada
+
+A página separada `classico.html` guarda cores de disciplinas e preferências em cookies. Quando aberta por HTTP
+ou HTTPS, o navegador pode enviar esses cookies junto das requisições para o mesmo domínio. Eles não contêm
+nome, matrícula ou dados importados do SIGA. O modo clássico de `index.html` guarda as marcações em `localStorage`.
 
 ## Apagar
 

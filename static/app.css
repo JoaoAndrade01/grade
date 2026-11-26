@@ -782,7 +782,8 @@ dialog.dlg-eci:modal { overscroll-behavior: contain; }
 
 /* COS110 */
 .eci-pdf { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 16px; align-items: start; }
-.eci-col h3 { margin: 0 0 6px; font-size: 14px; }
+.eci-col h2 { margin: 0 0 6px; font-size: 14px; }
+.eci-explica h2 { font-size: 1.17em; }
 .linhas-lidas { margin: 6px 0 0; padding-left: 22px; display: flex; flex-direction: column; gap: 3px; font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
 .linhas-lidas li small { display: block; font-family: system-ui, sans-serif; color: var(--muted); }
 .linhas-lidas .descartada { color: var(--muted); }

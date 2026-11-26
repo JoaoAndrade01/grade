@@ -45,7 +45,7 @@
  *  bloqueia qualquer envio para outro endereço. Não adicione scripts, fontes ou APIs externas.
  * =============================================================================
  */
-(() => {
+(async () => {
   "use strict";
 
   // ---------- Constantes ----------
@@ -94,7 +94,9 @@
     }
     catch (e) { return def; }
   };
+  const DADOS_DA_PREVIA = new Set(["perfilImportado", "perfil", "plano", "tags", "marcacoes", "creditos", "manual"]);
   const save = (k, v) => {
+    if (DADOS_DA_PREVIA.has(k)) invalidaPrevia();
     try { v == null ? localStorage.removeItem(STORE + k) : localStorage.setItem(STORE + k, JSON.stringify(v)); }
     catch (e) { /* armazenamento indisponível: segue só em memória */ }
   };
@@ -257,6 +259,9 @@
       avisosPerfil.set(origem, "JSON inválido");
       return null;
     }
+  }
+  if (location.protocol === "file:" && window.PERFIL === undefined) {
+    await carregaScript("perfil/perfil.js").catch(() => { /* arquivo local opcional */ });
   }
   const perfilArquivo = window.PERFIL === undefined ? null : perfilOuAviso(window.PERFIL, "perfil/perfil.js");
   const perfilLocalAntigo = () => lerPerfilSalvo("perfil", "perfil antigo do navegador");
@@ -1833,6 +1838,18 @@
   // Usa js/siga.js (mesmas regras de ferramentas/gerar_perfil.py) sobre o texto extraído pelo pdf.js.
   // Tudo roda no navegador: os PDFs não saem do computador.
   let resultadoImportacao = null;
+  let previaObsoleta = false;
+  const PREVIA_OBSOLETA = "Os dados da Grade mudaram. Escolha os PDFs e gere uma nova prévia.";
+
+  function invalidaPrevia() {
+    if (!resultadoImportacao) return;
+    resultadoImportacao = null;
+    previaObsoleta = true;
+    if ($("#detalhes").dataset.alvo === "importar") {
+      $("#detalhes .resumo-import")?.remove();
+      $("#siga-status").textContent = PREVIA_OBSOLETA;
+    }
+  }
 
   function carregaScript(src) {
     return new Promise((ok, erro) => {
@@ -1841,7 +1858,14 @@
       document.head.appendChild(el);
     });
   }
-  async function carregaPdfJs() {
+  let carregamentoPdf = null;
+  function carregaPdfJs() {
+    carregamentoPdf ??= iniciaLeitorPdf().catch((e) => { carregamentoPdf = null; throw e; });
+    return carregamentoPdf;
+  }
+
+  async function iniciaLeitorPdf() {
+    if (!window.SIGA) await carregaScript("js/siga.js");
     if (window.pdfjsLib) return;
     // O worker é carregado como script comum para funcionar também abrindo o index.html direto (file://).
     await carregaScript("js/vendor/pdf.worker.min.js");
@@ -1865,7 +1889,7 @@
       <p class="aviso-pdf" id="siga-aviso-pdf">${icone("cadeado", 16)} <span>O BOA e o Histórico são lidos neste navegador. Os PDFs não são enviados ao GitHub.</span></p>
       <input type="file" id="siga-pdfs" accept="application/pdf,.pdf" multiple class="campo" aria-describedby="siga-aviso-pdf">
       <button type="button" class="btn btn-primario" id="siga-gerar">Gerar perfil</button>
-      <p class="dica" id="siga-status">Os PDFs são processados neste navegador. Os cabeçalhos com dados pessoais são descartados.</p>
+      <p class="dica" id="siga-status" role="status">${previaObsoleta ? PREVIA_OBSOLETA : "Os PDFs são processados neste navegador. Os cabeçalhos com dados pessoais são descartados."}</p>
       ${r ? `<div class="resumo-import">
         <h4>Resumo</h4>
         <ul class="lista">
@@ -1882,8 +1906,8 @@
           <input id="siga-atual" class="campo campo-sm" value="${esc(r.atualEscolhido)}" placeholder="sem data" maxlength="6"
             inputmode="numeric" autocomplete="off" aria-describedby="siga-atual-dica siga-atual-msg"${r.conflito ? ' aria-invalid="true"' : ""}>
           <p class="dica" id="siga-atual-dica">${r.ultimoReal
-            ? `Semestre seguinte ao último semestre do histórico (${esc(r.ultimoReal)}).`
-            : "O histórico não tem um semestre para servir de base."} Corrija se precisar, no formato AAAA/1 ou AAAA/2, ou deixe em branco para manter o período sem data.</p>
+            ? `Último semestre do histórico (${esc(r.ultimoReal)}).`
+            : "O histórico não tem um semestre para servir de base."} A sugestão considera o período atual já salvo e o Histórico. Corrija se precisar, no formato AAAA/1 ou AAAA/2, ou deixe em branco para manter o período sem data.</p>
           <p class="msg-campo" id="siga-atual-msg" aria-live="polite">${esc(r.conflito || "")}</p>
         </div>` : ""}
         <div id="siga-planos" class="siga-planos" aria-live="polite">${htmlPlanosImportacao(r)}</div>
@@ -1901,6 +1925,10 @@
     const arquivos = [...($("#siga-pdfs").files || [])];
     const status = $("#siga-status");
     if (!arquivos.length) { status.textContent = "Escolha pelo menos um PDF."; return; }
+    if ($("#siga-gerar").disabled) return;
+    resultadoImportacao = null;
+    $("#detalhes .resumo-import")?.remove();
+    $("#siga-gerar").disabled = true;
     status.textContent = "Lendo PDFs…";
     try {
       await carregaPdfJs();
@@ -1917,8 +1945,12 @@
       const boaL = lidos.find((x) => x.tipo === "BOA");
       const boa = boaL ? window.SIGA.lerBOA(boaL.linhas) : null;
       if (!historicos.some((h) => h.registros.length) && !boa) throw new Error("não reconheci nenhum Histórico ou BOA do SIGA nesses arquivos");
+      if (!status.isConnected || $("#detalhes").hidden) return;
       const anterior = perfilExportado();
-      const novo = window.SIGA.montarPerfil({ historicos, boa, curriculo, catalogo, anterior });
+      const atualAnterior = anterior.periodos.find((p) => p.atual);
+      // Com BOA, a mesclagem do período atual depende da escolha feita na prévia.
+      const base = boa ? { ...anterior, periodos: anterior.periodos.filter((p) => !p.atual) } : anterior;
+      const novo = window.SIGA.montarPerfil({ historicos, boa, curriculo, catalogo, anterior: base });
       // O importador descarta os planejados até o semestre inferido. Guardamos esses planos para devolvê-los
       // depois da escolha do período atual (ou pedir uma decisão explícita se ainda colidirem).
       const planosFora = clone(anterior.periodos.filter((p) => p.planejado
@@ -1928,13 +1960,21 @@
       // Período atual inferido pelo importador (semestre seguinte ao último real); só com BOA. Pode ser corrigido na prévia.
       const atual = boa ? novo.periodos.find((p) => p.atual) || null : null;
       const ultimoReal = novo.periodos.filter((p) => !p.atual && !p.planejado && semestreValido(p.nome)).map((p) => p.nome).pop() || null;
+      const anteriorDatado = semestreValido(atualAnterior?.nome) && (!ultimoReal || atualAnterior.nome > ultimoReal)
+        && !conflitoPeriodo(novo, atualAnterior.nome);
+      const mesmoBoaSemData = atualAnterior?.nome === "atual" && boa?.emissao && boa.emissao === anterior.fonte?.boaEmissao;
+      const sugerido = anteriorDatado ? atualAnterior.nome : atual?.nome;
+      previaObsoleta = false;
       resultadoImportacao = { perfil: novo, boa, semCategoria, historicos: historicos.filter((h) => h.registros.length).length,
-        atual, ultimoReal, atualEscolhido: atual && semestreValido(atual.nome) ? atual.nome : "", conflito: null,
+        atual, atualAnterior, ultimoReal, conflito: null,
+        atualEscolhido: atual && !mesmoBoaSemData && semestreValido(sugerido) ? sugerido : "",
         planosFora, descartarPlanos: false };
       avaliaImportacao(resultadoImportacao);
       abreImportador();
     } catch (e) {
       status.textContent = "Não deu certo: " + e.message;
+    } finally {
+      if (status.isConnected) $("#siga-gerar").disabled = false;
     }
   }
 
@@ -1962,6 +2002,7 @@
   }
   /** Valida o semestre digitado na prévia do SIGA. Vazio = período atual sem data ("atual"). */
   function validaAtualImportado(r) {
+    if (!r.atual) return null;
     const v = (r.atualEscolhido || "").trim();
     if (v && !semestreValido(v)) return "Use o formato AAAA/1 ou AAAA/2, ou deixe em branco.";
     return conflitoPeriodo(r.perfil, v || "atual");
@@ -1969,7 +2010,18 @@
   /** Perfil da prévia com o período atual escolhido, sem os planos guardados à parte. */
   function perfilBaseImportacao(r) {
     const novo = clone(r.perfil);
-    if (r.atual) renomeiaPeriodoAtual(novo, (r.atualEscolhido || "").trim() || "atual");
+    if (r.atual) {
+      const nome = r.atualEscolhido.trim() || "atual";
+      renomeiaPeriodoAtual(novo, nome);
+      if (r.atualAnterior?.nome === nome) {
+        const anotacoes = new Map(r.atualAnterior.disciplinas.filter(objeto).map((d) => [d.code, d]));
+        novo.periodos.find((p) => p.atual).disciplinas.forEach((d) => {
+          const anterior = anotacoes.get(d.code);
+          if (anterior?.horarios != null) d.horarios = clone(anterior.horarios);
+          if (anterior?.status) d.status = anterior.status;
+        });
+      }
+    }
     return novo;
   }
   /** Planos anteriores que ainda colidem com algum período do perfil importado (com o atual escolhido). */
@@ -2487,12 +2539,13 @@
         try {
           usaPerfilImportado(perfilDaImportacao(resultadoImportacao));
           resultadoImportacao = null;
+          previaObsoleta = false;
         } catch (e) {
           $("#siga-status").textContent = "Não consegui usar o perfil: " + e.message;
         }
         return;
       }
-      if (t.id === "siga-descartar") { resultadoImportacao = null; abreImportador(); $("#siga-pdfs").focus(); return; }
+      if (t.id === "siga-descartar") { resultadoImportacao = null; previaObsoleta = false; abreImportador(); $("#siga-pdfs").focus(); return; }
       if (t.id === "siga-baixar" && resultadoImportacao) {
         if (!previaLiberada()) return;
         return baixa("perfil.js", textoPerfil(perfilDaImportacao(resultadoImportacao)));
