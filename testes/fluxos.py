@@ -904,7 +904,8 @@ def confere_faixa(pg, onde):
     assert caixa["y"] <= 1, (onde, caixa)                                         # no topo
     for seletor in (".topo", "#painel"):                                           # sem cobrir o conteúdo em repouso
         alvo = pg.locator(seletor).bounding_box()
-        assert alvo is None or alvo["y"] >= caixa["y"] + caixa["height"] - 1, (onde, seletor, alvo, caixa)
+        assert alvo is None or alvo["y"] >= caixa["y"] + caixa["height"] - 1, (onde, seletor, alvo, caixa, pg.evaluate(
+            "() => ({ scrollY: window.scrollY, readyState: document.readyState, faixa: document.getElementById('faixa-aviso').offsetHeight })"))
     # vem antes do primeiro controle na ordem de leitura e de foco
     assert pg.evaluate("() => { const f = document.getElementById('faixa-aviso'); const c = document.querySelector('button, a, input, select');"
                        " return !!(f.compareDocumentPosition(c) & Node.DOCUMENT_POSITION_FOLLOWING); }"), onde
