@@ -882,3 +882,10 @@ body:has(.paleta:not([hidden])) .detalhes {
   bottom: calc(var(--paleta-h, 0px) + 16px);
   max-height: calc(100vh - var(--paleta-h, 0px) - var(--faixa-h, 0px) - 28px);
 }
+
+/* ---------- B2.5 · B7: Pedidos sem rolagem horizontal do documento ---------- */
+/* A tabela rola dentro da própria região (alcançável por Tab, setas rolam); o resto da página fica em 320 px. */
+.tabela-rolagem { max-width: 100%; overflow-x: auto; overflow-y: hidden; }
+.tabela-rolagem:focus-visible { outline: 2px solid var(--foco); outline-offset: 2px; }
+.pedidos, .pedidos .sec { min-width: 0; max-width: 100%; }
+.pedidos .add { flex-wrap: wrap; }

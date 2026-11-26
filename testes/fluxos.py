@@ -2013,7 +2013,29 @@ def t_b6_contraste(b):
         assert not ruins, ruins
         ctx.close()
 
-CASOS4 = [t_b6_contraste, t_b5_escolher_perfil, t_b4_grade_horarios, t_b3_nomes, t_m6_somente_informativo, t_b2_foco_visivel, t_b2_foco_filtros, t_b2_importacao, t_b1_estado_dos_cartoes]
+@caso("B7: Pedidos sem rolagem horizontal do documento a 320 px; tabelas rolam só na própria região, acessível por teclado")
+def t_b7_pedidos_320(b):
+    perfil = perfil_carga(["COS231", "EEL881"], boa_com(("COS231", 60), ("EEL881", 60)))
+    perfil["extensao"] = [{"nome": "Projeto de extensão fictício com nome longo", "code": "", "horas": 30, "periodo": "2026/1", "status": "validada"},
+                          {"nome": "Outra atividade", "code": "", "horas": 60, "periodo": "2026/2", "status": "em andamento"}]
+    for esq in ("light", "dark"):
+        ctx, pg = abre(b, vp=C320, esquema=esq, perfil=perfil, extra={"modoClassico": False, "vista": "pedidos"}, nome=f"b7-{esq}", toque=True)
+        larg = pg.evaluate("document.documentElement.scrollWidth"); assert larg <= 320, (esq, larg)
+        regioes = pg.locator("#painel .tabela-rolagem")
+        assert regioes.count() >= 3, regioes.count()
+        for i in range(regioes.count()):
+            r = regioes.nth(i)
+            assert r.get_attribute("tabindex") == "0" and r.get_attribute("role") == "region" and r.get_attribute("aria-label"), r.evaluate("e => e.outerHTML.slice(0, 120)")
+            assert r.evaluate("e => getComputedStyle(e).overflowX") in ("auto", "scroll")
+        # rolagem por teclado na região da tabela de pedidos
+        reg = regioes.nth(1)
+        assert reg.evaluate("e => e.scrollWidth > e.clientWidth"), "a tabela de pedidos devia precisar de rolagem a 320 px"
+        reg.focus(); pg.keyboard.press("ArrowRight"); pg.wait_for_timeout(150)
+        assert reg.evaluate("e => e.scrollLeft") > 0, "a rolagem por teclado não moveu a tabela"
+        assert pg.evaluate("document.documentElement.scrollWidth") <= 320
+        ctx.close()
+
+CASOS4 = [t_b7_pedidos_320, t_b6_contraste, t_b5_escolher_perfil, t_b4_grade_horarios, t_b3_nomes, t_m6_somente_informativo, t_b2_foco_visivel, t_b2_foco_filtros, t_b2_importacao, t_b1_estado_dos_cartoes]
 CASOS += CASOS4
 
 

@@ -1291,14 +1291,14 @@
       `<tr><td><b>${nome}</b></td><td>${fmt(hoje)}</td><td>${maisAnal ? (maisAnal > 0 ? "+" : "−") + fmt(Math.abs(maisAnal)) : "—"}</td><td><b>${fmt(depois)}</b> / ${fmt(total)} ${un}</td><td>${extra}</td></tr>`;
     const contas = `<section class="sec">
       <h2>Contas automáticas</h2>
-      <table class="tabela contas"><thead><tr><th>Grupo</th><th>Hoje</th><th>Pedidos pendentes</th><th>Se tudo for deferido</th><th>Situação</th></tr></thead><tbody>
+      <div class="tabela-rolagem" role="region" tabindex="0" aria-label="Contas automáticas (tabela)"><table class="tabela contas"><thead><tr><th>Grupo</th><th>Hoje</th><th>Pedidos pendentes</th><th>Se tudo for deferido</th><th>Situação</th></tr></thead><tbody>
         ${linhaConta("Optativas", op.T.ok + op.T.prev, op.T.anal, op.depois, op.T.total, "cr",
           op.falta ? `faltam ${fmt(op.falta)} cr · planejados ${fmt(op.T.plan)} cr → ${op.faltaSemPlano ? `<span class="alerta">ainda faltam ${fmt(op.faltaSemPlano)} cr sem período</span>` : `<span class="ok">fecha ✓</span>`}` : `<span class="ok">completo ✓</span>`)}
         ${linhaConta("Humanas", hu.T.ok + hu.T.prev, hu.T.anal, hu.depois, hu.T.total, "cr",
           hu.falta ? `faltam ${fmt(hu.falta)} cr${hu.faltaSemPlano ? ` · <span class="alerta">${fmt(hu.faltaSemPlano)} cr sem período</span>` : ` · <span class="ok">fecha com o planejado ✓</span>`}` : `<span class="ok">completo ✓</span>`)}
         ${linhaConta("Livre escolha", livreHoje, reservado ? -reservado : 0, livreDepois, livreExig, "cr",
           livreDepois >= livreExig ? `<span class="ok">sobram ${fmt(livreDepois - livreExig)} cr acima do exigido ✓</span>` : `<span class="alerta">ficaria ${fmt(livreExig - livreDepois)} cr abaixo do exigido</span>`)}
-      </tbody></table>
+      </tbody></table></div>
       ${sobraTxt(2, op)}${sobraTxt(4, hu)}
       <p class="dica">Pedidos "a pedir"/"em análise" entram na coluna do meio. Os créditos das cursadas usadas saem de livre escolha; a pedida entra no grupo dela. Indeferidos não contam.</p>
     </section>`;
@@ -1375,8 +1375,8 @@
       <section class="sec">
         <h2>Pedidos de dispensa / equivalência</h2>
         <p class="dica">Um pedido pode juntar várias cursadas para uma eletiva. Marque qual cursada traz o <b>conteúdo</b> e quais entram <b>só pelas horas</b>. O app soma a C.H. só como orientação e avisa sobre o prazo de 5 anos (Res. CEG 01/2017).</p>
-        <table class="tabela"><thead><tr><th>Cursada(s)</th><th></th><th>Eletiva pedida</th><th>Checagens</th><th>Situação</th><th></th></tr></thead>
-        <tbody>${linhasEq || `<tr><td colspan="6" class="vazio">Nenhum pedido.</td></tr>`}</tbody></table>
+        <div class="tabela-rolagem" role="region" tabindex="0" aria-label="Pedidos de dispensa ou equivalência (tabela)"><table class="tabela"><thead><tr><th>Cursada(s)</th><th></th><th>Eletiva pedida</th><th>Checagens</th><th>Situação</th><th></th></tr></thead>
+        <tbody>${linhasEq || `<tr><td colspan="6" class="vazio">Nenhum pedido.</td></tr>`}</tbody></table></div>
         <div class="add">
           <input class="campo" list="eq-cursadas" id="eq-c" aria-label="Cursadas do pedido" placeholder="Cursada(s): ex. EET100 + EEL170">
           <span class="seta">→</span>
@@ -1390,7 +1390,7 @@
         <h2>Livre escolha ${M.boa ? `<small>cursadas não explicitadas no BOA${M.boa.emissao ? ` de ${esc(M.boa.emissao)}` : ""}</small>` : ""}</h2>
         ${htmlNumerosLivre(tot)}
         <p class="dica">Exigido ${fmt(livreExig)} cr · já consumidos por deferimento ${fmt(somaUsada)} cr · reservados por pedidos pendentes ${fmt(reservado)} cr.</p>
-        <table class="tabela"><thead><tr><th>Disciplina</th><th>Cursada há</th><th>Uso</th></tr></thead><tbody>${linhasLivre}</tbody></table>
+        <div class="tabela-rolagem" role="region" tabindex="0" aria-label="Livre escolha: cursadas e uso (tabela)"><table class="tabela"><thead><tr><th>Disciplina</th><th>Cursada há</th><th>Uso</th></tr></thead><tbody>${linhasLivre}</tbody></table></div>
         ${neCodes.some((c) => baseDoPrazo(c)) ? notaHtml(NOTA_RA09) : ""}
       </section>
       <section class="sec">
@@ -1398,8 +1398,8 @@
         <div class="barra"><span class="b-ok" style="width:${Math.min(100, (T5.ok / T5.total) * 100)}%;background:var(--cat5)"></span><span class="b-plan" style="width:${Math.min(100 - Math.min(100, (T5.ok / T5.total) * 100), (T5.plan / T5.total) * 100)}%;background:color-mix(in srgb, var(--cat5) 30%, transparent)"></span></div>
         ${T5.aConfirmar ? `<p class="ace-duplicidade alerta">Possível duplicidade em ${esc([...resumo.codigosDuvidosos].join(", "))}.
           ${fmt(T5.aConfirmar)} h a confirmar. Confira no SIGA ou com a coordenação.</p>` : ""}
-        <table class="tabela"><thead><tr><th>Atividade</th><th>Código ACE</th><th>Horas</th><th>Período</th><th>Situação</th><th></th></tr></thead>
-        <tbody>${linhasExt || `<tr><td colspan="6" class="vazio">Nenhuma atividade.</td></tr>`}</tbody></table>
+        <div class="tabela-rolagem" role="region" tabindex="0" aria-label="Atividades de extensão e ACE (tabela)"><table class="tabela"><thead><tr><th>Atividade</th><th>Código ACE</th><th>Horas</th><th>Período</th><th>Situação</th><th></th></tr></thead>
+        <tbody>${linhasExt || `<tr><td colspan="6" class="vazio">Nenhuma atividade.</td></tr>`}</tbody></table></div>
         <datalist id="ace-list">${aceOpc}</datalist>
         <button type="button" class="btn btn-sm" id="ext-add">+ Atividade</button>
       </section>

@@ -153,7 +153,7 @@ def executa(args):
         for status, nome, detalhe in interface
     ] + reimport
     eventos += eventos_reimport
-    esperados = 81 if args.transport == "http" else 80
+    esperados = 82 if args.transport == "http" else 81
     if args.casos:
         esperados = len(resultados)     # execução dirigida: não vale como matriz
     relatorio = dict(commit=sha, suite_sha256=suite_sha256, navegador=args.browser,
