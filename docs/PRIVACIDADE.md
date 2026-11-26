@@ -16,8 +16,6 @@ GitHub são públicos: descreva o ocorrido com dados fictícios e evite anexar p
 Junto do seletor de PDFs o app repete a garantia: *“O BOA e o Histórico são lidos neste navegador. Os PDFs não são
 enviados ao GitHub.”*
 
-<!-- INTEGRAÇÃO: validar este texto e o teste de sentinelas de privacidade (RNF-01) no candidato antes da divulgação. -->
-
 ## O que acontece com cada coisa
 
 | O quê | Onde fica | Quem pode ver |
@@ -71,8 +69,12 @@ lugar, e não controla o que o GitHub registra quando você visita o site hosped
    sempre entrega o arquivo em memória, e a CSP bloquearia qualquer conexão externa. Os únicos scripts carregados
    depois da página são arquivos locais (`js/siga.js`, `js/vendor/pdf*.js`, `js/demo-pdf.js` e o perfil opcional na
    abertura por `file://`).
-5. **No teste:** o kit de testes importa PDFs fictícios e observa as requisições do navegador; veja
-   [PLANO-DE-TESTE.md](PLANO-DE-TESTE.md).
+5. **No teste:** o kit de testes importa PDFs fictícios e observa as requisições do navegador: nenhuma sai da origem
+   do site, nos seis pares de navegador e forma de abertura ([PLANO-DE-TESTE.md](PLANO-DE-TESTE.md)). O teste da
+   importação confere que o perfil salvo e a página não contêm o nome, o CPF nem o RG do cabeçalho do PDF. Numa
+   conferência avulsa do candidato, com marcadores no cabeçalho dos PDFs fictícios (nome, CPF, RG e matrícula), nenhum
+   deles apareceu no arquivo exportado, no armazenamento, nos cookies, no console nem em endereços ou corpos de
+   requisição. Essa conferência avulsa ainda não é um teste versionado.
 
 ## Exportar e apagar
 
