@@ -108,7 +108,7 @@ assistiva. O texto normativo está em [W3C, WCAG 2.2](https://www.w3.org/TR/WCAG
 axe-core complementa o teclado e a inspeção visual. Leitor de tela real e o teste com colegas ficam no backlog
 ([MANUTENCAO.md](MANUTENCAO.md)).
 
-**Resultado no candidato** (hash `@@HASH@@`; contagens e versões em
+**Resultado no candidato** (hash `a7192a960cb411d8f5ef3a68ddcc43bafb85492a`; contagens e versões em
 [PLANO-DE-TESTE.md](PLANO-DE-TESTE.md#8-resultado-por-candidato)):
 
 | Medida | Resultado | Teste |

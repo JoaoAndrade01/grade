@@ -244,8 +244,8 @@ Verificado em 2026-11-26, no Windows 11 (10.0.26300), Python 3.12.10, Node 26.13
 
 | Campo | Valor |
 | --- | --- |
-| Hash do app | `@@HASH@@` (verificação completa). O candidato a publicar é o commit que acrescenta só este registro e os hashes dele; ver "Hash final" abaixo |
-| SHA-256 da suíte e das fixtures | `@@SUITE@@` |
+| Hash do app | `a7192a960cb411d8f5ef3a68ddcc43bafb85492a` (verificação completa). O candidato a publicar é o commit que acrescenta só este registro e os hashes dele; ver "Hash final" abaixo |
+| SHA-256 da suíte e das fixtures | `2536fc3d1a4305db76e224cc710f719529c71cfb0aef23839511c4855a88ba5c` |
 | Versões | Chromium 159.0.8154.6, Firefox 159.0, WebKit 27.2, Playwright 1.65.2, axe-core 4.10.3 |
 | Matriz (seis pares) | Chromium, Firefox e WebKit: `file://` 85/85 e HTTP 86/86 em cada motor, zero eventos inesperados |
 | Paridade e oráculos | Paridade (`testar_paridade.sh`, pypdf × pdf.js): as 4 combinações iguais. Oráculos (`importador.py`): 26/26 |
@@ -275,8 +275,8 @@ falha. Em desenvolvimento, cinco ocorrências intermitentes foram investigadas:
 O Firefox por `file://` registra avisos de console do carregamento do `perfil/perfil.js` ausente, e por HTTP avisos de
 reordenação de microtarefas; nenhum é erro de página nem evento inesperado.
 
-**Hash final.** O commit que contém este registro difere de `@@HASH@@` só em arquivos de documentação. Antes de
-publicar, confirme com `git diff --stat @@HASH@@ <hash a publicar>` e repita a lista da seção 7 se algo além de
+**Hash final.** O commit que contém este registro difere de `a7192a960cb411d8f5ef3a68ddcc43bafb85492a` só em arquivos de documentação. Antes de
+publicar, confirme com `git diff --stat a7192a960cb411d8f5ef3a68ddcc43bafb85492a <hash a publicar>` e repita a lista da seção 7 se algo além de
 documentação tiver mudado.
 
 **Limitações conhecidas do candidato.** A conferência dos dados no Notion ainda não foi feita (seis exceções do validador

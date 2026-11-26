@@ -249,7 +249,7 @@ tabela serve de ponto de volta. Para os dados de referência, só serve um par q
 
 | Hash completo | Data | Resultado da verificação |
 | --- | --- | --- |
-| `@@HASH@@` | 2026-11-26 | Candidato da v2.0.0 verificado: resultado em [PLANO-DE-TESTE.md](PLANO-DE-TESTE.md#8-resultado-por-candidato). A aprovação para publicar e a data da publicação entram aqui no dia em que a v2.0.0 for publicada |
+| `a7192a960cb411d8f5ef3a68ddcc43bafb85492a` | 2026-11-26 | Candidato da v2.0.0 verificado: resultado em [PLANO-DE-TESTE.md](PLANO-DE-TESTE.md#8-resultado-por-candidato). A aprovação para publicar e a data da publicação entram aqui no dia em que a v2.0.0 for publicada |
 
 **Como agir** (sempre por commit novo; **nunca** reescreva a `master` com `git push --force`):
 
