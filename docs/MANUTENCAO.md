@@ -48,6 +48,11 @@ Se a fonte não voltar no semestre seguinte, avise no README e siga "Se o projet
 turmas que estão sem código ("Comp 3", "Tóp. Ciência de Dados: Estrutura de Dados", "Mapas" e "Grafos de
 Interseção (mestrado)"). Enquanto não houver código, elas ficam como exceção justificada, só como informação.
 
+<!-- INTEGRAÇÃO: depois que quem mantém conferir no Notion, trocar este parágrafo pelo resultado (códigos resolvidos ou exceções mantidas com o motivo) e atualizar a lista de exceções de testes/fixtures/excecoes-referencia.json. -->
+
+**Exceções do validador.** Cada exceção declara origem, motivo e efeito ([PUB-10](DECISOES.md#pub-10--exceções-do-validador-aviso-por-fonte-e-efeito-somente-informativo)).
+Uma exceção sem uso gera aviso por fonte; **remova as exceções vencidas na revisão semestral**.
+
 ### Currículo do SIGA
 
 1. Abra a [distribuição curricular de ECI](https://siga.ufrj.br/sira/repositorio-curriculo/distribuicoes/A46B41C8-92A4-F79C-7383-BE627D84214E.html).
@@ -96,7 +101,7 @@ Itens para depois da publicação. A ordem é a de prioridade dentro de cada gru
 | 1 | CI mínima: paridade e kit em um motor a cada push | Ver RNF-12 em [REQUISITOS.md](REQUISITOS.md#5-requisitos-não-funcionais) |
 | 2 | Testes de unidade das regras de crédito: extrair funções puras de `js/app.js`, uma a uma | Cada regra extraída com teste, coberta pelos casos de [REQUISITOS.md](REQUISITOS.md), sem mudar comportamento |
 | 3 | PR ao Grêmio com as correções de `js/database.js` e conversa sobre manutenção conjunta | PR aberto em [`gremio-eci/grade`](https://github.com/gremio-eci/grade) |
-| 4 | Passada com leitor de tela (NVDA) no fluxo principal | Problemas registrados por severidade |
+| 4 | Passada com leitor de tela (NVDA) e com teclado no Safari, no fluxo principal. Inclui Tab e Option+Tab nos links no Safari do Mac e no iPhone real (o WebKit do Playwright no Windows não alcança links; [PLANO-DE-TESTE.md](PLANO-DE-TESTE.md#6-limite-do-ambiente-webkit)) | Problemas registrados por severidade |
 | 5 | Atualização do PDF.js (hoje 3.11.174). Manter a biblioteca e o worker na mesma versão e preservar `isEvalSupported: false` ([aviso de segurança](https://github.com/mozilla/pdf.js/security/advisories/GHSA-wgrm-67xf-hhpq)) | Importação local por HTTP e `file://`, paridade com PDFs fictícios, CSP e nenhuma requisição externa |
 | 6 | Inventário de dependências: nome, versão, origem, licença, onde roda e como atualizar; separar as do app e as dos testes | Para cada uma, é possível saber onde roda e quais testes rodar ao atualizar |
 | 7 | Teste de usabilidade com 3 a 5 colegas em 3 ou 4 tarefas, com observação sem ajuda | Problemas registrados por severidade e ligados à história; os bloqueantes viram correção |
@@ -104,6 +109,8 @@ Itens para depois da publicação. A ordem é a de prioridade dentro de cada gru
 | 9 | Refatoração de `js/app.js`, só depois dos testes de unidade | Métricas melhoram sem mudar comportamento |
 | 10 | Cobertura estrutural e mutação, depois dos testes de unidade | A definir |
 | 11 | O CLI Python imprime no `stderr` o código de uma disciplina fora do catálogo | Mensagem sem dados do documento; caso de teste cobre a saída |
+| 12 | Conferir nomes sem código entre o guia e os horários, junto da automação do Notion | O validador avisa quando uma mesma exceção declara as duas fontes e só uma contém o nome |
+| 13 | Melhorias de UX da inspeção: indicar como consultar requisitos sem marcar a Grade e rotular o interruptor de modo; explicar quando guardar a cópia do perfil, o que ela inclui e como recuperar; explicitar o recorte de cada filtro de Optativas e o sentido do selo "inativa"; explicar a lista do BOA e aproximar o motivo da duplicidade do total de ACE | Cada uma verificada no fluxo da história correspondente |
 
 ### Produto
 
@@ -142,10 +149,129 @@ Itens para depois da publicação. A ordem é a de prioridade dentro de cada gru
 
 ## Métricas
 
-*A preencher na C2.* Linha de base de tamanho e complexidade, com a versão e a configuração da ferramenta, o
-comando, os arquivos medidos e o limiar, vinculada ao hash medido.
+**O que mede.** Tamanho e complexidade do código do app, para saber se a manutenção está ficando mais difícil e se uma
+refatoração futura (depois dos testes de unidade) melhora algo. É uma **linha de base**, não um limiar de aceite:
+nenhuma versão é recusada por causa dela, e o limite de complexidade 10 (padrão do ESLint) serve só de referência.
+
+**Como medir** (repita a cada versão):
+
+- **Ferramenta:** ESLint em **versão fixa** (`9.39.5`), rodado numa **cópia fora do repositório** e **sem
+  `package.json`** no projeto. Trocar a versão ou a configuração muda os números: exige nova linha de base.
+- **Arquivos medidos:** `js/app.js`, `js/siga.js`, `js/eci.js` e `js/tema.js`. Ficam de fora as bibliotecas (`js/vendor/`),
+  os dados (`js/database.js`, `js/optativas.js`, `js/horarios.js`, `js/guia.js`, `js/icones.js`, `js/demo-pdf.js`) e o
+  código em Python.
+- **Métricas:** linhas de código (sem brancos e comentários), número de funções (inclui funções anônimas),
+  complexidade ciclomática máxima, funções com complexidade maior que 10 e a maior função, em linhas.
+- **Comando** (PowerShell, na raiz do repositório; `<hash>` é o hash completo medido). O ESLint roda de dentro da pasta de
+  medição, para aceitar a configuração fora do repositório:
+
+```powershell
+$hash = '<hash completo medido>'
+$medida = Join-Path $env:TEMP ("grade-metricas-" + [guid]::NewGuid())
+New-Item -ItemType Directory $medida | Out-Null
+git archive --format=zip --output "$medida\codigo.zip" $hash js/app.js js/siga.js js/eci.js js/tema.js
+Expand-Archive -LiteralPath "$medida\codigo.zip" -DestinationPath "$medida\codigo"
+@'
+export default [{
+  files: ["**/*.js"],
+  languageOptions: { ecmaVersion: 2022, sourceType: "script" },
+  rules: {
+    complexity: ["warn", 0],
+    "max-lines": ["warn", { max: 0, skipBlankLines: true, skipComments: true }],
+    "max-lines-per-function": ["warn", { max: 0, skipBlankLines: true, skipComments: true }],
+  },
+}];
+'@ | Set-Content -Encoding utf8 "$medida\eslint.config.mjs"
+@'
+import json, re, sys
+for arq in json.load(open(sys.argv[1], encoding="utf-8")):
+    nome = arq["filePath"].replace("\\", "/").split("/")[-1]
+    linhas, comp, tam = 0, [], []
+    for m in arq["messages"]:
+        if m["ruleId"] == "max-lines":
+            linhas = int(re.search(r"\((\d+)\)", m["message"]).group(1))
+        elif m["ruleId"] == "complexity":
+            comp.append(int(re.search(r"complexity of (\d+)", m["message"]).group(1)))
+        elif m["ruleId"] == "max-lines-per-function":
+            tam.append(int(re.search(r"\((\d+)\)", m["message"]).group(1)))
+    print(f"{nome}: {linhas} linhas, {len(comp)} funções, complexidade máxima {max(comp, default=0)}, "
+          f"{sum(c > 10 for c in comp)} com complexidade > 10, maior função {max(tam, default=0)} linhas")
+'@ | Set-Content -Encoding utf8 "$medida\resumir.py"
+Push-Location $medida
+npx --yes eslint@9.39.5 --no-config-lookup -c eslint.config.mjs -f json codigo -o saida.json
+python -X utf8 resumir.py saida.json
+Pop-Location
+Remove-Item -Recurse -Force $medida
+```
+
+**Vínculo com o código publicado.** Registre abaixo o hash medido. Antes de publicar, confirme que os arquivos medidos
+são **idênticos** aos do hash final: `git diff --exit-code <hash medido> <hash final> -- js/app.js js/siga.js js/eci.js js/tema.js`
+termina com código 0. Se algum diferir, meça de novo.
+
+**Linha de base.**
+
+<!-- INTEGRAÇÃO: medir no candidato integrado (depois das correções de acessibilidade), com o comando acima e a versão fixa do ESLint (conferir se 9.39.5 continua a adotada), e preencher a tabela com o hash medido e os valores. Em seguida, provar com git diff --exit-code que os quatro arquivos são idênticos aos do hash final. -->
+
+| Campo | Valor |
+| --- | --- |
+| Hash medido | a preencher na medição |
+| ESLint | `9.39.5` (a confirmar na medição) |
+
+| Arquivo | Linhas | Funções | Complexidade máxima | Funções com complexidade > 10 | Maior função (linhas) |
+| --- | --- | --- | --- | --- | --- |
+| `js/app.js` | a medir | a medir | a medir | a medir | a medir |
+| `js/siga.js` | a medir | a medir | a medir | a medir | a medir |
+| `js/eci.js` | a medir | a medir | a medir | a medir | a medir |
+| `js/tema.js` | a medir | a medir | a medir | a medir | a medir |
 
 ## Plano de reversão
 
-*A preencher na C2.* Gatilho, ação por commit, verificação e o que fazer se a primeira publicação não tiver
-uma versão segura anterior.
+Como desfazer uma publicação ruim sem reescrever o histórico. O procedimento de publicar está em
+[PUBLICAR.md](PUBLICAR.md) e a lista de verificação em [PLANO-DE-TESTE.md](PLANO-DE-TESTE.md#7-lista-de-verificação-de-versão).
+
+**Gatilhos** (qualquer um aciona o plano):
+
+- uma das quatro condições para publicar ([VISAO.md](VISAO.md#condições-para-publicar)) foi violada no site publicado:
+  dado pessoal saindo do dispositivo, um número errado sem aviso, orientação ou marcação manual apresentada como
+  oficial, ou um bloqueio de acessibilidade;
+- a página não abre ou falha ao carregar (recurso ausente, bloqueio da política de segurança) em algum navegador;
+- um defeito de cálculo foi confirmado em pedidos, créditos ou prazos;
+- dados de referência errados (currículo, horários ou guia) foram publicados.
+
+**Quem age.** Quem mantém a Grade na hora. Se essa pessoa estiver ausente, qualquer pessoa com permissão de escrita no
+repositório segue este plano.
+
+**Último hash validado.** Anote a cada publicação o hash completo que passou pela lista de verificação. Só um hash desta
+tabela serve de ponto de volta. Para os dados de referência, só serve um par que passou pelo validador.
+
+| Hash completo | Data | Resultado da verificação |
+| --- | --- | --- |
+| a preencher na publicação | | |
+
+<!-- INTEGRAÇÃO: depois da publicação, registrar nesta tabela o hash aprovado da v2.0.0, a data e o local do registro do resultado da verificação. -->
+
+**Como agir** (sempre por commit novo; **nunca** reescreva a `master` com `git push --force`):
+
+1. **Escolha entre voltar e corrigir.** Para voltar, use o último hash validado. Para corrigir, prefira a correção
+   pequena e segura, com o caso de teste que falhava (vermelho → verde, [CONTRIBUTING.md](../CONTRIBUTING.md)).
+2. **Voltar:** numa branch a partir da `master`, rode `git revert` nos commits do problema, ou restaure só os arquivos
+   afetados do último hash validado (`git restore --source <hash> -- <arquivos>`) e faça um commit descrevendo o motivo.
+3. **Verificar:** rode a lista de verificação sobre o novo commit (no mínimo a matriz; paridade e oráculos se mexeu no
+   importador; o validador se mexeu nos dados; a conferência de privacidade). Anote o **hash completo** aprovado.
+4. **Publicar:** siga os passos 3 a 6 de [PUBLICAR.md](PUBLICAR.md) com esse hash e confira o GitHub Pages no mesmo hash.
+5. **Registrar:** abra uma Issue pública descrevendo o problema **sem dados pessoais**, acrescente a nota em
+   [MUDANCAS.md](MUDANCAS.md) (uma versão `v2.0.x`, se houver) e atualize a tabela do último hash validado.
+
+**Verificação depois de agir.** Abra o site em janela anônima, por HTTPS; confirme a versão no rodapé, que não há erro
+404 nem aviso de política de segurança no console, e repita o caso que motivou a reversão.
+
+**Ensaio local.** Antes de depender do plano, arquive o hash aprovado (uma tag ou branch com nome claro) e confirme, na
+[cópia pública por HTTP](PUBLICAR.md#abrir-a-cópia-pública-por-http) desse hash, que o app abre, que existe
+`classico.html` e que o link dela leva ao modo clássico.
+
+**Se a primeira publicação não tiver uma versão segura anterior.** Não há para onde voltar: **suspenda a publicação**.
+Em **Settings → Pages**, desative o site (ou o fork deixa de servir a página). Abra uma Issue fixada com o motivo, sem
+dados pessoais, e atualize o README com a data e o aviso. Corrija, verifique um novo hash e publique de novo pelo
+procedimento acima. Se a suspensão durar, registre a decisão e o motivo em [DECISOES.md](DECISOES.md). Se o problema for
+exposição de dados pessoais, remova o conteúdo exposto (Issue, anexo ou comentário) e oriente a pessoa: a Grade não guarda
+dados em servidor próprio.
