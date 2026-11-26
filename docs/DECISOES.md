@@ -24,6 +24,7 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
 | [PC-04](#pc-04--número-do-boa-na-livre-escolha) | Número do BOA |
 | [PC-05](#pc-05--qual-é-o-histórico-do-curso-atual) | Histórico do curso atual |
 | [PC-06](#pc-06--fronteira-de-5-anos-com-só-o-ano) | Fronteira de 5 anos |
+| [PC-07](#pc-07--ace-no-reingresso-30-h-confirmadas-e-30-h-a-confirmar) | ACE no reingresso |
 | [PUB-01](#pub-01--retirada-da-página-legada) | Página legada |
 | [PUB-02](#pub-02--valor-e-condições-para-publicar) | Valor e condições para publicar |
 | [PUB-03](#pub-03--ordem-de-publicação) | Ordem de publicação |
@@ -32,6 +33,10 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
 | [PUB-06](#pub-06--dados-do-notion-e-automação) | Dados do Notion e automação |
 | [PUB-07](#pub-07--contribuição-com-ia) | Contribuição com IA |
 | [PUB-08](#pub-08--continuidade-e-sucessão) | Continuidade e sucessão |
+| [PUB-09](#pub-09--tab-nos-links-no-webkit-do-ambiente-de-teste) | Tab no WebKit do ambiente de teste |
+| [PUB-10](#pub-10--exceções-do-validador-aviso-por-fonte-e-efeito-somente-informativo) | Exceções do validador |
+| [PUB-11](#pub-11--acessibilidade-corrigida-antes-de-publicar) | Acessibilidade antes de publicar |
+| [PUB-12](#pub-12--fechamento-com-uma-revisão-final) | Fechamento com uma revisão final |
 
 ## Regras acadêmicas
 
@@ -141,9 +146,12 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
 - **Contexto:** com dois históricos, o resultado do prazo não pode depender da ordem dos arquivos nem de um
   palpite silencioso.
 - **Decisão:** o atual é o de data mais recente, considerando o semestre real mais recente e o ano do bloco
-  de transferidos. Em empate ou dúvida, a Grade **pergunta**: a prévia pede a escolha, aplicar e baixar ficam
-  desativados até lá, e o cálculo do prazo mantém a nota de RA-09. A escolha explícita sempre vence. O CLI Python
-  exige `--atual <arquivo>` na dúvida. O perfil gerado não grava "dúvida".
+  de transferidos. Em empate, dúvida ou datas ausentes (dois históricos reconhecidos em que algum não tem data
+  utilizável), a Grade **pergunta**: a prévia não marca opção, aplicar e baixar ficam desativados até a escolha, e
+  o cálculo do prazo mantém a nota de RA-09. A escolha explícita sempre vence, mesmo para um histórico sem datas. O
+  CLI Python exige `--atual <arquivo>` na dúvida e sai com código 2. O perfil gerado não grava "dúvida". Perfis
+  antigos que gravaram "dúvida" continuam legíveis e voltam a mostrar "Estimativa: o histórico do curso atual não foi
+  confirmado."
 - **Consequências:** casos 06h, 06j, 06k e 06l.
 
 ### PC-06 · Fronteira de 5 anos com só o ano
@@ -153,6 +161,17 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
 - **Decisão:** a Grade mostra um aviso de precisão insuficiente ("só o ano é conhecido; pode passar de 5
   anos") e não inventa semestre. O prazo só aparece como alerta, nunca como aprovação.
 - **Consequências:** caso 06i.
+
+### PC-07 · ACE no reingresso: 30 h confirmadas e 30 h a confirmar
+
+- **Estado:** aceita. Regras: RA-16, RA-21.
+- **Contexto:** o histórico anterior registra a mesma atividade de extensão de 30 h em dois períodos (2020/1 e
+  2021/1), e o histórico do curso atual traz uma única entrada transferida para ela. Contar 60 h confirmadas
+  afirmaria mais do que o registro do curso atual mostra.
+- **Decisão:** manter **30 h confirmadas e 30 h a confirmar**, com aviso de possível duplicidade e a orientação de
+  conferir no SIGA ou com a coordenação.
+- **Consequências:** o caso 06m descreve esse comportamento e muda se a regra da ACE no reingresso for decidida de
+  outro modo. Marcar as atividades como distintas (01g) fica para uma versão seguinte.
 
 ## Publicação e processo
 
@@ -249,3 +268,58 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
   gatilhos, passos e responsável.
 - **Consequências:** se ninguém assumir, o README e a faixa mostram a data da última conferência e como
   exportar o perfil, e a decisão de manter, arquivar ou suspender é registrada aqui, com o motivo.
+
+### PUB-09 · Tab nos links no WebKit do ambiente de teste
+
+- **Estado:** aceita.
+- **Contexto:** no WebKit 27.2 do Playwright 1.65.2 no Windows, nenhum atalho de teclado alcança links: o mesmo
+  ocorre numa página HTML mínima e em todos os links do app. Em Chromium e Firefox, Tab percorre os links na ordem do
+  DOM, com contorno de foco visível. O comportamento do Safari no Mac e no iPhone não pode ser deduzido desse ambiente.
+- **Decisão:** tratar como **limite do ambiente de teste**, não como defeito da Grade. Nenhum `tabindex` é forçado. A
+  verificação de Tab nos links vale para Chromium e Firefox, por uma sonda separada da suíte; Safari no Mac, iPhone real
+  e a passada com leitor de tela ficam pendentes.
+- **Consequências:** a frase do limite está em [DESIGN.md](DESIGN.md#teclado-nos-fluxos-centrais) e em
+  [PLANO-DE-TESTE.md](PLANO-DE-TESTE.md#6-limite-do-ambiente-webkit); a passada pendente está em
+  [MANUTENCAO.md](MANUTENCAO.md). Se o Safari real mostrar um defeito, ele volta como defeito.
+
+### PUB-10 · Exceções do validador: aviso por fonte e efeito "somente informativo"
+
+- **Estado:** aceita. Requisito: [RF-17](REQUISITOS.md#rf-17--validação-dos-dados-de-referência-h14).
+- **Contexto:** os horários e o guia trazem códigos fora do currículo e do catálogo e turmas sem código, ainda por
+  identificar. O validador deve falhar para um código desconhecido, mas permitir uma exceção justificada.
+- **Decisão:** cada exceção declara **origem, motivo e efeito**. O efeito **"somente informativo"** vale por
+  estrutura: o app não lê a lista de exceções, e um código fora do currículo e do catálogo já fica fora de cálculos e
+  sugestões; as turmas sem código aparecem só na lista informativa de Optativas, sem ação para planejar. Uma exceção sem
+  uso gera **aviso por fonte** (não falha), e a remoção acontece na revisão semestral. Conferir nomes sem código entre
+  o guia e os horários fica no backlog, junto da automação do Notion.
+- **Consequências:** a lista não acumula exceções vencidas se a revisão semestral a limpar. O efeito "entra no
+  cálculo" não vale para um nome sem código, que nunca entraria.
+
+### PUB-11 · Acessibilidade corrigida antes de publicar
+
+- **Estado:** aceita. Condição de publicação 4 ([VISAO.md](VISAO.md)).
+- **Contexto:** a inspeção heurística, com axe-core e teclado, encontrou dez bloqueios: estados dos cartões só pela
+  cor, ordem e perda do foco, campos sem nome acessível, edição de horários e escolha do perfil sem teclado, contraste,
+  rolagem horizontal a 320 px, alvos pequenos, papéis ARIA inconsistentes nas abas e um desvio do validador de horários.
+  Também apontou seis melhorias.
+- **Decisão:** corrigir os dez bloqueios antes de publicar, cada um com um critério de pronto verificável. Entram a
+  mensagem do PDF inválido em português, com BOA por extenso na primeira menção, e o diagnóstico das exceções do
+  validador. As demais melhorias (como consultar sem alterar a Grade, explicar a cópia do perfil, o recorte dos filtros de
+  Optativas e a lista do BOA) vão para o backlog. O teste que verifica a devolução do foco passa a esperar o retorno de
+  forma dirigida, sem trocar o resultado esperado. Os critérios WCAG 2.2 AA são os **selecionados** em
+  [DESIGN.md](DESIGN.md#acessibilidade), sem declarar conformidade integral.
+- **Consequências:** o resultado das medições entra em [PLANO-DE-TESTE.md](PLANO-DE-TESTE.md) por hash. Leitor de tela
+  real e o teste com colegas continuam no backlog.
+
+### PUB-12 · Fechamento com uma revisão final
+
+- **Estado:** aceita.
+- **Contexto:** sucessivos ciclos de revisão de cada parte atrasariam a publicação sem ganho proporcional, e a
+  documentação e o código dependem um do outro (números, contagens, estados de requisito).
+- **Decisão:** a documentação é escrita em paralelo às últimas correções de código, a integração das duas é o
+  último passo técnico e preenche os números finais, e **uma única revisão independente** do candidato integrado reúne
+  a reinspeção dos critérios de acessibilidade, a revisão dos documentos e o teste independente pelo hash. Depois dela,
+  corrige-se só o que fere as quatro condições para publicar, com os testes automáticos como verificação; o resto
+  vai para o backlog. A conferência dos dados do Notion por quem mantém continua obrigatória antes de publicar.
+- **Consequências:** o procedimento de publicar é o de [PUBLICAR.md](PUBLICAR.md), com a lista de
+  [PLANO-DE-TESTE.md](PLANO-DE-TESTE.md#7-lista-de-verificação-de-versão).
