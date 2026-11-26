@@ -153,7 +153,7 @@ def executa(args):
         for status, nome, detalhe in interface
     ] + reimport
     eventos += eventos_reimport
-    esperados = 63 if args.transport == "http" else 62
+    esperados = 70 if args.transport == "http" else 69
     if args.casos:
         esperados = len(resultados)     # execução dirigida: não vale como matriz
     relatorio = dict(commit=sha, suite_sha256=suite_sha256, navegador=args.browser,
@@ -162,15 +162,18 @@ def executa(args):
                      publicacao_exec=args.transport == "http")
     (args.out / "resultado.json").write_text(json.dumps(relatorio, ensure_ascii=False, indent=2), encoding="utf-8")
     passou = sum(r["ok"] for r in resultados)
+    sem_correspondencia = bool(args.casos) and not interface     # --casos que não casa com nada não vale como sucesso
     print(f"{sha[:7]} {args.browser}/{args.transport}: {passou}/{len(resultados)} OK, {len(eventos)} eventos")
     for resultado in resultados:
         if not resultado["ok"]:
             print(f"FALHA: {resultado['cenario']} — {resultado['detalhe'].splitlines()[0] or 'asserção'}")
     if args.transport == "file":
         print("P não se aplica a file:// (ensaio HTTP sob /grade/).")
+    if sem_correspondencia:
+        print(f"FALHA: --casos {args.casos!r} não casou com nenhum cenário de interface")
     if len(resultados) != esperados:
         print(f"FALHA: esperados {esperados} cenários, executados {len(resultados)}")
-    return 0 if passou == len(resultados) == esperados and not eventos else 1
+    return 0 if passou == len(resultados) == esperados and not eventos and not sem_correspondencia else 1
 
 
 if __name__ == "__main__":

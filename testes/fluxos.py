@@ -977,11 +977,19 @@ def t_rf08_oferta(b):
     completo(pg, "cronograma"); pg.click('[data-cperiodo="2027/2"]')
     assert nota in pg.locator("#painel .nota-estimativa").all_inner_texts()
     ctx.close()
-    perfil = {"periodos": [{"nome": "2027/1", "planejado": True, "disciplinas": [{"code": "MAC238", "horarios": ["ter 10-12", "qui 10-12"]}]}]}
+    # 08h: o perfil NÃO traz horários; eles têm de vir da referência (js/horarios.js, Notion), com a nota de RA-20
+    perfil = {"periodos": [{"nome": "2027/1", "planejado": True, "disciplinas": [{"code": "MAC238"}]}]}
     ctx, pg = abre(b, perfil=perfil, nome="rf08-ra20-horarios")
+    referencia = pg.evaluate("() => window.horarios[1].impar.MAC238")            # /1 usa a tabela ímpar
+    assert referencia == ["ter 10-12", "qui 10-12"], referencia
     completo(pg, "cronograma"); pg.click('[data-cperiodo="2027/1"]')
-    crono = pg.locator("#painel").inner_text()
-    assert "ter 10-12" in crono and "qui 10-12" in crono, crono
+    item = pg.locator('.crono-item:has([data-csel="MAC238"])')
+    assert "sem horário" in item.inner_text()                                       # nada vem do perfil
+    ref = item.locator(".ref-linha")
+    assert ref.inner_text().startswith("Referência: " + ", ".join(referencia)), ref.inner_text()
+    ref.locator("[data-usaref]").click()                                            # adotar a referência grava os horários
+    item = pg.locator('.crono-item:has([data-csel="MAC238"])')
+    assert "ter 10-12" in item.inner_text() and "qui 10-12" in item.inner_text() and "igual ao horário de referência" in item.inner_text()
     assert nota_ra20(pg) in pg.locator("#painel .nota-estimativa").all_inner_texts()
     foto(pg, "rf08-cronograma-nota-horarios")
     ctx.close()
