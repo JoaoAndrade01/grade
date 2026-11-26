@@ -1726,7 +1726,8 @@ def axe_roda(pg, regras=None, contexto=None):
         pg.evaluate(AXE.read_text(encoding="utf-8"))
     opcoes = {"runOnly": {"type": "rule", "values": regras}} if regras else {"runOnly": {"type": "tag", "values": TAGS_AXE}}
     opcoes["preload"] = False      # sem pré-carga de folhas de estilo por XHR (bloqueada em file:// e vista como falha de recurso)
-    pg.wait_for_timeout(450)       # transições terminadas: o axe mede a cor final
+    pg.evaluate("Promise.all(document.getAnimations().map((a) => a.finished.catch(() => 0)))")    # transições e animações terminadas: o axe mede a cor final
+    pg.wait_for_timeout(250)
     return pg.evaluate("""([ctx, o]) => axe.run(ctx || document, o).then((r) => r.violations.map((v) =>
         ({ id: v.id, impacto: v.impact, nos: v.nodes.map((n) => n.target.join(' ') + ' :: ' + (n.failureSummary || '').split('\\n').slice(1, 2).join(' ')).slice(0, 5) })))""", [contexto, opcoes])
 
@@ -1847,7 +1848,7 @@ def t_b2_foco_filtros(b):
 
 PONTO_OCULTO = """() => {
   const el = document.activeElement;
-  if (!el || el === document.body) return 'foco no body';
+  if (!el || el === document.body) return null;     // o fim da ordem de Tab passa pelo documento (WebKit): não é cartão encoberto
   if (el.closest('.paleta, .faixa-aviso, #detalhes, dialog')) return null;
   const alvo = el.matches('.interruptor input') ? el.nextElementSibling : el;    // o interruptor mostra o trilho
   const r = alvo.getBoundingClientRect();
@@ -1873,6 +1874,15 @@ def t_b2_foco_visivel(b):
         p = pg.evaluate(PONTO_OCULTO)
         if p: ruins.append("(Shift+Tab) " + p)
     assert not ruins, ruins[:6]
+    # recarregar não rola a página (a margem de rolagem de cima, em CSS, fazia o Chromium rolar 10 px a cada recarga).
+    # Só no Chromium: o WebKit restaura a posição salva de uma rolagem anterior ao recarregar, o que não vem da página.
+    if b.browser_type.name == "chromium":
+        rolagens = []
+        pg.evaluate("window.scrollTo(0, 0)"); pg.wait_for_timeout(150)
+        for _ in range(12):
+            pg.reload(); pg.wait_for_load_state("load")
+            rolagens.append(pg.evaluate("window.scrollY"))
+        assert not any(rolagens), rolagens
     ctx.close()
 
 @caso("M6: o efeito 'somente informativo': turmas sem código só informam cabe/choca; códigos fora do currículo ficam fora de sugestões e cálculos")

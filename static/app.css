@@ -868,10 +868,9 @@ body:has(.paleta:not([hidden])) .rodape { padding-bottom: 84px; }
 /* ---------- B2.5 · B2: foco e rolagem com a faixa e a paleta fixas ---------- */
 .principal { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 .painel:focus { outline: none; }
-html {
-  scroll-padding-top: calc(var(--faixa-h, 0px) + 12px);
-  scroll-padding-bottom: calc(var(--paleta-h, 0px) + 20px);
-}
+/* Só a margem de baixo é CSS: scroll-padding-top fazia o Chromium rolar 10 px ao recarregar a página (restauração de rolagem).
+   A margem de cima, sob a faixa, é corrigida pelo script (focusin em js/app.js), que também cobre o Firefox. */
+html { scroll-padding-bottom: calc(var(--paleta-h, 0px) + 20px); }
 
 /* ---------- B2.5 · B4: células da grade de horários operáveis por teclado ---------- */
 .crono-grade .cel { appearance: none; margin: 0; padding: 0; border-radius: 0; font: inherit; color: inherit; background: transparent; border-right: 0; border-bottom: 0; text-align: left; }
