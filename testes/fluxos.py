@@ -1724,6 +1724,7 @@ def axe_roda(pg, regras=None, contexto=None):
     if pg.evaluate("typeof window.axe") != "object":
         pg.evaluate(AXE.read_text(encoding="utf-8"))
     opcoes = {"runOnly": {"type": "rule", "values": regras}} if regras else {"runOnly": {"type": "tag", "values": TAGS_AXE}}
+    opcoes["preload"] = False      # sem pré-carga de folhas de estilo por XHR (bloqueada em file:// e vista como falha de recurso)
     pg.wait_for_timeout(450)       # transições terminadas: o axe mede a cor final
     return pg.evaluate("""([ctx, o]) => axe.run(ctx || document, o).then((r) => r.violations.map((v) =>
         ({ id: v.id, impacto: v.impact, nos: v.nodes.map((n) => n.target.join(' ') + ' :: ' + (n.failureSummary || '').split('\\n').slice(1, 2).join(' ')).slice(0, 5) })))""", [contexto, opcoes])
@@ -2117,7 +2118,35 @@ def t_m3_mensagens(b):
     assert "PDF" in msg and "tente de novo" in msg and "Achou um erro? Crie uma nova issue" in msg, msg
     ctx.close()
 
-CASOS4 = [t_m3_mensagens, t_b9_aria, t_b8_alvos, t_b7_pedidos_320, t_b6_contraste, t_b5_escolher_perfil, t_b4_grade_horarios, t_b3_nomes, t_m6_somente_informativo, t_b2_foco_visivel, t_b2_foco_filtros, t_b2_importacao, t_b1_estado_dos_cartoes]
+AXE_RECORTE = [("grade-classica", {}), ("grade-completa", {"modoClassico": False, "vista": "grade"}), ("linha-do-tempo", {"modoClassico": False, "vista": "timeline"}),
+               ("optativas", {"modoClassico": False, "vista": "optativas"}), ("cronograma", {"modoClassico": False, "vista": "cronograma", "cronoPeriodo": "2027/1"}),
+               ("pedidos", {"modoClassico": False, "vista": "pedidos"}), ("eci", {"modoClassico": False, "vista": "eci"})]
+
+@caso("Axe-core no recorte da inspeção: sem ocorrências graves ou críticas (WCAG A/AA 2.0–2.2), nos dois temas, em 1440 e 320 px")
+def t_axe_recorte(b):
+    achados = []
+    for esq in ("light", "dark"):
+        for vp, rotulo in ((D, "1440"), (C320, "320")):
+            for nome, extra in AXE_RECORTE:
+                ctx, pg = abre(b, vp=vp, esquema=esq, perfil=PERFIL, extra=extra, nome=f"axe-{nome}", toque=rotulo == "320")
+                if nome == "cronograma":
+                    pg.click('[data-csel="COS360"]'); pg.locator('.cel[data-cel="8"]').dispatch_event("mousedown"); pg.mouse.up()
+                for v in axe_graves(pg): achados.append((esq, rotulo, nome, v["id"], v["nos"][:2]))
+                if nome == "grade-completa":
+                    pg.locator('.card[data-code="COS242"]').click()          # detalhes da disciplina
+                    for v in axe_graves(pg): achados.append((esq, rotulo, "detalhes-COS242", v["id"], v["nos"][:2]))
+                if nome == "grade-classica":
+                    pg.click("#btn-config")
+                    for v in axe_graves(pg): achados.append((esq, rotulo, "configuracoes", v["id"], v["nos"][:2]))
+                    pg.keyboard.press("Escape"); pg.click("#btn-importar")
+                    for v in axe_graves(pg): achados.append((esq, rotulo, "importador", v["id"], v["nos"][:2]))
+                    pg.set_input_files("#siga-pdfs", [str(PDFS / f) for f in ("historico-ficticio.pdf", "boa-ficticio.pdf")]); pg.click("#siga-gerar")
+                    pg.wait_for_selector("#siga-usar", timeout=30000)
+                    for v in axe_graves(pg): achados.append((esq, rotulo, "previa", v["id"], v["nos"][:2]))
+                ctx.close()
+    assert not achados, achados[:8]
+
+CASOS4 = [t_axe_recorte, t_m3_mensagens, t_b9_aria, t_b8_alvos, t_b7_pedidos_320, t_b6_contraste, t_b5_escolher_perfil, t_b4_grade_horarios, t_b3_nomes, t_m6_somente_informativo, t_b2_foco_visivel, t_b2_foco_filtros, t_b2_importacao, t_b1_estado_dos_cartoes]
 CASOS += CASOS4
 
 
