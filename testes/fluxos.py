@@ -5,6 +5,8 @@ from playwright.sync_api import expect
 from auditoria import observa
 
 FX = pathlib.Path(__file__).resolve().parent / "fixtures"
+ORACULOS = json.loads((FX / "oraculos.json").read_text(encoding="utf-8"))["cenarios"]
+RELOGIO = "2026-11-26T12:00:00"
 PERFIL = json.loads((FX / "perfil-ficticio.json").read_text(encoding="utf-8"))
 ANTIGO = json.loads((FX / "perfil-antigo.json").read_text(encoding="utf-8"))
 ANTIGO_SEM_NOME = json.loads((FX / "perfil-antigo-sem-nome.json").read_text(encoding="utf-8"))
@@ -24,10 +26,11 @@ def caso(nome):
     return deco
 
 TODOS_ATALHOS = ["perfil", "importar", "tema", "privacidade", "referencias", "tags"]
-def abre(b, vp=D, esquema="light", perfil=None, extra=None, nome="", toque=False, atalhos=True):
+def abre(b, vp=D, esquema="light", perfil=None, extra=None, nome="", toque=False, atalhos=True, relogio=None):
     # Os cenários antigos usam os botões do topo: por padrão, fixa todos os atalhos (atalhos=False = primeira visita real).
     if atalhos: extra = {"atalhos": TODOS_ATALHOS, **(extra or {})}
     ctx = b.new_context(viewport=vp, color_scheme=esquema, is_mobile=toque and b.browser_type.name != "firefox", has_touch=toque, accept_downloads=True)
+    if relogio: ctx.clock.set_fixed_time(relogio)      # datas que dependem do relógio ficam fixas
     pg = ctx.new_page()
     observa(ctx, URL, nome, eventos, avisos)
     pg.goto(URL); pg.wait_for_load_state("load")
@@ -501,6 +504,103 @@ def t_cr03_lista(b):
     expect(pg.locator(".ace-duplicidade")).to_contain_text("20 h a confirmar")
     expect(pg.locator(".ace-duplicidade")).to_contain_text("EEW002")
     ctx.close()
+
+# ------------------------------------------------------------------ CR-04: histórico do curso atual
+PEDIDO_MAC118 = {"periodos": [], "equivalencias": [{"cursadas": ["MAC118"], "pedida": "COC602", "status": "a pedir"}]}
+
+def disciplinas_de(p):
+    return [{"nome": x["nome"], "disciplinas": [d if isinstance(d, dict) else {"code": d} for d in x["disciplinas"]]} for x in p["periodos"]]
+
+def confere_oraculo(p, cenario):
+    esperado = ORACULOS[cenario]
+    obtido = disciplinas_de(p)
+    assert obtido == esperado["periodos"], (cenario, obtido)
+    assert (p.get("fonte") or {}).get("historicoAtual") == esperado["historicoAtual"], (cenario, p.get("fonte"))
+
+def importa_cenario(b, cenario, nome, escolha=None, extra=None):
+    """Importa os PDFs fictícios do cenário sobre um perfil com um pedido de MAC118; devolve (ctx, pg)."""
+    ctx, pg = abre(b, perfil=PEDIDO_MAC118, nome=nome, relogio=RELOGIO, extra=extra)
+    gera(pg, [f"{n}.pdf" for n in ORACULOS[cenario]["arquivos"]])
+    if escolha is not None:
+        pg.locator(f'input[name="siga-papel"][value="{escolha}"]').check()
+    return ctx, pg
+
+def aplica_e_le_pedido(pg):
+    pg.click("#siga-usar")
+    perfil = ls(pg, "perfilImportado")
+    completo(pg, "pedidos")
+    return perfil, pg.locator('.pedidos tr[class^="eq-"]').first.inner_text()
+
+@caso("CR-04: o ano do bloco do histórico atual rege o prazo e a data original só informa, nas duas ordens")
+def t_cr04_reingresso(b):
+    for cenario in ("reingresso-antigo-atual", "reingresso-atual-antigo"):
+        ctx, pg = importa_cenario(b, cenario, f"cr04-{cenario}")
+        atual = 1 if cenario == "reingresso-antigo-atual" else 0
+        assert pg.locator('input[name="siga-papel"]').count() == 2
+        assert pg.locator(f'input[name="siga-papel"][value="{atual}"]').is_checked(), cenario
+        assert pg.locator(".papel-historico .alerta").count() == 0
+        perfil, linha = aplica_e_le_pedido(pg)
+        confere_oraculo(perfil, cenario)
+        assert "mais de 5 anos" not in linha and "não confirmada" not in linha, linha
+        assert "2025" in linha and "2020/1" in linha, linha
+        ctx.close()
+
+@caso("CR-04: só o atual, só o anterior e marcador AAAA/0 (controles)")
+def t_cr04_controles(b):
+    ctx, pg = importa_cenario(b, "so-atual", "cr04-so-atual")
+    assert pg.locator('input[name="siga-papel"]').count() == 0      # um só histórico: nada a escolher
+    perfil, linha = aplica_e_le_pedido(pg)
+    confere_oraculo(perfil, "so-atual")
+    assert "mais de 5 anos" not in linha and "não confirmada" not in linha and "2025" in linha, linha
+    assert "2020/1" not in linha, linha                               # origem ausente
+    ctx.close()
+    ctx, pg = importa_cenario(b, "so-antigo", "cr04-so-antigo")
+    perfil, linha = aplica_e_le_pedido(pg)
+    confere_oraculo(perfil, "so-antigo")
+    assert "6.5 anos" in linha and "pode exigir exame de suficiência" in linha, linha    # idade pelo semestre 2020/1
+    ctx.close()
+    ctx, pg = importa_cenario(b, "zero", "cr04-zero")
+    perfil, linha = aplica_e_le_pedido(pg)
+    confere_oraculo(perfil, "zero")                                   # 2024/0 não vira semestre real
+    assert all(x["nome"] != "2024/1" and x["nome"] != "2024/2" for x in perfil["periodos"])
+    ctx.close()
+
+@caso("CR-04/PC-05: papel do histórico automático, em dúvida e por escolha explícita; baixar e aplicar coincidem")
+def t_cr04_papel(b):
+    ctx, pg = importa_cenario(b, "papel-automatico", "cr04-papel-auto")
+    assert pg.locator('input[name="siga-papel"][value="0"]').is_checked() and pg.locator(".papel-historico .alerta").count() == 0
+    perfil, _ = aplica_e_le_pedido(pg); confere_oraculo(perfil, "papel-automatico")
+    ctx.close()
+
+    ctx, pg = importa_cenario(b, "papel-duvida", "cr04-papel-duvida")
+    assert pg.locator('input[name="siga-papel"]:checked').count() == 0
+    expect(pg.locator(".papel-historico .alerta")).to_contain_text("escolha", ignore_case=True)
+    perfil, linha = aplica_e_le_pedido(pg)                            # sem escolher: aplica, com a idade como estimativa
+    confere_oraculo(perfil, "papel-duvida")
+    assert "estimativa" in linha.lower(), linha
+    ctx.close()
+
+    for cenario, indice in (("papel-escolha-bloco", 0), ("papel-escolha-anterior", 1)):
+        ctx, pg = importa_cenario(b, cenario, f"cr04-{cenario}", escolha=indice)
+        assert pg.locator(".papel-historico .alerta").count() == 0
+        with pg.expect_download(timeout=10000) as d: pg.click("#siga-baixar")
+        txt = pathlib.Path(d.value.path()).read_text(encoding="utf-8")
+        baixado = json.loads(re.search(r"window\.PERFIL\s*=\s*(\{.*\})\s*;?\s*$", txt, re.S).group(1))
+        perfil, _ = aplica_e_le_pedido(pg)
+        assert baixado == perfil, "baixar e aplicar divergem com a mesma escolha"
+        confere_oraculo(perfil, cenario)
+        ctx.close()
+
+@caso("CR-04/PC-06: fronteira de 5 anos com só o ano do bloco")
+def t_cr04_fronteira(b):
+    for ano, alerta, precisao in ((2022, False, False), (2021, False, True), (2020, True, False)):
+        ctx, pg = importa_cenario(b, f"fronteira-{ano}", f"cr04-fronteira-{ano}")
+        perfil, linha = aplica_e_le_pedido(pg)
+        confere_oraculo(perfil, f"fronteira-{ano}")
+        assert ("mais de 5 anos" in linha) == alerta, (ano, linha)
+        assert ("só o ano é conhecido; pode passar de 5 anos" in linha) == precisao, (ano, linha)
+        assert not any(x["nome"].startswith(f"{ano}/") for x in perfil["periodos"]), perfil["periodos"]   # sem inventar semestre
+        ctx.close()
 
 # ------------------------------------------------------------------ regressões gerais
 @caso("Regressões: abas, busca de optativas mantém foco, horários por clique, equivalências/ACE, exportação e recarga")
@@ -987,16 +1087,19 @@ CASOS = [
     t_compat, t_siga, t_siga_sem_boa, t_excluir, t_oferta, t_mac,
     t_cr01_pre, t_cr01_co, t_cr01_sugestoes, t_cr01_proposta, t_cr01_equivalencia, t_cr01_manual,
     t_cr03_historico, t_cr03_lista,
+    t_cr04_reingresso, t_cr04_controles, t_cr04_papel, t_cr04_fronteira,
     t_regressao, t_a11y,
 ] + CASOS2 + CASOS3
 
-def rodar(navegador, url, pasta, fixtures_pdf):
+def rodar(navegador, url, pasta, fixtures_pdf, filtro=None):
     global URL, OUT, PDFS
     URL, OUT, PDFS = url, pasta, fixtures_pdf
     resultados.clear()
     eventos.clear()
     avisos.clear()
     for cenario in CASOS:
+        if filtro and not re.search(filtro, cenario.nome):
+            continue
         cenario(navegador)
         for contexto in navegador.contexts:
             contexto.close()

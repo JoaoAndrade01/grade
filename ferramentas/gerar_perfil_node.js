@@ -3,7 +3,8 @@
  * Versão Node do importador, usada no teste de paridade com o Python.
  * Recebe arquivos .txt já extraídos ou um --pdf por documento a detectar e
  * processar com o mesmo pdf.js do navegador. Imprime o perfil em JSON canônico.
- *   node ferramentas/gerar_perfil_node.js --historico a.txt --boa b.txt [--mesclar perfil.js] --hoje AAAA-MM-DD
+ *   node ferramentas/gerar_perfil_node.js --historico a.txt --boa b.txt [--atual a.txt] [--mesclar perfil.js] --hoje AAAA-MM-DD
+ * --atual indica qual --historico (ou --pdf) é o do curso atual; vale mais que a regra automática.
  */
 const fs = require("fs"), path = require("path");
 const raiz = path.join(__dirname, "..");
@@ -16,7 +17,7 @@ const args = process.argv.slice(2), op = { historico: [], pdf: [] };
 for (let i = 0; i < args.length; i++) {
   const k = args[i].replace(/^--/, "");
   if (k === "historico" || k === "pdf") op[k].push(args[++i]);
-  else if (["boa", "mesclar", "hoje", "curso"].includes(k)) op[k] = args[++i];
+  else if (["boa", "mesclar", "hoje", "curso", "atual"].includes(k)) op[k] = args[++i];
 }
 const curso = op.curso != null ? +op.curso : 1;
 const curriculo = {}, catalogo = {};
@@ -29,6 +30,7 @@ const ordena = (v) => Array.isArray(v) ? v.map(ordena) : v && typeof v === "obje
 
 async function main() {
   const historicos = op.historico.map((h) => SIGA.lerHistorico(ler(h)));
+  const origens = op.historico.map((h) => path.resolve(h));
   let boa = op.boa ? SIGA.lerBOA(ler(op.boa)) : null;
   if (op.pdf.length) {
     global.pdfjsWorker = require(path.join(raiz, "js/vendor/pdf.worker.min.js"));
@@ -38,10 +40,15 @@ async function main() {
     for (const f of op.pdf) {
       const linhas = await SIGA.extrairLinhasPDF(leitor, new Uint8Array(fs.readFileSync(f)));
       if (linhas.some((l) => /BOLETIM DE ORIENTA/i.test(l))) boa = SIGA.lerBOA(linhas);
-      else historicos.push(SIGA.lerHistorico(linhas));
+      else { historicos.push(SIGA.lerHistorico(linhas)); origens.push(path.resolve(f)); }
     }
   }
-  const perfil = SIGA.montarPerfil({ historicos, boa, curriculo, catalogo, anterior, hoje: op.hoje });
+  let atualIdx;
+  if (op.atual) {
+    atualIdx = origens.indexOf(path.resolve(op.atual));
+    if (atualIdx < 0) throw new Error("--atual deve ser um dos arquivos de histórico");
+  }
+  const perfil = SIGA.montarPerfil({ historicos, boa, curriculo, catalogo, anterior, hoje: op.hoje, atualIdx });
   process.stdout.write(JSON.stringify(ordena(perfil)) + "\n");
 }
 

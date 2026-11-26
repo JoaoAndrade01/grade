@@ -1,0 +1,331 @@
+{
+ "nota": "Oráculos escritos à mão para B1.4 (CR-04, PC-05, PC-06). Não gerados por nenhuma implementação.",
+ "cenarios": {
+  "reingresso-antigo-atual": {
+   "arquivos": [
+    "reingresso-anterior",
+    "reingresso-atual"
+   ],
+   "atual": null,
+   "periodos": [
+    {
+     "nome": "2020/2",
+     "disciplinas": [
+      {
+       "code": "MAC128",
+       "nota": 7
+      }
+     ]
+    },
+    {
+     "nome": "2025 (transferidas)",
+     "disciplinas": [
+      {
+       "code": "MAC118",
+       "nota": 7,
+       "aprovadaEm": "2020/1"
+      }
+     ]
+    },
+    {
+     "nome": "2025/2",
+     "disciplinas": [
+      {
+       "code": "COS111",
+       "nota": 8
+      }
+     ]
+    }
+   ],
+   "historicoAtual": "automatico"
+  },
+  "reingresso-atual-antigo": {
+   "arquivos": [
+    "reingresso-atual",
+    "reingresso-anterior"
+   ],
+   "atual": null,
+   "periodos": [
+    {
+     "nome": "2020/2",
+     "disciplinas": [
+      {
+       "code": "MAC128",
+       "nota": 7
+      }
+     ]
+    },
+    {
+     "nome": "2025 (transferidas)",
+     "disciplinas": [
+      {
+       "code": "MAC118",
+       "nota": 7,
+       "aprovadaEm": "2020/1"
+      }
+     ]
+    },
+    {
+     "nome": "2025/2",
+     "disciplinas": [
+      {
+       "code": "COS111",
+       "nota": 8
+      }
+     ]
+    }
+   ],
+   "historicoAtual": "automatico"
+  },
+  "so-atual": {
+   "arquivos": [
+    "reingresso-atual"
+   ],
+   "atual": null,
+   "periodos": [
+    {
+     "nome": "2025 (transferidas)",
+     "disciplinas": [
+      {
+       "code": "MAC118",
+       "nota": 7
+      }
+     ]
+    },
+    {
+     "nome": "2025/2",
+     "disciplinas": [
+      {
+       "code": "COS111",
+       "nota": 8
+      }
+     ]
+    }
+   ],
+   "historicoAtual": null
+  },
+  "so-antigo": {
+   "arquivos": [
+    "reingresso-anterior"
+   ],
+   "atual": null,
+   "periodos": [
+    {
+     "nome": "2020/1",
+     "disciplinas": [
+      {
+       "code": "MAC118",
+       "nota": 7
+      }
+     ]
+    },
+    {
+     "nome": "2020/2",
+     "disciplinas": [
+      {
+       "code": "MAC128",
+       "nota": 7
+      }
+     ]
+    }
+   ],
+   "historicoAtual": null
+  },
+  "zero": {
+   "arquivos": [
+    "reingresso-anterior",
+    "reingresso-atual-zero"
+   ],
+   "atual": null,
+   "periodos": [
+    {
+     "nome": "2020/2",
+     "disciplinas": [
+      {
+       "code": "MAC128",
+       "nota": 7
+      }
+     ]
+    },
+    {
+     "nome": "2024/0",
+     "disciplinas": [
+      {
+       "code": "MAC248",
+       "nota": 7
+      }
+     ]
+    },
+    {
+     "nome": "2025 (transferidas)",
+     "disciplinas": [
+      {
+       "code": "MAC118",
+       "nota": 7,
+       "aprovadaEm": "2020/1"
+      }
+     ]
+    }
+   ],
+   "historicoAtual": "automatico"
+  },
+  "papel-automatico": {
+   "arquivos": [
+    "papel-bloco-2025",
+    "papel-anterior-2024-2"
+   ],
+   "atual": null,
+   "periodos": [
+    {
+     "nome": "2024/2",
+     "disciplinas": [
+      {
+       "code": "MAC128",
+       "nota": 7
+      }
+     ]
+    },
+    {
+     "nome": "2025 (transferidas)",
+     "disciplinas": [
+      {
+       "code": "MAC118",
+       "nota": 7,
+       "aprovadaEm": "2024/2"
+      }
+     ]
+    }
+   ],
+   "historicoAtual": "automatico"
+  },
+  "papel-duvida": {
+   "arquivos": [
+    "papel-bloco-2024",
+    "papel-anterior-2024-2"
+   ],
+   "atual": null,
+   "periodos": [
+    {
+     "nome": "2024/2",
+     "disciplinas": [
+      {
+       "code": "MAC118",
+       "nota": 7
+      },
+      {
+       "code": "MAC128",
+       "nota": 7
+      }
+     ]
+    }
+   ],
+   "historicoAtual": "duvida"
+  },
+  "papel-escolha-bloco": {
+   "arquivos": [
+    "papel-bloco-2024",
+    "papel-anterior-2024-2"
+   ],
+   "atual": 0,
+   "periodos": [
+    {
+     "nome": "2024 (transferidas)",
+     "disciplinas": [
+      {
+       "code": "MAC118",
+       "nota": 7,
+       "aprovadaEm": "2024/2"
+      }
+     ]
+    },
+    {
+     "nome": "2024/2",
+     "disciplinas": [
+      {
+       "code": "MAC128",
+       "nota": 7
+      }
+     ]
+    }
+   ],
+   "historicoAtual": "escolhido"
+  },
+  "papel-escolha-anterior": {
+   "arquivos": [
+    "papel-bloco-2024",
+    "papel-anterior-2024-2"
+   ],
+   "atual": 1,
+   "periodos": [
+    {
+     "nome": "2024/2",
+     "disciplinas": [
+      {
+       "code": "MAC118",
+       "nota": 7
+      },
+      {
+       "code": "MAC128",
+       "nota": 7
+      }
+     ]
+    }
+   ],
+   "historicoAtual": "escolhido"
+  },
+  "fronteira-2020": {
+   "arquivos": [
+    "fronteira-2020"
+   ],
+   "atual": null,
+   "periodos": [
+    {
+     "nome": "2020 (transferidas)",
+     "disciplinas": [
+      {
+       "code": "MAC118",
+       "nota": 7
+      }
+     ]
+    }
+   ],
+   "historicoAtual": null
+  },
+  "fronteira-2021": {
+   "arquivos": [
+    "fronteira-2021"
+   ],
+   "atual": null,
+   "periodos": [
+    {
+     "nome": "2021 (transferidas)",
+     "disciplinas": [
+      {
+       "code": "MAC118",
+       "nota": 7
+      }
+     ]
+    }
+   ],
+   "historicoAtual": null
+  },
+  "fronteira-2022": {
+   "arquivos": [
+    "fronteira-2022"
+   ],
+   "atual": null,
+   "periodos": [
+    {
+     "nome": "2022 (transferidas)",
+     "disciplinas": [
+      {
+       "code": "MAC118",
+       "nota": 7
+      }
+     ]
+    }
+   ],
+   "historicoAtual": null
+  }
+ }
+}

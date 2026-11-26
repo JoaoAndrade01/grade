@@ -256,6 +256,52 @@
     return +m[2] >= 2 ? `${+m[1] + 1}/1` : `${m[1]}/2`;
   }
 
+  // ---------------------------------------------------------------------------
+  // Papel dos históricos (PC-05): qual deles é o do curso atual
+  // ---------------------------------------------------------------------------
+  // Semestre real = AAAA/1 ou AAAA/2. "AAAA" sozinho (bloco de transferidos) e o marcador
+  // "AAAA/0" só informam o ano.
+  const semestreReal = (p) => /\/[12]$/.test(p || "");
+  const anoDe = (p) => { const m = /^(\d{4})/.exec(p || ""); return m ? +m[1] : null; };
+
+  /** Data mais recente de um histórico: {ano, sem}, com sem = null quando só o ano é conhecido. */
+  function ultimaData(h) {
+    let melhor = null;
+    ((h && h.registros) || []).forEach((r) => {
+      const ano = anoDe(r.periodo);
+      if (ano == null) return;
+      const sem = semestreReal(r.periodo) ? +r.periodo.slice(5) : null;
+      if (!melhor || ano > melhor.ano || (ano === melhor.ano && sem != null && (melhor.sem == null || sem > melhor.sem))) melhor = { ano, sem };
+    });
+    return melhor;
+  }
+  /** 1 = a é posterior, -1 = b é posterior, 0 = empate ou datas que não permitem decidir. */
+  function comparaData(a, b) {
+    if (a.ano !== b.ano) return a.ano > b.ano ? 1 : -1;
+    if (a.sem != null && b.sem != null && a.sem !== b.sem) return a.sem > b.sem ? 1 : -1;
+    return 0;
+  }
+  /**
+   * Papel de cada histórico. `escolhido` é o índice que a pessoa indicou (vence a regra automática).
+   * @returns {{indice: number|null, estado: "unico"|"automatico"|"duvida"|"escolhido"}}
+   *   indice = histórico do curso atual (null em dúvida ou sem registros datados)
+   */
+  function papelHistoricos(historicos, escolhido) {
+    const datados = (historicos || []).map((h, i) => ({ i, d: ultimaData(h) })).filter((x) => x.d);
+    if (datados.length < 2) return { indice: datados.length ? datados[0].i : null, estado: "unico" };
+    if (escolhido != null && datados.some((x) => x.i === escolhido)) return { indice: escolhido, estado: "escolhido" };
+    const melhor = datados.reduce((a, x) => (comparaData(x.d, a.d) > 0 ? x : a));
+    const certo = datados.every((x) => x === melhor || comparaData(melhor.d, x.d) > 0);
+    return certo ? { indice: melhor.i, estado: "automatico" } : { indice: null, estado: "duvida" };
+  }
+  /** Resumo para a prévia: último semestre real, maior ano de bloco e número de registros. */
+  function resumoHistorico(h) {
+    const regs = (h && h.registros) || [];
+    const reais = regs.filter((r) => semestreReal(r.periodo)).map((r) => r.periodo).sort((x, y) => chavePeriodo(x) - chavePeriodo(y));
+    const blocos = regs.filter((r) => r.periodo && !semestreReal(r.periodo)).map((r) => anoDe(r.periodo));
+    return { semestre: reais.length ? reais[reais.length - 1] : null, bloco: blocos.length ? Math.max(...blocos) : null, registros: regs.length };
+  }
+
   /**
    * Monta o perfil a partir dos documentos lidos.
    * @param {object} a
@@ -264,6 +310,7 @@
    * @param {object} a.curriculo  { [code]: {category} } — disciplinas da grade (js/database.js)
    * @param {object} a.catalogo   { [code]: {category} } — optativas (js/optativas.js)
    * @param {object} [a.anterior] perfil anterior: preserva planejamento, pedidos, extensão, tags e textos
+   * @param {number} [a.atualIdx] índice, em a.historicos, do histórico do curso atual (escolha explícita; vence a regra automática)
    * @param {string} [a.hoje]     data ISO usada em "fonte.geradoEm" (permite saída determinística em testes)
    */
   function montarPerfil(a) {
@@ -272,17 +319,31 @@
     const conhecido = (c) => curriculo[c] || catalogo[c];
     const ace = (c) => conhecido(c)?.category === 5;
 
-    // 1) Junta registros de todos os históricos. Um mesmo (código, situação) que aparece num
-    //    bloco de "créditos transferidos" (período só com ano) e também num semestre real
-    //    fica só no semestre real.
+    // 1) Junta registros de todos os históricos. Um mesmo (código, situação, grau) que aparece num
+    //    bloco de "créditos transferidos" (período só com ano, ou AAAA/0) e também num semestre real
+    //    fica só no semestre real, com uma exceção (D-03): o bloco do histórico do curso atual vale
+    //    para o prazo de 5 anos e o semestre real do outro histórico vira só informação (`aprovadaEm`).
+    const papel = papelHistoricos(a.historicos || [], a.atualIdx);
     const todos = [];
-    (a.historicos || []).forEach((h) => (h.registros || []).forEach((r) => todos.push(Object.assign({}, r))));
-    const emSemestre = new Set(todos.filter((r) => /\//.test(r.periodo || "")).map((r) => r.code + "|" + r.sf + "|" + r.grau));
+    (a.historicos || []).forEach((h, i) => (h.registros || []).forEach((r) => todos.push(Object.assign({}, r, { _h: i }))));
+    const chaveReg = (r) => r.code + "|" + r.sf + "|" + r.grau;
+    const doAtual = (r) => papel.indice != null && r._h === papel.indice;
+    const reaisAtual = new Set(todos.filter((r) => semestreReal(r.periodo) && doAtual(r)).map(chaveReg));
+    const reaisOutros = new Map(); // chave -> semestre real mais antigo, em históricos que não são o atual
+    todos.filter((r) => semestreReal(r.periodo) && !doAtual(r)).forEach((r) => {
+      const k = chaveReg(r);
+      if (!reaisOutros.has(k) || chavePeriodo(r.periodo) < chavePeriodo(reaisOutros.get(k))) reaisOutros.set(k, r.periodo);
+    });
+    const blocosAtual = new Set(todos.filter((r) => !semestreReal(r.periodo) && doAtual(r) && !reaisAtual.has(chaveReg(r))
+      && reaisOutros.has(chaveReg(r))).map(chaveReg));
     const vistos = new Set();
     const regs = todos.filter((r) => {
-      const real = /\//.test(r.periodo || "");
-      if (!real && emSemestre.has(r.code + "|" + r.sf + "|" + r.grau)) return false;
-      const k = (real ? r.periodo : "T") + "|" + r.code + "|" + r.sf + "|" + r.grau;
+      const real = semestreReal(r.periodo), k0 = chaveReg(r);
+      if (!real && reaisAtual.has(k0)) return false;
+      if (!real && reaisOutros.has(k0) && !blocosAtual.has(k0)) return false;
+      if (real && !doAtual(r) && blocosAtual.has(k0)) return false;
+      if (!real && blocosAtual.has(k0) && doAtual(r)) r.aprovadaEm = reaisOutros.get(k0);
+      const k = (real ? r.periodo : "T") + "|" + k0;
       if (vistos.has(k)) return false;
       vistos.add(k);
       return true;
@@ -313,6 +374,7 @@
       }
       if (r.sf !== "AP") item.status = "reprovado";
       if (/^\d+(\.\d+)?$/.test(r.grau)) item.nota = num(r.grau);
+      if (r.aprovadaEm) item.aprovadaEm = r.aprovadaEm;
       add(nome, item);
     });
     // 5) Reprovações listadas no BOA (o histórico só mostra aprovações)
@@ -350,6 +412,7 @@
       curso: (anterior && anterior.curso != null) ? anterior.curso : 1,
       fonte: { geradoPor: `siga.js ${VERSAO}`, geradoEm: a.hoje || new Date().toISOString().slice(0, 10), boaEmissao: (a.boa && a.boa.emissao) || null },
     };
+    if ((a.historicos || []).filter((h) => ultimaData(h)).length > 1) perfil.fonte.historicoAtual = papel.estado;
     if (anterior && anterior.nome) perfil.nome = anterior.nome;
     if (a.boa) perfil.boa = { emissao: a.boa.emissao, naoExplicitadas: a.boa.naoExplicitadas };
     perfil.equivalencias = (anterior && anterior.equivalencias) || [];
@@ -385,5 +448,5 @@
     return perfil;
   }
 
-  return { VERSAO, RE, normalizarLinhas, filtrarPaginaPDF, extrairLinhasPDF, lerHistorico, lerBOA, montarPerfil, proximoPeriodo };
+  return { VERSAO, RE, normalizarLinhas, filtrarPaginaPDF, extrairLinhasPDF, lerHistorico, lerBOA, montarPerfil, proximoPeriodo, papelHistoricos, resumoHistorico };
 });

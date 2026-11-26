@@ -96,8 +96,9 @@ def gerar_pdfs(destino):
     from pypdf.generic import DecodedStreamObject, DictionaryObject, NameObject
 
     destino.mkdir(parents=True)
-    for nome in ("historico-ficticio", "boa-ficticio"):
-        linhas = (FIXTURES / f"{nome}.txt").read_text(encoding="utf-8").splitlines()
+    for fonte in sorted(FIXTURES.glob("*.txt")):
+        nome = fonte.stem
+        linhas = fonte.read_text(encoding="utf-8").splitlines()
         pdf = PdfWriter()
         pagina = pdf.add_blank_page(595, 842)
         N = NameObject
@@ -140,16 +141,21 @@ def executa(args):
     with acesso(site, args.transport) as (url, faltando), sync_playwright() as pw:
         with getattr(pw, args.browser).launch(headless=True) as navegador:
             versao = navegador.version
-            interface, eventos, avisos = fluxos.rodar(navegador, url, args.out, fixtures_pdf)
-            reimport, eventos_reimport, avisos_reimport = reimportacao.rodar(
-                navegador, url, args.out, fixtures_pdf, site, faltando
-            )
+            interface, eventos, avisos = fluxos.rodar(navegador, url, args.out, fixtures_pdf, args.casos)
+            if args.casos:      # execução dirigida: só os cenários de interface que casam com o filtro
+                reimport, eventos_reimport, avisos_reimport = [], [], []
+            else:
+                reimport, eventos_reimport, avisos_reimport = reimportacao.rodar(
+                    navegador, url, args.out, fixtures_pdf, site, faltando
+                )
     resultados = [
         {"cenario": nome, "ok": status == "OK", "detalhe": detalhe}
         for status, nome, detalhe in interface
     ] + reimport
     eventos += eventos_reimport
-    esperados = 42 if args.transport == "http" else 41
+    esperados = 46 if args.transport == "http" else 45
+    if args.casos:
+        esperados = len(resultados)     # execução dirigida: não vale como matriz
     relatorio = dict(commit=sha, suite_sha256=suite_sha256, navegador=args.browser,
                      versao=versao, transporte=args.transport, esperados=esperados,
                      resultados=resultados, eventos=eventos, avisos=avisos + avisos_reimport,
@@ -172,5 +178,6 @@ if __name__ == "__main__":
     parser.add_argument("--browser", required=True, choices=MOTORES)
     parser.add_argument("--transport", required=True, choices=("file", "http"))
     parser.add_argument("--ref", default="HEAD")
+    parser.add_argument("--casos", help="expressão regular: roda só os cenários de interface cujo nome casa (execução dirigida)")
     parser.add_argument("--out", type=caminho_saida, required=True)
     raise SystemExit(executa(parser.parse_args()))

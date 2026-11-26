@@ -221,20 +221,86 @@ def proximo_periodo(p):
     return f"{int(m.group(1)) + 1}/1" if int(m.group(2)) >= 2 else f"{m.group(1)}/2"
 
 
-def montar_perfil(historicos, boa=None, curriculo=None, catalogo=None, anterior=None, hoje=None):
+# Papel dos históricos (PC-05): qual deles é o do curso atual. Espelho de papelHistoricos em js/siga.js.
+# Semestre real = AAAA/1 ou AAAA/2. "AAAA" sozinho (bloco de transferidos) e "AAAA/0" só informam o ano.
+def semestre_real(p):
+    return bool(re.search(r"/[12]$", p or ""))
+
+
+def ano_de(p):
+    m = re.match(r"^(\d{4})", p or "")
+    return int(m.group(1)) if m else None
+
+
+def ultima_data(h):
+    melhor = None
+    for r in h.get("registros", []):
+        ano = ano_de(r["periodo"])
+        if ano is None:
+            continue
+        sem = int(r["periodo"][5:]) if semestre_real(r["periodo"]) else None
+        if melhor is None or ano > melhor[0] or (ano == melhor[0] and sem is not None and (melhor[1] is None or sem > melhor[1])):
+            melhor = (ano, sem)
+    return melhor
+
+
+def compara_data(a, b):
+    if a[0] != b[0]:
+        return 1 if a[0] > b[0] else -1
+    if a[1] is not None and b[1] is not None and a[1] != b[1]:
+        return 1 if a[1] > b[1] else -1
+    return 0
+
+
+def papel_historicos(historicos, escolhido=None):
+    """Devolve (indice, estado): estado = unico | automatico | duvida | escolhido."""
+    datados = [(i, ultima_data(h)) for i, h in enumerate(historicos)]
+    datados = [(i, d) for i, d in datados if d]
+    if len(datados) < 2:
+        return (datados[0][0] if datados else None), "unico"
+    if escolhido is not None and any(i == escolhido for i, _ in datados):
+        return escolhido, "escolhido"
+    melhor = datados[0]
+    for x in datados[1:]:
+        if compara_data(x[1], melhor[1]) > 0:
+            melhor = x
+    certo = all(x is melhor or compara_data(melhor[1], x[1]) > 0 for x in datados)
+    return (melhor[0], "automatico") if certo else (None, "duvida")
+
+
+def montar_perfil(historicos, boa=None, curriculo=None, catalogo=None, anterior=None, hoje=None, atual_idx=None):
     curriculo, catalogo = curriculo or {}, catalogo or {}
     conhecido = lambda c: c in curriculo or c in catalogo
     ace = lambda c: (curriculo.get(c) or catalogo.get(c) or {}).get("category") == 5
 
-    # 1) registros de todos os históricos, sem duplicar o bloco de transferidos
-    todos = [dict(r) for h in historicos for r in h["registros"]]
-    em_semestre = {f'{r["code"]}|{r["sf"]}|{r["grau"]}' for r in todos if "/" in (r["periodo"] or "")}
+    # 1) registros de todos os históricos. Um mesmo (código, situação, grau) num bloco de transferidos
+    #    e num semestre real fica só no semestre real, exceto (D-03): o bloco do histórico do curso
+    #    atual vale para o prazo de 5 anos e o semestre real do outro histórico vira `aprovadaEm`.
+    papel_idx, papel_estado = papel_historicos(historicos, atual_idx)
+    todos = [dict(r, _h=i) for i, h in enumerate(historicos) for r in h["registros"]]
+    chave_reg = lambda r: f'{r["code"]}|{r["sf"]}|{r["grau"]}'
+    do_atual = lambda r: papel_idx is not None and r["_h"] == papel_idx
+    reais_atual = {chave_reg(r) for r in todos if semestre_real(r["periodo"]) and do_atual(r)}
+    reais_outros = {}
+    for r in todos:
+        if semestre_real(r["periodo"]) and not do_atual(r):
+            k = chave_reg(r)
+            if k not in reais_outros or chave_periodo(r["periodo"]) < chave_periodo(reais_outros[k]):
+                reais_outros[k] = r["periodo"]
+    blocos_atual = {chave_reg(r) for r in todos if not semestre_real(r["periodo"]) and do_atual(r)
+                    and chave_reg(r) not in reais_atual and chave_reg(r) in reais_outros}
     vistos, regs = set(), []
     for r in todos:
-        real = "/" in (r["periodo"] or "")
-        if not real and f'{r["code"]}|{r["sf"]}|{r["grau"]}' in em_semestre:
+        real, k0 = semestre_real(r["periodo"]), chave_reg(r)
+        if not real and k0 in reais_atual:
             continue
-        k = f'{r["periodo"] if real else "T"}|{r["code"]}|{r["sf"]}|{r["grau"]}'
+        if not real and k0 in reais_outros and k0 not in blocos_atual:
+            continue
+        if real and not do_atual(r) and k0 in blocos_atual:
+            continue
+        if not real and k0 in blocos_atual and do_atual(r):
+            r["aprovadaEm"] = reais_outros[k0]
+        k = f'{r["periodo"] if real else "T"}|{k0}'
         if k in vistos:
             continue
         vistos.add(k)
@@ -273,6 +339,8 @@ def montar_perfil(historicos, boa=None, curriculo=None, catalogo=None, anterior=
             item["status"] = "reprovado"
         if re.match(r"^\d+(\.\d+)?$", r["grau"]):
             item["nota"] = num(r["grau"])
+        if r.get("aprovadaEm"):
+            item["aprovadaEm"] = r["aprovadaEm"]
         periodos.setdefault(nome, []).append(item)
 
     # 5) reprovações do BOA
@@ -314,6 +382,8 @@ def montar_perfil(historicos, boa=None, curriculo=None, catalogo=None, anterior=
         "fonte": {"geradoPor": f"siga.js {VERSAO}", "geradoEm": hoje or datetime.datetime.now(datetime.timezone.utc).date().isoformat(),
                   "boaEmissao": (boa or {}).get("emissao")},
     }
+    if len([h for h in historicos if ultima_data(h)]) > 1:
+        perfil["fonte"]["historicoAtual"] = papel_estado
     if anterior.get("nome"):
         perfil["nome"] = anterior["nome"]
     if boa:
@@ -428,6 +498,7 @@ def texto_perfil(perfil):
 def main():
     ap = argparse.ArgumentParser(description="Gera perfil/perfil.js a partir do Histórico e do BOA do SIGA.")
     ap.add_argument("--historico", action="append", default=[], help="PDF do histórico (repita para mais de um curso)")
+    ap.add_argument("--atual", help="um dos --historico: o do curso atual (vale mais que a regra automática)")
     ap.add_argument("--boa", help="PDF do BOA")
     ap.add_argument("--mesclar", help="perfil.js existente: preserva planejamento, pedidos, extensão e tags")
     ap.add_argument("--curso", type=int, default=1, help="índice do curso em js/database.js (ECI = 1)")
@@ -446,10 +517,20 @@ def main():
     if sem_categoria:
         print("Atividades sem créditos fora do currículo e catálogo. Confira se são ACE: "
               + ", ".join(sem_categoria), file=sys.stderr)
+    historicos = [ler_historico(ler(h)) for h in a.historico]
+    atual_idx = None
+    if a.atual:
+        caminhos = [os.path.abspath(h) for h in a.historico]
+        if os.path.abspath(a.atual) not in caminhos:
+            ap.error("--atual deve ser um dos arquivos passados em --historico")
+        atual_idx = caminhos.index(os.path.abspath(a.atual))
+    if atual_idx is None and papel_historicos(historicos)[1] == "duvida":
+        print("Aviso: não foi possível decidir qual histórico é o do curso atual. Use --atual <arquivo>. "
+              "Até lá, a idade das cursadas é só uma estimativa.", file=sys.stderr)
     perfil = montar_perfil(
-        historicos=[ler_historico(ler(h)) for h in a.historico],
+        historicos=historicos,
         boa=boa, curriculo=curriculo, catalogo=catalogo,
-        anterior=ler_perfil_js(a.mesclar) if a.mesclar else None, hoje=a.hoje)
+        anterior=ler_perfil_js(a.mesclar) if a.mesclar else None, hoje=a.hoje, atual_idx=atual_idx)
     saida = json.dumps(perfil, ensure_ascii=False, sort_keys=True) if a.json else texto_perfil(perfil)
     if a.saida:
         open(a.saida, "w", encoding="utf-8").write(saida)

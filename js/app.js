@@ -123,7 +123,7 @@
   const camposItem = {
     ...camposDisciplina,
     status: (v) => opcional(v, statusDisciplina), nota: (v) => opcional(v, (n) => texto(n) || numero(n)),
-    equivale: (v) => opcional(v, codigo), horarios: (v) => opcional(v, (h) => listaDe(h, texto)),
+    equivale: (v) => opcional(v, codigo), aprovadaEm: (v) => opcional(v, texto), horarios: (v) => opcional(v, (h) => listaDe(h, texto)),
     dispensa: (v) => opcional(v, (d) => listaDe(d, (x) => codigo(x) || dadosDisciplina(x))),
   };
   const erroDisciplina = (d, caminho) => codigo(d) ? null : erroCampos(d, camposItem, caminho);
@@ -176,7 +176,8 @@
       extensao: (v) => opcional(v, (e) => listaDe(e, extensaoValida)),
       curso: (v) => opcional(v, (i) => Number.isInteger(i) && Array.isArray((window.courses || [])[i])),
       titulo: (v) => opcional(v, texto), subtitulo: (v) => opcional(v, texto), nome: (v) => opcional(v, texto),
-      fonte: (v) => opcional(v, (f) => objeto(f) && opcional(f.boaEmissao, texto)),
+      fonte: (v) => opcional(v, (f) => objeto(f) && opcional(f.boaEmissao, texto)
+        && opcional(f.historicoAtual, (h) => ["automatico", "duvida", "escolhido"].includes(h))),
       marcacoes: (v) => opcional(v, marcacoesValidas),
       boa: (v) => opcional(v, (b) => objeto(b) && listaDe(b.naoExplicitadas, (d) => dadosDisciplina(d)
         && numero(d.credits) && numero(d.ch) && (texto(d.grau) || numero(d.grau)))),
@@ -379,7 +380,7 @@
           workload: inf.workload, cel: parseHorarios(it.horarios), dispensas: [],
         };
         registra(alvo, { pi, status, nota: it.nota, horas: alvo === it.code ? it.horas : undefined,
-          via: it.equivale ? `equivalência: ${it.code} ${item.name}` : null });
+          via: it.equivale ? `equivalência: ${it.code} ${item.name}` : null, aprovadaEm: it.aprovadaEm || null });
         (it.dispensa || []).forEach((d) => {
           const dn = typeof d === "string" ? { code: d } : { category: 2, ...d };
           conhece(dn);
@@ -1089,10 +1090,25 @@
 
   // ---------- Vista: Equivalências & Extensão ----------
   const semAtual = () => { const d = new Date(); return d.getFullYear() * 2 + (d.getMonth() < 6 ? 0 : 1); };
-  function idadeAnos(code) {
+  // Base do prazo de 5 anos (CR-04): semestre real, ou só o ano de um bloco de transferidos ("AAAA (transferidas)"
+  // ou "AAAA/0"). Com só o ano, a idade fica entre `min` e `max`; `aprovadaEm` (data original) só informa.
+  const anoDoBloco = (nome) => { const m = /^(\d{4})(?: \(transferidas\)|\/0)$/.exec(nome || ""); return m ? +m[1] : null; };
+  function baseDoPrazo(code) {
     const r = (M.regs[code] || []).filter((x) => x.status === "aprovado").pop();
-    const i = r ? semIdx(M.periodos[r.pi]?.nome) : null;
-    return i == null ? null : (semAtual() - i) / 2;
+    if (!r) return null;
+    const nome = M.periodos[r.pi]?.nome;
+    const i = semIdx(nome), ano = i == null ? anoDoBloco(nome) : null;
+    if (i == null && ano == null) return null;
+    const de = i != null ? i : ano * 2, ate = i != null ? i : ano * 2 + 1;
+    return { ano, min: (semAtual() - ate) / 2, max: (semAtual() - de) / 2, aprovadaEm: r.aprovadaEm || null };
+  }
+  /** Sem o histórico do curso atual confirmado, a idade é só uma estimativa. */
+  const papelEmDuvida = () => !!(perfil && perfil.fonte && perfil.fonte.historicoAtual === "duvida");
+  /** Texto curto da base e da origem de uma cursada, para o pedido e a tabela de livre escolha. */
+  function textoBase(b) {
+    if (!b) return "";
+    return (b.ano != null ? `Base do prazo: só o ano ${b.ano} (bloco de transferidos).` : "")
+      + (b.aprovadaEm ? ` Aprovação original em ${b.aprovadaEm}, só informação.` : "");
   }
   const boaDe = (c) => ((M.boa && M.boa.naoExplicitadas) || []).find((d) => d.code === c) || null;
   const chDe = (c) => { const b = boaDe(c); if (b && b.ch) return b.ch; const i = M.info(c); return i ? (i.workload || 0) : 0; };
@@ -1124,14 +1140,15 @@
     const cs = cursadasDe(e), pi = M.info(e.pedida);
     const ch = cs.reduce((a, c) => a + chDe(c.code), 0);
     const chPed = pi ? pi.workload || 0 : 0;
-    const idades = cs.map((c) => ({ code: c.code, anos: idadeAnos(c.code) }));
-    const velhas = idades.filter((c) => c.anos != null && c.anos > 5);
-    const semData = idades.filter((c) => c.anos == null);
+    const idades = cs.map((c) => ({ code: c.code, base: baseDoPrazo(c.code) }));
+    const velhas = idades.filter((c) => c.base && c.base.min > 5);
+    const imprecisas = idades.filter((c) => c.base && c.base.min <= 5 && c.base.max > 5 && c.base.ano != null);
+    const semData = idades.filter((c) => !c.base);
     const cr = cs.reduce((a, c) => a + crDe(c.code), 0);
     const semConteudo = !cs.some((c) => c.papel !== "horas");
     const repetidas = (e.status || "a pedir") === "indeferido" ? [] : cs.filter((c) => usosDe(c.code, getEq().indexOf(e)).length).map((c) => c.code);
     const pedidaFeita = concluido((M.regs[e.pedida] || []).reduce((a, r) => (FORCA[r.status] > FORCA[a] ? r.status : a), "pendente")) && (e.status || "") !== "deferido";
-    return { cs, ch, chPed, chOk: !chPed || ch >= chPed, velhas, semData, cr, semConteudo, repetidas, pedidaFeita };
+    return { cs, ch, chPed, chOk: !chPed || ch >= chPed, velhas, imprecisas, semData, cr, semConteudo, repetidas, pedidaFeita };
   }
 
   function renderPedidos() {
@@ -1181,18 +1198,21 @@
     const linhasEq = eqs.map((e, k) => {
       const a = analisaPedido(e);
       const cursCell = a.cs.map((c, j) => {
-        const id = idadeAnos(c.code);
-        return `<div class="cur">${descr(c.code)}
+        const base = baseDoPrazo(c.code);
+        const id = base ? base.max : null;
+        const infoBase = textoBase(base);
+        return `<div class="cur">${descr(c.code)}${infoBase ? `<br><small class="base-prazo">${esc(infoBase)}${papelEmDuvida() ? " Estimativa: o histórico do curso atual não foi confirmado." : ""}</small>` : ""}
           <div class="cur-acoes"><select class="campo campo-sm" data-eqpapel="${k}:${j}"><option value="conteudo" ${c.papel !== "horas" ? "selected" : ""}>conteúdo</option><option value="horas" ${c.papel === "horas" ? "selected" : ""}>só horas</option></select>
-          ${id != null && id > 5 ? `<small class="alerta" title="Res. CEG 01/2017">⚠ ${fmt(Math.floor(id * 2) / 2)} anos: pode exigir exame de suficiência</small>` : ""}
+          ${base && base.min > 5 ? `<small class="alerta" title="Res. CEG 01/2017">⚠ ${base.ano != null ? "mais de 5 anos" : fmt(Math.floor(id * 2) / 2) + " anos"}: pode exigir exame de suficiência</small>` : ""}
           ${a.cs.length > 1 ? `<button type="button" class="x" data-eqrmc="${k}:${j}" title="Tirar do pedido">×</button>` : ""}</div></div>`;
       }).join("") + `<div class="add add-cur"><input class="campo campo-sm" list="eq-cursadas" data-eqnovo="${k}" placeholder="+ cursada"><button type="button" class="mini-btn" data-eqaddc="${k}">juntar</button></div>`;
       const checks = [
         a.chPed ? `<li class="${a.chOk ? "ok" : "alerta"}">${a.chOk ? "✓" : "✗"} C.H. ${a.ch} h ${a.chOk ? "≥" : "<"} ${a.chPed} h</li>` : "",
         a.semConteudo ? `<li class="alerta">✗ nenhuma cursada marcada como conteúdo</li>` : "",
         a.velhas.length ? `<li class="alerta">⚠ mais de 5 anos: ${a.velhas.map((v) => esc(v.code)).join(", ")}</li>` : "",
+        a.imprecisas.length ? `<li class="alerta">Precisão insuficiente: só o ano é conhecido; pode passar de 5 anos (${a.imprecisas.map((v) => esc(v.code)).join(", ")}).</li>` : "",
         a.semData.length ? `<li class="alerta">Data de aprovação não confirmada: ${a.semData.map((v) => esc(v.code)).join(", ")}</li>` : "",
-        a.cs.length && !a.velhas.length && !a.semData.length ? `<li class="ok">✓ dentro de 5 anos pela estimativa semestral</li>` : "",
+        a.cs.length && !a.velhas.length && !a.imprecisas.length && !a.semData.length ? `<li class="ok">✓ dentro de 5 anos pela estimativa semestral</li>` : "",
         a.repetidas.length ? `<li class="alerta">⚠ já usada em outro pedido/dispensa: ${a.repetidas.map(esc).join(", ")}</li>` : "",
         M.pedidosComConflito.has(e) ? `<li class="alerta">Créditos fora da soma até resolver o uso em duplicidade.</li>` : "",
         a.pedidaFeita ? `<li class="alerta">⚠ a pedida já está aprovada/prevista</li>` : "",
@@ -1218,8 +1238,11 @@
       const u = usosDe(c);
       const usada = M.consumidas.has(c);
       if (usada) somaUsada += cr;
-      const id = idadeAnos(c);
-      return `<tr class="${u.length ? "" : "livre"}"><td>${descr(c)}</td><td>${id != null ? `${fmt(Math.floor(id * 2) / 2)} anos${id > 5 ? " ⚠" : ""}` : "—"}</td>
+      const base = baseDoPrazo(c);
+      const idade = !base ? "—" : base.ano != null
+        ? `${fmt(Math.floor(base.min * 2) / 2)} a ${fmt(Math.floor(base.max * 2) / 2)} anos${base.min > 5 ? " ⚠" : base.max > 5 ? " (pode passar de 5)" : ""}`
+        : `${fmt(Math.floor(base.max * 2) / 2)} anos${base.max > 5 ? " ⚠" : ""}`;
+      return `<tr class="${u.length ? "" : "livre"}"><td>${descr(c)}</td><td>${idade}</td>
         <td>${u.length ? u.map((x) => `<span class="chip ${x.tipo === "dispensa" ? "" : "chip-plan"}">${esc(x.txt)}</span>`).join(" ") : `<button type="button" class="chip chip-btn" data-eqcand="${esc(c)}">livre — usar num pedido</button>`}</td></tr>`;
     }).join("");
 
@@ -1969,6 +1992,34 @@
     return window.SIGA.extrairLinhasPDF(window.pdfjsLib, await arquivo.arrayBuffer());
   }
 
+  /** Descrição de um histórico na prévia, sem nome de arquivo: só datas e contagem. */
+  function descricaoHistorico(h, i) {
+    const r = window.SIGA.resumoHistorico(h);
+    return `Histórico ${i + 1}: ${r.semestre ? `último semestre ${r.semestre}` : "sem semestre real"}${r.bloco ? ` · bloco de transferidos ${r.bloco}` : ""} · ${r.registros} registro${r.registros === 1 ? "" : "s"}`;
+  }
+  function htmlPapelHistorico(r) {
+    if (!r.entrada || r.entrada.historicos.length < 2) return "";
+    const p = r.papel;
+    const msg = p.estado === "duvida"
+      ? `<p class="alerta" id="siga-papel-msg">Não consegui decidir qual é o histórico do curso atual: as datas empatam ou não permitem decidir. Escolha uma opção. Até lá, o prazo de 5 anos das cursadas é só uma estimativa.</p>`
+      : `<p class="dica" id="siga-papel-msg">${p.estado === "escolhido" ? "Escolha sua. Vale para Usar este perfil e para Baixar perfil.js." : "Reconhecido pela data mais recente. Se não for este, escolha o outro."}</p>`;
+    return `<fieldset class="papel-historico" aria-describedby="siga-papel-msg">
+      <legend>Qual é o histórico do curso atual?</legend>
+      ${r.entrada.historicos.map((h, i) => `<label class="check"><input type="radio" name="siga-papel" value="${i}"${p.indice === i ? " checked" : ""}> ${esc(descricaoHistorico(h, i))}</label>`).join("")}
+      ${msg}
+    </fieldset>`;
+  }
+  /** Refaz o perfil da prévia com a escolha do histórico atual; aplicar e baixar leem o mesmo resultado. */
+  function recalculaPapel(r, escolha) {
+    const e = r.entrada;
+    r.escolha = escolha;
+    r.perfil = window.SIGA.montarPerfil({ historicos: e.historicos, boa: e.boa, curriculo: e.curriculo, catalogo: e.catalogo,
+      anterior: e.base, atualIdx: escolha });
+    r.papel = window.SIGA.papelHistoricos(e.historicos, escolha);
+    r.atual = e.boa ? r.perfil.periodos.find((p) => p.atual) || null : null;
+    r.ultimoReal = r.perfil.periodos.filter((p) => !p.atual && !p.planejado && semestreValido(p.nome)).map((p) => p.nome).pop() || null;
+  }
+
   function abreImportador() {
     const r = resultadoImportacao;
     const box = $("#detalhes");
@@ -1994,6 +2045,7 @@
           ${r.semCategoria.length ? `<li class="alerta">Atividades sem créditos fora do currículo e catálogo. Confira se são ACE: ${r.semCategoria.map(esc).join(", ")}.</li>` : ""}
           <li>Documentos reconhecidos: ${r.historicos} Histórico(s)${r.boa ? " e 1 BOA" : ""}</li>
         </ul>
+        ${htmlPapelHistorico(r)}
         ${r.atual ? `<div class="periodo-sugerido">
           <label class="rotulo" for="siga-atual">Período atual sugerido</label>
           <input id="siga-atual" class="campo campo-sm" value="${esc(r.atualEscolhido)}" placeholder="sem data" maxlength="6"
@@ -2034,10 +2086,11 @@
       const curriculo = {}, catalogo = {};
       M.grade.forEach((c) => { if (c.code) curriculo[c.code] = { category: c.category }; });
       M.catalogo.forEach((o) => { catalogo[o.code] = { category: o.category || 2 }; });
-      const historicos = lidos.filter((x) => x.tipo === "Histórico").map((x) => window.SIGA.lerHistorico(x.linhas));
+      const historicos = lidos.filter((x) => x.tipo === "Histórico").map((x) => window.SIGA.lerHistorico(x.linhas))
+        .filter((h) => h.registros.length);
       const boaL = lidos.find((x) => x.tipo === "BOA");
       const boa = boaL ? window.SIGA.lerBOA(boaL.linhas) : null;
-      if (!historicos.some((h) => h.registros.length) && !boa) throw new Error("não reconheci nenhum Histórico ou BOA do SIGA nesses arquivos");
+      if (!historicos.length && !boa) throw new Error("não reconheci nenhum Histórico ou BOA do SIGA nesses arquivos");
       if (!status.isConnected || $("#detalhes").hidden) return;
       const anterior = perfilExportado();
       const atualAnterior = anterior.periodos.find((p) => p.atual);
@@ -2058,7 +2111,8 @@
       const mesmoBoaSemData = atualAnterior?.nome === "atual" && boa?.emissao && boa.emissao === anterior.fonte?.boaEmissao;
       const sugerido = anteriorDatado ? atualAnterior.nome : atual?.nome;
       previaObsoleta = false;
-      resultadoImportacao = { perfil: novo, boa, semCategoria, historicos: historicos.filter((h) => h.registros.length).length,
+      resultadoImportacao = { perfil: novo, boa, semCategoria, historicos: historicos.length,
+        entrada: { historicos, boa, curriculo, catalogo, base }, escolha: null, papel: window.SIGA.papelHistoricos(historicos),
         atual, atualAnterior, ultimoReal, conflito: null,
         atualEscolhido: atual && !mesmoBoaSemData && semestreValido(sugerido) ? sugerido : "",
         planosFora, descartarPlanos: false };
@@ -2669,6 +2723,13 @@
       if (ev.target.id !== "siga-atual" || !resultadoImportacao) return;
       resultadoImportacao.atualEscolhido = ev.target.value;
       atualizaPreviaImportacao();
+    });
+    $("#detalhes").addEventListener("change", (ev) => {
+      if (ev.target.name !== "siga-papel" || !resultadoImportacao) return;
+      recalculaPapel(resultadoImportacao, Number(ev.target.value));
+      avaliaImportacao(resultadoImportacao);
+      abreImportador();
+      $('input[name="siga-papel"]:checked')?.focus();
     });
     $("#detalhes").addEventListener("change", (ev) => {
       if (ev.target.id !== "siga-descartar-planos" || !resultadoImportacao) return;
