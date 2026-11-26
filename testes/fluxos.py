@@ -315,6 +315,139 @@ def t_mac(b):
     assert "Requisito" not in it and "ofertada" not in it, it
     ctx.close()
 
+@caso("CR-01: pré-requisito na linha do tempo depende do semestre")
+def t_cr01_pre(b):
+    alvo = {"nome": "2027/1", "planejado": True, "disciplinas": ["MAC238"]}
+    historico = {"nome": "2025/1", "disciplinas": ["MAC118"]}
+    posterior = {"nome": "2028/1", "atual": True, "disciplinas": [{"code": "MAC128", "status": "previsto"}]}
+    anterior = {"nome": "2026/2", "planejado": True, "disciplinas": ["MAC128"]}
+    mesmo = {"nome": "2027/1", "planejado": True, "disciplinas": ["MAC128", "MAC238"]}
+    sem_data = {"nome": "atual", "atual": True, "disciplinas": ["MAC128"]}
+    observado = {}
+    for nome, periodos, codigo, requisito in [
+        ("posterior-permutado", [posterior, alvo], "MAC238", "MAC128"),
+        ("posterior-natural", [alvo, posterior], "MAC238", "MAC128"),
+        ("anterior-permutado", [alvo, anterior], "MAC238", "MAC128"),
+        ("mesmo-semestre", [mesmo], "MAC238", "MAC128"),
+        ("origem-sem-data", [sem_data, alvo], "MAC238", "MAC128"),
+        ("alvo-sem-data", [sem_data], "MAC128", "MAC118"),
+    ]:
+        ctx, pg = abre(b, perfil={"periodos": [historico, *periodos]}, nome=f"cr01-pre-{nome}")
+        completo(pg, "timeline")
+        titulo = pg.locator(f'.card[data-code="{codigo}"]').get_attribute("title")
+        observado[nome] = f"Requisito {requisito} não cumprido" in titulo
+        ctx.close()
+    assert observado == {
+        "posterior-permutado": True, "posterior-natural": True, "anterior-permutado": False,
+        "mesmo-semestre": True, "origem-sem-data": True, "alvo-sem-data": True,
+    }, observado
+
+@caso("CR-01: co-requisito aceita o mesmo semestre e rejeita semestre posterior")
+def t_cr01_co(b):
+    observado = {}
+    for junto in (True, False):
+        for inverter in (False, True):
+            base = {"nome": "2026/1", "disciplinas": ["EEL670"]}
+            alvo = {"nome": "2027/2", "planejado": True, "disciplinas": ["EEL418"]}
+            if junto:
+                alvo["disciplinas"].append("COS231")
+                periodos = [base, alvo]
+            else:
+                periodos = [base, alvo, {"nome": "2028/1", "planejado": True, "disciplinas": ["COS231"]}]
+            if inverter:
+                periodos.reverse()
+            ctx, pg = abre(b, perfil={"periodos": periodos}, nome=f"cr01-co-{junto}-{inverter}")
+            completo(pg, "timeline")
+            titulo = pg.locator('.card[data-code="EEL418"]').get_attribute("title")
+            observado[junto, inverter] = "Co-requisito COS231 não cumprido" in titulo
+            ctx.close()
+    assert observado == {(True, False): False, (True, True): False, (False, False): True, (False, True): True}, observado
+
+@caso("CR-01: sugestões só incluem MAC238 quando o pré-requisito vem antes")
+def t_cr01_sugestoes(b):
+    observado = {}
+    for nome, semestre, inverter in [
+        ("posterior-permutado", "2028/1", True),
+        ("posterior-natural", "2028/1", False),
+        ("anterior-natural", "2026/1", False),
+        ("anterior-permutado", "2026/1", True),
+    ]:
+        fonte = {"nome": semestre, "disciplinas": ["MAC128"]}
+        if nome.startswith("posterior"):
+            fonte.update(atual=True, disciplinas=[{"code": "MAC128", "status": "previsto"}])
+        alvo = {"nome": "2027/1", "planejado": True, "disciplinas": []}
+        periodos = [{"nome": "2025/1", "disciplinas": ["MAC118"]}, *sorted([fonte, alvo], key=lambda p: p["nome"], reverse=inverter)]
+        ctx, pg = abre(b, perfil={"periodos": periodos}, nome=f"cr01-sug-{nome}")
+        completo(pg, "cronograma")
+        pg.click('[data-cperiodo="2027/1"]')
+        sugestao = pg.locator('.lista-sug [data-sugadd="MAC238"]')
+        observado[nome] = sugestao.count() == 1
+        if observado[nome]:
+            expect(sugestao.locator("xpath=ancestor::li")).to_have_class("cabe")
+        ctx.close()
+    assert observado == {
+        "posterior-permutado": False, "posterior-natural": False,
+        "anterior-natural": True, "anterior-permutado": True,
+    }, observado
+
+@caso("CR-01: a proposta coloca disciplinas sem horário no último semestre planejado")
+def t_cr01_proposta(b):
+    ctx, pg = abre(b, perfil={"periodos": [
+        {"nome": "2028/1", "planejado": True, "disciplinas": []},
+        {"nome": "2027/1", "planejado": True, "disciplinas": []},
+    ]}, nome="cr01-proposta")
+    completo(pg, "cronograma")
+    observado = {}
+    for semestre in ("2027/1", "2028/1"):
+        pg.click(f'[data-cperiodo="{semestre}"]')
+        pg.click("#prop-gerar")
+        observado[semestre] = "EEWX00" in pg.locator(".proposta ul").inner_text()
+    ctx.close()
+    assert observado == {"2027/1": False, "2028/1": True}, observado
+
+@caso("CR-01: a equivalência deferida usa a data da última disciplina de origem")
+def t_cr01_equivalencia(b):
+    alvo = {"nome": "2027/1", "planejado": True, "disciplinas": ["MAC238"]}
+    cedo = {"nome": "2026/1", "disciplinas": ["MAC118"]}
+    observado = {}
+    for semestre in ("2026/2", "2028/1", "atual"):
+        outra = {"nome": semestre, "disciplinas": ["FIT112"]}
+        ctx, pg = abre(b, perfil={
+            "periodos": [outra, cedo, alvo],
+            "equivalencias": [{"cursadas": ["MAC118", "FIT112"], "pedida": "MAC128", "status": "deferido"}],
+        }, nome=f"cr01-eq-{semestre}")
+        completo(pg, "timeline")
+        titulo = pg.locator('.card[data-code="MAC238"]').get_attribute("title")
+        observado[semestre] = "Requisito MAC128 não cumprido" in titulo
+        ctx.close()
+    assert observado == {"2026/2": False, "2028/1": True, "atual": True}, observado
+
+@caso("PC-02/03: aprovação pelo pincel conta crédito e identifica a simulação")
+def t_cr01_manual(b):
+    perfil = {"periodos": [
+        {"nome": "2025/1", "disciplinas": ["MAC118", {"code": "FIS111", "nota": "T"}]},
+        {"nome": "2025/2", "disciplinas": [{"code": "FIT112", "status": "reprovado"}]},
+    ]}
+    ctx, pg = abre(b, perfil=perfil, extra={"marcacoes": {"FIT112": "aprovada"}}, nome="cr01-manual-credito")
+    assert pg.evaluate("GradeInterativa.totais()[1].ok") == 11
+    completo(pg, "grade")
+    pg.locator('.card[data-code="FIT112"]').click()
+    expect(pg.locator("#detalhes .det-status")).to_contain_text("marcada com o pincel")
+    pg.keyboard.press("Escape")
+    pg.click("#bg-detalhes")
+    legenda = pg.locator("#legenda").inner_text() if pg.locator("#legenda").is_visible() else ""
+    ctx.close()
+
+    ctx, pg = abre(b, perfil={"periodos": [{"nome": "2027/1", "planejado": True, "disciplinas": ["MAC128"]}]},
+                   extra={"marcacoes": {"MAC118": "aprovada"}}, nome="cr01-manual-requisito")
+    completo(pg, "timeline")
+    mac128 = pg.locator('.card[data-code="MAC128"]')
+    assert "Requisito MAC118 não cumprido" not in mac128.get_attribute("title")
+    mac128.click()
+    requisito = pg.locator('#detalhes li:has([data-ir="MAC118"])').inner_text()
+    ctx.close()
+    assert "marcação manual" in legenda and "marcação manual" in requisito, (legenda, requisito)
+
 # ------------------------------------------------------------------ regressões gerais
 @caso("Regressões: abas, busca de optativas mantém foco, horários por clique, equivalências/ACE, exportação e recarga")
 def t_regressao(b):
@@ -797,7 +930,9 @@ CASOS3 = [t_fecha_durante_leitura, t_previa_confirmacao, t_previa_download, t_fo
 
 CASOS = [
     t_descartar_salvo, t_tema, t_tema_abas, t_sem_perfil, t_criar_perfil, t_perfil_conflito,
-    t_compat, t_siga, t_siga_sem_boa, t_excluir, t_oferta, t_mac, t_regressao, t_a11y,
+    t_compat, t_siga, t_siga_sem_boa, t_excluir, t_oferta, t_mac,
+    t_cr01_pre, t_cr01_co, t_cr01_sugestoes, t_cr01_proposta, t_cr01_equivalencia, t_cr01_manual,
+    t_regressao, t_a11y,
 ] + CASOS2 + CASOS3
 
 def rodar(navegador, url, pasta, fixtures_pdf):

@@ -1,9 +1,9 @@
 # Testes da Grade ECI
 
-A suíte tem 29 cenários de interface e cinco do kit de reimportação. Os casos A–D
+A suíte tem 35 cenários de interface e cinco do kit de reimportação. Os casos A–D
 testam a preservação de anotações e a igualdade entre baixar e aplicar. O caso P
-ensaia a publicação com HTTP estático sob `/grade/`. Por `file://`, rodam 33
-cenários. Por HTTP, rodam 34.
+ensaia a publicação com HTTP estático sob `/grade/`. Por `file://`, rodam 39
+cenários. Por HTTP, rodam 40.
 
 O executor testa a versão indicada por `--ref`. Ele exporta apenas os caminhos
 públicos do commit para uma cópia fora do checkout. Os PDFs são gerados das

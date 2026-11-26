@@ -78,6 +78,7 @@
   ]);
   const TITULO = "Grade ECI";
   const semestreValido = (v) => typeof v === "string" && /^\d{4}\/[12]$/.test(v);
+  const semIdx = (nome) => semestreValido(nome) ? Number(nome.slice(0, 4)) * 2 + Number(nome[5]) - 1 : null;
   const concluido = (s) => s === "aprovado" || s === "previsto";
   const emCurso = (s) => s === "planejado" || s === "cursando";
 
@@ -386,7 +387,7 @@
         });
         return item;
       });
-      return { nome: p.nome, nota: p.nota, tipo, itens, pi, editado };
+      return { nome: p.nome, semestre: semIdx(p.nome), nota: p.nota, tipo, itens, pi, editado };
     });
 
     // Equivalências: deferida passa a valer como a disciplina pedida (e a cursada deixa de contar no grupo original);
@@ -417,12 +418,15 @@
           pedidosComConflito.add(e);
           return;
         }
+        const semestreDoRegistro = (r) => periodos[r?.pi]?.semestre ?? null;
+        const maisRecentePrimeiro = (a, b) => (semestreDoRegistro(b) ?? -1) - (semestreDoRegistro(a) ?? -1);
         const registros = cs.map((c) => {
-          const datados = (regs[c.code] || []).filter((r) => r.pi != null);
-          return datados.filter((r) => r.status === "aprovado").pop()
-            || datados.filter((r) => r.status === "previsto" || emCurso(r.status)).pop();
+          const origens = (regs[c.code] || []).filter((r) => r.pi != null).sort(maisRecentePrimeiro);
+          return origens.find((r) => r.status === "aprovado")
+            || origens.find((r) => r.status === "previsto" || emCurso(r.status));
         });
-        const pi = registros.every(Boolean) ? Math.max(...registros.map((r) => r.pi)) : null;
+        const pi = registros.every((r) => semestreDoRegistro(r) != null)
+          ? registros.sort(maisRecentePrimeiro)[0].pi : null;
         const status = registros.every((r) => r?.status === "aprovado") ? "aprovado" : "previsto";
         registra(e.pedida, { pi, status, nota: "E", via: `equivalência deferida: ${cs.map((c) => c.code).join(" + ")}` });
         cs.forEach((c) => consumidas.add(c.code));
@@ -450,6 +454,7 @@
   }
   const tagPorId = (id) => tags.find((t) => t.id === id) || null;
   const statusDaTag = (id) => { const t = tagPorId(id); return t ? t.status : "pendente"; };
+  const aprovacaoManual = (code) => Object.hasOwn(marcacoes, code) && statusDaTag(marcacoes[code]) === "aprovado";
   /** Status efetivo: a marcação do pincel, se houver, vence o perfil. */
   function statusDe(code) {
     if (Object.prototype.hasOwnProperty.call(marcacoes, code)) return statusDaTag(marcacoes[code]);
@@ -473,15 +478,20 @@
   };
   const periodoDe = (code, filtro) => (M.regs[code] || []).filter((r) => filtro(r.status)).map((r) => M.periodos[r.pi]?.nome).filter(Boolean);
 
-  // Requisito cumprido (ou previsto/planejado) em período anterior a "pi"?
-  function cumpridoAntes(code, pi) {
-    if (Object.prototype.hasOwnProperty.call(marcacoes, code) && statusDaTag(marcacoes[code]) === "aprovado") return true;
-    return (M.regs[code] || []).some((r) => r.pi != null && FORCA[r.status] >= FORCA.planejado && r.pi < pi);
+  // A marcação manual simula aprovação mesmo sem uma data no histórico.
+  function requisitoCumprido(code, semestre, aceitaMesmoSemestre = false) {
+    if (aprovacaoManual(code)) return true;
+    if (semestre == null) return false;
+    return (M.regs[code] || []).some((r) => {
+      const origem = M.periodos[r.pi]?.semestre;
+      return origem != null && FORCA[r.status] >= FORCA.planejado
+        && (origem < semestre || (aceitaMesmoSemestre && origem === semestre));
+    });
   }
-  function avisos(code, pi) {
+  function avisos(code, semestre) {
     const i = M.info(code); if (!i) return [];
-    return i.req.filter((r) => !cumpridoAntes(r, pi)).map((r) => `Requisito ${r} não cumprido antes deste período`)
-      .concat(i.coreq.filter((r) => !cumpridoAntes(r, pi + 1)).map((r) => `Co-requisito ${r} não cumprido até este período`));
+    return i.req.filter((r) => !requisitoCumprido(r, semestre)).map((r) => `Requisito ${r} não cumprido antes deste período`)
+      .concat(i.coreq.filter((r) => !requisitoCumprido(r, semestre, true)).map((r) => `Co-requisito ${r} não cumprido até este período`));
   }
   // Para o catálogo: requisitos que faltam hoje (aprovado/previsto contam)
   const faltamHoje = (i) => i.req.filter((r) => !concluido(statusDe(r)));
@@ -876,7 +886,7 @@
         const subs = [];
         if (it.equivale && M.curr[it.equivale]) subs.push(`≡ ${esc(it.equivale)} ${esc(M.curr[it.equivale].name)}`);
         if (it.dispensas.length) subs.push("dispensa " + it.dispensas.map(esc).join(", "));
-        const aviso = p.tipo !== "cursado" && it.status !== "reprovado" ? avisos(it.alvo, p.pi) : [];
+        const aviso = p.tipo !== "cursado" && it.status !== "reprovado" ? avisos(it.alvo, p.semestre) : [];
         const oferta = p.tipo === "planejado" && it.status !== "reprovado" ? avisoOferta(it.alvo, p.nome) : null;
         if (oferta) { aviso.push(oferta.texto); subs.push(`<span class="aviso-oferta">${esc(oferta.curto)}</span>`); }
         return card({
@@ -1004,8 +1014,6 @@
   }
 
   // ---------- Vista: Equivalências & Extensão ----------
-  // Semestre "2021/1" -> índice; usado para o prazo de 5 anos (Res. CEG 01/2017)
-  const semIdx = (nome) => { const m = /^(\d{4})\/([12])$/.exec(nome || ""); return m ? (+m[1]) * 2 + (+m[2] - 1) : null; };
   const semAtual = () => { const d = new Date(); return d.getFullYear() * 2 + (d.getMonth() < 6 ? 0 : 1); };
   function idadeAnos(code) {
     const r = (M.regs[code] || []).filter((x) => x.status === "aprovado").pop();
@@ -1184,7 +1192,10 @@
   }
 
   // ---------- Planejamento: pendências e sugestões ----------
-  function ultimoPlanejado() { const f = periodosFuturos(); return f.length ? f[f.length - 1] : null; }
+  function ultimoPlanejado() {
+    return periodosFuturos().reduce((ultimo, p) =>
+      (p.semestre ?? -1) >= (ultimo?.semestre ?? -1) ? p : ultimo, null);
+  }
 
   function necessidades() {
     const t = totais(), need = {};
@@ -1203,7 +1214,7 @@
       if (concluido(s) || emCurso(s) || s === "analise") return;
       const obrig = i.fonte === "grade" && i.category == 1;
       if (!obrig && !(need[i.category] > 0)) return;
-      if (i.req.some((r) => !cumpridoAntes(r, p.pi)) || i.coreq.some((r) => !cumpridoAntes(r, p.pi + 1))) return;
+      if (!reqsOk(i, p.semestre)) return;
       const choques = chocaCom(of[code], p.nome, code);
       lista.push({ code, i, obrig, horarios: of[code], cel: parseHorarios(of[code]), choques });
     });
@@ -1225,13 +1236,14 @@
       if (!c.obrig) need[c.i.category] -= valorCat(c.i);
     });
     // sem horário fixo (PG, estágio) entram no último período planejado
-    if (ultimoPlanejado() && ultimoPlanejado().nome === p.nome) {
+    if (ultimoPlanejado() === p) {
       M.grade.filter((c) => c.code && FORCA[statusDe(c.code)] <= FORCA.reprovado && !paridadesOferta(c.code).length
-        && reqsOk(c.code, p.pi)).forEach((c) => itens.push({ code: c.code, name: c.name, cr: c.credits, cat: 1, semHorario: true }));
+        && reqsOk(M.info(c.code), p.semestre)).forEach((c) => itens.push({ code: c.code, name: c.name, cr: c.credits, cat: 1, semHorario: true }));
     }
     return { periodo: p.nome, itens, falta: need };
   }
-  const reqsOk = (code, pi) => { const i = M.info(code); return !i || (i.req.every((r) => cumpridoAntes(r, pi)) && i.coreq.every((r) => cumpridoAntes(r, pi + 1))); };
+  const reqsOk = (info, semestre) => !info || (info.req.every((r) => requisitoCumprido(r, semestre))
+    && info.coreq.every((r) => requisitoCumprido(r, semestre, true)));
 
   function renderPlanejamento(p) {
     const ult = ultimoPlanejado();
@@ -1242,7 +1254,7 @@
     const avisosPlan = [];
     periodosPlanejaveis().forEach((q) => q.itens.forEach((it) => {
       if (it.status === "reprovado") return;
-      const av = avisos(it.alvo, q.pi);
+      const av = avisos(it.alvo, q.semestre);
       if (!av.length) return;
       const outras = paridadesOferta(it.alvo).filter((x) => x !== paridade(q.nome));
       avisosPlan.push(`<li><b>${esc(it.code)}</b> em ${esc(q.nome)}: ${esc(av.join("; "))}. ${outras.length ? `Também tem turma em semestres ${outras[0] === "par" ? "pares (/2)" : "ímpares (/1)"}.` : `Sem turma de referência em semestres ${paridade(q.nome) === "impar" ? "pares (/2)" : "ímpares (/1)"} — se ficar para depois, só volta em ${q.nome.replace(/\d{4}/, (a) => +a + 1)}.`} Alternativa: pedir à coordenação quebra de requisito (cursar junto com o requisito).</li>`);
@@ -1328,7 +1340,7 @@
     const lista = p.itens.map((it) => {
       if (it.status !== "reprovado" && it.category != 5) cr += it.credits;
       hs += it.cel.size;
-      const aviso = p.tipo !== "cursado" && it.status !== "reprovado" ? avisos(it.alvo, p.pi) : [];
+      const aviso = p.tipo !== "cursado" && it.status !== "reprovado" ? avisos(it.alvo, p.semestre) : [];
       const oferta = p.tipo === "planejado" && it.status !== "reprovado" ? avisoOferta(it.alvo, p.nome) : null;
       return `<li class="crono-item${cronoSel === it.code ? " sel" : ""} s-${esc(it.status)}" style="--cor:${cor[it.code]}">
         <button type="button" class="crono-pick" data-csel="${esc(it.code)}">
@@ -1452,6 +1464,7 @@
   function renderLegenda() {
     $("#legenda").innerHTML = ["aprovado", "previsto", "cursando", "planejado", "analise", "reprovado", "pendente"]
       .map((s) => `<span class="leg s-${s}"><i></i>${ROTULO[s]}</span>`).join("")
+      + (Object.keys(marcacoes).some(aprovacaoManual) ? `<span>Aprovação por marcação manual (pincel)</span>` : "")
       + `<span class="leg-sep"></span>`
       + Object.keys(CATS).map((k) => `<span class="leg-cat cat-${k}"><i></i>${CATS[k].nome}</span>`).join("")
       + (M.guia ? `<span class="leg-sep"></span>` + Object.values(M.guia.niveis).map((n) => `<span class="leg-niv" title="${esc(n.texto)}">${n.emoji} ${esc(n.nome)}</span>`).join("") : "");
@@ -1640,9 +1653,10 @@
     if (perfil) renderBarraGeral();
     const detalhado = !!perfil && (vista === "timeline" || progressoAberto);
     $("#progresso").hidden = !detalhado;
-    $("#legenda").hidden = vista !== "timeline";
+    const mostraLegenda = vista === "timeline" || detalhado;
+    $("#legenda").hidden = !mostraLegenda;
     if (detalhado) renderProgresso();
-    if (vista === "timeline") renderLegenda();
+    if (mostraLegenda) renderLegenda();
     $("#ferramentas").hidden = vista !== "grade" || modoClassico;
     if (vista === "grade" && !modoClassico) $("#ferramentas").innerHTML = renderFerramentas();
     $("#paleta").hidden = vista !== "grade";
@@ -1676,9 +1690,10 @@
   }
 
   // ---------- Detalhes ----------
-  function linhaCurso(code) {
+  function linhaCurso(code, requisito = false) {
     const i = M.info(code), s = statusDe(code);
-    return `<li><button type="button" class="link" data-ir="${esc(code)}"><i class="dot s-${s}"></i>${esc(code)} ${esc(i ? i.name : "")}</button><small>${ROTULO[s]}</small></li>`;
+    const origem = requisito && aprovacaoManual(code) ? " por marcação manual (pincel)" : "";
+    return `<li><button type="button" class="link" data-ir="${esc(code)}"><i class="dot s-${s}"></i>${esc(code)} ${esc(i ? i.name : "")}</button><small>${ROTULO[s]}${origem}</small></li>`;
   }
 
   function abreDetalhes(alvo) {
@@ -1716,9 +1731,9 @@
             <p class="dica">Fonte: ${esc(M.guia.fonte || "")}. Opinião geral de alunos — não tome como lei.</p></div>`;
         })()}
         ${hist ? `<h4>Histórico</h4><ul class="lista">${hist}</ul>` : ""}
-        ${i.req.length ? `<h4>Pré-requisitos</h4><ul class="lista">${i.req.map(linhaCurso).join("")}</ul>` : ""}
-        ${i.coreq.length ? `<h4>Co-requisitos</h4><ul class="lista">${i.coreq.map(linhaCurso).join("")}</ul>` : ""}
-        ${ds.length ? `<h4>Libera</h4><ul class="lista">${ds.map(linhaCurso).join("")}</ul>` : ""}
+        ${i.req.length ? `<h4>Pré-requisitos</h4><ul class="lista">${i.req.map((r) => linhaCurso(r, true)).join("")}</ul>` : ""}
+        ${i.coreq.length ? `<h4>Co-requisitos</h4><ul class="lista">${i.coreq.map((r) => linhaCurso(r, true)).join("")}</ul>` : ""}
+        ${ds.length ? `<h4>Libera</h4><ul class="lista">${ds.map((r) => linhaCurso(r)).join("")}</ul>` : ""}
         ${!concluido(s) && futuros.length ? `<h4>Planejar</h4><div class="chips">${futuros.map((p) => {
           const dentro = p.itens.some((it) => it.alvo === code);
           return `<button type="button" class="mini-btn${dentro ? " on" : ""}" data-plan="${esc(p.nome)}" data-pcode="${esc(code)}">${dentro ? "✓" : "+"} ${esc(p.nome)}</button>`;
@@ -2640,7 +2655,7 @@
 
   // Ganchos para testes e para quem quiser depurar no console do navegador.
   window.GradeInterativa = { carregaPdfJs, linhasPDF, perfilExportado: () => perfilExportado(), totais: () => totais(),
-    avisoOferta: (c, p) => avisoOferta(c, p), avisos: (c, nome) => { const p = M.periodos.find((x) => x.nome === nome); return p ? avisos(c, p.pi) : null; } };
+    avisoOferta: (c, p) => avisoOferta(c, p), avisos: (c, nome) => { const p = M.periodos.find((x) => x.nome === nome); return p ? avisos(c, p.semestre) : null; } };
 
   montaModelo();
   liga();
