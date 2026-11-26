@@ -1553,6 +1553,16 @@ def t_sync(b):
     ctx.close()
 
 EXPS = ["COS110", "COS242", "EEL873"]
+def foco_devolvido(pg, code, ms=3000):
+    """O <dialog> devolve o foco ao fechar: em alguns motores a leitura logo após o evento ainda vê o próprio <dialog>
+    (6–10 ms depois o foco já está no cartão). Espera dirigida pela devolução e mantém o mesmo oráculo."""
+    try:
+        pg.wait_for_function("(c) => !!document.activeElement && !!document.activeElement.dataset && document.activeElement.dataset.code === c", arg=code, timeout=ms)
+    except Exception:
+        pass
+    atual = pg.evaluate("document.activeElement && document.activeElement.dataset && document.activeElement.dataset.code")
+    assert atual == code, (code, atual, pg.evaluate("document.activeElement ? document.activeElement.outerHTML.slice(0, 80) : 'nada'"))
+
 @caso("Paleta ECI por trás: destaca as três disciplinas, atenua e inativa as outras; tela cheia com Voltar e Esc; foco volta ao cartão (teclado e toque)")
 def t_seletor_eci(b):
     for vp, toque, nome in [(D, False, "desktop"), (C, True, "celular")]:
@@ -1570,9 +1580,9 @@ def t_seletor_eci(b):
         box = dlg.bounding_box(); assert box["width"] >= vp["width"] - 1 and box["height"] >= vp["height"] - 1, box
         expect(pg.locator("#dlg-eci-titulo")).to_have_text("COS242 · Teoria dos Grafos · 4º período")
         pg.keyboard.press("Escape"); expect(dlg).to_be_hidden()
-        assert pg.evaluate("document.activeElement.dataset.code") == "COS242"
+        foco_devolvido(pg, "COS242")
         pg.locator('.card[data-code="EEL873"]').click(); pg.click("#eci-voltar"); expect(dlg).to_be_hidden()
-        assert pg.evaluate("document.activeElement.dataset.code") == "EEL873"
+        foco_devolvido(pg, "EEL873")
         pg.click("#pal-eci"); assert pg.locator(".card[inert]").count() == 0
         assert snapshot(pg) == antes
         ctx.close()
