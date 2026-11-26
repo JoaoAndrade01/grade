@@ -1165,8 +1165,6 @@
     return `<p class="aviso-dispensa alerta" role="note">⚠ ${lista.map((x) => `${esc(x.origem)} aparece como origem de ${x.alvos.length} dispensas (${x.alvos.map(esc).join(", ")}).`).join(" ")}
       A Resolução CEG 01/2017, art. 46, II, veda reutilizar a mesma origem. Os alvos contam como no histórico; os créditos da origem não são somados de novo.</p>`;
   }
-  /** Sem o histórico do curso atual confirmado, a idade é só uma estimativa. */
-  const papelEmDuvida = () => !!(perfil && perfil.fonte && perfil.fonte.historicoAtual === "duvida");
   /** Texto curto da base e da origem de uma cursada, para o pedido e a tabela de livre escolha. */
   function textoBase(b) {
     if (!b) return "";
@@ -1265,7 +1263,7 @@
         const base = baseDoPrazo(c.code);
         const id = base ? base.max : null;
         const infoBase = textoBase(base);
-        return `<div class="cur">${descr(c.code)}${infoBase ? `<br><small class="base-prazo">${esc(infoBase)}${papelEmDuvida() ? " Estimativa: o histórico do curso atual não foi confirmado." : ""}</small>` : ""}
+        return `<div class="cur">${descr(c.code)}${infoBase ? `<br><small class="base-prazo">${esc(infoBase)}</small>` : ""}
           <div class="cur-acoes"><select class="campo campo-sm" data-eqpapel="${k}:${j}"><option value="conteudo" ${c.papel !== "horas" ? "selected" : ""}>conteúdo</option><option value="horas" ${c.papel === "horas" ? "selected" : ""}>só horas</option></select>
           ${base && base.min > 5 ? `<small class="alerta" title="Res. CEG 01/2017">⚠ ${base.ano != null ? "mais de 5 anos" : fmt(Math.floor(id * 2) / 2) + " anos"}: pode exigir exame de suficiência</small>` : ""}
           ${a.cs.length > 1 ? `<button type="button" class="x" data-eqrmc="${k}:${j}" title="Tirar do pedido">×</button>` : ""}</div></div>`;
@@ -2086,7 +2084,7 @@
     if (!r.entrada || r.entrada.historicos.length < 2) return "";
     const p = r.papel;
     const msg = p.estado === "duvida"
-      ? `<p class="alerta" id="siga-papel-msg">Não consegui decidir qual é o histórico do curso atual: as datas empatam ou não permitem decidir. Escolha uma opção. Até lá, o prazo de 5 anos das cursadas é só uma estimativa.</p>`
+      ? `<p class="alerta" id="siga-papel-msg">Não consegui decidir qual é o histórico do curso atual: as datas empatam ou não permitem decidir. Escolha uma opção para continuar: Usar este perfil e Baixar perfil.js ficam desativados até lá.</p>`
       : `<p class="dica" id="siga-papel-msg">${p.estado === "escolhido" ? "Escolha sua. Vale para Usar este perfil e para Baixar perfil.js." : "Reconhecido pela data mais recente. Se não for este, escolha o outro."}</p>`;
     return `<fieldset class="papel-historico" aria-describedby="siga-papel-msg">
       <legend>Qual é o histórico do curso atual?</legend>
@@ -2094,15 +2092,35 @@
       ${msg}
     </fieldset>`;
   }
-  /** Refaz o perfil da prévia com a escolha do histórico atual; aplicar e baixar leem o mesmo resultado. */
-  function recalculaPapel(r, escolha) {
+  /**
+   * Tudo o que depende de qual histórico é o do curso atual: perfil, papel, período atual sugerido, planos que
+   * ficam de fora e a marca de período deduzido. Roda na geração e a cada troca na prévia, para que "Usar este
+   * perfil", "Baixar perfil.js" e o aviso de plano descartado reflitam sempre a escolha final.
+   */
+  function derivaPrevia(r, escolha) {
     const e = r.entrada;
     r.escolha = escolha;
+    r.papel = window.SIGA.papelHistoricos(e.historicos, escolha);
     r.perfil = window.SIGA.montarPerfil({ historicos: e.historicos, boa: e.boa, curriculo: e.curriculo, catalogo: e.catalogo,
       anterior: e.base, atualIdx: escolha });
-    r.papel = window.SIGA.papelHistoricos(e.historicos, escolha);
+    // O importador descarta os planejados até o semestre inferido. Guardamos esses planos para devolvê-los
+    // depois da escolha do período atual (ou pedir uma decisão explícita se ainda colidirem).
+    r.planosFora = clone(e.anterior.periodos.filter((p) => p.planejado
+      && !r.perfil.periodos.some((q) => q.planejado && q.nome === p.nome)));
     r.atual = e.boa ? r.perfil.periodos.find((p) => p.atual) || null : null;
     r.ultimoReal = r.perfil.periodos.filter((p) => !p.atual && !p.planejado && semestreValido(p.nome)).map((p) => p.nome).pop() || null;
+    const ant = e.atualAnterior;
+    const anteriorDatado = semestreValido(ant?.nome) && (!r.ultimoReal || ant.nome > r.ultimoReal) && !conflitoPeriodo(r.perfil, ant.nome);
+    const mesmoBoaSemData = ant?.nome === "atual" && e.boa?.emissao && e.boa.emissao === e.anterior.fonte?.boaEmissao;
+    const sugerido = anteriorDatado ? ant.nome : r.atual?.nome;
+    // RA-19: só há "deduzido" quando o semestre sugerido é um semestre real. Um período já marcado como deduzido
+    // continua deduzido ao reimportar, enquanto a pessoa mantiver o mesmo semestre.
+    r.deduzido = !r.atual || !semestreValido(sugerido) ? null : anteriorDatado ? (ant.deduzido ? ant.nome : null) : r.atual.nome;
+    if (!r.atualEditado) r.atualEscolhido = r.atual && !mesmoBoaSemData && semestreValido(sugerido) ? sugerido : "";
+  }
+  /** Refaz a prévia com a escolha do histórico atual; aplicar e baixar leem o mesmo resultado. */
+  function recalculaPapel(r, escolha) {
+    derivaPrevia(r, escolha);
   }
 
   function abreImportador() {
@@ -2182,26 +2200,13 @@
       const atualAnterior = anterior.periodos.find((p) => p.atual);
       // Com BOA, a mesclagem do período atual depende da escolha feita na prévia.
       const base = boa ? { ...anterior, periodos: anterior.periodos.filter((p) => !p.atual) } : anterior;
-      const novo = window.SIGA.montarPerfil({ historicos, boa, curriculo, catalogo, anterior: base });
-      // O importador descarta os planejados até o semestre inferido. Guardamos esses planos para devolvê-los
-      // depois da escolha do período atual (ou pedir uma decisão explícita se ainda colidirem).
-      const planosFora = clone(anterior.periodos.filter((p) => p.planejado
-        && !novo.periodos.some((q) => q.planejado && q.nome === p.nome)));
       const semCategoria = [...new Set((boa?.cursando || [])
         .filter((c) => c.ncc && !curriculo[c.code] && !catalogo[c.code]).map((c) => c.code))].sort();
-      // Período atual inferido pelo importador (semestre seguinte ao último real); só com BOA. Pode ser corrigido na prévia.
-      const atual = boa ? novo.periodos.find((p) => p.atual) || null : null;
-      const ultimoReal = novo.periodos.filter((p) => !p.atual && !p.planejado && semestreValido(p.nome)).map((p) => p.nome).pop() || null;
-      const anteriorDatado = semestreValido(atualAnterior?.nome) && (!ultimoReal || atualAnterior.nome > ultimoReal)
-        && !conflitoPeriodo(novo, atualAnterior.nome);
-      const mesmoBoaSemData = atualAnterior?.nome === "atual" && boa?.emissao && boa.emissao === anterior.fonte?.boaEmissao;
-      const sugerido = anteriorDatado ? atualAnterior.nome : atual?.nome;
       previaObsoleta = false;
-      resultadoImportacao = { deduzido: !anteriorDatado && atual ? atual.nome : null, perfil: novo, boa, semCategoria, historicos: historicos.length,
-        entrada: { historicos, boa, curriculo, catalogo, base }, escolha: null, papel: window.SIGA.papelHistoricos(historicos),
-        atual, atualAnterior, ultimoReal, conflito: null,
-        atualEscolhido: atual && !mesmoBoaSemData && semestreValido(sugerido) ? sugerido : "",
-        planosFora, descartarPlanos: false };
+      resultadoImportacao = { boa, semCategoria, historicos: historicos.length,
+        entrada: { historicos, boa, curriculo, catalogo, base, anterior, atualAnterior },
+        atualAnterior, conflito: null, atualEditado: false, descartarPlanos: false };
+      derivaPrevia(resultadoImportacao, null);
       avaliaImportacao(resultadoImportacao);
       abreImportador();
     } catch (e) {
@@ -2274,7 +2279,7 @@
     const chave = r.colisoes.map((c) => `${c.nome}:${c.com}`).join("|");
     if (chave !== r.chaveColisoes) { r.descartarPlanos = false; r.chaveColisoes = chave; }
   }
-  const importacaoBloqueada = (r) => !!r.conflito || (r.colisoes.length > 0 && !r.descartarPlanos);
+  const importacaoBloqueada = (r) => !!r.conflito || r.papel.estado === "duvida" || (r.colisoes.length > 0 && !r.descartarPlanos);
   function htmlPlanosImportacao(r) {
     const voltam = (r.planosFora || []).filter((p) => !r.colisoes.some((c) => c.nome === p.nome));
     const disc = (n) => `${n} disciplina${n === 1 ? "" : "s"}`;
@@ -2810,6 +2815,7 @@
     $("#detalhes").addEventListener("input", (ev) => {
       if (ev.target.id !== "siga-atual" || !resultadoImportacao) return;
       resultadoImportacao.atualEscolhido = ev.target.value;
+      resultadoImportacao.atualEditado = true;
       atualizaPreviaImportacao();
     });
     $("#detalhes").addEventListener("change", (ev) => {

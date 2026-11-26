@@ -204,22 +204,7 @@
     "papel-anterior-2024-2"
    ],
    "atual": null,
-   "periodos": [
-    {
-     "nome": "2024/2",
-     "disciplinas": [
-      {
-       "code": "MAC118",
-       "nota": 7
-      },
-      {
-       "code": "MAC128",
-       "nota": 7
-      }
-     ]
-    }
-   ],
-   "historicoAtual": "duvida"
+   "duvida": true
   },
   "papel-escolha-bloco": {
    "arquivos": [
@@ -555,6 +540,35 @@
     }
    ],
    "historicoAtual": null
+  },
+  "escolha-sem-datas": {
+   "arquivos": [
+    "sem-datas",
+    "papel-anterior-2024-2"
+   ],
+   "atual": 0,
+   "periodos": [
+    {
+     "nome": "? (transferidas)",
+     "disciplinas": [
+      {
+       "code": "MAC118",
+       "nota": 7,
+       "aprovadaEm": "2024/2"
+      }
+     ]
+    },
+    {
+     "nome": "2024/2",
+     "disciplinas": [
+      {
+       "code": "MAC128",
+       "nota": 7
+      }
+     ]
+    }
+   ],
+   "historicoAtual": "escolhido"
   }
  }
 }

@@ -289,9 +289,11 @@
    *   indice = histórico do curso atual (null em dúvida ou sem registros datados)
    */
   function papelHistoricos(historicos, escolhido) {
-    const datados = (historicos || []).map((h, i) => ({ i, d: ultimaData(h) })).filter((x) => x.d);
+    const com = (historicos || []).map((h, i) => ({ i, d: ultimaData(h), n: ((h && h.registros) || []).length })).filter((x) => x.n > 0);
+    const datados = com.filter((x) => x.d);
+    // A escolha explícita vale mesmo que um dos históricos reconhecidos não traga datas.
+    if (escolhido != null && com.length >= 2 && com.some((x) => x.i === escolhido)) return { indice: escolhido, estado: "escolhido" };
     if (datados.length < 2) return { indice: datados.length ? datados[0].i : null, estado: "unico" };
-    if (escolhido != null && datados.some((x) => x.i === escolhido)) return { indice: escolhido, estado: "escolhido" };
     const melhor = datados.reduce((a, x) => (comparaData(x.d, a.d) > 0 ? x : a));
     const certo = datados.every((x) => x === melhor || comparaData(melhor.d, x.d) > 0);
     return certo ? { indice: melhor.i, estado: "automatico" } : { indice: null, estado: "duvida" };
@@ -425,7 +427,8 @@
       curso: (anterior && anterior.curso != null) ? anterior.curso : 1,
       fonte: { geradoPor: `siga.js ${VERSAO}`, geradoEm: a.hoje || new Date().toISOString().slice(0, 10), boaEmissao: (a.boa && a.boa.emissao) || null },
     };
-    if ((a.historicos || []).filter((h) => ultimaData(h)).length > 1) perfil.fonte.historicoAtual = papel.estado;
+    // "duvida" nunca é gravada: quem importa escolhe o histórico do curso atual antes (PC-05).
+    if (papel.estado === "automatico" || papel.estado === "escolhido") perfil.fonte.historicoAtual = papel.estado;
     if (anterior && anterior.nome) perfil.nome = anterior.nome;
     if (a.boa) perfil.boa = { emissao: a.boa.emissao, naoExplicitadas: a.boa.naoExplicitadas, naoExplicitadasPresente: !!a.boa.naoExplicitadasPresente };
     perfil.equivalencias = (anterior && anterior.equivalencias) || [];

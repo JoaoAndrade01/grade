@@ -254,18 +254,22 @@ def compara_data(a, b):
 
 def papel_historicos(historicos, escolhido=None):
     """Devolve (indice, estado): estado = unico | automatico | duvida | escolhido."""
-    datados = [(i, ultima_data(h)) for i, h in enumerate(historicos)]
-    datados = [(i, d) for i, d in datados if d]
+    com = [(i, ultima_data(h), len(h["registros"])) for i, h in enumerate(historicos) if h["registros"]]
+    datados = [(i, d) for i, d, _ in com if d]
+    # A escolha explícita vale mesmo que um dos históricos reconhecidos não traga datas.
+    if escolhido is not None and len(com) >= 2 and any(i == escolhido for i, _, _ in com):
+        return escolhido, "escolhido"
     if len(datados) < 2:
         return (datados[0][0] if datados else None), "unico"
-    if escolhido is not None and any(i == escolhido for i, _ in datados):
-        return escolhido, "escolhido"
     melhor = datados[0]
     for x in datados[1:]:
         if compara_data(x[1], melhor[1]) > 0:
             melhor = x
     certo = all(x is melhor or compara_data(melhor[1], x[1]) > 0 for x in datados)
     return (melhor[0], "automatico") if certo else (None, "duvida")
+
+
+MENSAGEM_DUVIDA = "Não consegui decidir qual é o histórico do curso atual. Rode de novo com `--atual <arquivo>`."
 
 
 def montar_perfil(historicos, boa=None, curriculo=None, catalogo=None, anterior=None, hoje=None, atual_idx=None):
@@ -395,7 +399,8 @@ def montar_perfil(historicos, boa=None, curriculo=None, catalogo=None, anterior=
         "fonte": {"geradoPor": f"siga.js {VERSAO}", "geradoEm": hoje or datetime.datetime.now(datetime.timezone.utc).date().isoformat(),
                   "boaEmissao": (boa or {}).get("emissao")},
     }
-    if len([h for h in historicos if ultima_data(h)]) > 1:
+    # "duvida" nunca é gravada: quem importa escolhe o histórico do curso atual antes (PC-05).
+    if papel_estado in ("automatico", "escolhido"):
         perfil["fonte"]["historicoAtual"] = papel_estado
     if anterior.get("nome"):
         perfil["nome"] = anterior["nome"]
@@ -538,9 +543,9 @@ def main():
         if os.path.abspath(a.atual) not in caminhos:
             ap.error("--atual deve ser um dos arquivos passados em --historico")
         atual_idx = caminhos.index(os.path.abspath(a.atual))
-    if atual_idx is None and papel_historicos(historicos)[1] == "duvida":
-        print("Aviso: não foi possível decidir qual histórico é o do curso atual. Use --atual <arquivo>. "
-              "Até lá, a idade das cursadas é só uma estimativa.", file=sys.stderr)
+    if papel_historicos(historicos, atual_idx)[1] == "duvida":
+        print(MENSAGEM_DUVIDA, file=sys.stderr)      # sem dados do documento
+        sys.exit(2)
     perfil = montar_perfil(
         historicos=historicos,
         boa=boa, curriculo=curriculo, catalogo=catalogo,

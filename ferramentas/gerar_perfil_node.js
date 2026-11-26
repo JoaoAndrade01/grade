@@ -48,6 +48,12 @@ async function main() {
     atualIdx = origens.indexOf(path.resolve(op.atual));
     if (atualIdx < 0) throw new Error("--atual deve ser um dos arquivos de histórico");
   }
+  if (SIGA.papelHistoricos(historicos, atualIdx).estado === "duvida") {
+    // PC-05: sem --atual e sem como decidir, o programa para; a mensagem não traz dados do documento.
+    console.error("Não consegui decidir qual é o histórico do curso atual. Rode de novo com `--atual <arquivo>`.");
+    process.exitCode = 2;
+    return;
+  }
   const perfil = SIGA.montarPerfil({ historicos, boa, curriculo, catalogo, anterior, hoje: op.hoje, atualIdx });
   process.stdout.write(JSON.stringify(ordena(perfil)) + "\n");
 }

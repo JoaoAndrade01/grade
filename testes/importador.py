@@ -24,6 +24,11 @@ def roda(comando):
     return json.loads(r.stdout), r.stderr
 
 
+def roda_sem_checar(comando):
+    r = subprocess.run(comando, cwd=REPO, capture_output=True, text=True, encoding="utf-8")
+    return r.returncode, r.stdout, r.stderr
+
+
 def argumentos(cenario):
     args = []
     for nome in cenario["arquivos"]:
@@ -39,6 +44,16 @@ def main():
     falhas = []
     for nome, cen in ORACULOS.items():
         args = argumentos(cen)
+        if cen.get("duvida"):
+            # PC-05 em dúvida e sem --atual: os dois programas param com código de saída diferente de zero,
+            # sem gravar perfil e sem trechos do documento na mensagem.
+            for origem, cmd in (("python", [sys.executable, "-X", "utf8", "-B", "ferramentas/gerar_perfil.py", "--texto", "--json", "--hoje", "2000-01-01", *args]),
+                                ("js", ["node", "ferramentas/gerar_perfil_node.js", "--hoje", "2000-01-01", *args])):
+                codigo, saida, erro = roda_sem_checar(cmd)
+                msg = "Não consegui decidir qual é o histórico do curso atual. Rode de novo com `--atual <arquivo>`."
+                if codigo == 0 or saida.strip() or msg not in erro or any(t in erro for t in ("MAC118", "FICTICIA", "Componente")):
+                    falhas.append(f"{nome}/{origem}: esperado parar com a mensagem de dúvida, obtido código {codigo}, saída {saida[:80]!r}, erro {erro[:200]!r}")
+            continue
         py, erro_py = roda([sys.executable, "-X", "utf8", "-B", "ferramentas/gerar_perfil.py",
                             "--texto", "--json", "--hoje", "2000-01-01", *args])
         js, _ = roda(["node", "ferramentas/gerar_perfil_node.js", "--hoje", "2000-01-01", *args])
@@ -53,12 +68,8 @@ def main():
                     falhas.append(f"{nome}/{origem}: BOA esperado {cen['boaPerfil']}, obtido {perfil.get('boa')}")
         if py != js:
             falhas.append(f"{nome}: JS e Python diferem")
-        # Dúvida sem --atual: aviso no stderr, sem trechos do documento.
-        if cen["historicoAtual"] == "duvida":
-            if "--atual" not in erro_py or any(t in erro_py for t in ("MAC118", "FICTICIA", "Componente")):
-                falhas.append(f"{nome}: aviso de dúvida ausente ou com dados do documento: {erro_py!r}")
-        elif "--atual" in erro_py:
-            falhas.append(f"{nome}: aviso de dúvida inesperado")
+        if "--atual" in erro_py:
+            falhas.append(f"{nome}: mensagem de dúvida inesperada")
     for f in falhas:
         print("FALHA:", f)
     print(f"{len(ORACULOS) - len({x.split(':')[0].split('/')[0] for x in falhas})}/{len(ORACULOS)} cenários OK")

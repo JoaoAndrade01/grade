@@ -597,12 +597,16 @@ def t_cr04_papel(b):
     perfil, _ = aplica_e_le_pedido(pg); confere_oraculo(perfil, "papel-automatico")
     ctx.close()
 
+    # Em dúvida a pessoa decide (PC-05): sem escolha, aplicar e baixar ficam desativados e o texto diz por quê.
     ctx, pg = importa_cenario(b, "papel-duvida", "cr04-papel-duvida")
     assert pg.locator('input[name="siga-papel"]:checked').count() == 0
-    expect(pg.locator(".papel-historico .alerta")).to_contain_text("escolha", ignore_case=True)
-    perfil, linha = aplica_e_le_pedido(pg)                            # sem escolher: aplica, com a idade como estimativa
-    confere_oraculo(perfil, "papel-duvida")
-    assert "estimativa" in linha.lower(), linha
+    expect(pg.locator(".papel-historico .alerta")).to_contain_text("ficam desativados até lá")
+    expect(pg.locator("#siga-usar")).to_be_disabled(); expect(pg.locator("#siga-baixar")).to_be_disabled()
+    pg.locator('input[name="siga-papel"][value="0"]').check()
+    expect(pg.locator("#siga-usar")).to_be_enabled(); expect(pg.locator("#siga-baixar")).to_be_enabled()
+    assert pg.locator(".papel-historico .alerta").count() == 0
+    perfil, _ = aplica_e_le_pedido(pg)
+    assert perfil["fonte"]["historicoAtual"] == "escolhido", perfil["fonte"]      # "duvida" nunca é gravada
     ctx.close()
 
     for cenario, indice in (("papel-escolha-bloco", 0), ("papel-escolha-anterior", 1)):
@@ -615,6 +619,38 @@ def t_cr04_papel(b):
         assert baixado == perfil, "baixar e aplicar divergem com a mesma escolha"
         confere_oraculo(perfil, cenario)
         ctx.close()
+
+@caso("CR-04/PC-05: escolha explícita vale para histórico reconhecido sem datas")
+def t_cr04_escolha_sem_datas(b):
+    ctx, pg = importa_cenario(b, "escolha-sem-datas", "cr04-escolha-sem-datas", escolha=0)
+    assert pg.locator('input[name="siga-papel"][value="0"]').is_checked()
+    perfil, _ = aplica_e_le_pedido(pg)
+    confere_oraculo(perfil, "escolha-sem-datas")
+    ctx.close()
+
+@caso("CR-04/PC-05: trocar o histórico atual na prévia recalcula os planos que ficam de fora")
+def t_cr04_troca_recalcula_planos(b):
+    perfil = {"periodos": [{"nome": "2025/1", "planejado": True, "disciplinas": ["MAC128"]}]}
+    ctx, pg = abre(b, perfil=perfil, nome="cr04-troca-planos", relogio=RELOGIO)
+    gera(pg, ["papel-bloco-2025.pdf", "plano-anterior.pdf", "boa-cursando.pdf"])
+    assert pg.locator('input[name="siga-papel"][value="0"]').is_checked()              # automático: o do bloco de 2025
+    assert pg.locator(".colisao-planos").count() == 0
+    expect(pg.locator("#siga-usar")).to_be_enabled()
+    pg.locator('input[name="siga-papel"][value="1"]').check()                         # escolha: o de 2024/2 vira o atual
+    expect(pg.locator(".colisao-planos")).to_contain_text("2025/1")
+    expect(pg.locator("#siga-usar")).to_be_disabled(); expect(pg.locator("#siga-baixar")).to_be_disabled()
+    pg.locator("#siga-descartar-planos").check()
+    expect(pg.locator("#siga-usar")).to_be_enabled()
+    pg.locator('input[name="siga-papel"][value="0"]').check()                         # volta: o plano não colide mais
+    assert pg.locator(".colisao-planos").count() == 0
+    pg.locator('input[name="siga-papel"][value="1"]').check()
+    expect(pg.locator(".colisao-planos")).to_contain_text("2025/1")                   # nova colisão exige nova confirmação
+    expect(pg.locator("#siga-usar")).to_be_disabled()
+    pg.locator("#siga-descartar-planos").check(); pg.click("#siga-usar")
+    periodos = ls(pg, "perfilImportado")["periodos"]
+    assert [p["nome"] for p in periodos if p.get("atual")] == ["2025/1"], periodos
+    assert not any(p.get("planejado") and p["nome"] == "2025/1" for p in periodos), periodos
+    ctx.close()
 
 @caso("CR-04/PC-06: fronteira de 5 anos com só o ano do bloco")
 def t_cr04_fronteira(b):
@@ -892,6 +928,25 @@ def t_rf08_periodo_atual(b):
     ctx, pg = abre(b, perfil=perfil, nome="rf08-ra19-perfil-informado")
     completo(pg, "timeline")
     assert pg.locator(".col-atual").count() == 1 and pg.locator(".col-atual .nota-estimativa").count() == 0
+    ctx.close()
+
+@caso("RF-08 (RA-19): deduzido só com semestre sugerido e mantido ao reimportar os mesmos PDFs")
+def t_rf08_deduzido_regras(b):
+    ctx, pg = abre(b, nome="rf08-ra19-so-boa", relogio=RELOGIO)
+    gera(pg, ["boa-cursando.pdf"])                                   # só BOA: não há semestre para deduzir
+    assert pg.input_value("#siga-atual") == ""
+    expect(pg.locator("#siga-nota-ra19")).to_be_hidden()
+    pg.click("#siga-usar")
+    assert "deduzido" not in [p for p in ls(pg, "perfilImportado")["periodos"] if p.get("atual")][0]
+    ctx.close()
+    ctx, pg = abre(b, nome="rf08-ra19-reimporta", relogio=RELOGIO)
+    gera(pg, ["historico-ficticio.pdf", "boa-ficticio.pdf"]); pg.click("#siga-usar")
+    assert [p for p in ls(pg, "perfilImportado")["periodos"] if p.get("atual")][0].get("deduzido") is True
+    gera(pg, ["historico-ficticio.pdf", "boa-ficticio.pdf"])           # mesmos PDFs de novo
+    assert pg.input_value("#siga-atual") == "2026/2"
+    expect(pg.locator("#siga-nota-ra19")).to_be_visible()
+    pg.click("#siga-usar")
+    assert [p for p in ls(pg, "perfilImportado")["periodos"] if p.get("atual")][0].get("deduzido") is True
     ctx.close()
 
 @caso("RF-08 (08g, 08h): nota de RA-20 com a data de js/horarios.js no aviso de oferta, na linha do tempo e no Cronograma")
@@ -1578,10 +1633,10 @@ CASOS = [
     t_compat, t_siga, t_siga_sem_boa, t_excluir, t_oferta, t_mac,
     t_cr01_pre, t_cr01_co, t_cr01_sugestoes, t_cr01_proposta, t_cr01_equivalencia, t_cr01_manual,
     t_cr03_historico, t_cr03_lista,
-    t_cr04_reingresso, t_cr04_ordem_dos_arquivos, t_cr04_ace_duas_ocorrencias, t_cr04_controles, t_cr04_papel, t_cr04_fronteira,
+    t_cr04_reingresso, t_cr04_ordem_dos_arquivos, t_cr04_escolha_sem_datas, t_cr04_troca_recalcula_planos, t_cr04_ace_duas_ocorrencias, t_cr04_controles, t_cr04_papel, t_cr04_fronteira,
     t_cr02_pedidos, t_cr02_duas_dispensas, t_cr02_dispensa_unica, t_cr02_alvo_fora_do_catalogo,
     t_d02_dois_numeros, t_d02_ausente_e_vazia, t_d02_outros_grupos, t_d02_importacao,
-    t_rf08_faixa, t_rf08_notas_credito, t_rf08_periodo_atual, t_rf08_oferta, t_rf08_rodape, t_rf08_ace,
+    t_rf08_faixa, t_rf08_notas_credito, t_rf08_periodo_atual, t_rf08_deduzido_regras, t_rf08_oferta, t_rf08_rodape, t_rf08_ace,
     t_pc02_manual_credito, t_pc03_manual_requisito,
     t_d01_carga, t_d01_conteudo,
     t_regressao, t_a11y,
