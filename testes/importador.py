@@ -28,6 +28,8 @@ def argumentos(cenario):
     args = []
     for nome in cenario["arquivos"]:
         args += ["--historico", str(FX / f"{nome}.txt")]
+    if cenario.get("boa"):
+        args += ["--boa", str(FX / f"{cenario['boa']}.txt")]
     if cenario["atual"] is not None:
         args += ["--atual", str(FX / f"{cenario['arquivos'][cenario['atual']]}.txt")]
     return args
@@ -45,6 +47,10 @@ def main():
             obtido = {"periodos": perfil["periodos"], "historicoAtual": (perfil.get("fonte") or {}).get("historicoAtual")}
             if obtido != esperado:
                 falhas.append(f"{nome}/{origem}: esperado {esperado}, obtido {obtido}")
+        if "boaPerfil" in cen:
+            for origem, perfil in (("python", py), ("js", js)):
+                if perfil.get("boa") != cen["boaPerfil"]:
+                    falhas.append(f"{nome}/{origem}: BOA esperado {cen['boaPerfil']}, obtido {perfil.get('boa')}")
         if py != js:
             falhas.append(f"{nome}: JS e Python diferem")
         # Dúvida sem --atual: aviso no stderr, sem trechos do documento.

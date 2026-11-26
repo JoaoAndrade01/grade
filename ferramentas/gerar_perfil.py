@@ -163,7 +163,7 @@ def ler_historico(texto):
 # BOA
 # --------------------------------------------------------------------------
 def ler_boa(texto):
-    out = {"emissao": None, "cursando": [], "equivalencias": [], "naoExplicitadas": [], "reprovacoes": []}
+    out = {"emissao": None, "cursando": [], "equivalencias": [], "naoExplicitadas": [], "naoExplicitadasPresente": False, "reprovacoes": []}
     secao = None
     for l in normalizar_linhas(texto):
         if not out["emissao"]:
@@ -171,7 +171,7 @@ def ler_boa(texto):
             if e:
                 out["emissao"] = e.group(1)
         if SECAO_NE.search(l):
-            secao = "ne"; continue
+            secao = "ne"; out["naoExplicitadasPresente"] = True; continue
         if SECAO_ELENCO.search(l):
             secao = "elenco"; continue
         if SECAO_REPROV.search(l):
@@ -387,7 +387,8 @@ def montar_perfil(historicos, boa=None, curriculo=None, catalogo=None, anterior=
     if anterior.get("nome"):
         perfil["nome"] = anterior["nome"]
     if boa:
-        perfil["boa"] = {"emissao": boa["emissao"], "naoExplicitadas": boa["naoExplicitadas"]}
+        perfil["boa"] = {"emissao": boa["emissao"], "naoExplicitadas": boa["naoExplicitadas"],
+                         "naoExplicitadasPresente": bool(boa.get("naoExplicitadasPresente"))}
     perfil["equivalencias"] = anterior.get("equivalencias") or []
     ext = list(anterior.get("extensao") or [])
     for e in extensao_boa:

@@ -19,7 +19,8 @@ window.DEMO_PARIDADE = {
  "python": {
   "boa": {
    "emissao": "20/11/2026",
-   "naoExplicitadas": []
+   "naoExplicitadas": [],
+   "naoExplicitadasPresente": false
   },
   "curso": 1,
   "equivalencias": [],

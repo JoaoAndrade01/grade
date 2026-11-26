@@ -179,7 +179,8 @@
       fonte: (v) => opcional(v, (f) => objeto(f) && opcional(f.boaEmissao, texto)
         && opcional(f.historicoAtual, (h) => ["automatico", "duvida", "escolhido"].includes(h))),
       marcacoes: (v) => opcional(v, marcacoesValidas),
-      boa: (v) => opcional(v, (b) => objeto(b) && listaDe(b.naoExplicitadas, (d) => dadosDisciplina(d)
+      boa: (v) => opcional(v, (b) => objeto(b) && opcional(b.naoExplicitadasPresente, (x) => typeof x === "boolean")
+        && listaDe(b.naoExplicitadas, (d) => dadosDisciplina(d)
         && numero(d.credits) && numero(d.ch) && (texto(d.grau) || numero(d.grau)))),
     }, "");
   }
@@ -1109,6 +1110,27 @@
     const de = i != null ? i : ano * 2, ate = i != null ? i : ano * 2 + 1;
     return { ano, min: (semAtual() - ate) / 2, max: (semAtual() - de) / 2, aprovadaEm: r.aprovadaEm || null };
   }
+  /**
+   * Os dois números da livre escolha (D-02, PC-04): o da Grade e a soma da lista "Cursadas e Não Explicitadas" do BOA.
+   * A seção presente e vazia vale 0 cr; ausente (ou sem prova de presença, em perfil antigo) é "indisponível".
+   * O número do BOA nunca é o total do BOA: o importador não lê a linha de total.
+   */
+  function numerosLivreEscolha(t = totais()) {
+    const grade = t[3].ok + t[3].prev;
+    const boa = M.boa, lista = (boa && boa.naoExplicitadas) || [];
+    const presente = !!boa && (boa.naoExplicitadasPresente === true || (boa.naoExplicitadasPresente == null && lista.length > 0));
+    return { grade, presente, soma: presente ? lista.reduce((a, d) => a + (Number(d.credits) || 0), 0) : null,
+      emissao: (boa && boa.emissao) || null,
+      motivo: !boa ? "nenhum BOA importado" : "a seção “Cursadas e Não Explicitadas” não foi encontrada neste BOA" };
+  }
+  function htmlNumerosLivre(t) {
+    const n = numerosLivreEscolha(t);
+    return `<ul class="livre-numeros">
+      <li>Grade: <b>${fmt(n.grade)} cr</b> <small>(estimativa da Grade)</small></li>
+      <li>${n.presente ? `BOA, soma das não explicitadas: <b>${fmt(n.soma)} cr</b> <small>(${n.emissao ? `BOA de ${esc(n.emissao)}; ` : ""}estimativa)</small>`
+        : `BOA: <b>indisponível</b> <small>(${esc(n.motivo)})</small>`}</li>
+    </ul>`;
+  }
   /** Aviso de origem reutilizada em mais de uma dispensa (D-07). `origem` limita o aviso a uma disciplina. */
   function avisoReuso(origem) {
     const lista = M.reutilizadas.filter((x) => !origem || x.origem === origem);
@@ -1290,6 +1312,7 @@
       </section>
       <section class="sec">
         <h2>Livre escolha ${M.boa ? `<small>cursadas não explicitadas no BOA${M.boa.emissao ? ` de ${esc(M.boa.emissao)}` : ""}</small>` : ""}</h2>
+        ${htmlNumerosLivre(tot)}
         <p class="dica">${fmt(somaLivre)} cr no total · exigido ${fmt(livreExig)} cr · já consumidos por deferimento ${fmt(somaUsada)} cr · reservados por pedidos pendentes ${fmt(reservado)} cr.</p>
         <table class="tabela"><thead><tr><th>Disciplina</th><th>Cursada há</th><th>Uso</th></tr></thead><tbody>${linhasLivre}</tbody></table>
       </section>
@@ -1572,6 +1595,7 @@
         <div class="prog-topo"><span>${c.nome}</span><b>${fmt(T.ok)}${T.prev ? `<i> +${fmt(T.prev)}</i>` : ""} / ${fmt(T.total)} ${c.un}</b></div>
         <div class="barra"><span class="b-ok" style="width:${pOk}%"></span><span class="b-prev" style="width:${pPrev}%"></span><span class="b-plan" style="width:${pPlan}%"></span><span class="b-anal" style="width:${pAnal}%"></span></div>
         <small>${falta ? `faltam ${fmt(falta)} ${c.un}${T.plan ? ` · ${fmt(Math.min(T.plan, falta))} planejados` : ""}${T.anal ? ` · ${fmt(T.anal)} em análise` : ""}` : "completo ✓"}${T.aConfirmar ? ` · ${fmt(T.aConfirmar)} h a confirmar (possível duplicidade)` : ""}</small>
+        ${k === "3" ? htmlNumerosLivre(t) : ""}
       </div>`;
     }).join("");
   }
@@ -2056,7 +2080,7 @@
           <li>${r.perfil.periodos.filter((p) => !p.planejado).length} períodos cursados/atuais${r.perfil.periodos.some((p) => p.planejado) ? ` + ${r.perfil.periodos.filter((p) => p.planejado).length} planejados (mantidos)` : ""}</li>
           <li>${r.perfil.periodos.reduce((a, p) => a + (p.planejado ? 0 : p.disciplinas.filter((d) => d.status !== "reprovado").length), 0)} disciplinas aprovadas ou em curso</li>
           ${r.atual ? `<li>Período atual: ${r.atual.disciplinas.length} disciplina(s) cursando no BOA</li>` : ""}
-          ${r.boa ? `<li>BOA de ${esc(r.boa.emissao || "?")}: ${r.boa.naoExplicitadas.length} não explicitadas, ${r.boa.equivalencias.length} equivalência(s) automática(s)</li>`
+          ${r.boa ? `<li>BOA de ${esc(r.boa.emissao || "?")}: ${r.boa.naoExplicitadasPresente ? `${r.boa.naoExplicitadas.length} não explicitadas` : "seção de não explicitadas não encontrada"}, ${r.boa.equivalencias.length} equivalência(s) automática(s)</li>`
             : `<li class="alerta">Sem BOA: nenhuma disciplina em curso foi atualizada.${r.perfil.periodos.some((p) => p.atual) ? " O período atual do perfil anterior foi mantido." : ""}</li>`}
           ${r.semCategoria.length ? `<li class="alerta">Atividades sem créditos fora do currículo e catálogo. Confira se são ACE: ${r.semCategoria.map(esc).join(", ")}.</li>` : ""}
           <li>Documentos reconhecidos: ${r.historicos} Histórico(s)${r.boa ? " e 1 BOA" : ""}</li>

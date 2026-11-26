@@ -1,5 +1,5 @@
 {
- "nota": "Oráculos escritos à mão para B1.4 (CR-04, PC-05, PC-06). Não gerados por nenhuma implementação.",
+ "nota": "Oráculos escritos à mão para B1.4 (CR-04, PC-05, PC-06) e B2.1 (PC-04). Não gerados por nenhuma implementação.",
  "cenarios": {
   "reingresso-antigo-atual": {
    "arquivos": [
@@ -326,6 +326,94 @@
     }
    ],
    "historicoAtual": null
+  },
+  "boa-p5": {
+   "arquivos": [],
+   "boa": "boa-p5",
+   "atual": null,
+   "periodos": [],
+   "historicoAtual": null,
+   "boaPerfil": {
+    "emissao": "20/11/2026",
+    "naoExplicitadas": [
+     {
+      "code": "ABC123",
+      "name": "Livre fictícia A",
+      "credits": 4,
+      "ch": 60,
+      "grau": "7.0"
+     },
+     {
+      "code": "DEF456",
+      "name": "Livre fictícia B",
+      "credits": 2,
+      "ch": 30,
+      "grau": "8.0"
+     }
+    ],
+    "naoExplicitadasPresente": true
+   }
+  },
+  "boa-p5-total-4": {
+   "arquivos": [],
+   "boa": "boa-p5-total-4",
+   "atual": null,
+   "periodos": [],
+   "historicoAtual": null,
+   "boaPerfil": {
+    "emissao": "20/11/2026",
+    "naoExplicitadas": [
+     {
+      "code": "ABC123",
+      "name": "Livre fictícia A",
+      "credits": 4,
+      "ch": 60,
+      "grau": "7.0"
+     },
+     {
+      "code": "DEF456",
+      "name": "Livre fictícia B",
+      "credits": 2,
+      "ch": 30,
+      "grau": "8.0"
+     }
+    ],
+    "naoExplicitadasPresente": true
+   }
+  },
+  "boa-p5-vazia": {
+   "arquivos": [],
+   "boa": "boa-p5-vazia",
+   "atual": null,
+   "periodos": [],
+   "historicoAtual": null,
+   "boaPerfil": {
+    "emissao": "20/11/2026",
+    "naoExplicitadas": [],
+    "naoExplicitadasPresente": true
+   }
+  },
+  "boa-p5-sem-secao": {
+   "arquivos": [],
+   "boa": "boa-p5-sem-secao",
+   "atual": null,
+   "periodos": [
+    {
+     "nome": "atual",
+     "atual": true,
+     "disciplinas": [
+      {
+       "code": "MAC128"
+      }
+     ]
+    }
+   ],
+   "historicoAtual": null,
+   "boaPerfil": {
+    "emissao": "20/11/2026",
+    "naoExplicitadas": [],
+    "naoExplicitadasPresente": false
+   }
   }
  }
 }

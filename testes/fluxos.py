@@ -673,6 +673,101 @@ def t_cr02_dispensa_unica(b):
     exporta_e_reimporta(b, pg, perfil, "cr02-04d-reimporta")
     ctx.close()
 
+# ------------------------------------------------------------------ D-02 / PC-04: dois números na livre escolha
+DEF456 = {"code": "DEF456", "name": "Livre fictícia B", "credits": 2, "category": 3}
+BOA_P5 = {"emissao": "20/11/2026", "naoExplicitadasPresente": True, "naoExplicitadas": [
+    {"code": "ABC123", "name": "Livre fictícia A", "credits": 4, "ch": 60, "grau": "7.0"},
+    {"code": "DEF456", "name": "Livre fictícia B", "credits": 2, "ch": 30, "grau": "8.0"}]}
+
+def p5(boa="padrao", cursando=False, categoria=3, periodo_sem_data=False):
+    """Perfil base P5: ABC123 (4 cr) e DEF456 (2 cr) de livre escolha; pedido deferido de COP232 com ABC123 como conteúdo."""
+    abc = dict(ABC123, category=categoria)
+    periodos = [{"nome": "2025/1", "disciplinas": [DEF456] if cursando else [abc, dict(DEF456)]}]
+    if cursando: periodos.append({"nome": "2026/2", "atual": True, "disciplinas": [abc]})
+    if periodo_sem_data: periodos = [{"nome": "Histórico sem data", "disciplinas": [abc, dict(DEF456)]}]
+    perfil = {"periodos": periodos, "equivalencias": [{"cursadas": [{"code": "ABC123", "papel": "conteudo"}], "pedida": "COP232", "status": "deferido"}]}
+    if boa == "padrao": boa = BOA_P5
+    if boa is not None: perfil["boa"] = boa
+    return perfil
+
+def numeros_livre(pg):
+    """Textos dos dois números, nos Pedidos e no progresso detalhado da Grade."""
+    completo(pg, "pedidos")
+    pedidos = pg.locator(".pedidos .livre-numeros li").all_inner_texts()
+    completo(pg, "grade")
+    if pg.locator("#progresso").is_hidden(): pg.click("#bg-detalhes")
+    progresso = pg.locator("#progresso .cat-3 .livre-numeros li").all_inner_texts()
+    assert pedidos == progresso, (pedidos, progresso)
+    assert len(pedidos) == 2, pedidos
+    assert not re.search(r"total do boa", " ".join(pedidos), re.I), pedidos
+    return pedidos
+
+@caso("D-02/PC-04: dois números rotulados na livre escolha (05a, 05b, 05g)")
+def t_d02_dois_numeros(b):
+    ctx, pg = abre(b, perfil=p5(), nome="d02-05a")
+    grade, boa = numeros_livre(pg)
+    assert "Grade: 2 cr" in grade and "estimativa" in grade, grade
+    assert "BOA, soma das não explicitadas: 6 cr" in boa and "20/11/2026" in boa and "estimativa" in boa, boa
+    assert pg.evaluate("() => { const t = GradeInterativa.totais(); return [t[1].ok, t[3].ok]; }") == [4, 2]   # COP232 conta 4 cr nas obrigatórias
+    ctx.close()
+    ctx, pg = abre(b, perfil=p5(cursando=True), nome="d02-05b")
+    grade, boa = numeros_livre(pg)
+    assert "Grade: 2 cr" in grade, grade
+    assert pg.evaluate("() => { const t = GradeInterativa.totais(); return [t[1].ok, t[1].prev]; }") == [0, 4]     # COP232 prevista
+    ctx.close()
+    # a linha de total do BOA (4 cr na fixture boa-p5-total-4) nunca vira o número: ver testes/importador.py
+    ctx, pg = abre(b, perfil=p5(dict(BOA_P5, emissao=None)), nome="d02-05a-sem-emissao")
+    assert "BOA, soma das não explicitadas: 6 cr" in numeros_livre(pg)[1]
+    ctx.close()
+
+@caso("D-02/PC-04: BOA ausente, seção ausente e seção vazia (05c, 05d, 05h) e perfil antigo sem o indicador")
+def t_d02_ausente_e_vazia(b):
+    casos = [
+        ("05c-sem-boa", p5(boa=None), "BOA: indisponível", "nenhum BOA importado"),
+        ("05d-sem-secao", p5(boa={"emissao": "20/11/2026", "naoExplicitadasPresente": False, "naoExplicitadas": []}),
+         "BOA: indisponível", "Cursadas e Não Explicitadas"),
+        ("05h-secao-vazia", p5(boa={"emissao": "20/11/2026", "naoExplicitadasPresente": True, "naoExplicitadas": []}),
+         "BOA, soma das não explicitadas: 0 cr", None),
+        ("antigo-com-linhas", p5(boa={"emissao": "20/11/2026", "naoExplicitadas": BOA_P5["naoExplicitadas"]}),
+         "BOA, soma das não explicitadas: 6 cr", None),            # sem indicador, mas as linhas provam a seção
+        ("antigo-sem-linhas", p5(boa={"emissao": "20/11/2026", "naoExplicitadas": []}),
+         "BOA: indisponível", "Cursadas e Não Explicitadas"),     # sem indicador e sem linhas: não prova a seção
+    ]
+    for nome, perfil, esperado, motivo in casos:
+        ctx, pg = abre(b, perfil=perfil, nome=f"d02-{nome}")
+        grade, boa = numeros_livre(pg)
+        assert "Grade: 2 cr" in grade, (nome, grade)
+        assert esperado in boa, (nome, boa)
+        if motivo: assert motivo in boa, (nome, boa)
+        if esperado.startswith("BOA: indisp"): assert " cr" not in boa.split("indisponível")[0] and "soma" not in boa, (nome, boa)
+        ctx.close()
+
+@caso("D-02: condicionada fora da livre escolha (05e) e aprovada em período sem data (05f)")
+def t_d02_outros_grupos(b):
+    ctx, pg = abre(b, perfil=p5(categoria=2), nome="d02-05e")
+    completo(pg, "pedidos")
+    assert pg.evaluate("() => { const t = GradeInterativa.totais(); return [t[1].ok, t[2].ok, t[3].ok]; }") == [4, 0, 2]   # ABC123 saiu do grupo 2
+    assert "BOA" not in pg.locator(".contas tbody tr").nth(0).inner_text()                  # sem nota sobre o BOA no grupo 2
+    ctx.close()
+    ctx, pg = abre(b, perfil=p5(periodo_sem_data=True), nome="d02-05f")
+    completo(pg, "grade")
+    pg.locator('.painel .card[data-code="COP232"]').click()
+    expect(pg.locator("#detalhes")).to_contain_text("Período não confirmado")
+    assert pg.evaluate("() => GradeInterativa.totais()[1].ok") == 4
+    ctx.close()
+
+@caso("D-02/PC-04: importar BOA com seção vazia ou ausente grava o indicador de presença")
+def t_d02_importacao(b):
+    for pdf, esperado, texto in (("boa-p5-vazia", True, "BOA, soma das não explicitadas: 0 cr"), ("boa-p5-sem-secao", False, "BOA: indisponível"),
+                                 ("boa-p5", True, "BOA, soma das não explicitadas: 6 cr")):
+        ctx, pg = abre(b, nome=f"d02-importa-{pdf}")
+        gera(pg, [f"{pdf}.pdf"])
+        pg.click("#siga-usar")
+        perfil = ls(pg, "perfilImportado")
+        assert perfil["boa"]["naoExplicitadasPresente"] is esperado, perfil["boa"]
+        assert texto in numeros_livre(pg)[1], pdf
+        ctx.close()
+
 # ------------------------------------------------------------------ regressões gerais
 @caso("Regressões: abas, busca de optativas mantém foco, horários por clique, equivalências/ACE, exportação e recarga")
 def t_regressao(b):
@@ -1160,6 +1255,7 @@ CASOS = [
     t_cr03_historico, t_cr03_lista,
     t_cr04_reingresso, t_cr04_controles, t_cr04_papel, t_cr04_fronteira,
     t_cr02_pedidos, t_cr02_duas_dispensas, t_cr02_dispensa_unica,
+    t_d02_dois_numeros, t_d02_ausente_e_vazia, t_d02_outros_grupos, t_d02_importacao,
     t_regressao, t_a11y,
 ] + CASOS2 + CASOS3
 

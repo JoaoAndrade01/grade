@@ -201,15 +201,17 @@
   /**
    * Lê o BOA do SIGA.
    * @returns {{emissao, cursando: Array<{code,name,credits,ch,ncc}>, equivalencias: Array<{recomendada, cursada}>,
-   *            naoExplicitadas: Array<{code,name,credits,ch,grau}>, reprovacoes: Array<{code,name,periodos}>}}
+   *            naoExplicitadas: Array<{code,name,credits,ch,grau}>, naoExplicitadasPresente: boolean,
+   *            reprovacoes: Array<{code,name,periodos}>}}
+   *  naoExplicitadasPresente distingue a seção "Cursadas e Não Explicitadas" presente (mesmo vazia) da ausente (PC-04).
    */
   function lerBOA(texto) {
     const linhas = normalizarLinhas(texto);
-    const out = { emissao: null, cursando: [], equivalencias: [], naoExplicitadas: [], reprovacoes: [] };
+    const out = { emissao: null, cursando: [], equivalencias: [], naoExplicitadas: [], naoExplicitadasPresente: false, reprovacoes: [] };
     let secao = null;
     for (const l of linhas) {
       if (!out.emissao) { const e = RE.boaEmissao.exec(l); if (e) out.emissao = e[1]; }
-      if (secaoNE.test(l)) { secao = "ne"; continue; }
+      if (secaoNE.test(l)) { secao = "ne"; out.naoExplicitadasPresente = true; continue; }
       if (secaoElenco.test(l)) { secao = "elenco"; continue; }
       if (secaoReprov.test(l)) { secao = "reprov"; continue; }
       if (totalNE.test(l) && secao === "ne") { secao = null; continue; }
@@ -414,7 +416,7 @@
     };
     if ((a.historicos || []).filter((h) => ultimaData(h)).length > 1) perfil.fonte.historicoAtual = papel.estado;
     if (anterior && anterior.nome) perfil.nome = anterior.nome;
-    if (a.boa) perfil.boa = { emissao: a.boa.emissao, naoExplicitadas: a.boa.naoExplicitadas };
+    if (a.boa) perfil.boa = { emissao: a.boa.emissao, naoExplicitadas: a.boa.naoExplicitadas, naoExplicitadasPresente: !!a.boa.naoExplicitadasPresente };
     perfil.equivalencias = (anterior && anterior.equivalencias) || [];
     // extensão: mantém a lista anterior e acrescenta atividades do BOA ainda não registradas
     const ext = ((anterior && anterior.extensao) || []).slice();
