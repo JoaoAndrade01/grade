@@ -48,7 +48,11 @@ Se a fonte não voltar no semestre seguinte, avise no README e siga "Se o projet
 turmas que estão sem código ("Comp 3", "Tóp. Ciência de Dados: Estrutura de Dados", "Mapas" e "Grafos de
 Interseção (mestrado)"). Enquanto não houver código, elas ficam como exceção justificada, só como informação.
 
-<!-- INTEGRAÇÃO: depois que quem mantém conferir no Notion, trocar este parágrafo pelo resultado (códigos resolvidos ou exceções mantidas com o motivo) e atualizar a lista de exceções de testes/fixtures/excecoes-referencia.json. -->
+**Estado em 2026-11-26:** a conferência no Notion **ainda não foi feita**. As seis exceções de
+`testes/fixtures/excecoes-referencia.json` continuam com o motivo "pendente de conferência no Notion" e o efeito
+"somente informativo", e o validador as relata como exceções cadastradas. Isto é uma **limitação conhecida** do candidato:
+a conferência é obrigatória antes de publicar, e o resultado (códigos resolvidos ou exceções mantidas com o motivo)
+substitui este parágrafo e atualiza essa lista.
 
 **Exceções do validador.** Cada exceção declara origem, motivo e efeito ([PUB-10](DECISOES.md#pub-10--exceções-do-validador-aviso-por-fonte-e-efeito-somente-informativo)).
 Uma exceção sem uso gera aviso por fonte; **remova as exceções vencidas na revisão semestral**.
@@ -210,19 +214,18 @@ termina com código 0. Se algum diferir, meça de novo.
 
 **Linha de base.**
 
-<!-- INTEGRAÇÃO: medir no candidato integrado (depois das correções de acessibilidade), com o comando acima e a versão fixa do ESLint (conferir se 9.39.5 continua a adotada), e preencher a tabela com o hash medido e os valores. Em seguida, provar com git diff --exit-code que os quatro arquivos são idênticos aos do hash final. -->
-
 | Campo | Valor |
 | --- | --- |
-| Hash medido | a preencher na medição |
-| ESLint | `9.39.5` (a confirmar na medição) |
+| Hash medido | `2cac2a48bbadbe334718f556e3d698f83c538c8d` (2026-11-26; os quatro arquivos são idênticos aos do hash final do candidato: ver [PLANO-DE-TESTE.md](PLANO-DE-TESTE.md#8-resultado-por-candidato)) |
+| ESLint | `9.39.5` (versão fixa; o npm avisa que a série 9 não tem mais suporte, e trocar de série exige nova linha de base) |
+| Node | `26.13.1` |
 
 | Arquivo | Linhas | Funções | Complexidade máxima | Funções com complexidade > 10 | Maior função (linhas) |
 | --- | --- | --- | --- | --- | --- |
-| `js/app.js` | a medir | a medir | a medir | a medir | a medir |
-| `js/siga.js` | a medir | a medir | a medir | a medir | a medir |
-| `js/eci.js` | a medir | a medir | a medir | a medir | a medir |
-| `js/tema.js` | a medir | a medir | a medir | a medir | a medir |
+| `js/app.js` | 2711 | 746 | 69 | 38 | 392 |
+| `js/siga.js` | 339 | 79 | 42 | 6 | 336 |
+| `js/eci.js` | 461 | 107 | 21 | 5 | 67 |
+| `js/tema.js` | 61 | 14 | 5 | 0 | 7 |
 
 ## Plano de reversão
 
@@ -246,9 +249,7 @@ tabela serve de ponto de volta. Para os dados de referência, só serve um par q
 
 | Hash completo | Data | Resultado da verificação |
 | --- | --- | --- |
-| a preencher na publicação | | |
-
-<!-- INTEGRAÇÃO: depois da publicação, registrar nesta tabela o hash aprovado da v2.0.0, a data e o local do registro do resultado da verificação. -->
+| `@@HASH@@` | 2026-11-26 | Candidato da v2.0.0 verificado: resultado em [PLANO-DE-TESTE.md](PLANO-DE-TESTE.md#8-resultado-por-candidato). A aprovação para publicar e a data da publicação entram aqui no dia em que a v2.0.0 for publicada |
 
 **Como agir** (sempre por commit novo; **nunca** reescreva a `master` com `git push --force`):
 
