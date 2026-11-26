@@ -1,0 +1,53 @@
+{
+  "descricao": "Exceções justificadas do validador dos dados de referência (RF-17). Cada exceção libera uma entrada de js/horarios.js ou js/guia.js que não tem código no currículo nem no catálogo. 'efeito' diz o que se pretende para a entrada: 'somente-informativo' (fica fora de cálculos e sugestões) ou 'entra-no-calculo' (só vale para código conhecido; por isso o validador a recusa em código desconhecido).",
+  "excecoes": [
+    {
+      "codigo": "EET100",
+      "arquivos": ["horarios"],
+      "curso": 1,
+      "origem": "js/horarios.js, eletivas de período ímpar e par (Notion, Grades de ECI, consultado em 2026-11-25)",
+      "motivo": "pendente de conferência no Notion",
+      "efeito": "somente-informativo"
+    },
+    {
+      "codigo": "EEL891",
+      "arquivos": ["horarios"],
+      "curso": 1,
+      "origem": "js/horarios.js, eletivas de período ímpar e par (Notion, Grades de ECI, consultado em 2026-11-25)",
+      "motivo": "pendente de conferência no Notion",
+      "efeito": "somente-informativo"
+    },
+    {
+      "nome": "Comp 3 (condicionada)",
+      "arquivos": ["horarios", "guia"],
+      "curso": 1,
+      "origem": "js/horarios.js (semCodigo.impar) e js/guia.js (semCodigo), Notion, Grades de ECI, consultado em 2026-11-25",
+      "motivo": "pendente de conferência no Notion",
+      "efeito": "somente-informativo"
+    },
+    {
+      "nome": "Tóp. Ciência de Dados: Estrutura de Dados",
+      "arquivos": ["horarios"],
+      "curso": 1,
+      "origem": "js/horarios.js (semCodigo.impar), Notion, Grades de ECI, consultado em 2026-11-25",
+      "motivo": "pendente de conferência no Notion",
+      "efeito": "somente-informativo"
+    },
+    {
+      "nome": "Mapas (livre escolha)",
+      "arquivos": ["horarios"],
+      "curso": 1,
+      "origem": "js/horarios.js (semCodigo.impar), Notion, Grades de ECI, consultado em 2026-11-25",
+      "motivo": "pendente de conferência no Notion",
+      "efeito": "somente-informativo"
+    },
+    {
+      "nome": "Grafos de Interseção (mestrado)",
+      "arquivos": ["horarios"],
+      "curso": 1,
+      "origem": "js/horarios.js (semCodigo.par), Notion, Grades de ECI, consultado em 2026-11-25",
+      "motivo": "pendente de conferência no Notion",
+      "efeito": "somente-informativo"
+    }
+  ]
+}
