@@ -1902,7 +1902,40 @@ def t_b3_nomes(b):
     assert pg.locator("#anuncio").get_attribute("role") == "status"
     ctx.close()
 
-CASOS4 = [t_b3_nomes, t_m6_somente_informativo, t_b2_foco_visivel, t_b2_foco_filtros, t_b2_importacao, t_b1_estado_dos_cartoes]
+@caso("B4: grade de horários por teclado: configurar, ver o choque, limpar e buscar por faixa")
+def t_b4_grade_horarios(b):
+    ctx, pg = abre(b, perfil=PERFIL, extra={"modoClassico": False, "vista": "cronograma", "cronoPeriodo": "2027/1"}, nome="b4-grade")
+    assert pg.locator(".cel").count() == 45
+    assert pg.locator('.cel[tabindex="0"]').count() == 1, "uma só célula entra na ordem de Tab (foco móvel)"
+    pg.locator('[data-csel="COS360"]').focus(); pg.keyboard.press("Enter")
+    pg.focus("#add-btn"); pg.keyboard.press("Tab")
+    assert foco_em(pg, ".cel"), "Tab não chegou à grade: " + descreve_foco(pg)
+    primeiro = pg.evaluate("document.activeElement.dataset.cel")
+    pg.keyboard.press("ArrowRight"); pg.keyboard.press("ArrowLeft"); pg.keyboard.press("ArrowDown"); pg.keyboard.press("ArrowUp")
+    assert pg.evaluate("document.activeElement.dataset.cel") == primeiro
+    pg.keyboard.press("Home"); assert pg.evaluate("document.activeElement.dataset.cel") == "8"       # seg 08h
+    nome = pg.evaluate("document.activeElement.getAttribute('aria-label')")
+    assert "Segunda" in nome and "08" in nome, nome
+    assert pg.evaluate("document.activeElement.matches(':focus-visible')")
+    pg.keyboard.press("Space")                       # COS360 em seg 08h, onde EEL871 tem aula: choque
+    assert foco_em(pg, '.cel[data-cel="8"]'), descreve_foco(pg)
+    assert "seg 08-09" in pg.locator('.crono-item:has([data-csel="COS360"])').inner_text()
+    banner = pg.locator(".choques").inner_text(); assert "COS360" in banner and "EEL871" in banner and "seg" in banner, banner
+    rot = pg.locator('.cel[data-cel="8"]').get_attribute("aria-label")
+    assert "COS360" in rot and "EEL871" in rot and "choque" in rot.lower() and "Segunda" in rot, rot
+    pg.keyboard.press("Space")                       # limpa
+    assert "sem horário" in pg.locator('.crono-item:has([data-csel="COS360"])').inner_text()
+    assert "Sem choques" in pg.locator(".choques").inner_text()
+    pg.keyboard.press("Escape")
+    # busca por faixa: célula vazia sem disciplina selecionada
+    pg.locator('.cel[data-cel="315"]').focus(); pg.keyboard.press("Enter")
+    assert "Quinta 15h" in pg.locator(".plano").inner_text(), pg.locator(".plano").inner_text()[:200]
+    assert foco_em(pg, '.cel[data-cel="315"]'), descreve_foco(pg)
+    pg.focus("#slot-limpar"); pg.keyboard.press("Enter")
+    assert "Quinta 15h" not in pg.locator(".plano").inner_text()
+    ctx.close()
+
+CASOS4 = [t_b4_grade_horarios, t_b3_nomes, t_m6_somente_informativo, t_b2_foco_visivel, t_b2_foco_filtros, t_b2_importacao, t_b1_estado_dos_cartoes]
 CASOS += CASOS4
 
 

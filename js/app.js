@@ -307,6 +307,7 @@
   const ATALHOS = ["perfil", "importar", "tema", "privacidade", "referencias", "tags"];
   let atalhos = load("atalhos", [], (v) => listaDe(v, (x) => ATALHOS.includes(x)));
   let ocultarSeletor = load("ocultarSeletor", false, (v) => typeof v === "boolean");
+  let celTab = null;                 // célula do cronograma que entra na ordem de Tab (foco móvel)
   let consultado = null;             // toque: cartão consultado, à espera do segundo toque que marca
   let seletorECI = false;            // paleta "ECI por trás" (só nesta visita): destaca os cartões com experiência
   let exibir = Object.assign({ codigo: true, notas: false, dificuldade: false, presenca: false, setas: "ocultas" }, load("exibir", {}));
@@ -1583,12 +1584,17 @@
 
     // grade semanal
     const linhas = H_FIM - H_INI;
+    const celFoco = celTab != null && celTab % 100 >= H_INI && celTab % 100 < H_FIM && celTab < DIAS.length * 100 ? celTab : H_INI;
     let celulas = "";
     for (let h = H_INI; h < H_FIM; h++) {
       celulas += `<div class="hora" style="grid-row:${h - H_INI + 2}">${pad(h)}h</div>`;
       DIAS.forEach((d, di) => {
         const c = di * 100 + h;
-        celulas += `<div class="cel${ocup[c] && ocup[c].length > 1 ? " choque" : ""}${cronoSlot === c ? " slot" : ""}" data-cel="${c}" style="grid-row:${h - H_INI + 2};grid-column:${di + 2}"></div>`;
+        const donos = ocup[c] || [];
+        const estado = donos.length > 1 ? `choque entre ${donos.join(" e ")}` : donos.length ? donos[0] : "livre";
+        const pressionado = cronoSel ? ` aria-pressed="${donos.includes(cronoSel)}"` : (!donos.length ? ` aria-pressed="${cronoSlot === c}"` : "");
+        celulas += `<button type="button" class="cel${donos.length > 1 ? " choque" : ""}${cronoSlot === c ? " slot" : ""}" data-cel="${c}" tabindex="${c === celFoco ? 0 : -1}"
+          aria-label="${DIAS_NOME[di]} ${pad(h)}h: ${esc(estado)}"${pressionado} style="grid-row:${h - H_INI + 2};grid-column:${di + 2}"></button>`;
       });
     }
     let blocos = "";
@@ -1647,7 +1653,7 @@
         <div class="crono-grade-wrap">
           ${choques.length ? `<div class="choques">⚠ Choque de horário: ${Object.entries(textoChoques).map(([k, cs]) => `<b>${esc(k)}</b> (${formataHorarios(new Set(cs)).join(", ")})`).join(" · ")}</div>` : `<div class="choques ok">Sem choques de horário.</div>`}
           ${foraFaixa.length ? `<p class="dica">Fora da faixa ${H_INI}h–${H_FIM}h: ${foraFaixa.map((it) => esc(it.code)).join(", ")}</p>` : ""}
-          <div class="crono-grade${cronoSel ? " editando" : " buscando"}" style="--linhas:${linhas}">
+          <div class="crono-grade${cronoSel ? " editando" : " buscando"}" role="group" aria-label="Horários da semana: setas movem entre as células, Espaço ou Enter marca" style="--linhas:${linhas}">
             <div class="canto"></div>
             ${DIAS_NOME.map((d, i) => `<div class="dia" style="grid-column:${i + 2}">${d}</div>`).join("")}
             ${celulas}${blocos}
@@ -2705,7 +2711,8 @@
         cronoPeriodo = nome; save("cronoPeriodo", nome); save("plano", plano); montaModelo(); render();
         return;
       }
-      if (t.closest(".cel")) return; // tratado no mousedown
+      const celula = t.closest(".cel");
+      if (celula) { if (ev.detail === 0) ativaCelula(+celula.dataset.cel, false); return; }   // com o mouse, tratado no mousedown
       // cartões
       const el = t.closest(".card"); if (!el) return;
       if (seletorECI && el.dataset.code && window.ECI.tem(el.dataset.code)) return window.ECI.abre(el.dataset.code, contextoECI(), el);
@@ -2718,11 +2725,9 @@
       abrePainel(ev, () => abreDetalhes(el.dataset.code ? { code: el.dataset.code } : { idx: el.dataset.idx }));
     });
 
-    // pintar horários (clique ou arrasto)
-    painel.addEventListener("mousedown", (ev) => {
-      const cel = ev.target.closest(".cel"); if (!cel) return;
-      ev.preventDefault();
-      const c = +cel.dataset.cel;
+    // Horários: mouse e toque (mousedown, com arrasto) e teclado (Espaço/Enter, que chegam como clique sem detalhe).
+    function ativaCelula(c, comArrasto) {
+      celTab = c;
       const p = M.periodos.find((x) => x.nome === cronoPeriodo); if (!p) return;
       if (!cronoSel) {
         const dono = p.itens.find((it) => it.cel.has(c));
@@ -2732,8 +2737,30 @@
         return;
       }
       const it = p.itens.find((x) => x.code === cronoSel); if (!it) return;
-      arrasto = { modo: !it.cel.has(c), visit: new Set([c]) };
-      alteraCelula(cronoPeriodo, cronoSel, c, arrasto.modo);
+      const modo = !it.cel.has(c);
+      if (comArrasto) arrasto = { modo, visit: new Set([c]) };
+      alteraCelula(cronoPeriodo, cronoSel, c, modo);
+    }
+    painel.addEventListener("mousedown", (ev) => {
+      const cel = ev.target.closest(".cel"); if (!cel) return;
+      ev.preventDefault();
+      ativaCelula(+cel.dataset.cel, true);
+    });
+    // Setas movem o foco entre as células (só uma entra na ordem de Tab); Home/End vão aos extremos da linha.
+    painel.addEventListener("keydown", (ev) => {
+      const cel = ev.target.closest && ev.target.closest(".cel"); if (!cel) return;
+      const c = +cel.dataset.cel, di = Math.floor(c / 100), h = c % 100;
+      const destino = {
+        ArrowRight: di < DIAS.length - 1 ? c + 100 : null, ArrowLeft: di > 0 ? c - 100 : null,
+        ArrowDown: h < H_FIM - 1 ? c + 1 : null, ArrowUp: h > H_INI ? c - 1 : null,
+        Home: ev.ctrlKey ? H_INI : di * 0 + h, End: ev.ctrlKey ? (DIAS.length - 1) * 100 + H_FIM - 1 : (DIAS.length - 1) * 100 + h,
+      }[ev.key];
+      if (destino === undefined) return;
+      ev.preventDefault();
+      const alvo = destino != null && painel.querySelector(`.cel[data-cel="${destino}"]`);
+      if (!alvo) return;
+      painel.querySelectorAll('.cel[tabindex="0"]').forEach((x) => { x.tabIndex = -1; });
+      alvo.tabIndex = 0; celTab = destino; alvo.focus();
     });
     painel.addEventListener("mouseover", (ev) => {
       const cel = ev.target.closest(".cel");

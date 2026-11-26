@@ -869,3 +869,7 @@ html {
   scroll-padding-top: calc(var(--faixa-h, 0px) + 12px);
   scroll-padding-bottom: calc(var(--paleta-h, 0px) + 20px);
 }
+
+/* ---------- B2.5 · B4: células da grade de horários operáveis por teclado ---------- */
+.crono-grade .cel { appearance: none; margin: 0; padding: 0; border-radius: 0; font: inherit; color: inherit; background: transparent; border-right: 0; border-bottom: 0; text-align: left; }
+.crono-grade .cel:focus-visible { outline: 3px solid var(--foco); outline-offset: -3px; position: relative; z-index: 2; }
