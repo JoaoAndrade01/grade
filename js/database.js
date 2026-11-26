@@ -139,3 +139,7 @@ window.courses = [
     { name: "Química EE", credits: 4, semester: 4, code: "IQG111", category: 1, workload: 60},
     ]
 ]
+
+/* Conferência do currículo com o SIGA (distribuição curricular de ECI, 2012/1 em diante).
+   Atualize `consultado` (AAAA-MM-DD) a cada nova conferência; a data aparece no rodapé. */
+window.curriculoSIGA = { 1: { consultado: "2026-11-26" } };

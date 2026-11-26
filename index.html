@@ -32,6 +32,8 @@
   <script src="js/app.js" defer></script>
 </head>
 <body class="classico">
+  <!-- D-06: aviso fixo de que a Grade não é oficial (texto aprovado pelo João; não altere sem voltar a ele). -->
+  <div id="faixa-aviso" class="faixa-aviso" role="note" aria-label="Aviso">Feita por alunos de ECI. Não substitui o SIGA, o BOA nem a coordenação.</div>
   <header class="topo">
     <div class="titulo">
       <img class="logo" src="static/logo-gremio-eci.png" width="200" height="200" alt="Grêmio de ECI">
@@ -118,10 +120,17 @@
   </dialog>
 
   <footer class="rodape">
-    Passe o mouse numa disciplina: <span class="tag-req">pré-requisitos</span> e <span class="tag-dep">o que ela libera</span> acendem.
-    · <a href="docs/ARQUITETURA.md">arquitetura</a>
-    · <a href="classico.html">versão antiga</a>
-    · <a href="https://github.com/gremio-eci/grade" target="_blank" rel="noopener">GitHub</a>
+    <p class="rodape-dica">Passe o mouse numa disciplina: <span class="tag-req">pré-requisitos</span> e <span class="tag-dep">o que ela libera</span> acendem.</p>
+    <p class="rodape-info">
+      <span id="versao">v2.0.0</span>
+      · <span id="curriculo-conferido"></span>
+      · <a id="link-relato" href="https://github.com/JoaoAndrade01/grade/issues/new" target="_blank" rel="noopener">Achou um erro? Crie uma nova issue</a>
+      <span class="rodape-extra">
+        · <a href="docs/ARQUITETURA.md">arquitetura</a>
+        · <a href="classico.html">versão antiga</a>
+        · <a href="https://github.com/gremio-eci/grade" target="_blank" rel="noopener">GitHub</a>
+      </span>
+    </p>
   </footer>
 </body>
 </html>

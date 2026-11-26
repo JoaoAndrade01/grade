@@ -131,6 +131,7 @@
   const camposPeriodo = {
     nome: nomePeriodo, atual: (v) => opcional(v, (b) => typeof b === "boolean"),
     planejado: (v) => opcional(v, (b) => typeof b === "boolean"), nota: (v) => opcional(v, (n) => texto(n) || numero(n)),
+    deduzido: (v) => opcional(v, (b) => typeof b === "boolean"),
   };
   const periodoValido = (p) => !erroCampos(p, camposPeriodo, "periodo")
     && opcional(p.disciplinas, (v) => listaDe(v, disciplinaValida));
@@ -390,7 +391,7 @@
         });
         return item;
       });
-      return { nome: p.nome, semestre: semIdx(p.nome), nota: p.nota, tipo, itens, pi, editado };
+      return { nome: p.nome, semestre: semIdx(p.nome), nota: p.nota, tipo, itens, pi, editado, deduzido: !!p.deduzido };
     });
 
     // Equivalências: deferida passa a valer como a disciplina pedida (e a cursada deixa de contar no grupo original);
@@ -787,9 +788,10 @@
     </button>`;
   }
 
-  function coluna(titulo, chips, cards, extraClasse = "") {
+  function coluna(titulo, chips, cards, extraClasse = "", notas = "") {
     return `<section class="coluna ${extraClasse}">
       <header class="col-topo"><h2>${esc(titulo)}</h2><div class="chips">${chips}</div></header>
+      ${notas}
       <div class="col-cards">${cards || `<p class="vazio">—</p>`}</div>
     </section>`;
   }
@@ -843,7 +845,7 @@
         <span><i class="seg-cur"></i>Cursando <b>${pc(cur).toFixed(0)}%</b></span>
         <span><i class="seg-plan"></i>Planejada <b>${pc(pl).toFixed(0)}%</b></span>
         <span><i class="seg-resto"></i>Não planejada <b>${pc(resto).toFixed(0)}%</b></span>
-        <span class="bg-total">${fmt(ok)} de ${fmt(total)} cr${T5.total ? ` · Extensão/ACE ${fmt(T5.ok)}/${fmt(T5.total)} h` : ""}</span>
+        <span class="bg-total">${fmt(ok)} de ${fmt(total)} cr${T5.total ? ` · Extensão/ACE ${fmt(T5.ok)}/${fmt(T5.total)} h${T5.aConfirmar ? ` ${textoAConfirmar(T5)}` : ""}` : ""}</span>
         <button type="button" class="link" id="bg-detalhes">${progressoAberto ? "ocultar detalhes ▴" : "detalhes ▾"}</button>
       </div>`;
   }
@@ -922,6 +924,7 @@
   function renderGrade() {
     const n = window.semesters || Math.max(...M.grade.map((c) => c.semester));
     const fill = preenchimentoBlocos();
+    const aConfirmarACE = resumoExtensao().aConfirmar;
     let html = "";
     for (let s = 1; s <= n; s++) {
       const cs = M.grade.filter((c) => c.semester === s);
@@ -937,7 +940,7 @@
           const pc = (v) => (v / c.credits) * 100;
           return card({
             idx: c.idx, name: c.name, cat: c.category, status: st, classe: "bloco", inerte: seletorECI,
-            meta: `${fmt(feito)}${f.plan ? ` (+${fmt(f.plan)} plan.)` : ""} / ${metaDe(null, c.credits, c.category)}`,
+            meta: `${fmt(feito)}${f.plan ? ` (+${fmt(f.plan)} plan.)` : ""} / ${metaDe(null, c.credits, c.category)}${c.category == 5 && aConfirmarACE ? ` · ${textoAConfirmar({ aConfirmar: aConfirmarACE })}` : ""}`,
             sub: modoClassico ? "" : nomes, fill: { ok: pc(f.ok), prev: pc(f.ok + f.prev), plan: pc(tudo) },
           });
         }
@@ -963,7 +966,7 @@
     if (!M.periodos.length) return semPerfil("A linha do tempo mostra as disciplinas no período em que você cursou (ou planeja cursar).");
     let html = "";
     M.periodos.forEach((p) => {
-      let cr = 0;
+      let cr = 0, temOferta = false;
       const cards = p.itens.map((it) => {
         if (it.status !== "reprovado" && it.category != 5) cr += it.credits;
         const subs = [];
@@ -971,7 +974,7 @@
         if (it.dispensas.length) subs.push("dispensa " + it.dispensas.map(esc).join(", "));
         const aviso = p.tipo !== "cursado" && it.status !== "reprovado" ? avisos(it.alvo, p.semestre) : [];
         const oferta = p.tipo === "planejado" && it.status !== "reprovado" ? avisoOferta(it.alvo, p.nome) : null;
-        if (oferta) { aviso.push(oferta.texto); subs.push(`<span class="aviso-oferta">${esc(oferta.curto)}</span>`); }
+        if (oferta) { temOferta = true; aviso.push(oferta.texto); subs.push(`<span class="aviso-oferta">${esc(oferta.curto)}</span>`); }
         return card({
           code: it.alvo, name: it.name, cat: it.category, status: it.status, nota: it.nota,
           meta: metaDe(it.code, it.category == 5 ? it.horas : it.credits, it.category), sub: subs.join("<br>"), aviso,
@@ -979,7 +982,8 @@
       }).join("");
       const tipoChip = { atual: `<span class="chip chip-atual">atual</span>`, planejado: `<span class="chip chip-plan">planejado</span>`, cursado: "" }[p.tipo];
       const chips = `${tipoChip}${p.nota ? `<span class="chip">${esc(p.nota)}</span>` : ""}<span class="chip">${fmt(cr)} cr</span>${p.editado ? `<span class="chip chip-alerta" title="Editado no navegador — exporte o perfil para salvar">editado</span>` : ""}`;
-      html += coluna(p.nome, chips, cards, `col-${p.tipo}`);
+      const notas = (p.tipo === "atual" && p.deduzido ? notaHtml(NOTA_RA19) : "") + (temOferta ? notaHtml(notaRA20()) : "");
+      html += coluna(p.nome, chips, cards, `col-${p.tipo}`, notas);
     });
 
     const tot = totais();
@@ -1092,7 +1096,7 @@
           <ul class="lista sem-codigo">${extras.map((x) => { const ch = chocaCom(x.horarios, alvo);
             return `<li><span>${esc(x.name)}</span><small class="${ch.length ? "choca" : "cabe"}">${esc(x.horarios.join(", "))} · ${ch.length ? "choca com " + esc(ch.join(", ")) : "cabe"}</small></li>`; }).join("")}</ul>`;
       })()}
-      ${M.ref ? `<p class="dica">Horários de referência: ${esc(M.ref.fonte || "")}${M.ref.consultado ? `, consultado em ${esc(M.ref.consultado)}` : ""}. Confira no SIGA antes da inscrição.</p>` : ""}
+      ${M.ref ? `<p class="dica nota-estimativa">${esc(notaRA20())}</p>` : ""}
     </div>`;
   }
 
@@ -1129,8 +1133,17 @@
       <li>Grade: <b>${fmt(n.grade)} cr</b> <small>(estimativa da Grade)</small></li>
       <li>${n.presente ? `BOA, soma das não explicitadas: <b>${fmt(n.soma)} cr</b> <small>(${n.emissao ? `BOA de ${esc(n.emissao)}; ` : ""}estimativa)</small>`
         : `BOA: <b>indisponível</b> <small>(${esc(n.motivo)})</small>`}</li>
-    </ul>`;
+    </ul>${notaHtml(NOTA_RA13)}`;
   }
+  // Notas de estimativa de D-06 (texto aprovado pelo João em textos-aviso.md). A data de RA-20 vem de `consultado`.
+  const dataBR = (iso) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ""); return m ? `${m[3]}/${m[2]}/${m[1]}` : String(iso || ""); };
+  const NOTA_RA13 = "Estimativa da Grade. No BOA, os créditos usados em equivalências podem continuar aparecendo na livre escolha.";
+  const NOTA_RA09 = "Idade estimada pelo semestre de aprovação. Para quem reingressou, a data que vale pode ser outra; confira com a coordenação.";
+  const NOTA_RA19 = "Período atual deduzido do histórico. Confira e corrija na prévia, se precisar.";
+  const notaRA20 = () => `Horários de referência mantidos por alunos (Notion${M.ref && M.ref.consultado ? `, consultado em ${dataBR(M.ref.consultado)}` : ""}). Podem mudar; confira no SIGA antes da inscrição.`;
+  const notaHtml = (t) => `<p class="nota-estimativa">${esc(t)}</p>`;
+  /** Horas de extensão ainda sem identidade certa: o mesmo texto na barra, no bloco da Grade, no progresso e nos Pedidos. */
+  const textoAConfirmar = (T5) => (T5 && T5.aConfirmar ? `+${fmt(T5.aConfirmar)} h a confirmar` : "");
   /** Aviso de origem reutilizada em mais de uma dispensa (D-07). `origem` limita o aviso a uma disciplina. */
   function avisoReuso(origem) {
     const lista = M.reutilizadas.filter((x) => !origem || x.origem === origem);
@@ -1249,6 +1262,7 @@
         a.imprecisas.length ? `<li class="alerta">Precisão insuficiente: só o ano é conhecido; pode passar de 5 anos (${a.imprecisas.map((v) => esc(v.code)).join(", ")}).</li>` : "",
         a.semData.length ? `<li class="alerta">Data de aprovação não confirmada: ${a.semData.map((v) => esc(v.code)).join(", ")}</li>` : "",
         a.cs.length && !a.velhas.length && !a.imprecisas.length && !a.semData.length ? `<li class="ok">✓ dentro de 5 anos pela estimativa semestral</li>` : "",
+        a.cs.some((c) => baseDoPrazo(c.code)) ? `<li class="nota-estimativa">${esc(NOTA_RA09)}</li>` : "",
         a.repetidas.length ? `<li class="alerta">⚠ já usada em outro pedido/dispensa: ${a.repetidas.map(esc).join(", ")}</li>` : "",
         M.pedidosComConflito.has(e) ? `<li class="alerta">Créditos fora da soma até resolver o uso em duplicidade.</li>` : "",
         a.pedidaFeita ? `<li class="alerta">⚠ a pedida já está aprovada/prevista</li>` : "",
@@ -1315,12 +1329,13 @@
         ${htmlNumerosLivre(tot)}
         <p class="dica">${fmt(somaLivre)} cr no total · exigido ${fmt(livreExig)} cr · já consumidos por deferimento ${fmt(somaUsada)} cr · reservados por pedidos pendentes ${fmt(reservado)} cr.</p>
         <table class="tabela"><thead><tr><th>Disciplina</th><th>Cursada há</th><th>Uso</th></tr></thead><tbody>${linhasLivre}</tbody></table>
+        ${neCodes.some((c) => baseDoPrazo(c)) ? notaHtml(NOTA_RA09) : ""}
       </section>
       <section class="sec">
-        <h2>Extensão / ACE <small>${fmt(T5.ok)} h confirmadas${T5.plan ? ` · ${fmt(T5.plan)} h em andamento/planejadas` : ""} · exigido ${fmt(T5.total)} h</small></h2>
+        <h2>Extensão / ACE <small>${fmt(T5.ok)} h confirmadas${T5.aConfirmar ? ` · ${textoAConfirmar(T5)}` : ""}${T5.plan ? ` · ${fmt(T5.plan)} h em andamento/planejadas` : ""} · exigido ${fmt(T5.total)} h</small></h2>
         <div class="barra"><span class="b-ok" style="width:${Math.min(100, (T5.ok / T5.total) * 100)}%;background:var(--cat5)"></span><span class="b-plan" style="width:${Math.min(100 - Math.min(100, (T5.ok / T5.total) * 100), (T5.plan / T5.total) * 100)}%;background:color-mix(in srgb, var(--cat5) 30%, transparent)"></span></div>
         ${T5.aConfirmar ? `<p class="ace-duplicidade alerta">Possível duplicidade em ${esc([...resumo.codigosDuvidosos].join(", "))}.
-          ${fmt(T5.aConfirmar)} h a confirmar.</p>` : ""}
+          ${fmt(T5.aConfirmar)} h a confirmar. Confira no SIGA ou com a coordenação.</p>` : ""}
         <table class="tabela"><thead><tr><th>Atividade</th><th>Código ACE</th><th>Horas</th><th>Período</th><th>Situação</th><th></th></tr></thead>
         <tbody>${linhasExt || `<tr><td colspan="6" class="vazio">Nenhuma atividade.</td></tr>`}</tbody></table>
         <datalist id="ace-list">${aceOpc}</datalist>
@@ -1561,6 +1576,7 @@
           })()}
           <p class="dica">${cronoSel ? `Clique (ou arraste) nas células para marcar/desmarcar horários de <b>${esc(cronoSel)}</b>. Esc para sair.` : "Escolha uma disciplina e clique na grade para definir os horários."}</p>
           <ul>${lista || `<li class="vazio">Nenhuma disciplina.</li>`}</ul>
+          ${M.ref && p.tipo !== "cursado" ? notaHtml(notaRA20()) : ""}
           <div class="add">
             <input class="campo" list="opcoes-add" id="add-code" placeholder="Adicionar disciplina (código ou nome)…">
             <datalist id="opcoes-add">${opcoes}</datalist>
@@ -1594,7 +1610,7 @@
       return `<div class="prog cat-${k}">
         <div class="prog-topo"><span>${c.nome}</span><b>${fmt(T.ok)}${T.prev ? `<i> +${fmt(T.prev)}</i>` : ""} / ${fmt(T.total)} ${c.un}</b></div>
         <div class="barra"><span class="b-ok" style="width:${pOk}%"></span><span class="b-prev" style="width:${pPrev}%"></span><span class="b-plan" style="width:${pPlan}%"></span><span class="b-anal" style="width:${pAnal}%"></span></div>
-        <small>${falta ? `faltam ${fmt(falta)} ${c.un}${T.plan ? ` · ${fmt(Math.min(T.plan, falta))} planejados` : ""}${T.anal ? ` · ${fmt(T.anal)} em análise` : ""}` : "completo ✓"}${T.aConfirmar ? ` · ${fmt(T.aConfirmar)} h a confirmar (possível duplicidade)` : ""}</small>
+        <small>${falta ? `faltam ${fmt(falta)} ${c.un}${T.plan ? ` · ${fmt(Math.min(T.plan, falta))} planejados` : ""}${T.anal ? ` · ${fmt(T.anal)} em análise` : ""}` : "completo ✓"}${T.aConfirmar ? ` · ${textoAConfirmar(T)} (possível duplicidade)` : ""}</small>
         ${k === "3" ? htmlNumerosLivre(t) : ""}
       </div>`;
     }).join("");
@@ -1857,7 +1873,7 @@
         ${(() => {
           const lst = periodosFuturos().filter((p) => p.itens.some((it) => it.alvo === code && it.status !== "reprovado"))
             .map((p) => [p.nome, avisoOferta(code, p.nome)]).filter((x) => x[1]);
-          return lst.length ? `<ul class="lista avisos-det">${lst.map(([n, a]) => `<li class="aviso-oferta">${esc(n)}: ${esc(a.texto)}</li>`).join("")}</ul>` : "";
+          return lst.length ? `<ul class="lista avisos-det">${lst.map(([n, a]) => `<li class="aviso-oferta">${esc(n)}: ${esc(a.texto)}</li>`).join("")}</ul>${notaHtml(notaRA20())}` : "";
         })()}
         ${(() => {
           const g = guiaDe(code); if (!g) return "";
@@ -1990,6 +2006,12 @@
     box.dataset.alvo = "privacidade";
   }
 
+  /** Link de relato de erro (o endereço fica no rodapé de index.html). Nunca leva dados da pessoa. */
+  function htmlRelato() {
+    const a = $("#link-relato");
+    return a ? `<a href="${esc(a.href)}" target="_blank" rel="noopener">${esc(a.textContent)}</a>` : "";
+  }
+
   // ---------- Importar do SIGA (PDFs) ----------
   // Usa js/siga.js (mesmas regras de ferramentas/gerar_perfil.py) sobre o texto extraído pelo pdf.js.
   // Tudo roda no navegador: os PDFs não saem do computador.
@@ -2094,6 +2116,7 @@
             ? `Último semestre do histórico (${esc(r.ultimoReal)}).`
             : "O histórico não tem um semestre para servir de base."} A sugestão considera o período atual já salvo e o Histórico. Corrija se precisar, no formato AAAA/1 ou AAAA/2, ou deixe em branco para manter o período sem data.</p>
           <p class="msg-campo" id="siga-atual-msg" aria-live="polite">${esc(r.conflito || "")}</p>
+          <div id="siga-nota-ra19"${r.deduzido && r.atualEscolhido.trim() === r.deduzido ? "" : " hidden"}>${notaHtml(NOTA_RA19)}</div>
         </div>` : ""}
         <div id="siga-planos" class="siga-planos" aria-live="polite">${htmlPlanosImportacao(r)}</div>
         <button type="button" class="btn btn-primario" id="siga-usar"${importacaoBloqueada(r) ? " disabled" : ""}>Usar este perfil</button>
@@ -2151,7 +2174,7 @@
       const mesmoBoaSemData = atualAnterior?.nome === "atual" && boa?.emissao && boa.emissao === anterior.fonte?.boaEmissao;
       const sugerido = anteriorDatado ? atualAnterior.nome : atual?.nome;
       previaObsoleta = false;
-      resultadoImportacao = { perfil: novo, boa, semCategoria, historicos: historicos.length,
+      resultadoImportacao = { deduzido: !anteriorDatado && atual ? atual.nome : null, perfil: novo, boa, semCategoria, historicos: historicos.length,
         entrada: { historicos, boa, curriculo, catalogo, base }, escolha: null, papel: window.SIGA.papelHistoricos(historicos),
         atual, atualAnterior, ultimoReal, conflito: null,
         atualEscolhido: atual && !mesmoBoaSemData && semestreValido(sugerido) ? sugerido : "",
@@ -2159,7 +2182,7 @@
       avaliaImportacao(resultadoImportacao);
       abreImportador();
     } catch (e) {
-      status.textContent = "Não deu certo: " + e.message;
+      status.innerHTML = `${esc("Não deu certo: " + e.message)} ${htmlRelato()}`;
     } finally {
       if (status.isConnected) $("#siga-gerar").disabled = false;
     }
@@ -2185,6 +2208,7 @@
     if (!atual || atual.nome === para) return;
     const de = atual.nome;
     atual.nome = para;
+    delete atual.deduzido;      // o semestre mudou: não é mais o deduzido pelo importador
     (p.extensao || []).forEach((a) => { if (a.periodo === de) a.periodo = para; });
   }
   /** Valida o semestre digitado na prévia do SIGA. Vazio = período atual sem data ("atual"). */
@@ -2208,6 +2232,7 @@
           if (anterior?.status) d.status = anterior.status;
         });
       }
+      if (r.deduzido && nome === r.deduzido) novo.periodos.find((p) => p.atual).deduzido = true;   // RA-19: semestre sugerido pelo importador
     }
     return novo;
   }
@@ -2728,7 +2753,7 @@
           resultadoImportacao = null;
           previaObsoleta = false;
         } catch (e) {
-          $("#siga-status").textContent = "Não consegui usar o perfil: " + e.message;
+          $("#siga-status").innerHTML = `${esc("Não consegui usar o perfil: " + e.message)} ${htmlRelato()}`;
         }
         return;
       }
@@ -2790,6 +2815,7 @@
       const bloq = importacaoBloqueada(r);
       $("#siga-usar").disabled = bloq; $("#siga-baixar").disabled = bloq;
       const caixa = $("#siga-descartar-planos"); if (caixa) caixa.checked = !!r.descartarPlanos;
+      const nota = $("#siga-nota-ra19"); if (nota) nota.hidden = !(r.deduzido && r.atualEscolhido.trim() === r.deduzido);
     }
 
     // Criar / editar perfil
@@ -2834,6 +2860,13 @@
   // Ganchos para testes e para quem quiser depurar no console do navegador.
   window.GradeInterativa = { carregaPdfJs, linhasPDF, perfilExportado: () => perfilExportado(), totais: () => totais(),
     avisoOferta: (c, p) => avisoOferta(c, p), avisos: (c, nome) => { const p = M.periodos.find((x) => x.nome === nome); return p ? avisos(c, p.semestre) : null; } };
+
+  // Rodapé: data da conferência do currículo com o SIGA (campo `consultado` de js/database.js).
+  const conferido = (window.curriculoSIGA || {})[1];
+  if (conferido && conferido.consultado) $("#curriculo-conferido").textContent = `Currículo conferido no SIGA em ${conferido.consultado}`;
+  // A faixa de aviso é fixa: o painel de detalhes começa abaixo dela.
+  const faixa = $("#faixa-aviso");
+  if (faixa && "ResizeObserver" in window) new ResizeObserver(() => document.documentElement.style.setProperty("--faixa-h", faixa.offsetHeight + "px")).observe(faixa);
 
   montaModelo();
   liga();

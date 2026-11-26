@@ -196,7 +196,7 @@ code { background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
 
 /* ---------- Detalhes ---------- */
 .detalhes {
-  position: fixed; top: 12px; right: 12px; bottom: 12px; width: min(340px, calc(100vw - 24px));
+  position: fixed; top: calc(var(--faixa-h, 0px) + 12px); right: 12px; bottom: 12px; width: min(340px, calc(100vw - 24px));
   background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px;
   box-shadow: 0 12px 40px rgb(0 0 0 / .18); overflow-y: auto; z-index: 10;
   animation: entra .18s ease-out;
@@ -497,7 +497,7 @@ small.alerta, .alerta { color: var(--dep); }
 @media (prefers-reduced-motion: reduce) { .interruptor .trilho, .interruptor .trilho::after { transition: none; } }
 
 /* modo clássico: só a grade, o resto some */
-.classico .abas, .classico #subtitulo, .classico .rodape, .classico .bg-legenda { display: none; }
+.classico .abas, .classico #subtitulo, .classico .rodape-dica, .classico .rodape-extra, .classico .bg-legenda { display: none; }
 .classico .topo { padding-top: 10px; padding-bottom: 4px; }
 .classico .titulo h1 { font-size: 18px; }
 .classico .logo { width: 36px; height: 36px; }
@@ -844,3 +844,11 @@ dialog.dlg-eci:modal { overscroll-behavior: contain; }
   .cfg-linha .btn { min-height: 44px; }
   .opcao { min-height: 44px; }
 }
+
+/* ---------- Faixa de aviso e notas de estimativa (D-06) ---------- */
+.faixa-aviso { position: sticky; top: 0; z-index: 25; margin: 0; padding: 4px 24px; font-size: 12px; line-height: 16px;
+  text-align: center; color: var(--text); background: var(--surface-2); border-bottom: 1px solid var(--border); }
+@media (max-width: 640px) { .faixa-aviso { padding: 4px 12px; } }
+.nota-estimativa { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
+.rodape p { margin: 0 0 4px; }
+body:has(.paleta:not([hidden])) .rodape { padding-bottom: 84px; }

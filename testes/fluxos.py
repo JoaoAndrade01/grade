@@ -457,7 +457,7 @@ def horas_ace(pg):
 
 @caso("CR-03: horas de ACE no histórico e na extensão respeitam a identidade por período")
 def t_cr03_historico(b):
-    observado = {}
+    observado, pg_barra = {}, {}
     for nome, periodos, periodo_ext in [
         ("mesmo-periodo", ["2026/1"], "2026/1"),
         ("periodos-distintos", ["2025/2"], "2026/1"),
@@ -475,6 +475,7 @@ def t_cr03_historico(b):
         progresso = pg.locator("#progresso .cat-5")
         largura = progresso.locator(".b-ok").evaluate("el => parseFloat(el.style.width)")
         pg.click('[data-vista="pedidos"]')
+        pg_barra[nome] = pg.locator("#barra-geral .bg-total").inner_text()
         observado[nome] = (horas_ace(pg), bloco, pg.locator(".ace-duplicidade").count(), largura)
         ctx.close()
     esperados = {
@@ -484,7 +485,8 @@ def t_cr03_historico(b):
     for nome, (confirmadas, pendentes) in esperados.items():
         horas, bloco, avisos_ace, largura = observado[nome]
         assert horas == [confirmadas, pendentes, 0], observado
-        assert bloco == f"{confirmadas} / 405 h", observado
+        assert bloco == f"{confirmadas} / 405 h" + (f" · +{pendentes} h a confirmar" if pendentes else ""), observado     # B1.6: mesmo resumo de ACE
+        assert ("a confirmar" in pg_barra[nome]) == bool(pendentes), (nome, pg_barra[nome])
         assert avisos_ace == int(bool(pendentes)), observado
         assert abs(largura - confirmadas / 405 * 100) < 0.01, observado
 
@@ -767,6 +769,163 @@ def t_d02_importacao(b):
         assert perfil["boa"]["naoExplicitadasPresente"] is esperado, perfil["boa"]
         assert texto in numeros_livre(pg)[1], pdf
         ctx.close()
+
+# ------------------------------------------------------------------ RF-08 / D-06: faixa, notas, rodapé, ACE
+FAIXA = "Feita por alunos de ECI. Não substitui o SIGA, o BOA nem a coordenação."
+NOTA_RA13 = "Estimativa da Grade. No BOA, os créditos usados em equivalências podem continuar aparecendo na livre escolha."
+NOTA_RA09 = "Idade estimada pelo semestre de aprovação. Para quem reingressou, a data que vale pode ser outra; confira com a coordenação."
+NOTA_RA19 = "Período atual deduzido do histórico. Confira e corrija na prévia, se precisar."
+def nota_ra20(pg):
+    iso = pg.evaluate("() => window.horarios[1].consultado")                 # a data vem de js/horarios.js
+    return f"Horários de referência mantidos por alunos (Notion, consultado em {iso[8:]}/{iso[5:7]}/{iso[:4]}). Podem mudar; confira no SIGA antes da inscrição."
+
+def confere_faixa(pg, onde):
+    faixa = pg.locator("#faixa-aviso")
+    expect(faixa).to_be_visible()
+    assert faixa.inner_text().strip() == FAIXA, (onde, faixa.inner_text())
+    assert faixa.get_attribute("role") == "note" and faixa.get_attribute("aria-label")
+    caixa = faixa.bounding_box()
+    assert caixa["y"] <= 1, (onde, caixa)                                         # no topo
+    for seletor in (".topo", "#painel"):                                           # sem cobrir o conteúdo em repouso
+        alvo = pg.locator(seletor).bounding_box()
+        assert alvo is None or alvo["y"] >= caixa["y"] + caixa["height"] - 1, (onde, seletor, alvo, caixa)
+    # vem antes do primeiro controle na ordem de leitura e de foco
+    assert pg.evaluate("() => { const f = document.getElementById('faixa-aviso'); const c = document.querySelector('button, a, input, select');"
+                       " return !!(f.compareDocumentPosition(c) & Node.DOCUMENT_POSITION_FOLLOWING); }"), onde
+
+@caso("RF-08 (08a, 08b): faixa de aviso no clássico, após recarregar, após trocar de modo e nas seis abas; sem e com perfil; desktop e celular")
+def t_rf08_faixa(b):
+    for rotulo, vp, toque in (("desktop", D, False), ("celular", C, True)):
+        for com_perfil in (False, True):
+            ctx, pg = abre(b, vp=vp, perfil=PERFIL if com_perfil else None, nome=f"rf08-faixa-{rotulo}-{com_perfil}", toque=toque)
+            nome = f"{rotulo}/{'perfil' if com_perfil else 'sem perfil'}"
+            confere_faixa(pg, nome + "/classico")
+            pg.reload(); pg.wait_for_load_state("load"); confere_faixa(pg, nome + "/recarga")
+            pg.locator(".interruptor").click(); confere_faixa(pg, nome + "/completo")
+            for vista in ("grade", "timeline", "optativas", "cronograma", "pedidos", "eci"):
+                pg.click(f'[data-vista="{vista}"]'); confere_faixa(pg, f"{nome}/{vista}")
+                if vista == "eci" and pg.locator("#dlg-eci[open]").count(): pg.keyboard.press("Escape")
+            pg.locator(".interruptor").click(); confere_faixa(pg, nome + "/de volta ao classico")
+            pg.evaluate("window.scrollBy(0, 600)"); pg.wait_for_timeout(150)      # mouse.wheel não existe no WebKit móvel
+            assert pg.locator("#faixa-aviso").bounding_box()["y"] <= 1                  # continua no topo ao rolar
+            if rotulo == "desktop" and com_perfil: foto(pg, "rf08-faixa-desktop")
+            if rotulo == "celular" and com_perfil: foto(pg, "rf08-faixa-celular")
+            ctx.close()
+
+@caso("RF-08 (08c, 08d): nota de RA-13 junto dos dois números e nota de RA-09 junto da idade")
+def t_rf08_notas_credito(b):
+    ctx, pg = abre(b, perfil=p5(), nome="rf08-ra13")
+    completo(pg, "pedidos")
+    assert pg.locator(".pedidos .livre-numeros + .nota-estimativa").inner_text() == NOTA_RA13
+    completo(pg, "grade")
+    if pg.locator("#progresso").is_hidden(): pg.click("#bg-detalhes")
+    assert pg.locator("#progresso .cat-3 .livre-numeros + .nota-estimativa").inner_text() == NOTA_RA13
+    foto(pg, "rf08-nota-livre-escolha")
+    ctx.close()
+    for periodo, esperado in (("2021/2", False), ("2021/1", True)):
+        perfil = {"periodos": [{"nome": periodo, "disciplinas": [dict(XYZ101)]}],
+                  "equivalencias": [{"cursadas": ["XYZ101"], "pedida": "COC602", "status": "a pedir"}]}
+        ctx, pg = abre(b, perfil=perfil, nome=f"rf08-ra09-{periodo[:4]}", relogio=RELOGIO)
+        completo(pg, "pedidos")
+        notas = pg.locator(".pedidos .nota-estimativa").all_inner_texts()
+        assert notas.count(NOTA_RA09) == 2, notas                                      # junto da idade e da tabela de livre escolha
+        assert ("mais de 5 anos" in pg.locator('.pedidos tr[class^="eq-"]').first.inner_text()) == esperado
+        ctx.close()
+
+@caso("RF-08 (08e, 08f): nota de RA-19 só no período atual deduzido, na prévia e na linha do tempo")
+def t_rf08_periodo_atual(b):
+    ctx, pg = abre(b, nome="rf08-ra19-deduzido")
+    gera(pg, ["historico-ficticio.pdf", "boa-ficticio.pdf"])
+    assert pg.input_value("#siga-atual") == "2026/2"
+    expect(pg.locator("#siga-nota-ra19")).to_be_visible(); assert pg.locator("#siga-nota-ra19").inner_text() == NOTA_RA19
+    pg.fill("#siga-atual", "2027/1"); expect(pg.locator("#siga-nota-ra19")).to_be_hidden()       # a pessoa informou outro semestre
+    pg.fill("#siga-atual", "2026/2"); expect(pg.locator("#siga-nota-ra19")).to_be_visible()
+    pg.click("#siga-usar")
+    assert [p for p in ls(pg, "perfilImportado")["periodos"] if p.get("atual")][0].get("deduzido") is True
+    completo(pg, "timeline")
+    assert pg.locator(".col-atual .nota-estimativa").inner_text() == NOTA_RA19
+    ctx.close()
+    ctx, pg = abre(b, nome="rf08-ra19-informado")
+    gera(pg, ["historico-ficticio.pdf", "boa-ficticio.pdf"])
+    pg.fill("#siga-atual", "2027/1"); pg.click("#siga-usar")
+    assert "deduzido" not in [p for p in ls(pg, "perfilImportado")["periodos"] if p.get("atual")][0]
+    completo(pg, "timeline")
+    assert pg.locator(".col-atual").count() == 1 and pg.locator(".col-atual .nota-estimativa").count() == 0
+    ctx.close()
+    perfil = {"periodos": [{"nome": "2026/2", "atual": True, "disciplinas": ["MAC128"]}]}      # informado pela pessoa (perfil criado ou editado)
+    ctx, pg = abre(b, perfil=perfil, nome="rf08-ra19-perfil-informado")
+    completo(pg, "timeline")
+    assert pg.locator(".col-atual").count() == 1 and pg.locator(".col-atual .nota-estimativa").count() == 0
+    ctx.close()
+
+@caso("RF-08 (08g, 08h): nota de RA-20 com a data de js/horarios.js no aviso de oferta, na linha do tempo e no Cronograma")
+def t_rf08_oferta(b):
+    ctx, pg = abre(b, perfil={"periodos": [{"nome": "2027/2", "planejado": True, "disciplinas": ["EEL871"]}]}, nome="rf08-ra20-oferta")
+    nota = nota_ra20(pg)
+    completo(pg, "timeline")
+    assert pg.locator(".col-planejado .nota-estimativa").inner_text() == nota
+    pg.locator('.col-planejado .card[data-code="EEL871"]').first.click()
+    assert pg.locator("#detalhes .nota-estimativa").inner_text() == nota
+    pg.keyboard.press("Escape")
+    completo(pg, "cronograma"); pg.click('[data-cperiodo="2027/2"]')
+    assert nota in pg.locator("#painel .nota-estimativa").all_inner_texts()
+    ctx.close()
+    perfil = {"periodos": [{"nome": "2027/1", "planejado": True, "disciplinas": [{"code": "MAC238", "horarios": ["ter 10-12", "qui 10-12"]}]}]}
+    ctx, pg = abre(b, perfil=perfil, nome="rf08-ra20-horarios")
+    completo(pg, "cronograma"); pg.click('[data-cperiodo="2027/1"]')
+    crono = pg.locator("#painel").inner_text()
+    assert "ter 10-12" in crono and "qui 10-12" in crono, crono
+    assert nota_ra20(pg) in pg.locator("#painel .nota-estimativa").all_inner_texts()
+    foto(pg, "rf08-cronograma-nota-horarios")
+    ctx.close()
+
+@caso("RF-08: versão, data de conferência do currículo e link de relato no rodapé e na falha de importação")
+def t_rf08_rodape(b):
+    for rotulo, vp, toque in (("desktop", D, False), ("celular", C, True)):
+        ctx, pg = abre(b, vp=vp, nome=f"rf08-rodape-{rotulo}", toque=toque)
+        for modo in ("classico", "completo"):
+            if modo == "completo": pg.locator(".interruptor").click()
+            rodape = pg.locator(".rodape")
+            rodape.scroll_into_view_if_needed()
+            expect(pg.locator("#versao")).to_be_visible(); assert pg.locator("#versao").inner_text() == "v2.0.0"
+            consultado = pg.evaluate("() => window.curriculoSIGA[1].consultado")
+            assert re.fullmatch(r"\d{4}-\d{2}-\d{2}", consultado), consultado
+            assert pg.locator("#curriculo-conferido").inner_text() == f"Currículo conferido no SIGA em {consultado}", (rotulo, modo)
+            link = pg.locator("#link-relato"); expect(link).to_be_visible()
+            assert link.inner_text() == "Achou um erro? Crie uma nova issue"
+            href = link.get_attribute("href")
+            assert href.startswith("https://github.com/") and href.endswith("/issues/new"), href      # sem dados da pessoa
+            if rotulo == "desktop" and modo == "classico": foto(pg, "rf08-rodape-classico")
+        ctx.close()
+    ctx, pg = abre(b, nome="rf08-relato-falha")
+    pg.click("#btn-importar")
+    pg.set_input_files("#siga-pdfs", files=[{"name": "invalido.pdf", "mimeType": "application/pdf", "buffer": b"%PDF-1.4\nnao e um historico"}])
+    pg.click("#siga-gerar")
+    pg.wait_for_selector("#siga-status a", timeout=30000)
+    texto = pg.locator("#siga-status").inner_text()
+    assert texto.startswith("Não deu certo:") and "Achou um erro? Crie uma nova issue" in texto, texto
+    assert pg.locator("#siga-status a").get_attribute("href") == pg.locator("#link-relato").get_attribute("href")
+    ctx.close()
+
+@caso("RF-08: horas de extensão a confirmar com o mesmo resumo na barra, no bloco da Grade, no progresso e nos Pedidos")
+def t_rf08_ace(b):
+    perfil = {"periodos": [{"nome": "2026/1", "disciplinas": ["EEW002"]}],
+              "extensao": [{"code": "EEW002", "horas": 30, "periodo": "2026/1", "status": "validada"}]}
+    ctx, pg = abre(b, perfil=perfil, nome="rf08-ace")
+    completo(pg, "grade")
+    assert "Extensão/ACE 30/405 h +30 h a confirmar" in pg.locator("#barra-geral .bg-total").inner_text()
+    assert pg.locator(".card.bloco.cat-5 .meta").inner_text() == "30 / 405 h · +30 h a confirmar"
+    pg.click("#bg-detalhes")
+    assert "+30 h a confirmar" in pg.locator("#progresso .cat-5").inner_text()
+    pg.click('[data-vista="pedidos"]')
+    assert "+30 h a confirmar" in pg.locator(".pedidos h2:has-text('Extensão')").inner_text()
+    duplicidade = pg.locator(".ace-duplicidade").inner_text()
+    assert "Possível duplicidade" in duplicidade and "30 h a confirmar" in duplicidade and "confira no siga ou com a coordenação" in duplicidade.lower(), duplicidade
+    foto(pg, "rf08-extensao-a-confirmar")
+    ctx.close()
+    ctx, pg = abre(b, perfil={"periodos": [{"nome": "2026/1", "disciplinas": ["EEW002"]}]}, nome="rf08-ace-sem-duvida")
+    assert "a confirmar" not in pg.locator("#barra-geral .bg-total").inner_text()
+    ctx.close()
 
 # ------------------------------------------------------------------ regressões gerais
 @caso("Regressões: abas, busca de optativas mantém foco, horários por clique, equivalências/ACE, exportação e recarga")
@@ -1256,6 +1415,7 @@ CASOS = [
     t_cr04_reingresso, t_cr04_controles, t_cr04_papel, t_cr04_fronteira,
     t_cr02_pedidos, t_cr02_duas_dispensas, t_cr02_dispensa_unica,
     t_d02_dois_numeros, t_d02_ausente_e_vazia, t_d02_outros_grupos, t_d02_importacao,
+    t_rf08_faixa, t_rf08_notas_credito, t_rf08_periodo_atual, t_rf08_oferta, t_rf08_rodape, t_rf08_ace,
     t_regressao, t_a11y,
 ] + CASOS2 + CASOS3
 
