@@ -1,0 +1,79 @@
+name: Relatar um erro
+description: Um número parece errado, algo não funcionou ou a Grade se comportou de forma estranha.
+title: "[Erro] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Antes de escrever
+
+        **Esta Issue é pública.** Qualquer pessoa pode ver tudo o que você escrever e anexar.
+
+        - **Não anexe** PDFs do SIGA (Histórico ou BOA), o seu perfil (`perfil.js` ou `.json`), nem capturas de tela
+          com nome, matrícula ou outros dados identificáveis.
+        - **Não escreva** nome, matrícula, CPF ou notas reais. Descreva o problema com **dados fictícios** (por exemplo,
+          "uma disciplina de 4 créditos aprovada em 2021/1").
+        - Se precisar mostrar uma tela, apague ou cubra tudo que identifique você antes de anexar.
+
+        A Grade orienta, mas não substitui o SIGA, o BOA nem a coordenação. Para dúvidas sobre regras acadêmicas,
+        confira o SIGA ou fale com a coordenação do curso.
+  - type: textarea
+    id: esperado
+    attributes:
+      label: O que você esperava que acontecesse
+      description: O resultado que você achava certo.
+      placeholder: "Ex.: o total de livre escolha mostrar 6 créditos."
+    validations:
+      required: true
+  - type: textarea
+    id: observado
+    attributes:
+      label: O que aconteceu de fato
+      description: O que a Grade mostrou ou fez. Copie o texto de qualquer mensagem de erro, sem dados pessoais.
+      placeholder: "Ex.: o total mostrou 4 créditos."
+    validations:
+      required: true
+  - type: textarea
+    id: passos
+    attributes:
+      label: Passos para reproduzir
+      description: Um passo por linha, do começo ao problema, com dados fictícios.
+      placeholder: |
+        1. Abri a Grade pelo site.
+        2. Cliquei em "Importar do SIGA".
+        3. ...
+    validations:
+      required: true
+  - type: dropdown
+    id: navegador
+    attributes:
+      label: Navegador
+      options:
+        - Chrome ou Edge
+        - Firefox
+        - Safari
+        - Outro
+    validations:
+      required: true
+  - type: dropdown
+    id: abertura
+    attributes:
+      label: Como você abriu a Grade
+      options:
+        - Pelo site (GitHub Pages)
+        - Pelo arquivo index.html no computador
+    validations:
+      required: true
+  - type: input
+    id: versao
+    attributes:
+      label: Versão da Grade
+      description: Aparece no rodapé da página.
+      placeholder: v2.0.0
+  - type: checkboxes
+    id: privacidade
+    attributes:
+      label: Privacidade
+      options:
+        - label: Não anexei PDFs, perfil, nomes, matrículas nem capturas de tela identificáveis.
+          required: true
