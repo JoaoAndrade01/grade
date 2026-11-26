@@ -1976,7 +1976,44 @@ def t_b5_escolher_perfil(b):
         expect(pg.locator("#titulo")).to_have_text(re.compile(r"Grade ECI — Ana"))
         ctx.close()
 
-CASOS4 = [t_b5_escolher_perfil, t_b4_grade_horarios, t_b3_nomes, t_m6_somente_informativo, t_b2_foco_visivel, t_b2_foco_filtros, t_b2_importacao, t_b1_estado_dos_cartoes]
+CONTRASTE = """(sels) => {
+  const cv = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
+  const rgba = (s) => { cv.clearRect(0, 0, 1, 1); cv.fillStyle = '#000'; cv.fillStyle = s; cv.fillRect(0, 0, 1, 1); const d = cv.getImageData(0, 0, 1, 1).data; return [d[0], d[1], d[2], d[3] / 255]; };
+  const lum = ([r, g, b]) => [r, g, b].map((v) => { v /= 255; return v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; }).reduce((a, v, i) => a + v * [.2126, .7152, .0722][i], 0);
+  const sobre = (f, base) => f[3] >= 1 ? f : [0, 1, 2].map((i) => f[i] * f[3] + base[i] * (1 - f[3])).concat([1]);
+  const fundo = (el) => { const cadeia = []; for (let e = el; e; e = e.parentElement) cadeia.push(getComputedStyle(e).backgroundColor); let cor = [255, 255, 255, 1];
+    for (const c of cadeia.reverse()) cor = sobre(rgba(c), cor); return cor; };
+  const razao = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05); };
+  return sels.map(([s, borda]) => { const el = [...document.querySelectorAll(s)].find((e) => e.getClientRects().length); if (!el) return [s, null];
+    const cs = getComputedStyle(el); const bg = fundo(el.parentElement || el);
+    return [s, +(borda ? razao(sobre(rgba(cs.borderTopColor), bg), bg) : razao(sobre(rgba(cs.color), fundo(el)), fundo(el))).toFixed(2)]; });
+}"""
+
+@caso("B6: contraste ≥ 4,5:1 nos textos e ≥ 3:1 nos limites das células, nos dois temas; axe sem ocorrências de contraste")
+def t_b6_contraste(b):
+    for esq in ("light", "dark"):
+        ctx, pg = abre(b, esquema=esq, perfil=PERFIL, extra={"modoClassico": False, "vista": "timeline"}, nome=f"b6-{esq}")
+        ruins = []
+        def mede(pares):
+            for (sel, borda), (s, r) in zip(pares, pg.evaluate(CONTRASTE, [list(p) for p in pares])):
+                limite = 3 if borda else 4.5
+                if r is None: ruins.append((esq, s, "ausente"))
+                elif r < limite: ruins.append((esq, s, r))
+        mede([(".prog-topo i", False), (".card.s-cursando .meta", False), (".chip-atual", False)])
+        assert not axe_roda(pg, ["color-contrast"]), (esq, "timeline", axe_roda(pg, ["color-contrast"]))
+        pg.click('[data-vista="optativas"]')
+        mede([(".selo.ativa", False)])
+        assert not axe_roda(pg, ["color-contrast"]), (esq, "optativas", axe_roda(pg, ["color-contrast"]))
+        pg.click('[data-vista="cronograma"]'); pg.click('[data-cperiodo="2027/1"]'); pg.click('[data-csel="COS360"]')
+        pg.locator('.cel[data-cel="8"]').dispatch_event("mousedown"); pg.mouse.up()
+        mede([(".choques", False), (".bloco-aula b", False), (".bloco-aula small", False), (".crono-grade .cel", True)])
+        assert not axe_roda(pg, ["color-contrast"]), (esq, "cronograma", axe_roda(pg, ["color-contrast"]))
+        pg.click('[data-vista="pedidos"]')
+        assert not axe_roda(pg, ["color-contrast"]), (esq, "pedidos", axe_roda(pg, ["color-contrast"]))
+        assert not ruins, ruins
+        ctx.close()
+
+CASOS4 = [t_b6_contraste, t_b5_escolher_perfil, t_b4_grade_horarios, t_b3_nomes, t_m6_somente_informativo, t_b2_foco_visivel, t_b2_foco_filtros, t_b2_importacao, t_b1_estado_dos_cartoes]
 CASOS += CASOS4
 
 
