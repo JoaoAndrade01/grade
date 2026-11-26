@@ -240,7 +240,7 @@ def t_excluir(b):
     expect(abertura).to_be_focused()
     pg.click("#excluir-periodo"); pg.click("#dlg-confirma-ok")
     expect(pg.locator('[data-cperiodo="2027/1"]')).to_have_count(0)
-    expect(pg.locator('[data-cperiodo="2027/2"]')).to_have_attribute("aria-selected", "true")
+    expect(pg.locator('[data-cperiodo="2027/2"]')).to_have_attribute("aria-pressed", "true")
     assert pg.evaluate("document.activeElement.dataset.cperiodo") == "2027/2"
     pg.reload(); pg.wait_for_load_state("load")
     assert pg.locator('[data-cperiodo="2027/1"]').count() == 0 and ls(pg, "plano")["removidos"] == ["2027/1"]
@@ -248,7 +248,7 @@ def t_excluir(b):
     exp = pathlib.Path(d.value.path()).read_text(encoding="utf-8"); assert '"nome":"2027/1"' not in exp and '"nome":"2027/2"' in exp
     # período local novo
     pg.once("dialog", lambda di: di.accept("2028/1")); pg.click("#novo-periodo")
-    expect(pg.locator('[data-cperiodo="2028/1"]')).to_have_attribute("aria-selected", "true")
+    expect(pg.locator('[data-cperiodo="2028/1"]')).to_have_attribute("aria-pressed", "true")
     assert pg.locator("#descartar").count() == 0                     # local: só Excluir
     pg.click("#excluir-periodo"); assert "O período está vazio" in pg.locator("#dlg-confirma-texto").inner_text()
     pg.click("#dlg-confirma-ok"); expect(pg.locator('[data-cperiodo="2028/1"]')).to_have_count(0)
@@ -2062,7 +2062,38 @@ def t_b8_alvos(b):
         ctx.close()
     assert not pequenos, pequenos
 
-CASOS4 = [t_b8_alvos, t_b7_pedidos_320, t_b6_contraste, t_b5_escolher_perfil, t_b4_grade_horarios, t_b3_nomes, t_m6_somente_informativo, t_b2_foco_visivel, t_b2_foco_filtros, t_b2_importacao, t_b1_estado_dos_cartoes]
+@caso("B9: abas com painel associado e teclado de abas; seleção sem aria-selected inválido; axe sem atributos ARIA inválidos")
+def t_b9_aria(b):
+    ctx, pg = abre(b, perfil=PERFIL, extra={"modoClassico": False, "vista": "grade"}, nome="b9")
+    abas = pg.locator('.abas [role="tab"]'); assert abas.count() == 6
+    ids = pg.evaluate("[...document.querySelectorAll('.abas [role=tab]')].map(e => e.id)")
+    assert all(ids) and len(set(ids)) == 6, ids
+    for v in ("grade", "timeline", "optativas", "cronograma", "pedidos", "eci"):
+        pg.click(f'[data-vista="{v}"]')
+        painel = pg.locator("#painel")
+        assert painel.get_attribute("role") == "tabpanel", painel.get_attribute("role")
+        assert painel.get_attribute("aria-labelledby") == f"aba-{v}", painel.get_attribute("aria-labelledby")
+        assert pg.locator(f'#aba-{v}').get_attribute("aria-controls") == "painel"
+        assert pg.locator('.abas [aria-selected="true"]').count() == 1 and pg.locator(f'#aba-{v}').get_attribute("aria-selected") == "true"
+        assert pg.locator('.abas [role=tab][tabindex="0"]').count() == 1
+        invalidos = pg.evaluate("""[...document.querySelectorAll('[aria-selected]')].filter((e) => !['tab', 'option', 'gridcell', 'row', 'columnheader', 'rowheader', 'treeitem'].includes(e.getAttribute('role'))).map((e) => e.outerHTML.slice(0, 80))""")
+        assert not invalidos, (v, invalidos)
+        graves = axe_roda(pg, ["aria-allowed-attr", "aria-valid-attr", "aria-valid-attr-value", "aria-required-attr", "aria-required-children", "aria-required-parent", "aria-allowed-role", "aria-roles"])
+        assert not graves, (v, graves)
+    pg.click('[data-vista="grade"]'); pg.locator("#aba-grade").focus()
+    pg.keyboard.press("ArrowRight"); assert foco_em(pg, "#aba-timeline") and pg.locator("#aba-timeline").get_attribute("aria-selected") == "true"
+    pg.keyboard.press("End"); assert foco_em(pg, "#aba-eci") and pg.locator("#aba-eci").get_attribute("aria-selected") == "true"
+    pg.keyboard.press("ArrowRight"); assert foco_em(pg, "#aba-grade")
+    pg.keyboard.press("ArrowLeft"); assert foco_em(pg, "#aba-eci")
+    pg.keyboard.press("Home"); assert foco_em(pg, "#aba-grade") and pg.locator("#painel").get_attribute("aria-labelledby") == "aba-grade"
+    pg.click('[data-vista="optativas"]')
+    assert pg.locator("[data-fgrupo][aria-selected]").count() == 0 and pg.locator("[data-fgrupo][aria-pressed]").count() == 3
+    assert pg.locator("[data-fgrupo][aria-pressed=true]").count() == 1
+    pg.click('[data-vista="cronograma"]')
+    assert pg.locator("[data-cperiodo][aria-selected]").count() == 0 and pg.locator("[data-cperiodo][aria-pressed=true]").count() == 1
+    ctx.close()
+
+CASOS4 = [t_b9_aria, t_b8_alvos, t_b7_pedidos_320, t_b6_contraste, t_b5_escolher_perfil, t_b4_grade_horarios, t_b3_nomes, t_m6_somente_informativo, t_b2_foco_visivel, t_b2_foco_filtros, t_b2_importacao, t_b1_estado_dos_cartoes]
 CASOS += CASOS4
 
 

@@ -1130,7 +1130,7 @@
 
     return `<div class="optativas">
       <div class="filtros">
-        <div class="seg seg-sm">${Object.entries(GRUPOS_OPT).map(([k, n]) => `<button type="button" data-fgrupo="${k}" aria-selected="${filtros.grupo == k}">${n}</button>`).join("")}</div>
+        <div class="seg seg-sm" role="group" aria-label="Grupo de optativas">${Object.entries(GRUPOS_OPT).map(([k, n]) => `<button type="button" data-fgrupo="${k}" aria-pressed="${filtros.grupo == k}">${n}</button>`).join("")}</div>
         <input type="search" class="campo busca" id="busca-opt" aria-label="Buscar optativas por nome ou código" placeholder="Buscar por nome ou código…" value="${esc(filtros.busca)}">
         ${M.ref ? `<label class="check"><input type="checkbox" data-fcheck="ativas" ${filtros.ativas ? "checked" : ""}> só ativas</label>` : ""}
         <label class="check"><input type="checkbox" data-fcheck="liberadas" ${filtros.liberadas ? "checked" : ""}> só liberadas</label>
@@ -1524,9 +1524,9 @@
     if (!ps.length && !perfil) return semPerfil("O cronograma usa os períodos atual e planejados do perfil.");
     if (!ps.some((p) => p.nome === cronoPeriodo)) cronoPeriodo = (periodosFuturos()[0] || ps[0] || {}).nome || null;
     const p = M.periodos.find((x) => x.nome === cronoPeriodo);
-    const abas = ps.map((x) => `<button type="button" data-cperiodo="${esc(x.nome)}" aria-selected="${x.nome === cronoPeriodo}">${esc(x.nome)}${x.tipo === "atual" ? " · atual" : ""}</button>`).join("");
+    const abas = ps.map((x) => `<button type="button" data-cperiodo="${esc(x.nome)}" aria-pressed="${x.nome === cronoPeriodo}">${esc(x.nome)}${x.tipo === "atual" ? " · atual" : ""}</button>`).join("");
     const topo = `<div class="crono-topo">
-        <div class="seg seg-sm">${abas}</div>
+        <div class="seg seg-sm" role="group" aria-label="Período">${abas}</div>
         <button type="button" class="btn btn-sm" id="novo-periodo">+ Período</button>
         <span class="espaco"></span>
         ${temEdicoes() ? `<span class="chip chip-alerta">edições não exportadas</span>` : ""}

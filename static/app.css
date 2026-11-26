@@ -94,7 +94,7 @@ code { background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
 .seg button { box-shadow: none; border-radius: 0; }
 .seg button:first-child { border-radius: 8px 0 0 8px; }
 .seg button:last-child { border-radius: 0 8px 8px 0; margin-left: -1px; }
-.seg button[aria-selected="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
+.seg button[aria-selected="true"], .seg button[aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
 
 /* ---------- Progresso ---------- */
 .progresso {
