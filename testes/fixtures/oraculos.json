@@ -414,6 +414,118 @@
     "naoExplicitadas": [],
     "naoExplicitadasPresente": false
    }
+  },
+  "prazo-ordem-ab": {
+   "arquivos": [
+    "prazo-anterior",
+    "reingresso-atual"
+   ],
+   "atual": null,
+   "periodos": [
+    {
+     "nome": "2025 (transferidas)",
+     "disciplinas": [
+      {
+       "code": "MAC118",
+       "nota": 7,
+       "aprovadaEm": "2020/1"
+      }
+     ]
+    },
+    {
+     "nome": "2025/2",
+     "disciplinas": [
+      {
+       "code": "COS111",
+       "nota": 8
+      }
+     ]
+    }
+   ],
+   "historicoAtual": "automatico"
+  },
+  "prazo-ordem-ba": {
+   "arquivos": [
+    "reingresso-atual",
+    "prazo-anterior"
+   ],
+   "atual": null,
+   "periodos": [
+    {
+     "nome": "2025 (transferidas)",
+     "disciplinas": [
+      {
+       "code": "MAC118",
+       "nota": 7,
+       "aprovadaEm": "2020/1"
+      }
+     ]
+    },
+    {
+     "nome": "2025/2",
+     "disciplinas": [
+      {
+       "code": "COS111",
+       "nota": 8
+      }
+     ]
+    }
+   ],
+   "historicoAtual": "automatico"
+  },
+  "ace-ab": {
+   "arquivos": [
+    "ace-anterior",
+    "ace-atual"
+   ],
+   "atual": null,
+   "periodos": [
+    {
+     "nome": "2021/1",
+     "disciplinas": [
+      {
+       "code": "EEW002"
+      }
+     ]
+    },
+    {
+     "nome": "2025 (transferidas)",
+     "disciplinas": [
+      {
+       "code": "EEW002",
+       "aprovadaEm": "2020/1"
+      }
+     ]
+    }
+   ],
+   "historicoAtual": "automatico"
+  },
+  "ace-ba": {
+   "arquivos": [
+    "ace-atual",
+    "ace-anterior"
+   ],
+   "atual": null,
+   "periodos": [
+    {
+     "nome": "2021/1",
+     "disciplinas": [
+      {
+       "code": "EEW002"
+      }
+     ]
+    },
+    {
+     "nome": "2025 (transferidas)",
+     "disciplinas": [
+      {
+       "code": "EEW002",
+       "aprovadaEm": "2020/1"
+      }
+     ]
+    }
+   ],
+   "historicoAtual": "automatico"
   }
  }
 }

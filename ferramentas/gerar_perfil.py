@@ -287,19 +287,30 @@ def montar_perfil(historicos, boa=None, curriculo=None, catalogo=None, anterior=
             k = chave_reg(r)
             if k not in reais_outros or chave_periodo(r["periodo"]) < chave_periodo(reais_outros[k]):
                 reais_outros[k] = r["periodo"]
-    blocos_atual = {chave_reg(r) for r in todos if not semestre_real(r["periodo"]) and do_atual(r)
-                    and chave_reg(r) not in reais_atual and chave_reg(r) in reais_outros}
+    # Entre blocos de transferidos do mesmo (código, situação, grau) vale um só, escolhido pelos dados e não pela
+    # ordem dos arquivos: o do histórico atual; senão, o mais antigo (o mais prudente para o prazo de 5 anos).
+    bloco_vale = {}
+    for r in todos:
+        if semestre_real(r["periodo"]):
+            continue
+        k = chave_reg(r)
+        v = bloco_vale.get(k)
+        if v is None or (do_atual(r) and not do_atual(v)) or (do_atual(r) == do_atual(v) and chave_periodo(r["periodo"]) < chave_periodo(v["periodo"])):
+            bloco_vale[k] = r
+    # O bloco do histórico atual absorve só a ocorrência real mais antiga do outro histórico (vira `aprovadaEm`);
+    # as demais ocorrências reais continuam, pois são aprovações distintas (ex.: ACE em 2020/1 e 2021/1).
+    absorvida = {k: reais_outros[k] for k, b in bloco_vale.items() if do_atual(b) and k not in reais_atual and k in reais_outros}
     vistos, regs = set(), []
     for r in todos:
         real, k0 = semestre_real(r["periodo"]), chave_reg(r)
-        if not real and k0 in reais_atual:
+        if not real and (k0 in reais_atual or bloco_vale.get(k0) is not r):
             continue
-        if not real and k0 in reais_outros and k0 not in blocos_atual:
+        if not real and k0 in reais_outros and k0 not in absorvida:
             continue
-        if real and not do_atual(r) and k0 in blocos_atual:
+        if real and not do_atual(r) and absorvida.get(k0) == r["periodo"]:
             continue
-        if not real and k0 in blocos_atual and do_atual(r):
-            r["aprovadaEm"] = reais_outros[k0]
+        if not real and k0 in absorvida:
+            r["aprovadaEm"] = absorvida[k0]
         k = f'{r["periodo"] if real else "T"}|{k0}'
         if k in vistos:
             continue

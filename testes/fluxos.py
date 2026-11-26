@@ -547,6 +547,29 @@ def t_cr04_reingresso(b):
         assert "2025" in linha and "2020/1" in linha, linha
         ctx.close()
 
+@caso("CR-04: o prazo não depende da ordem dos arquivos (bloco de 2019 e 2020/1 no anterior, bloco de 2025 no atual)")
+def t_cr04_ordem_dos_arquivos(b):
+    linhas = []
+    for cenario in ("prazo-ordem-ab", "prazo-ordem-ba"):
+        ctx, pg = importa_cenario(b, cenario, f"cr04-{cenario}")
+        perfil, linha = aplica_e_le_pedido(pg)
+        confere_oraculo(perfil, cenario)
+        assert "2025" in linha and "2020/1" in linha and "2019" not in linha, (cenario, linha)
+        linhas.append(linha)
+        ctx.close()
+    assert linhas[0] == linhas[1], linhas
+
+@caso("CR-04: duas ocorrências distintas de ACE (2020/1 e 2021/1) somam 60 h com o bloco de 2025 no outro histórico")
+def t_cr04_ace_duas_ocorrencias(b):
+    for cenario in ("ace-ab", "ace-ba"):
+        ctx, pg = importa_cenario(b, cenario, f"cr04-{cenario}")
+        perfil, _ = aplica_e_le_pedido(pg)
+        confere_oraculo(perfil, cenario)
+        horas = horas_ace(pg)
+        # 60 h no total: 30 h do semestre 2021/1 e 30 h do bloco de 2025, que não tem semestre e fica "a confirmar" (regra de CR-03)
+        assert horas == [30, 30, 0] and sum(horas) == 60, (cenario, horas)
+        ctx.close()
+
 @caso("CR-04: só o atual, só o anterior e marcador AAAA/0 (controles)")
 def t_cr04_controles(b):
     ctx, pg = importa_cenario(b, "so-atual", "cr04-so-atual")
@@ -1542,7 +1565,7 @@ CASOS = [
     t_compat, t_siga, t_siga_sem_boa, t_excluir, t_oferta, t_mac,
     t_cr01_pre, t_cr01_co, t_cr01_sugestoes, t_cr01_proposta, t_cr01_equivalencia, t_cr01_manual,
     t_cr03_historico, t_cr03_lista,
-    t_cr04_reingresso, t_cr04_controles, t_cr04_papel, t_cr04_fronteira,
+    t_cr04_reingresso, t_cr04_ordem_dos_arquivos, t_cr04_ace_duas_ocorrencias, t_cr04_controles, t_cr04_papel, t_cr04_fronteira,
     t_cr02_pedidos, t_cr02_duas_dispensas, t_cr02_dispensa_unica,
     t_d02_dois_numeros, t_d02_ausente_e_vazia, t_d02_outros_grupos, t_d02_importacao,
     t_rf08_faixa, t_rf08_notas_credito, t_rf08_periodo_atual, t_rf08_oferta, t_rf08_rodape, t_rf08_ace,

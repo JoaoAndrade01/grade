@@ -336,15 +336,24 @@
       const k = chaveReg(r);
       if (!reaisOutros.has(k) || chavePeriodo(r.periodo) < chavePeriodo(reaisOutros.get(k))) reaisOutros.set(k, r.periodo);
     });
-    const blocosAtual = new Set(todos.filter((r) => !semestreReal(r.periodo) && doAtual(r) && !reaisAtual.has(chaveReg(r))
-      && reaisOutros.has(chaveReg(r))).map(chaveReg));
+    // Entre blocos de transferidos do mesmo (código, situação, grau) vale um só, escolhido pelos dados e não pela
+    // ordem dos arquivos: o do histórico atual; senão, o mais antigo (o mais prudente para o prazo de 5 anos).
+    const blocoVale = new Map();
+    todos.filter((r) => !semestreReal(r.periodo)).forEach((r) => {
+      const k = chaveReg(r), v = blocoVale.get(k);
+      if (!v || (doAtual(r) && !doAtual(v)) || (doAtual(r) === doAtual(v) && chavePeriodo(r.periodo) < chavePeriodo(v.periodo))) blocoVale.set(k, r);
+    });
+    // O bloco do histórico atual absorve só a ocorrência real mais antiga do outro histórico (vira `aprovadaEm`);
+    // as demais ocorrências reais continuam, pois são aprovações distintas (ex.: ACE em 2020/1 e 2021/1).
+    const absorvida = new Map();
+    blocoVale.forEach((b, k) => { if (doAtual(b) && !reaisAtual.has(k) && reaisOutros.has(k)) absorvida.set(k, reaisOutros.get(k)); });
     const vistos = new Set();
     const regs = todos.filter((r) => {
       const real = semestreReal(r.periodo), k0 = chaveReg(r);
-      if (!real && reaisAtual.has(k0)) return false;
-      if (!real && reaisOutros.has(k0) && !blocosAtual.has(k0)) return false;
-      if (real && !doAtual(r) && blocosAtual.has(k0)) return false;
-      if (!real && blocosAtual.has(k0) && doAtual(r)) r.aprovadaEm = reaisOutros.get(k0);
+      if (!real && (reaisAtual.has(k0) || blocoVale.get(k0) !== r)) return false;
+      if (!real && reaisOutros.has(k0) && !absorvida.has(k0)) return false;
+      if (real && !doAtual(r) && absorvida.get(k0) === r.periodo) return false;
+      if (!real && absorvida.has(k0)) r.aprovadaEm = absorvida.get(k0);
       const k = (real ? r.periodo : "T") + "|" + k0;
       if (vistos.has(k)) return false;
       vistos.add(k);
