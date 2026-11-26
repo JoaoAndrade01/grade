@@ -6,7 +6,8 @@ rodapé da Grade.
 
 ## v2.0.0 — primeira versão pública
 
-<!-- INTEGRAÇÃO: preencher a data de publicação (AAAA-MM-DD) e usar este texto, de "O que mudou" até "Limitações conhecidas", como notas da release. -->
+A data de publicação é a da release `v2.0.0` no GitHub, que usa o texto de "O que mudou" até "Limitações conhecidas"
+como notas.
 
 Primeira versão pública da Grade ECI, a partir do fork de [`gremio-eci/grade`](https://github.com/gremio-eci/grade).
 É um site estático para alunos de Engenharia de Computação e Informação da UFRJ planejarem o curso, com os dados
@@ -30,8 +31,25 @@ acadêmicos só no navegador. A Grade orienta; não substitui o SIGA, o BOA nem 
   maior valor e mostra o restante como "a confirmar", com aviso.
 - **Rodapé.** Versão, data de conferência do currículo no SIGA e o link "Achou um erro? Crie uma nova issue", que também
   aparece quando a importação falha.
-- **Acessibilidade.** Revisão de foco, teclado, nomes acessíveis, contraste e telas pequenas.
-  <!-- INTEGRAÇÃO: listar aqui as correções de acessibilidade efetivamente feitas no candidato (foco e ordem do teclado, nomes dos campos, contraste, refluxo a 320 px, alvos, papéis das abas, pistas além da cor, edição de horários e escolha de perfil pelo teclado) e confirmar que esta frase condiz com elas. -->
+- **Acessibilidade.** Correções feitas depois de uma inspeção com axe-core e teclado:
+  - **Situação e origem em texto.** Cada cartão diz "Aprovada", "Aprovação prevista" ou "Planejada" e se vem do
+    "perfil" ou de uma "marcação", sem depender de cor nem de passar o mouse. A disciplina reprovada deixou de ficar
+    esmaecida (borda pontilhada e texto riscado).
+  - **Toque com o pincel.** No celular, o primeiro toque num cartão só consulta (mostra a situação e a origem, com o
+    link "Detalhes") e o segundo toque marca. Mouse e teclado marcam com uma ativação.
+  - **Foco e teclado.** O foco entra no painel ao abrir a importação e os detalhes, segue para o resultado e volta ao
+    botão de origem; não fica escondido sob a faixa nem sob a paleta. O painel de detalhes fica acima da paleta. As
+    abas têm painel associado e respondem a setas, Home e End. A grade de horários do Cronograma funciona por teclado
+    (setas movem, Espaço ou Enter marca), e "Escolher perfil" pode ser acionado por Tab e Enter e por toque.
+  - **Nomes.** O seletor de PDFs e os campos de Pedidos e de atividades de extensão ganharam nome para leitores de tela;
+    a prévia da importação é anunciada.
+  - **Contraste e telas pequenas.** Textos verdes, vermelhos e âmbar ficaram mais escuros no tema claro; as linhas da
+    grade de horários, mais marcadas. Pedidos cabe em 320 px sem rolagem horizontal da página (as tabelas rolam na
+    própria região). Os controles pequenos ganharam área mínima de 24 × 24 px.
+  - **Mensagens.** A falha de leitura de um PDF aparece em português, com orientação, e o BOA aparece por extenso na
+    primeira menção.
+  - **Não verificado.** Leitor de tela real, Safari no Mac e iPhone real (ver "Limitações conhecidas"); a Grade não
+    declara conformidade integral com a WCAG.
 - **Página antiga retirada.** `classico.html` agora é uma página curta, sem script, que leva ao modo clássico do app. A
   versão antiga fica guardada na tag `legado-classico` e no repositório do Grêmio. As cores que ela guardava em cookies
   não são migradas.
@@ -56,7 +74,9 @@ Grêmio (crédito); e o importador de terminal passou a exigir `--atual` quando 
 ### Validação dos dados de referência
 
 Um validador local confere o formato, os códigos (contra o currículo, o catálogo ou uma exceção justificada) e as
-duplicatas de `js/horarios.js` e `js/guia.js`, e lista as turmas sem código. Ver [PLANO-DE-TESTE.md](PLANO-DE-TESTE.md).
+duplicatas de `js/horarios.js` e `js/guia.js`, e lista as turmas sem código. O horário segue uma gramática estrita
+(só dígitos ASCII, sem espaço sobrando nem quebra de linha no final). Uma exceção sem uso gera aviso por fonte, e o efeito
+"entra no cálculo" é recusado para uma turma sem código. Ver [PLANO-DE-TESTE.md](PLANO-DE-TESTE.md).
 
 ### Limitações conhecidas
 
