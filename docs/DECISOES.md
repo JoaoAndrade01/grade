@@ -60,9 +60,9 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
 
 - **Estado:** aceita. Regras: RA-09, RA-21. A interpretação da CEG art. 47 para reingresso está pendente.
 - **Contexto:** quem reingressa (ENEM ou transferência interna) tem o histórico do curso atual com um bloco de
-  disciplinas transferidas, só com o ano, e um histórico antigo com os semestres originais. Contar o prazo
-  pela data antiga gerava alertas que não valem pelo histórico oficial; contar só pelo atual deixava
-  disciplinas sem data.
+  disciplinas transferidas, só com o ano, e um histórico antigo com os semestres originais. Usar a aprovação
+  original gerava alertas diferentes dos produzidos pelo ano do bloco; contar só pelo atual deixava
+  disciplinas sem data. A data normativa do reingresso está sob consulta.
 - **Decisão:** vale a data em que a disciplina entrou no histórico do curso atual (o ano do bloco). O
   histórico antigo serve só para mostrar a origem.
 - **Consequências:** casos 03i, 06h e 06i. A nota de estimativa de RA-09 fica até a regra estar implementada
@@ -112,10 +112,10 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
 - **Estado:** aceita (com refinamento). Regra: RA-16.
 - **Contexto:** a mesma atividade de 30 h, aprovada pelo catálogo e registrada como validada na extensão,
   somava 60 h.
-- **Decisão:** mesmo código e mesmo período são a mesma ocorrência. Códigos iguais em períodos diferentes são
-  ocorrências distintas e somam. Quando falta o período, ou quando há duas entradas com o mesmo código e
-  período, a identidade é incerta: o maior valor conta como confirmado e o resto aparece "a confirmar", com
-  aviso de possível duplicidade. A pessoa poderá marcar as entradas como distintas.
+- **Decisão:** períodos conhecidos diferentes identificam ocorrências distintas, que somam. Quando dois
+  registros de mesma identificação podem representar a mesma ocorrência, só o maior valor é confirmado e o
+  restante aparece "a confirmar", com aviso. Isso cobre a ausência de período e as entradas de mesmo código e
+  período de 01c e 01f. A pessoa poderá marcar as entradas como distintas.
 - **Consequências:** casos 01c a 01f e 06m. A marcação de "distintas" (01g) fica para a versão seguinte.
 
 ### PC-02 e PC-03 · Tag "aprovada" do pincel
@@ -142,7 +142,7 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
   palpite silencioso.
 - **Decisão:** o atual é o de data mais recente, considerando o semestre real mais recente e o ano do bloco
   de transferidos. Em empate ou dúvida, a Grade **pergunta**: a prévia pede a escolha, aplicar e baixar ficam
-  desativados até lá, e a idade das cursadas é estimativa. A escolha explícita sempre vence. O CLI Python
+  desativados até lá, e o cálculo do prazo mantém a nota de RA-09. A escolha explícita sempre vence. O CLI Python
   exige `--atual <arquivo>` na dúvida. O perfil gerado não grava "dúvida".
 - **Consequências:** casos 06h, 06j, 06k e 06l.
 
@@ -187,10 +187,12 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
 - **Contexto:** as condições 2 e 3 exigem a faixa e as notas, os dois números da livre escolha, a
   identificação da marcação manual e a carga horária como orientação. Marcar ocorrências de extensão como
   distintas é conveniência.
-- **Decisão:** publicar depois de: correções de P-01 a P-04 com teste, faixa e notas; dois números de livre
-  escolha; identificação da marcação manual; carga horária como orientação; inspeção de UX com avaliação de
-  contraste, foco e teclado; documentação; e a publicação em si. Marcar extensão como distinta fica para a
-  versão seguinte, com as horas "a confirmar" e aviso.
+- **Decisão:** antes de publicar, conferir requisitos por semestre, reutilização em dispensas, ocorrências de
+  extensão e prazo em reingresso, além de faixa, notas, dois números de livre escolha, identificação da
+  marcação manual, carga horária como orientação, validador dos dados de referência e inspeção de UX com
+  contraste, foco e teclado. Os critérios estão em [REQUISITOS.md](REQUISITOS.md), as condições em
+  [VISAO.md](VISAO.md) e o procedimento em [PUBLICAR.md](PUBLICAR.md). Marcar extensão como distinta fica para
+  a versão seguinte, com as horas "a confirmar" e aviso.
 - **Consequências:** a v2.0.0 leva essas entregas. O restante está em [MANUTENCAO.md](MANUTENCAO.md).
 
 ### PUB-04 · Previsão de formatura montada pela pessoa
@@ -223,8 +225,9 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
   planejada: um conversor com leitores de CSV e da API, uma rotina semanal que **propõe um Pull Request**
   revisado por uma pessoa, falha fechada e preserva o último conjunto bom. Ela depende de acordo com os
   autores da página.
-- **Consequências:** RF-15, RF-18, RNF-11, RNF-13. Hoje, a atualização é manual
-  ([MANUTENCAO.md](MANUTENCAO.md)).
+- **Consequências:** os critérios ficam em [RF-15](REQUISITOS.md#rf-15--sincronização-dos-dados-do-notion-h16--planejado)
+  e RNF-11 (CSV primeiro, disparo manual e depois semanal, conexão de leitura criada no workspace dos autores e
+  revisão humana do PR), além de RF-18 e RNF-13. Hoje, a atualização é manual ([MANUTENCAO.md](MANUTENCAO.md)).
 
 ### PUB-07 · Contribuição com IA
 
