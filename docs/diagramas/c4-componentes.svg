@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Gerado por docs/diagramas/gerar.js. Atribuição das marcas em docs/ARQUITETURA.md. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="790" viewBox="0 0 1500 790" role="img" aria-labelledby="titulo" aria-describedby="descricao">
+<title id="titulo">C4 · NÍVEL 3 · COMPONENTES DA APLICAÇÃO (ESTADO: v2.0.0)</title>
+<desc id="descricao">A interface aciona a importação, pede ao modelo os cálculos e grava preferências na persistência. O modelo consulta os dados de referência e o perfil. As experiências didáticas usam dados fictícios e não leem nem gravam o perfil.</desc>
+<style>
+text{font-family:system-ui,Segoe UI,Arial,sans-serif;fill:#142238}
+.titulo{font-size:28px;font-weight:750}.coluna{font-size:13px;font-weight:700;letter-spacing:.8px;fill:#384d69}
+.estado{font-size:14px;font-weight:700;letter-spacing:.6px;fill:#384d69}.estado.plan{fill:#8a4b00}
+.rotulo{font-size:15px;font-weight:700}.rotulo.compacto{font-size:14px}.descricao{font-size:12px;fill:#465973}
+.rel{font-size:12px;fill:#2a4666;paint-order:stroke;stroke:#fcfdff;stroke-width:5px;stroke-linejoin:round}
+.grupo{fill:#f0f4fa;stroke:#cbd7e6}.destaque{fill:#edf0ff;stroke:#c7cbef}.grupo.plan{stroke:#d3a766;stroke-dasharray:8 5;fill:#fffaf1}
+.no{fill:#fff;stroke:#cbd7e6}.local{fill:#edfaf3;stroke:#a0cfb4}.privado{fill:#fff8e9;stroke:#dbbd86}
+.pessoa{fill:#eef6ff;stroke:#9fc0e6}.sistema{fill:#e6ecff;stroke:#8da4e6;stroke-width:2}.externo{fill:#f3f4f6;stroke:#b6bec9}
+.aviso{fill:#fff3e2;stroke:#e0b06a}.planejado{stroke:#d3a766;stroke-dasharray:8 5;fill:#fffdf8}
+.icone{fill:none;stroke:#2a4666;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.setas{fill:none;stroke:#7186a2;stroke-width:1.6;marker-end:url(#seta)}
+</style>
+<defs><marker id="seta" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0 0 7 3.5 0 7z" fill="#7186a2"/></marker></defs>
+<rect width="1500" height="790" fill="#fcfdff"/>
+<text x="22" y="47" class="titulo">C4 · NÍVEL 3 · COMPONENTES DA APLICAÇÃO</text>
+<text x="1478" y="47" class="estado" text-anchor="end">ESTADO: v2.0.0</text>
+<rect x="290" y="90" width="1190" height="670" rx="20" class="grupo destaque"/>
+<text x="312" y="77" class="coluna">APLICAÇÃO GRADE (JavaScript no navegador)</text>
+<g class="setas">
+<path d="M250 355 C290 355 290 360 327 360"/>
+<path d="M660 360 C700 360 700 155 737 155"/>
+<path d="M660 360 C700 360 700 275 737 275"/>
+<path d="M660 360 C700 360 700 500 737 500"/>
+<path d="M660 360 C700 360 700 675 737 675"/>
+<path d="M660 360 C895 360 895 360 1127 360"/>
+<path d="M1050 275 C1090 275 1090 360 1127 360"/>
+<path d="M1050 500 C1090 500 1090 360 1127 360"/>
+<path d="M1050 500 C1090 500 1090 565 1127 565"/>
+</g>
+<g id="aluno">
+<rect x="20" y="300" width="230" height="110" rx="12" class="no pessoa"/>
+<g transform="translate(36 339) scale(1.3333333333333333)" class="icone"><circle cx="12" cy="7" r="3"/><path d="M5 21v-2a7 7 0 0 1 14 0v2z"/></g>
+<text x="82" y="360" class="rotulo">Aluno de ECI</text>
+</g>
+<g id="interface">
+<rect x="330" y="290" width="330" height="140" rx="12" class="no"/>
+<g transform="translate(346 344) scale(1.3333333333333333)" class="icone"><path d="M6 4v16m0-13h13m-13 5h10m-10 5h13"/><circle cx="6" cy="7" r="1.5" fill="white"/><circle cx="6" cy="12" r="1.5" fill="white"/><circle cx="6" cy="17" r="1.5" fill="white"/></g>
+<text x="392" y="347" class="rotulo">Interface</text>
+<text x="392" y="366" class="descricao">Telas, Configurações,</text>
+<text x="392" y="385" class="descricao">faixa e notas (js/app.js)</text>
+</g>
+<g id="tema">
+<rect x="740" y="110" width="310" height="90" rx="12" class="no"/>
+<g transform="translate(756 139) scale(1.3333333333333333)" class="icone"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16m6-16v16M3 10h18"/></g>
+<text x="802" y="151" class="rotulo">Tema e aparência</text>
+<text x="802" y="170" class="descricao">js/tema.js</text>
+</g>
+<g id="importacao">
+<rect x="740" y="220" width="310" height="110" rx="12" class="no"/>
+<g transform="translate(756 259) scale(1.3333333333333333)" class="icone"><path fill="#fff" stroke="#5145a0" d="M6 2h8l5 5v15H6z"/><path stroke="#5145a0" d="M14 2v6h5"/>
+   <rect x="2" y="11" width="20" height="8" rx="2" fill="#5145a0" stroke="none"/>
+   <text x="12" y="17" style="fill:#fff" stroke="none" font-family="Arial, sans-serif" font-size="6" font-weight="700" text-anchor="middle">&lt;/&gt;</text></g>
+<text x="802" y="262" class="rotulo">Importação do SIGA</text>
+<text x="802" y="281" class="descricao">js/siga.js e pdf.js:</text>
+<text x="802" y="300" class="descricao">leitura e prévia</text>
+</g>
+<g id="modelo">
+<rect x="740" y="440" width="310" height="120" rx="12" class="no"/>
+<g transform="translate(756 484) scale(1.3333333333333333)" class="icone"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4m8-4v4m-8 7h2m4 0h2m-8 3h2"/></g>
+<text x="802" y="487" class="rotulo">Modelo e regras</text>
+<text x="802" y="506" class="descricao">status, créditos, requisitos,</text>
+<text x="802" y="525" class="descricao">pedidos e avisos</text>
+</g>
+<g id="eci">
+<rect x="740" y="620" width="310" height="110" rx="12" class="no"/>
+<g transform="translate(756 659) scale(1.3333333333333333)" class="icone"><path d="M12 6c-3-2-6-2-9-1v14c3-1 6-1 9 1 3-2 6-2 9-1V5c-3-1-6-1-9 1v14m3-9 1 1 3-3"/></g>
+<text x="802" y="662" class="rotulo">A ECI por trás da Grade</text>
+<text x="802" y="681" class="descricao">js/eci.js e demo-pdf.js</text>
+<text x="802" y="700" class="descricao">Só dados fictícios</text>
+</g>
+<g id="persist">
+<rect x="1130" y="295" width="320" height="130" rx="12" class="no privado"/>
+<g transform="translate(1146 344) scale(1.3333333333333333)" class="icone"><rect x="3" y="8" width="18" height="12" rx="2"/><path d="m3 10 3-6h12l3 6M3 15h18m-13 2h1"/></g>
+<text x="1192" y="347" class="rotulo">Persistência local</text>
+<text x="1192" y="366" class="descricao">localStorage, exportar e</text>
+<text x="1192" y="385" class="descricao">carregar perfil</text>
+</g>
+<g id="dados">
+<rect x="1130" y="500" width="320" height="130" rx="12" class="no"/>
+<g transform="translate(1146 549) scale(1.3333333333333333)" class="icone"><path fill="#fff" stroke="#f4cd47" d="M6 2h8l5 5v15H6z"/><path stroke="#f4cd47" d="M14 2v6h5"/>
+   <rect x="2" y="11" width="20" height="8" rx="2" fill="#f4cd47" stroke="none"/>
+   <text x="12" y="17" style="fill:#2b2100" stroke="none" font-family="Arial, sans-serif" font-size="6" font-weight="700" text-anchor="middle">JS</text></g>
+<text x="1192" y="552" class="rotulo">Dados de referência</text>
+<text x="1192" y="571" class="descricao">database, optativas,</text>
+<text x="1192" y="590" class="descricao">horários e guia</text>
+</g>
+<g class="rotulos">
+<text x="290" y="352" class="rel" text-anchor="middle">usa</text>
+<text x="700" y="252" class="rel" text-anchor="middle">aplica</text>
+<text x="700" y="312" class="rel" text-anchor="middle">aciona</text>
+<text x="700" y="424" class="rel" text-anchor="middle">pede os cálculos</text>
+<text x="700" y="512" class="rel" text-anchor="middle">abre as experiências</text>
+<text x="895" y="354" class="rel" text-anchor="middle">preferências e exportação</text>
+<text x="1090" y="312" class="rel" text-anchor="middle">grava o perfil confirmado</text>
+<text x="1090" y="424" class="rel" text-anchor="middle">lê o perfil</text>
+<text x="1090" y="527" class="rel" text-anchor="middle">consulta</text>
+</g>
+</svg>

@@ -1,28 +1,33 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Gerado por docs/diagramas/gerar.js. Atribuição das marcas em docs/ARQUITETURA.md. -->
-<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="870" viewBox="0 0 1500 870" role="img" aria-labelledby="titulo" aria-describedby="descricao">
-<title id="titulo">FLUXO DA GRADE INTERATIVA</title>
-<desc id="descricao">Dados públicos e perfil local alimentam a Grade. Configurações ajusta a interface e as experiências da ECI usam dados fictícios.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="970" viewBox="0 0 1500 970" role="img" aria-labelledby="titulo" aria-describedby="descricao">
+<title id="titulo">FLUXO DE DADOS DA GRADE ECI (ESTADO: v2.0.0)</title>
+<desc id="descricao">Dados públicos e o perfil local alimentam a Grade no navegador. Configurações ajusta a interface, a faixa e as notas avisam que a Grade não é oficial e as experiências da ECI usam dados fictícios.</desc>
 <style>
 text{font-family:system-ui,Segoe UI,Arial,sans-serif;fill:#142238}
 .titulo{font-size:28px;font-weight:750}.coluna{font-size:13px;font-weight:700;letter-spacing:.8px;fill:#384d69}
+.estado{font-size:14px;font-weight:700;letter-spacing:.6px;fill:#384d69}.estado.plan{fill:#8a4b00}
 .rotulo{font-size:15px;font-weight:700}.rotulo.compacto{font-size:14px}.descricao{font-size:12px;fill:#465973}
-.grupo{fill:#f0f4fa;stroke:#cbd7e6}.destaque{fill:#edf0ff;stroke:#c7cbef}
+.rel{font-size:12px;fill:#2a4666;paint-order:stroke;stroke:#fcfdff;stroke-width:5px;stroke-linejoin:round}
+.grupo{fill:#f0f4fa;stroke:#cbd7e6}.destaque{fill:#edf0ff;stroke:#c7cbef}.grupo.plan{stroke:#d3a766;stroke-dasharray:8 5;fill:#fffaf1}
 .no{fill:#fff;stroke:#cbd7e6}.local{fill:#edfaf3;stroke:#a0cfb4}.privado{fill:#fff8e9;stroke:#dbbd86}
+.pessoa{fill:#eef6ff;stroke:#9fc0e6}.sistema{fill:#e6ecff;stroke:#8da4e6;stroke-width:2}.externo{fill:#f3f4f6;stroke:#b6bec9}
+.aviso{fill:#fff3e2;stroke:#e0b06a}.planejado{stroke:#d3a766;stroke-dasharray:8 5;fill:#fffdf8}
 .icone{fill:none;stroke:#2a4666;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 .setas{fill:none;stroke:#7186a2;stroke-width:1.6;marker-end:url(#seta)}
 </style>
 <defs><marker id="seta" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0 0 7 3.5 0 7z" fill="#7186a2"/></marker></defs>
-<rect width="1500" height="870" fill="#fcfdff"/>
-<text x="22" y="47" class="titulo">FLUXO DA GRADE INTERATIVA</text>
-<rect x="20" y="90" width="300" height="750" rx="20" class="grupo"/>
+<rect width="1500" height="970" fill="#fcfdff"/>
+<text x="22" y="47" class="titulo">FLUXO DE DADOS DA GRADE ECI</text>
+<text x="1478" y="47" class="estado" text-anchor="end">ESTADO: v2.0.0</text>
+<rect x="20" y="90" width="300" height="850" rx="20" class="grupo"/>
 <text x="42" y="77" class="coluna">ORIGENS DOS DADOS</text>
-<rect x="400" y="90" width="300" height="750" rx="20" class="grupo"/>
+<rect x="400" y="90" width="300" height="850" rx="20" class="grupo"/>
 <text x="422" y="77" class="coluna">PROCESSAMENTO</text>
-<rect x="760" y="90" width="260" height="750" rx="20" class="grupo"/>
+<rect x="760" y="90" width="260" height="850" rx="20" class="grupo"/>
 <text x="782" y="77" class="coluna">ARQUIVOS</text>
-<rect x="1080" y="70" width="400" height="770" rx="20" class="grupo destaque"/>
-<text x="1102" y="57" class="coluna">GRADE INTERATIVA (no seu navegador)</text>
+<rect x="1080" y="90" width="400" height="850" rx="20" class="grupo destaque"/>
+<text x="1102" y="77" class="coluna">GRADE INTERATIVA (no seu navegador)</text>
 <g class="setas">
 <path d="M290 185 C360 185 360 260 427 260"/>
 <path d="M290 325 C360 325 360 260 427 260"/>
@@ -74,7 +79,7 @@ text{font-family:system-ui,Segoe UI,Arial,sans-serif;fill:#142238}
 <g transform="translate(446 244) scale(1.3333333333333333)" class="icone"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2" fill="white"/><circle cx="15" cy="12" r="2" fill="white"/><circle cx="10" cy="18" r="2" fill="white"/></g>
 <text x="492" y="247" class="rotulo">Extração</text>
 <text x="492" y="266" class="descricao">1× por semestre</text>
-<text x="492" y="285" class="descricao">(script / à mão)</text>
+<text x="492" y="285" class="descricao">(à mão, com validador)</text>
 </g>
 <g id="imp">
 <rect x="430" y="420" width="240" height="120" rx="12" class="no"/>
@@ -184,10 +189,16 @@ text{font-family:system-ui,Segoe UI,Arial,sans-serif;fill:#142238}
 <text x="1341" y="641" class="rotulo compacto">Configurações</text>
 <text x="1341" y="660" class="descricao">Tema e atalhos</text>
 </g>
+<g id="faixa">
+<rect x="1110" y="730" width="340" height="80" rx="12" class="no aviso"/>
+<g transform="translate(1126 754) scale(1.3333333333333333)" class="icone"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 8h8m-8 4h8m-8 4h4"/></g>
+<text x="1172" y="766" class="rotulo">Faixa e notas de estimativa</text>
+<text x="1172" y="785" class="descricao">A Grade orienta, não confirma</text>
+</g>
 <g id="csp">
-<rect x="1110" y="730" width="340" height="90" rx="12" class="no local"/>
-<g transform="translate(1126 759) scale(1.3333333333333333)" class="icone"><path d="M12 3 5 6v5c0 5 3 8 7 10 4-2 7-5 7-10V6zM9 12l2 2 4-4"/></g>
-<text x="1172" y="771" class="rotulo">Importação no dispositivo</text>
-<text x="1172" y="790" class="descricao">Cabeçalhos pessoais descartados</text>
+<rect x="1110" y="830" width="340" height="90" rx="12" class="no local"/>
+<g transform="translate(1126 859) scale(1.3333333333333333)" class="icone"><path d="M12 3 5 6v5c0 5 3 8 7 10 4-2 7-5 7-10V6zM9 12l2 2 4-4"/></g>
+<text x="1172" y="871" class="rotulo">Importação no dispositivo</text>
+<text x="1172" y="890" class="descricao">Cabeçalhos pessoais descartados</text>
 </g>
 </svg>

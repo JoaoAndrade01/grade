@@ -1,0 +1,243 @@
+# Plano de teste da Grade ECI
+
+**Pergunta que este documento responde:** como sabemos que uma versão da Grade está certa e como repetir essa
+verificação a cada versão.
+
+Os **casos** (situação → ação → resultado esperado) estão em [REQUISITOS.md](REQUISITOS.md); aqui eles são
+referenciados por ID. Os **comandos** e a instalação estão em [testes/README.md](../testes/README.md). As **condições
+para publicar** estão em [VISAO.md](VISAO.md#condições-para-publicar). O procedimento de publicar está em
+[PUBLICAR.md](PUBLICAR.md).
+
+A estrutura é **adaptada e inspirada na ISO/IEC/IEEE 29119-3:2021** (documentação de teste). Não declara conformidade
+com o texto integral da norma. A IEEE 829 aparece só como referência histórica de planos de teste.
+
+## 1. Objetivo, escopo, riscos e responsabilidades
+
+**Objetivo.** Dar evidência, por versão e pelo hash do commit, de que o candidato cumpre as quatro condições para
+publicar: privacidade, correção, honestidade sobre o alcance e acessibilidade mínima.
+
+**Dentro do escopo:** o app nos modos clássico e completo, aberto por `file://` e por HTTP; o importador em
+JavaScript e em Python; os dados de referência (`js/horarios.js` e `js/guia.js`); a página substituta
+`classico.html`; a política de segurança de conteúdo (CSP) e as requisições do navegador.
+
+**Fora do escopo desta versão** (registrado em [MANUTENCAO.md](MANUTENCAO.md)): conferir a oferta oficial de
+disciplinas; corrigir o conteúdo das fontes (SIGA, Notion); teste em iPhone real e em Safari no Mac; leitor de tela
+real; teste de uso com colegas; desempenho com limiar.
+
+**Riscos que orientam os testes**
+
+| Risco | O que o plano faz |
+| --- | --- |
+| Um número errado numa interface confiável | Casos de regra por partição e fronteira, com resultado esperado escrito à mão; oráculos do importador |
+| Dado pessoal sai do dispositivo | CSP; observação de todas as requisições durante o teste; marcadores sentinela no cabeçalho dos PDFs fictícios |
+| Erro igual nas duas implementações do importador | Paridade **e** oráculos independentes: a paridade sozinha não vê erro compartilhado |
+| O SIGA muda o layout dos PDFs | PDFs fictícios no formato atual; ver [IMPORTADOR.md](IMPORTADOR.md#limitações-conhecidas) |
+| Dado de referência desatualizado ou inválido | Validador local (RF-17) e data de consulta visível |
+| Falha intermitente do ambiente de teste | Registro de todas as tentativas (seção 4) |
+| Quem não enxerga cor, não usa mouse ou usa tela pequena não consegue usar | axe-core, contraste, foco, teclado e refluxo (seção 7) |
+
+**Responsabilidades.** Quem mantém executa a verificação e registra o resultado. Quem revisa a mudança é outra
+pessoa, que não a escreveu. A aprovação é por **hash completo** (40 caracteres) do commit.
+
+## 2. Ambiente, versões e dados
+
+- **Seis pares** motor × forma de abertura: Chromium, Firefox e WebKit (Playwright), cada um por `file://` e por HTTP
+  estático sob `/grade/` (o ensaio de publicação). Instalação e execução em
+  [testes/README.md](../testes/README.md).
+- **Cópia pública.** O executor exporta apenas os caminhos públicos do commit para uma pasta **fora** do checkout e
+  testa essa cópia. Assim, `perfil/perfil.js` e PDFs pessoais nunca entram.
+- **Dados só fictícios**: `testes/fixtures/` (textos de histórico e BOA, de onde os PDFs são gerados; perfis; oráculos;
+  exceções da referência). Códigos como `XYZ101`, `ABC123`, `DEF456` e `ACE901` não existem no currículo.
+- **Relógio fixo em 2026-11-26** (semestre 2026/2) nos casos que dependem de data.
+- **Registrar a cada execução:** hash do app; SHA-256 da suíte e das fixtures; versão de cada motor, do Playwright, do
+  Python e do Node; sistema operacional; contagem esperada e obtida por par.
+
+## 3. Estratégia: níveis de verificação
+
+| Nível | O que verifica | Onde | O que ele **não** prova |
+| --- | --- | --- | --- |
+| Interface (matriz) | Casos de [REQUISITOS.md](REQUISITOS.md) no navegador, nos seis pares | `testes/runner.py`, `fluxos.py`, `reimportacao.py`, `auditoria.py` | Safari no Mac, iPhone real, leitor de tela |
+| Paridade | Que as regras JS e Python geram o mesmo perfil, com leitores de PDF diferentes | `ferramentas/testar_paridade.sh` | Que o perfil está **certo**: erro compartilhado passa |
+| Oráculo independente | Que as duas saídas batem com perfis esperados escritos à mão | `testes/importador.py`, `testes/fixtures/oraculos.json` | Layouts do SIGA fora das fixtures |
+| Validador dos dados de referência (RF-17) | Formato, códigos, duplicatas e turmas sem código de `js/horarios.js` e `js/guia.js` | `testes/referencia_casos.py`, `testes/referencia.py`, `testes/fixtures/excecoes-referencia.json` | Que a oferta é a oficial |
+| Acessibilidade | axe-core nos estados enumerados, contraste, foco, teclado, 320 px | Matriz e inspeção manual ([DESIGN.md](DESIGN.md#acessibilidade)) | Conformidade integral com a WCAG |
+| Inspeção heurística | Fluxos das histórias, linguagem, pistas além da cor | Manual, por história | Compreensão de alunos reais (fica no backlog) |
+
+**Partições e fronteiras cobertas** (resultado esperado em [REQUISITOS.md](REQUISITOS.md)): ordem dos períodos
+(posterior, anterior, mesmo semestre, sem data); idade de 5 anos (5,0, 5,5 e só o ano, fronteira de 2021);
+histórico do curso atual (único, automático, dúvida, escolha explícita, datas ausentes, as duas ordens dos
+arquivos); seção do BOA (ausente, vazia, presente); ocorrências de ACE (mesmo período, períodos distintos, sem
+período); dispensa (uma, duas ou mais, alvo fora do catálogo); horário (malformado, início igual ou posterior ao
+fim, duplicata).
+
+**Lacunas conhecidas** (também marcadas na matriz): os casos 11a–11d (optativas, guia e oferta), o 06n (NCC
+desconhecida) e as partes de 12 e 14 que dependem de leitor de tela não têm teste automatizado dirigido
+versionado; o teste de sentinelas de privacidade de RNF-01 e o desempenho (RNF-10) ainda são verificações da
+integração. Cada lacuna é conferida e registrada no resultado do candidato ou fica no backlog.
+
+<!-- INTEGRAÇÃO: confirmar, no candidato integrado, quais lacunas ficaram cobertas (casos 11a–11d, 06n, 12c, 14e–14g, sentinelas de RNF-01, desempenho de RNF-10) e atualizar este parágrafo e a coluna "Cobertura" da matriz. -->
+
+## 4. Critérios de entrada, saída, interrupção e reexecução
+
+**Entrada.** O commit é identificado pelo hash completo; o checkout está limpo; a revisão da mudança terminou; as
+versões da seção 2 estão registradas; as fixtures são as do próprio commit.
+
+**Saída (a versão passa).**
+
+1. Matriz completa nos **seis pares**, com a contagem esperada e **zero eventos inesperados** (requisição fora da
+   origem, erro de página, navegação inesperada).
+2. Paridade e oráculos: todos os conjuntos verdes, inclusive os que exigem código de saída `2`.
+3. Validador RF-17: casos 17a–17f verdes e dados reais sem erro.
+4. axe-core sem ocorrências graves ou críticas nos estados enumerados, nos dois temas; contraste, foco e teclado
+   conforme [DESIGN.md](DESIGN.md#acessibilidade).
+5. Privacidade: nenhuma requisição externa e marcadores sentinela ausentes do armazenamento e do arquivo exportado.
+6. Cada requisito de [REQUISITOS.md](REQUISITOS.md) com estado e evidência.
+
+**Interrupção.** Interrompa a verificação se o ambiente falhar (disco, permissões, navegador não inicia) ou se
+uma condição para publicar for violada: corrija, gere um novo hash e recomece. Não se publica um hash
+diferente do verificado.
+
+**Divergências.** Toda falha é registrada com hash, par motor × forma de abertura, caso, saída e capturas. Quando
+a suíte mudou entre a base e a correção, indique a **mesma suíte dos dois lados** e o resultado esperado
+independente.
+
+**Intermitência.** Uma repetição verde **não encerra** uma falha. Registre **todas** as execuções (as que falharam
+também), repita o par isolado, anote a etapa da falha (carga da página, foco, rede, leitura do PDF) e a assinatura do
+erro. Se a causa não for encontrada, o caso é declarado **intermitente** no resultado do candidato, com o histórico das
+tentativas, e o candidato só é aceito se a falha não afetar nenhuma das quatro condições. Se a falha reaparecer,
+registre o estado da página (`document.readyState`, erro de página e prontidão dos objetos) antes de repetir.
+
+## 5. Matriz de rastreabilidade
+
+Cada linha liga **história → requisito → casos → teste → código**. Os **testes** são funções de `testes/fluxos.py`
+(`t_…`), oráculos de `testes/fixtures/oraculos.json`, ou os outros arquivos indicados. O **código** é o ponto do app
+que implementa a regra. **Cobertura**: *direta* (o teste verifica o resultado esperado do caso), *parcial* (verifica
+parte dele) ou *sem teste* (conferir na integração).
+
+<!-- INTEGRAÇÃO: a matriz foi montada sobre os testes versionados no commit 651972e. Acrescentar as linhas dos testes de acessibilidade e de aviso por fonte posteriores a esse commit (por exemplo, os que verificam foco, nomes acessíveis, contraste, refluxo a 320 px, alvos, papéis ARIA, mensagens do PDF, efeito "somente informativo" e o recorte do axe) e atualizar as colunas Teste e Cobertura. -->
+
+| Histórias | Requisito | Casos | Testes | Código | Cobertura |
+| --- | --- | --- | --- | --- | --- |
+| H3 | [RF-01](REQUISITOS.md#rf-01--progresso-por-grupo-ra-01-ra-05-ra-06-ra-16) | 01a | `t_pc02_manual_credito` (parte: 7 cr como base) | `totais`, `statusDe` (`js/app.js`) | parcial |
+| H3 | RF-01 | 01b | `t_pc02_manual_credito` | `tagDe`, `statusDe` | direta |
+| H8 | RF-01 | 01c–01e | `t_cr03_historico` | `totais` (identidade por período) | direta |
+| H8 | RF-01 | 01f | `t_cr03_lista` | `totais` | direta |
+| H8 | RF-01 | 01g | versão seguinte (sem teste na v2.0.0) | — | — |
+| H1, H4 | [RF-02](REQUISITOS.md#rf-02--requisitos-e-co-requisitos-ra-03-ra-04) | 02a–02d, 02i | `t_cr01_pre`, `t_mac` | `avisos`, `requisitoCumprido` | direta |
+| H4 | RF-02 | 02e–02f | `t_cr01_sugestoes` | `candidatos` | direta |
+| H4 | RF-02 | 02g–02h | `t_cr01_co` | `avisos`, `requisitoCumprido` | direta |
+| H1, H4 | RF-02 | 02j | `t_pc03_manual_requisito` | `requisitoCumprido`, `statusDe` | direta |
+| H5, H7 | [RF-03](REQUISITOS.md#rf-03--análise-de-um-pedido-de-equivalência-ra-07-ra-09-ra-11-ra-12-ra-21) | 03a–03c | `t_rf08_notas_credito`, `t_cr04_fronteira` | `analisaPedido` | parcial |
+| H5 | RF-03 | 03d–03g | `t_d01_carga` | `analisaPedido` | direta |
+| H5 | RF-03 | 03h, 03j | `t_d01_conteudo` | `analisaPedido` | direta |
+| H7 | RF-03 | 03i | `t_cr04_reingresso` | `analisaPedido`, `papelHistoricos` (`js/siga.js`) | direta |
+| H5 | [RF-04](REQUISITOS.md#rf-04--a-mesma-origem-não-conta-duas-vezes-ra-08) | 04a–04b | `t_cr02_pedidos` | `montaModelo` | direta |
+| H5 | RF-04 | 04c | `t_cr02_duas_dispensas` | `montaModelo` | direta |
+| H5 | RF-04 | 04d | `t_cr02_dispensa_unica` | `montaModelo` | direta |
+| H5 | RF-04 | 04e | `t_cr02_alvo_fora_do_catalogo`; oráculo `dispensa-fora-catalogo` | `montarPerfil` (`js/siga.js`), `gerar_perfil.py` | direta |
+| H6 | [RF-05](REQUISITOS.md#rf-05--créditos-de-um-pedido-deferido-ra-13-d-02) | 05a, 05b, 05g | `t_d02_dois_numeros`, `t_pedidos_sem_total_e_sem_check` | `totais`, `montaModelo` | direta |
+| H6 | RF-05 | 05c, 05d, 05h | `t_d02_ausente_e_vazia`, `t_d02_importacao`; oráculos `boa-p5-*` | `lerBOA` (`naoExplicitadasPresente`) | direta |
+| H6 | RF-05 | 05e, 05f | `t_d02_outros_grupos` | `totais` | direta |
+| H2 | [RF-06](REQUISITOS.md#rf-06--importação-do-siga-ra-05-ra-06-ra-17-ra-19-ra-21) | 06a | `t_siga`; paridade; oráculos de I1 | `montarPerfil`, `gerar_perfil.py` | direta |
+| H2 | RF-06 | 06b | `t_siga_sem_boa` | `montarPerfil` | direta |
+| H2 | RF-06 | 06c–06e | `testes/reimportacao.py`; `t_plano_preservado` | `perfilDaImportacao` (`js/app.js`) | direta |
+| H2, H11 | RF-06 | 06f | `t_plano_preservado` (descartar prévia não muda o salvo) | `avaliaImportacao` | direta |
+| H2, H11 | RF-06 | 06g | `t_previa_download`, `t_cr04_papel` (baixar = aplicar) | `perfilDaImportacao` | direta |
+| H7 | RF-06 | 06h, PC-05, 06i | `t_cr04_reingresso`, `t_cr04_controles`, `t_cr04_papel`, `t_cr04_fronteira`, `t_pc05_datas_ausentes`; oráculos `reingresso-*`, `so-*`, `zero`, `papel-*`, `fronteira-*`, `duvida-*` | `papelHistoricos`, `montarPerfil` | direta |
+| H7 | RF-06 | 06j | `t_cr04_escolha_sem_datas`; oráculos `escolha-sem-datas*` | `papelHistoricos` | direta |
+| H7 | RF-06 | 06k | `t_cr04_troca_recalcula_planos`, `t_previa_confirmacao` | `avaliaImportacao` | direta (arquivo baixado: conferir) |
+| H7 | RF-06 | 06l | `t_cr04_ordem_dos_arquivos`; oráculos `prazo-ordem-*` | `montarPerfil` | direta |
+| H7, H8 | RF-06 | 06m | `t_cr04_ace_duas_ocorrencias`; oráculos `ace-*` | `montarPerfil`, `totais` | direta |
+| H2 | RF-06 | 06n | sem teste dirigido | `gerar_perfil.py`, `lerBOA` | sem teste |
+| H7 | RF-06 | perfil antigo em dúvida | `t_pc05_perfil_antigo_duvida` | `analisaPedido` | direta |
+| H4 | [RF-07](REQUISITOS.md#rf-07--aviso-de-oferta-e-horários-de-referência-ra-20) | 07a–07e | `t_oferta`, `t_rf08_oferta` | `avisoOferta`, `CICLO_BASICO` | direta |
+| H10 | [RF-08](REQUISITOS.md#rf-08--aviso-de-que-a-grade-não-é-oficial-versão-e-relato-d-06) | 08a, 08b | `t_rf08_faixa` | `index.html`, `static/app.css` | direta |
+| H10 | RF-08 | 08c, 08d | `t_rf08_notas_credito` | `notaHtml` (`js/app.js`) | direta |
+| H10 | RF-08 | 08e, 08f | `t_rf08_periodo_atual` | `perfilDaImportacao` | direta |
+| H10 | RF-08 | 08l | `t_rf08_deduzido_regras` | `perfilDaImportacao` | direta |
+| H10 | RF-08 | 08g, 08h | `t_rf08_oferta` | `notaRA20` | direta |
+| H10 | RF-08 | 08i, 08j, 08k | `t_rf08_rodape` (destino real no fork: conferir na publicação) | `index.html`, `js/database.js` (`consultado`) | parcial |
+| H4 | [RF-10](REQUISITOS.md#rf-10--planejamento-de-períodos-e-choques-de-horário-h4) | 10a–10b | `t_regressao` (horários por clique), `t_excluir` | `montaModelo` | parcial |
+| H4 | RF-10 | 10c | `t_cr01_proposta` | `montaProposta` | direta |
+| H4 | RF-10 | 10d–10e | `t_excluir` | `excluiPeriodo` | direta |
+| H9 | [RF-11](REQUISITOS.md#rf-11--optativas-guia-e-oferta-h9) | 11a–11d | sem teste dirigido (`t_regressao` cobre só busca e foco) | `candidatos`, `js/horarios.js`, `js/guia.js` | sem teste |
+| H11 | [RF-12](REQUISITOS.md#rf-12--perfil-e-dados-locais-h11) | 12a | `t_criar_perfil` | `salvaPerfilCriado` | direta |
+| H11 | RF-12 | 12b | `t_regressao` (exportação e recarga), `testes/reimportacao.py` | exportação de `js/app.js` | direta |
+| H11 | RF-12 | 12c | `t_compat` (carga por arquivo) | `erroPerfil` | parcial |
+| H11 | RF-12 | 12d | `t_descartar_salvo`, `t_regressao` ("Apagar tudo") | `js/app.js` | parcial |
+| H11 | RF-12 | 12e | inspeção heurística; `t_aviso_pdf` | — | parcial |
+| H12 | [RF-13](REQUISITOS.md#rf-13--a-eci-por-trás-da-grade-h12) | 13a–13c | `t_experiencias`, `t_exp_com_perfil`, `t_seletor_eci`, `t_fecha_durante_leitura` | `js/eci.js`, `js/demo-pdf.js` | direta |
+| H1, H3, H10 | [RF-14](REQUISITOS.md#rf-14--marcação-manual-aparência-tags-e-referências-h1-h3-h10) | 14a–14b | `t_cr01_manual`, `t_pc02_manual_credito` | `marca`, `pinta`, `tagDe` | direta |
+| H1, H3 | RF-14 | 14c | `t_cadeado` | `protegida` | direta |
+| H1, H3 | RF-14 | 14d | `t_setas` | `arestasDe` | direta |
+| H1, H3 | RF-14 | 14e | `t_tema`, `t_modo`, `t_atalhos`, `t_formatos` | `renderAtalhos`, `renderConfig` | parcial (anúncio ao desafixar: conferir) |
+| H1, H3 | RF-14 | 14f | `t_tags` | `renderConfig` (editor de tags) | parcial |
+| H10 | RF-14 | 14g | `t_atalhos` (Referências sem requisição externa) | `abreReferencias` | parcial |
+| H14 | [RF-17](REQUISITOS.md#rf-17--validação-dos-dados-de-referência-h14) | 17a–17e | `testes/referencia_casos.py` (casos sintéticos e dados reais) | `testes/referencia.py` | direta |
+| H14 | RF-17 | 17f | `testes/referencia_casos.py --browser` | detalhe da optativa em `js/app.js` | direta (sem controle negativo) |
+| H11 | [RNF-01](REQUISITOS.md#5-requisitos-não-funcionais) | — | `testes/auditoria.py` (todas as requisições restritas à origem); sentinelas: sem teste | CSP em `index.html` | parcial |
+| H1–H11 | RNF-02, RNF-04 | — | matriz de seis pares (`testes/runner.py`) | — | direta |
+| H1, H2, H3, H10, H11 | RNF-03 | — | `t_a11y` e axe (ver seção 7) | `static/app.css`, `js/app.js` | parcial |
+| H2, H7 | RNF-05 | — | `ferramentas/testar_paridade.sh`; `testes/importador.py` | `js/siga.js`, `gerar_perfil.py` | direta |
+| H10, H14 | RNF-08 | — | `t_rf08_rodape` | `js/database.js`, `js/horarios.js`, `js/guia.js` | parcial |
+| H13, H14, H15 | RNF-07 | P13, P14, P15 | processos descritos em [REQUISITOS.md](REQUISITOS.md#1-histórias-de-usuário), sem tela | [CONTRIBUTING.md](../CONTRIBUTING.md), [MANUTENCAO.md](MANUTENCAO.md), [AGENTS.md](../AGENTS.md) | por leitura |
+
+O estado de cada requisito (cumprido, parcial ou planejado) fica em [REQUISITOS.md](REQUISITOS.md). Itens
+**planejados** (RF-09, RF-15 a RF-19, RNF-11 a RNF-13) e a versão seguinte (01g) não têm teste nesta versão.
+
+## 6. Limite do ambiente: WebKit
+
+A suíte verifica **presença, texto e destinos** dos links do rodapé (`t_rf08_rodape`). Uma sonda automatizada verificou a
+**ordem de Tab e o foco visível** dos links em **Chromium e Firefox**, por arquivo local e por HTTP. No **WebKit 27.2 do
+Playwright 1.65.2 no Windows**, a sequência de foco pulou as âncoras com todos os atalhos ensaiados (Tab, Alt+Tab,
+Alt+Shift+Tab e Control+Alt+Tab), inclusive numa página mínima, sem CSS nem JavaScript da Grade. Isto é um **limite do
+ambiente de teste**, não um defeito conhecido da Grade, e não permite concluir nada sobre o Safari real.
+
+**Pendente:** conferir a navegação por Tab e Option+Tab nos links no **Safari no Mac** e no **iPhone real**, ao lado da
+passada com leitor de tela (NVDA), registradas em [MANUTENCAO.md](MANUTENCAO.md). A Grade usa links nativos, sem
+`tabindex` forçado.
+
+## 7. Lista de verificação de versão
+
+Esta é a lista canônica. [PUBLICAR.md](PUBLICAR.md) aponta para ela. Marque cada item com o **hash completo** do
+candidato; um item que falha volta a verificação ao começo com um novo hash.
+
+- [ ] **Hash.** SHA completo do commit candidato anotado; checkout limpo; nenhum arquivo pessoal na árvore
+  (`perfil/perfil.js`, PDFs, planilhas).
+- [ ] **Matriz.** Seis pares (Chromium, Firefox e WebKit, por `file://` e HTTP) com a contagem esperada e zero eventos
+  inesperados. Versões dos motores e SHA-256 da suíte e das fixtures anotados.
+- [ ] **Paridade.** `ferramentas/testar_paridade.sh` verde nos conjuntos de [testes/README.md](../testes/README.md),
+  inclusive os que usam `--atual`; os de dúvida param com código `2` nas duas implementações.
+- [ ] **Oráculos.** `testes/importador.py` verde (JS × Python e contra o esperado escrito à mão).
+- [ ] **Validador RF-17.** `testes/referencia_casos.py` verde (com `--browser` para 17f) e dados reais sem erro; as
+  exceções justificadas conferidas contra a fonte.
+- [ ] **Kit de reimportação.** Casos de preservação de anotações e igualdade entre baixar e aplicar verdes.
+- [ ] **Acessibilidade.** axe-core nos estados enumerados, nos dois temas, sem ocorrências graves ou críticas;
+  contraste (4,5:1 em texto comum, 3:1 em texto grande e em componentes); foco visível; teclado completo nos fluxos
+  centrais; 320 CSS px sem rolagem horizontal do documento.
+- [ ] **Privacidade.** Sentinelas ausentes do armazenamento e do arquivo exportado; nenhuma requisição externa;
+  [PRIVACIDADE.md](PRIVACIDADE.md) coerente com o comportamento observado.
+- [ ] **CSP.** Meta CSP presente em `index.html`, sem script ou recurso de outro domínio; sem 404 nos recursos.
+- [ ] **Página substituta.** `classico.html` abre por `file://` e HTTP, não carrega script nem recurso externo e leva
+  ao modo clássico; a tag `legado-classico` aponta para um commit em que a página antiga abre.
+- [ ] **Requisitos.** Cada RF e RNF de [REQUISITOS.md](REQUISITOS.md) com estado e evidência.
+- [ ] **Hash final.** O hash que foi verificado é o mesmo que será publicado ([PUBLICAR.md](PUBLICAR.md)).
+
+## 8. Resultado por candidato
+
+Um registro curto por candidato; a lista da seção 7 consulta este registro.
+
+<!-- INTEGRAÇÃO: preencher o resultado do candidato integrado: hash do app, SHA-256 da suíte e das fixtures, versões, contagens por par motor × forma de abertura, paridade, oráculos, validador, axe, contraste, sentinelas, tentativas e falhas intermitentes declaradas, e o aceite. -->
+
+| Campo | Valor |
+| --- | --- |
+| Hash do app | a preencher na verificação do candidato |
+| SHA-256 da suíte e das fixtures | a preencher |
+| Versões (motores, Playwright, Python, Node, sistema) | a preencher |
+| Matriz (seis pares) | a preencher |
+| Paridade e oráculos | a preencher |
+| Validador RF-17 | a preencher |
+| Acessibilidade (axe, contraste, teclado) | a preencher |
+| Privacidade (requisições e sentinelas) | a preencher |
+| Tentativas, falhas e intermitências declaradas | a preencher |
+| Aceite | a preencher |
