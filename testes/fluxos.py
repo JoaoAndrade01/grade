@@ -2035,7 +2035,34 @@ def t_b7_pedidos_320(b):
         assert pg.evaluate("document.documentElement.scrollWidth") <= 320
         ctx.close()
 
-CASOS4 = [t_b7_pedidos_320, t_b6_contraste, t_b5_escolher_perfil, t_b4_grade_horarios, t_b3_nomes, t_m6_somente_informativo, t_b2_foco_visivel, t_b2_foco_filtros, t_b2_importacao, t_b1_estado_dos_cartoes]
+@caso("B8: alvos de 24 × 24 CSS px nos botões de período, Usar e avisos de perfil; 44 px nos atalhos; axe target-size")
+def t_b8_alvos(b):
+    pequenos = []
+    def mede(pg, sels, rotulo):
+        for s in sels:
+            for el in pg.locator(s).all():
+                if not el.is_visible(): continue
+                r = el.bounding_box()
+                if r["width"] < 24 or r["height"] < 24: pequenos.append((rotulo, s, round(r["width"], 1), round(r["height"], 1)))
+    for nome, vp, toque in [("desktop", D, False), ("celular", C320, True)]:
+        ctx, pg = abre(b, vp=vp, perfil=PERFIL, extra={"modoClassico": False, "vista": "optativas"}, nome=f"b8-{nome}", toque=toque)
+        mede(pg, [".mini-btn", ".chip-btn", ".seg button", ".check input"], f"optativas-{nome}")
+        pg.click('[data-vista="cronograma"]'); pg.click('[data-cperiodo="2027/1"]')
+        mede(pg, [".mini-btn", ".crono-pick", ".x"], f"cronograma-{nome}")
+        assert not axe_graves(pg, ["target-size"]), (nome, "cronograma", axe_graves(pg, ["target-size"]))
+        pg.click('[data-vista="optativas"]')
+        assert not axe_graves(pg, ["target-size"]), (nome, "optativas", axe_graves(pg, ["target-size"]))
+        pg.locator('.interruptor').click()          # clássico: aviso do perfil salvo
+        mede(pg, ["#baixar-importado", "#descartar-importado"], f"aviso-{nome}")
+        assert not axe_graves(pg, ["target-size"]), (nome, "aviso", axe_graves(pg, ["target-size"]))
+        if toque:
+            for s in ("#btn-importar", "#btn-perfil", ".interruptor", ".pal-btn"):
+                for el in pg.locator(s).all():
+                    r = el.bounding_box(); assert r["height"] >= 44 and r["width"] >= 44, (s, r)
+        ctx.close()
+    assert not pequenos, pequenos
+
+CASOS4 = [t_b8_alvos, t_b7_pedidos_320, t_b6_contraste, t_b5_escolher_perfil, t_b4_grade_horarios, t_b3_nomes, t_m6_somente_informativo, t_b2_foco_visivel, t_b2_foco_filtros, t_b2_importacao, t_b1_estado_dos_cartoes]
 CASOS += CASOS4
 
 

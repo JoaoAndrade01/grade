@@ -889,3 +889,9 @@ body:has(.paleta:not([hidden])) .detalhes {
 .tabela-rolagem:focus-visible { outline: 2px solid var(--foco); outline-offset: 2px; }
 .pedidos, .pedidos .sec { min-width: 0; max-width: 100%; }
 .pedidos .add { flex-wrap: wrap; }
+
+/* ---------- B2.5 · B8: alvos de 24 × 24 CSS px (WCAG 2.5.8) ---------- */
+.mini-btn { min-height: 24px; min-width: 24px; padding: 3px 10px; }
+.chip-btn { min-height: 24px; }
+.aviso-importado .link { display: inline-flex; align-items: center; min-height: 24px; padding: 2px 4px; text-decoration: underline; }
+.check input[type="checkbox"], .check input[type="radio"] { width: 24px; height: 24px; margin: 0; flex: none; accent-color: var(--text); }
