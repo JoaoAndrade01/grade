@@ -25,6 +25,8 @@ Como rodar os testes: [testes/README.md](../testes/README.md).
   detecta divergência entre elas, não erro compartilhado. *Oráculo independente*: um perfil esperado, escrito
   à mão, contra o qual as duas saídas são comparadas.
 
+<!-- INTEGRAÇÃO: depois da verificação do candidato integrado, trocar todo "v2.0.0 · a verificar na C2" (esta legenda, a tabela de RF, RNF-01 e a tabela de RNF) por "cumprido", "parcial" ou "planejado", com a evidência por estado (caso, teste e hash), e reescrever o item "v2.0.0 · a verificar na C2" desta legenda para os três estados finais. Confirmar também 11a–11d, 12c, 06n, 14e–14g e os casos H13 a H15 (P13 a P15). -->
+
 ## 1. Histórias de usuário
 
 | # | Como… | quero… | para… | Base |
@@ -35,7 +37,7 @@ Como rodar os testes: [testes/README.md](../testes/README.md).
 | H4 | aluno | montar os próximos períodos com horários e ser avisado de pré-requisito fora de ordem | montar a minha previsão de formatura com uma meta clara e realista | RF-02, RF-07, RF-10 |
 | H5 | aluno pedindo equivalência | ver se as minhas cursadas servem, com a carga horária como orientação | levar à coordenação um pedido bem fundamentado | RF-03, RF-04 |
 | H6 | aluno com pedido deferido | ver a contagem da Grade e a soma das cursadas não explicitadas no BOA lado a lado | não planejar a formatura com créditos que podem sumir | RF-05 |
-| H7 | aluno que reingressou | ter o prazo de 5 anos contado pelo histórico do curso atual | não receber alertas falsos | RF-03, RF-06, RNF-05 |
+| H7 | aluno que reingressou | ter o prazo de 5 anos contado pelo histórico do curso atual | ter o prazo coerente com o histórico do curso atual | RF-03, RF-06, RNF-05 |
 | H8 | aluno | acompanhar as horas de extensão sem contar a mesma atividade duas vezes | saber quanto falta de ACE | RF-01 |
 | H9 | aluno | escolher optativas vendo o guia dos colegas e os horários | montar um semestre que faça sentido | RF-11 |
 | H10 | aluno | saber que a Grade não é oficial, onde conferir e como relatar um erro | não decidir só por ela | RF-08, RF-14, RNF-08 |
@@ -311,7 +313,7 @@ Casos de regressão e de conferência do importador:
 | Caso | Situação | Ação | Resultado esperado |
 | --- | --- | --- | --- |
 | 06j · escolha explícita | Um histórico tem uma linha de transferência reconhecida sem data utilizável. O outro tem semestre real 2024/2 | Escolher explicitamente o primeiro como atual, na prévia e no CLI com `--atual` | O perfil preserva o bloco sem semestre do histórico escolhido, registra `fonte.historicoAtual = "escolhido"` e preserva `2024/2` como origem informativa de MAC118 |
-| 06k · confirmação de colisão | Perfil com plano em 2025/1, dois históricos e BOA. Na prévia inicial, o plano não colide | Escolher o histórico cujo último semestre real é 2024/2; depois voltar à escolha inicial e repetir a troca | A prévia sugere 2025/1 e lista o plano em colisão. Usar e baixar ficam desativados até confirmar o descarte. Voltar à escolha inicial remove a colisão; repetir a troca exige nova confirmação. Depois de confirmar, o perfil salvo ou baixado tem 2025/1 como atual e não contém o plano descartado |
+| 06k · confirmação de colisão | Perfil com plano em 2025/1, dois históricos e BOA. Na prévia inicial, o plano não colide | Escolher o histórico cujo último semestre real é 2024/2. Verificar a colisão e que as duas ações estão desativadas. Marcar a confirmação de descarte e verificar que as duas ações são liberadas. Voltar à escolha inicial e verificar que a colisão some. Escolher novamente o histórico de 2024/2 e verificar que as duas ações voltam a ficar desativadas. Confirmar novamente e conferir o perfil salvo ou baixado | A prévia sugere 2025/1 e lista o plano em colisão. Usar e baixar ficam desativados até confirmar o descarte. Voltar à escolha inicial remove a colisão; repetir a troca exige nova confirmação. Depois de confirmar, o perfil salvo ou baixado tem 2025/1 como atual e não contém o plano descartado |
 | 06l · ordem dos arquivos | O histórico anterior tem MAC118 no bloco de 2019 e em 2020/1. O atual tem MAC118 no bloco de 2025 | Importar nas duas ordens, com os mesmos arquivos e relógio | A saída canônica contém um único registro de MAC118 no bloco de 2025, com `aprovadaEm: "2020/1"` só como origem. O prazo usa 2025 nas duas ordens, sem usar 2019 |
 | 06m · ACE no reingresso | O histórico anterior registra a mesma ACE fictícia de 30 h (EEW002 no teste) em 2020/1 e em 2021/1. O atual traz o mesmo código e grau no bloco de 2025 | Importar nas duas ordens e abrir o progresso de ACE | O perfil mantém a ocorrência em 2021/1 e a do bloco de 2025, com `aprovadaEm: "2020/1"`. O progresso exibe 30 h confirmadas e 30 h a confirmar; o total das duas parcelas é 60 h. Descreve o comportamento atual; muda se a regra da ACE no reingresso for decidida de outro modo |
 | 06n · NCC desconhecida | BOA com uma NCC fictícia sem créditos e fora do currículo e do catálogo | Gerar a prévia | A Grade identifica a atividade e pede conferência |
@@ -433,7 +435,16 @@ versão curricular, grupos e equações em `js/database.js`. Em falha, preserva 
 
 ### RF-17 · Validação dos dados de referência (H14)
 
-O kit valida `js/horarios.js` e `js/guia.js`. A validação é local e não depende do Notion. Os nomes de arquivo e o comando do validador entram em [testes/README.md](../testes/README.md) depois da integração.
+O kit valida `js/horarios.js` e `js/guia.js`. A validação é local e não depende do Notion. Os arquivos (`testes/referencia.py`, `testes/referencia_casos.py` e `testes/fixtures/excecoes-referencia.json`) e o comando estão em [testes/README.md](../testes/README.md).
+
+Cada exceção declara `origem`, `motivo` e `efeito` (`somente-informativo` ou `entra-no-calculo`). O efeito
+"somente informativo" vale por estrutura: o app não lê a lista de exceções, e um código fora do currículo e do
+catálogo já fica fora de cálculos e sugestões. As turmas sem código aparecem só na lista informativa de Optativas ("cabe" ou
+"choca"), sem ação para planejar. O validador recusa o efeito "entra no cálculo" para um nome sem código e avisa, por
+fonte, quando uma exceção não é usada (a remoção fica para a revisão semestral).
+
+<!-- INTEGRAÇÃO: depois de integrar os testes, conferir os nomes dos arquivos e do comando acima, e acrescentar aos casos 17b–17d o que o validador passou a checar nesta etapa (por exemplo, dígitos e quebras de linha fora da gramática de horário, exceção sem uso por fonte e efeito recusado para nome sem código). -->
+
 
 | Caso | Situação | Ação | Resultado esperado |
 | --- | --- | --- | --- |
