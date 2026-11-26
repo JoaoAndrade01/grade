@@ -60,6 +60,17 @@ fora dos eventos de requisição e do roteamento. Nesse par, a cópia pública l
 os arquivos preparados para o teste, e o monitor cobre o console e os erros de
 página. O ensaio por HTTP verifica as requisições pelo monitor nesse motor.
 
+## Validar os dados de referência
+
+```powershell
+& $gradePython -B testes/referencia_casos.py
+```
+
+Roda os casos 17a a 17e (dados fictícios) e valida `js/horarios.js` e `js/guia.js`
+(formato, códigos contra currículo, catálogo e `fixtures/excecoes-referencia.json`,
+duplicatas, turmas sem código). Com `--browser chromium --transport file --out <dir novo>`
+roda também o 17f no navegador. `testes/referencia.py` valida só os dados reais.
+
 ## Rodar a paridade do importador
 
 Para comparar o mesmo commit, confirme que o checkout dos importadores
