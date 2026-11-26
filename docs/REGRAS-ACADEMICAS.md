@@ -54,7 +54,7 @@ coordenação.
 | RA-06 | Dispensa conta os créditos da dispensada, fora do coeficiente | [CEG] arts. 53, 55 e 56 | O grau "T" do histórico é convenção lida pelo importador | Confere |
 | RA-07 | Várias cursadas podem formar um pedido | [CEG] art. 45, II; mérito institucional no art. 52 | Aceita várias origens e calcula indicadores | Confere como capacidade |
 | RA-08 | A mesma origem não serve a duas dispensas | [CEG] art. 46, II | Entre pedidos, e entre pedido e dispensa aprovada, mostra o conflito. Nas dispensas importadas, o alvo conta como no histórico, a origem não soma de novo e há aviso quando a origem aparece em duas ou mais dispensas | Confere |
-| RA-09 | Cursada com mais de 5 anos exige exame de suficiência | [CEG] art. 47; [POLI] | Estima a idade pelo semestre de aprovação e pelo relógio. Só alerta; sem semestre, "data não confirmada"; só o ano numa fronteira, "precisão insuficiente" | Heurística local, estimativa |
+| RA-09 | Cursada com mais de 5 anos exige exame de suficiência | [CEG] art. 47; [POLI] | Estima a idade pelo semestre de aprovação e pelo relógio. Só alerta, com "pode exigir exame de suficiência"; a base normativa desse alerta é o art. 47 da CEG 01/2017; sem semestre, "data não confirmada"; só o ano numa fronteira, "precisão insuficiente" | Heurística local, estimativa |
 | RA-10 | Exceções ao prazo de 5 anos | [CEG] art. 47, parágrafo único | Não aplicadas. O reingresso está em RA-21 | Não modelada |
 | RA-11 | Carga horária das cursadas comparada à da pedida | Nenhuma: a CEG, arts. 45 e 46, pede conteúdo e orientação, não percentual | Soma as horas e mostra a comparação como **orientação neutra**, sem ✓ nem ✗. Carga da pedida desconhecida não é tratada como cumprida | Heurística local |
 | RA-12 | Ao menos uma cursada traz o conteúdo | [CEG] art. 45, I e II | Verifica só a marcação "só horas"; não compara ementas | Heurística local |
@@ -102,24 +102,24 @@ Cada invariante aponta para a regra e para os casos de [REQUISITOS.md](REQUISITO
 
 | ID | Invariante | Regra | Casos |
 | --- | --- | --- | --- |
-| INV-01 | Só aprovação soma crédito; reprovação soma 0 | RA-05 | 01a |
+| INV-01 | Reprovação soma 0 no progresso. Aprovações, dispensas, disciplinas em curso e planos aparecem nos seus subtotais | RA-05 | 01a |
 | INV-02 | O total de referência é 226 cr, e a ACE conta em horas, separada dos créditos | RA-01 | 01a |
 | INV-03 | Uma dispensa conta os créditos da dispensada, sem nota | RA-06 | 01a |
-| INV-04 | Um requisito só vale com registro de semestre anterior ao do período; o co-requisito pode ser do mesmo. A ordem da lista de períodos não muda o resultado | RA-03, RA-04 | 02a a 02h |
+| INV-04 | Pré-requisito vale em semestre anterior. Co-requisito pode valer no mesmo semestre. A ordem da lista de períodos não muda o resultado. A marcação manual segue INV-06 | RA-03, RA-04 | 02a a 02j |
 | INV-05 | Período sem data não conta como anterior | RA-03 | 02i |
 | INV-06 | A tag "aprovada" satisfaz requisito e conta crédito, sempre identificada como marcação manual | RA-03, RA-05 | 01b, 02j |
 | INV-07 | A mesma origem não sustenta dois pedidos nem um pedido e uma dispensa | RA-08 | 04a, 04b |
-| INV-08 | A origem de uma dispensa soma 0 crédito; o alvo conta como no histórico, mesmo fora do catálogo; só há aviso com duas ou mais dispensas | RA-08 | 04b a 04e |
+| INV-08 | A origem de dispensa soma 0 e o alvo conta como no histórico, mesmo fora do catálogo. O aviso específico de reuso entre dispensas aparece com duas ou mais | RA-08 | 04b a 04e |
 | INV-09 | Um pedido pode ter várias cursadas; o conteúdo exige ao menos uma marcada como conteúdo | RA-07, RA-12 | 03h, 03j |
 | INV-10 | A carga horária é orientação, nunca verificação | RA-11 | 03d a 03g |
-| INV-11 | A idade para o prazo de 5 anos só gera alerta; sem semestre, "não confirmada"; só o ano numa fronteira, "precisão insuficiente" | RA-09 | 03a a 03c, 06i |
+| INV-11 | O prazo de 5 anos só gera alerta. Sem ano nem semestre, a data não é confirmada. Com só o ano, verificar o intervalo de idade e emitir alerta de precisão insuficiente quando ele cruzar a fronteira | RA-09 | 03a a 03c, 06i |
 | INV-12 | No reingresso, a base do prazo é o ano do bloco do histórico atual; a data original é informação | RA-21 | 03i, 06h |
 | INV-13 | O histórico atual é o de data mais recente; em dúvida, a Grade pergunta; a escolha explícita vence; a ordem dos arquivos não muda o resultado | RA-21 | 06h, 06j, 06k, 06l |
 | INV-14 | A livre escolha mostra dois números rotulados (Grade e soma da seção do BOA), nunca um "total do BOA"; seção ausente é diferente de seção vazia | RA-13 | 05a a 05h |
-| INV-15 | A mesma ocorrência de extensão tem o mesmo código e o mesmo período. Identidade incerta: o maior valor é confirmado e o resto fica "a confirmar". Períodos diferentes somam | RA-16 | 01c a 01g, 06m |
+| INV-15 | Aplicar PC-01: períodos conhecidos diferentes identificam ocorrências distintas; registros de mesma identificação que podem ser a mesma ocorrência confirmam só o maior valor e mostram o resto "a confirmar". A distinção explícita de 01g fica para a versão seguinte | RA-16 | 01c a 01f, 06m |
 | INV-16 | O período atual deduzido é estimativa; o informado pela pessoa não tem nota | RA-19 | 08e, 08f |
 | INV-17 | Aviso de paridade e aviso de ausência de oferta são distintos; ciclo básico e período sem data não geram aviso | RA-20 | 07a a 07e |
-| INV-18 | Atividade em curso que o catálogo classifica como ACE vai para a extensão; fora do catálogo, gera aviso | RA-17 | 06a |
+| INV-18 | ACE em curso identificada pelo catálogo vai para extensão. NCC sem créditos e fora do currículo e do catálogo gera aviso | RA-17 | 06a, 06n |
 
 ## Glossário
 
