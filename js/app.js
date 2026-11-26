@@ -490,14 +490,28 @@
   const periodoDe = (code, filtro) => (M.regs[code] || []).filter((r) => filtro(r.status)).map((r) => M.periodos[r.pi]?.nome).filter(Boolean);
 
   // A marcação manual simula aprovação mesmo sem uma data no histórico.
-  function requisitoCumprido(code, semestre, aceitaMesmoSemestre = false) {
-    if (aprovacaoManual(code)) return true;
+  /** O registro do perfil (com data) cumpre o requisito neste semestre, sem contar a marcação manual. */
+  function registroCumpre(code, semestre, aceitaMesmoSemestre = false) {
     if (semestre == null) return false;
     return (M.regs[code] || []).some((r) => {
       const origem = M.periodos[r.pi]?.semestre;
       return origem != null && FORCA[r.status] >= FORCA.planejado
         && (origem < semestre || (aceitaMesmoSemestre && origem === semestre));
     });
+  }
+  function requisitoCumprido(code, semestre, aceitaMesmoSemestre = false) {
+    return aprovacaoManual(code) || registroCumpre(code, semestre, aceitaMesmoSemestre);
+  }
+  /**
+   * Requisitos (P e C) de `code` que só a marcação manual satisfaz (PC-03): a tag está aprovada e o registro datado
+   * do perfil não cumpriria o requisito no período em que a disciplina aparece (sem período: o perfil não ter aprovação).
+   */
+  function requisitosPorMarcacao(code) {
+    const i = M.info(code); if (!i) return [];
+    const semestres = (M.regs[code] || []).map((r) => M.periodos[r.pi]?.semestre).filter((x) => x != null);
+    const so = (r, coreq) => aprovacaoManual(r) && (semestres.length
+      ? semestres.some((sem) => !registroCumpre(r, sem, coreq)) : statusPerfil(r) !== "aprovado");
+    return i.req.filter((r) => so(r, false)).concat(i.coreq.filter((r) => so(r, true)));
   }
   function avisos(code, semestre) {
     const i = M.info(code); if (!i) return [];
@@ -1868,7 +1882,12 @@
           <button type="button" class="fechar" aria-label="Fechar">×</button></header>
         <h3>${esc(i.name)}</h3>
         <p class="det-meta">${esc(metaDe(code, valorCat(i), i.category))}${i.workload ? ` · ${i.workload} h` : ""} · ${esc(fonte)}</p>
-        <p class="det-status s-${s}"><i class="dot s-${s}"></i>${ROTULO[s]}${Object.prototype.hasOwnProperty.call(marcacoes, code) ? " (marcada com o pincel)" : ""}</p>
+        <p class="det-status s-${s}"><i class="dot s-${s}"></i>${ROTULO[s]}${aprovacaoManual(code) ? " por marcação manual (pincel), não é registro importado"
+          : Object.prototype.hasOwnProperty.call(marcacoes, code) ? " (marcada com o pincel)" : ""}</p>
+        ${(() => {
+          const por = requisitosPorMarcacao(code);
+          return por.length ? `<p class="aviso-manual alerta" role="note">Requisito satisfeito por marcação manual: ${por.map(esc).join(", ")}. É uma simulação sua, sem data no histórico importado.</p>` : "";
+        })()}
         ${avisoReuso(code)}
         ${(() => {
           const lst = periodosFuturos().filter((p) => p.itens.some((it) => it.alvo === code && it.status !== "reprovado"))

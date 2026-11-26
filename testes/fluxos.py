@@ -435,7 +435,7 @@ def t_cr01_manual(b):
     assert pg.evaluate("GradeInterativa.totais()[1].ok") == 11
     completo(pg, "grade")
     pg.locator('.card[data-code="FIT112"]').click()
-    expect(pg.locator("#detalhes .det-status")).to_contain_text("marcada com o pincel")
+    expect(pg.locator("#detalhes .det-status")).to_contain_text("marcação manual (pincel)")
     pg.keyboard.press("Escape")
     pg.click("#bg-detalhes")
     legenda = pg.locator("#legenda").inner_text() if pg.locator("#legenda").is_visible() else ""
@@ -927,6 +927,73 @@ def t_rf08_ace(b):
     assert "a confirmar" not in pg.locator("#barra-geral .bg-total").inner_text()
     ctx.close()
 
+# ------------------------------------------------------------------ PC-02/03: identificação da marcação manual
+P1_MANUAL = {"periodos": [
+    {"nome": "2025/1", "disciplinas": ["MAC118", {"code": "FIS111", "nota": "T"}]},
+    {"nome": "2025/2", "disciplinas": [{"code": "FIT112", "status": "reprovado"}]},
+]}
+
+def detalhe_de(pg, code):
+    pg.locator(f'.card[data-code="{code}"]').first.click()
+    texto = pg.locator("#detalhes").inner_text()
+    pg.keyboard.press("Escape")
+    return texto
+
+def legenda_do_progresso(pg):
+    if pg.locator("#progresso").is_hidden(): pg.click("#bg-detalhes")
+    return pg.locator("#legenda").inner_text() if pg.locator("#legenda").is_visible() else ""
+
+@caso("PC-02 (01b): a aprovação por tag é marcação manual no detalhe e na legenda; só tag aprovada")
+def t_pc02_manual_credito(b):
+    ctx, pg = abre(b, perfil=P1_MANUAL, extra={"marcacoes": {"FIT112": "aprovada"}}, nome="pc02-01b")
+    assert pg.evaluate("GradeInterativa.totais()[1].ok") == 11
+    completo(pg, "grade")
+    detalhe = detalhe_de(pg, "FIT112")
+    assert "Aprovada por marcação manual (pincel)" in detalhe and "não é registro importado" in detalhe, detalhe
+    assert "Reprovada" in detalhe                                      # o registro histórico continua visível, distinto da marcação
+    assert "Aprovação por marcação manual (pincel)" in legenda_do_progresso(pg)
+    foto(pg, "pc02-detalhe-marcacao-manual")
+    ctx.close()
+    # sem registro nenhum: a tag também é identificada
+    ctx, pg = abre(b, perfil={"periodos": []}, extra={"marcacoes": {"MAC118": "aprovada"}}, nome="pc02-sem-registro")
+    completo(pg, "grade")
+    assert "Aprovada por marcação manual (pincel)" in detalhe_de(pg, "MAC118")
+    ctx.close()
+    # tag que não é aprovação: continua marcada com o pincel, sem rótulo de aprovação manual nem legenda
+    ctx, pg = abre(b, perfil=P1_MANUAL, extra={"marcacoes": {"FIT112": "cursando"}}, nome="pc02-cursando")
+    completo(pg, "grade")
+    detalhe = detalhe_de(pg, "FIT112")
+    assert "marcada com o pincel" in detalhe and "marcação manual" not in detalhe, detalhe
+    assert "marcação manual" not in legenda_do_progresso(pg)
+    ctx.close()
+
+@caso("PC-03 (02j): a dependente mostra quando uma tag satisfaz o requisito; sem a nota quando o registro basta")
+def t_pc03_manual_requisito(b):
+    def nota(perfil, marcacoes, code, vista="timeline"):
+        ctx, pg = abre(b, perfil=perfil, extra={"marcacoes": marcacoes}, nome=f"pc03-{code}")
+        completo(pg, vista)
+        card = pg.locator(f'.card[data-code="{code}"]').first
+        titulo = card.get_attribute("title") or ""
+        assert "Requisito" not in titulo and "Co-requisito" not in titulo, titulo                  # a tag satisfaz: sem aviso
+        card.click()
+        linhas = pg.locator("#detalhes .aviso-manual").all_inner_texts()
+        completo_texto = pg.locator("#detalhes").inner_text()
+        foto(pg, f"pc03-{code}")
+        ctx.close()
+        return linhas, completo_texto
+    planejada = {"periodos": [{"nome": "2027/1", "planejado": True, "disciplinas": ["MAC128"]}]}
+    linhas, texto = nota(planejada, {"MAC118": "aprovada"}, "MAC128")                       # 02j
+    assert len(linhas) == 1 and "MAC118" in linhas[0] and "marcação manual" in linhas[0] and "simulação" in linhas[0], linhas
+    assert "Aprovada por marcação manual (pincel)" in texto
+    registro = {"periodos": [{"nome": "2025/1", "disciplinas": ["MAC118"]}, {"nome": "2027/1", "planejado": True, "disciplinas": ["MAC128"]}]}
+    assert nota(registro, {"MAC118": "aprovada"}, "MAC128")[0] == []                         # o registro datado já cumpre: sem nota
+    assert nota(registro, {}, "MAC128")[0] == []
+    coreq = {"periodos": [{"nome": "2026/1", "disciplinas": ["EEL670"]}, {"nome": "2027/2", "planejado": True, "disciplinas": ["EEL418"]}]}
+    linhas, _ = nota(coreq, {"COS231": "aprovada"}, "EEL418")                                # co-requisito por tag
+    assert len(linhas) == 1 and "COS231" in linhas[0], linhas
+    linhas, _ = nota({"periodos": []}, {"MAC118": "aprovada"}, "MAC128", "grade")            # dependente fora de qualquer período
+    assert len(linhas) == 1 and "MAC118" in linhas[0], linhas
+
 # ------------------------------------------------------------------ regressões gerais
 @caso("Regressões: abas, busca de optativas mantém foco, horários por clique, equivalências/ACE, exportação e recarga")
 def t_regressao(b):
@@ -1416,6 +1483,7 @@ CASOS = [
     t_cr02_pedidos, t_cr02_duas_dispensas, t_cr02_dispensa_unica,
     t_d02_dois_numeros, t_d02_ausente_e_vazia, t_d02_outros_grupos, t_d02_importacao,
     t_rf08_faixa, t_rf08_notas_credito, t_rf08_periodo_atual, t_rf08_oferta, t_rf08_rodape, t_rf08_ace,
+    t_pc02_manual_credito, t_pc03_manual_requisito,
     t_regressao, t_a11y,
 ] + CASOS2 + CASOS3
 
