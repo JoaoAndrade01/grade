@@ -1844,6 +1844,13 @@ def t_b2_foco_filtros(b):
     for sel in ('[data-cperiodo="2027/1"]', '[data-csel="COS360"]', '[data-cperiodo="2027/2"]'):
         pg.locator(sel).focus(); pg.keyboard.press("Enter"); pg.wait_for_timeout(60)
         assert foco_em(pg, sel), (sel, descreve_foco(pg))
+    # o clique num cartão sempre abre os detalhes (o foco por clique não pode rolar a página: no WebKit o clique se perdia)
+    pg.click('[data-vista="grade"]')
+    for i in range(12):
+        pg.reload(); pg.wait_for_load_state("load")
+        pg.locator('.card[data-code="MAC128"]').click()
+        expect(pg.locator("#detalhes")).to_be_visible(timeout=2000)
+        pg.keyboard.press("Escape")
     ctx.close()
 
 PONTO_OCULTO = """() => {

@@ -3046,6 +3046,8 @@
   document.addEventListener("focusin", (ev) => {
     const el = ev.target;
     if (!(el instanceof HTMLElement) || el.closest(".paleta, .faixa-aviso, #detalhes, dialog")) return;
+    // Só o foco de teclado: rolar a página no foco por clique (o WebKit foca o contêiner) faz o clique se perder.
+    if (el === painelRef || !el.matches(":focus-visible")) return;
     requestAnimationFrame(() => {
       if (!el.isConnected || document.activeElement !== el) return;
       const alvo = el.matches(".interruptor input") && el.nextElementSibling ? el.nextElementSibling : el;
