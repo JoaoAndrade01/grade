@@ -1,180 +1,115 @@
 # Grade ECI — Engenharia de Computação e Informação (UFRJ)
 
-Fluxograma interativo da grade de ECI. Mostra o que você já cursou, pinta as disciplinas com tags, mostra as
-setas de pré-requisito, planeja os próximos períodos com horários, organiza optativas, pedidos de equivalência
-e horas de Extensão/ACE. A aba **A ECI por trás da Grade** explica, com disciplinas do curso, como o site funciona.
+A Grade ECI é um site para alunos de Engenharia de Computação e Informação da UFRJ planejarem o curso. Ela reúne num
+só lugar o que você já cumpriu e o que falta em cada grupo de créditos, os próximos períodos com requisitos e horários
+de referência, os pedidos de equivalência e as horas de extensão. **Você monta uma previsão de formatura ao planejar
+os períodos**, para ter uma meta clara e o controle do próprio caminho, de forma agradável e intuitiva.
 
-Fork de [`gremio-eci/grade`](https://github.com/gremio-eci/grade). A versão original continua em `classico.html`.
+**A Grade orienta; não substitui o SIGA, o BOA nem a coordenação.** Tudo roda no seu navegador: é um site estático
+(HTML, CSS e JavaScript, sem servidor). Mais em [`docs/VISAO.md`](docs/VISAO.md).
 
-**Tudo roda no seu navegador.** O site é estático (HTML, CSS e JavaScript, sem servidor). Seus PDFs, seu perfil
-e seus planos ficam neste computador: *O BOA e o Histórico são lidos neste navegador. Os PDFs não são enviados ao GitHub.*
-Detalhes em [`docs/PRIVACIDADE.md`](docs/PRIVACIDADE.md).
+![Contexto da Grade ECI: o aluno usa o site no navegador, os dados ficam nele, e o GitHub hospeda o site e recebe relatos](docs/diagramas/c4-contexto.svg)
 
-![Arquitetura da Grade ECI com fontes públicas, importação local, Configurações e experiências com dados fictícios](docs/diagramas/arquitetura-atual.svg)
+## Como abrir
 
-## Abrir
+- **No GitHub Pages:** [joaoandrade01.github.io/grade](https://joaoandrade01.github.io/grade/) (ver
+  [`docs/PUBLICAR.md`](docs/PUBLICAR.md)).
+- **No seu computador:** baixe o repositório e dê dois cliques em `index.html`. Funciona por `file://`, sem instalar nada e
+  sem internet.
 
-- **No GitHub Pages**, quando estiver publicado (ver [`docs/PUBLICAR.md`](docs/PUBLICAR.md)).
-- **No seu computador:** baixe o repositório e dê dois cliques em `index.html`. Funciona por `file://`, sem instalar nada
-  e sem internet.
-
-Na primeira visita o site abre no **modo clássico**: a grade inteira numa tela, a paleta embaixo e o **seletor de modo**
-(o interruptor no topo). Desligue o interruptor para o **modo completo**, com as abas.
-
-## Três jeitos de usar
-
-### 1. Sem perfil
-
-- Pinte as disciplinas com a paleta: **Cursada** (cursada e aprovada, conta como concluída), **Cursando** e
-  **Planejada**. A borracha tira a tag.
-- Veja requisitos em **Grade → Exibir → Setas** (modo completo) e consulte optativas, horários de referência e o guia dos alunos.
-- Use **A ECI por trás da Grade**: funciona sem perfil.
-- Sem perfil o site não mostra nome nem barras de progresso. **Criar perfil** e **Importar do SIGA** ficam sempre no topo.
-
-### 2. Com um perfil criado à mão
-
-**Criar perfil** pede só dois campos, os dois opcionais: **nome** e **semestre atual** (`AAAA/1` ou `AAAA/2`).
-Dá para salvar em branco. O que você já tinha pintado ou planejado continua. Com perfil, o topo mostra
-**Grade ECI — Nome** e as barras de progresso aparecem. O mesmo botão vira **Editar perfil**.
-
-### 3. Com importação do SIGA
-
-1. No SIGA (pela [Intranet UFRJ](https://intranet.ufrj.br/)), baixe em PDF o **Histórico** e o **BOA**. Se mudou de curso,
-   baixe também o histórico anterior.
-2. Clique em **Importar do SIGA**, escolha os PDFs e clique em **Gerar perfil**.
-3. Confira a prévia:
-   - **Período atual sugerido:** o semestre seguinte ao último semestre do Histórico, com as disciplinas
-     “Cursando” do BOA. Corrija se precisar ou deixe em branco para um período sem data.
-   - **Planos:** os planos que você já tinha são mantidos. Se um plano coincide com o período atual ou com um
-     semestre do Histórico, a prévia pede uma escolha. Troque o semestre ou confirme a substituição.
-     **Usar este perfil** e **Baixar perfil.js** ficam bloqueados até lá.
-   - **Descartar prévia** sai sem mudar nada.
-4. Clique em **Usar este perfil**.
-
-Prefere terminal? `pip install pypdf` e
-`python ferramentas/gerar_perfil.py --historico historico.pdf --boa boa.pdf -o perfil/perfil.js`
-(regras em [`docs/IMPORTADOR.md`](docs/IMPORTADOR.md)).
+Na primeira visita o site abre no **modo clássico**: a grade inteira numa tela e a paleta embaixo. O interruptor no
+topo leva ao **modo completo**, com as abas.
 
 ## O que dá para fazer
 
 | Onde | Para quê |
-|---|---|
-| **Grade** | A grade por período. **Exibir**: código e créditos, notas, dificuldade, presença e **Setas** (Ocultas, Disciplina em foco ou Todas). A paleta pinta as disciplinas, e o **cadeado** protege as cursadas contra alterações. **ECI por trás** destaca as disciplinas com experiência |
-| **Linha do tempo** | Seus períodos reais, com notas, reprovações, equivalências, dispensas, progresso por grupo e avisos de requisito e de oferta |
-| **Optativas** | Catálogo com marcação ativa/inativa pela oferta de referência, filtros “só liberadas” e “só as que cabem” no horário |
-| **Cronograma** | Grade semanal por período planejado. Mostra choques, horários de referência, sugestões, proposta sem choques e **Excluir período** |
-| **Equivalências e Extensão / ACE** | Pedidos de dispensa, checagem de carga horária e do prazo de 5 anos, contas automáticas e horas de extensão |
-| **A ECI por trás da Grade** | Como entrar e as três experiências desta versão (abaixo) |
+| --- | --- |
+| **Grade** | Ver a grade por período, pintar disciplinas com a paleta (**Cursada**, **Cursando**, **Planejada**), ver as setas de pré-requisito e proteger as cursadas com o cadeado. Funciona sem perfil |
+| **Importar do SIGA** | Baixar o Histórico e o BOA em PDF, escolher os arquivos, conferir a prévia e usar o perfil. Os PDFs são lidos no navegador |
+| **Linha do tempo** | Seus períodos reais, com notas, equivalências, progresso por grupo e avisos de requisito e de oferta |
+| **Optativas** | Catálogo com filtros e o guia dos colegas |
+| **Cronograma** | Grade semanal dos períodos planejados, com choques, horários de referência e sugestões |
+| **Equivalências e Extensão / ACE** | Pedidos de dispensa com carga horária como orientação e prazo de 5 anos, créditos de livre escolha e horas de extensão |
+| **Configurações** | Tema, aparência, modo e atalhos; criar, exportar e carregar o perfil; Privacidade; Referências |
+| **A ECI por trás da Grade** | Experiências curtas, com dados fictícios, que mostram como disciplinas do curso aparecem no próprio site |
 
-### Planejamento
+Os critérios de cada função, por história de uso, estão em [`docs/REQUISITOS.md`](docs/REQUISITOS.md).
 
-- No **Cronograma**, crie períodos com **+ Período** e adicione disciplinas pelo código ou pelo nome.
-- Defina os horários clicando nas células e use as **sugestões** para o período.
-- Uma obrigatória planejada no semestre da paridade errada recebe o aviso
-  “Pode não ser ofertada neste semestre”, exceto as do ciclo básico.
-- **Excluir período** remove um período planejado. **Descartar edições** volta ao conteúdo original de um período do perfil.
+## Privacidade
 
-### Configurações (engrenagem no topo)
+Seus PDFs, seu perfil e seus planos ficam neste navegador e **não são enviados pelo app**; o arquivo que você exporta é
+uma cópia sua e pode conter dados acadêmicos e o nome que informou. Detalhes em
+[`docs/PRIVACIDADE.md`](docs/PRIVACIDADE.md).
 
-- **Perfil e dados:** Criar/Editar perfil, Importar do SIGA, Privacidade e **Limpar dados salvos**.
-- **Aparência:** abas e barra com **Ícone e texto** (padrão), **Somente texto** ou **Somente ícone**. Tema igual ao
-  sistema, claro ou escuro. Modo clássico ou completo e **Mostrar o seletor de modo no topo**.
-- **Grade:** as mesmas opções de **Exibir**, as setas, o cadeado e o editor de **Tags**, sincronizados com a aba Grade.
-- **Referências:** de onde vêm os dados e links para o SIGA, o currículo oficial e os repositórios.
-  Os links só abrem quando você clica.
+## O que a Grade não confirma
 
-Perfil, Importar do SIGA, Tema, Privacidade, Referências e Tags podem ser **fixados** na barra do topo. Todos começam
-desafixados e continuam acessíveis em Configurações.
+A Grade usa regras da UFRJ e do currículo do SIGA, mas **não confirma** exceções, prazos nem a forma como a coordenação
+aplica cada regra. Estimativas e marcações manuais aparecem como tais, com uma nota. Veja a lista em
+[`docs/REGRAS-ACADEMICAS.md`](docs/REGRAS-ACADEMICAS.md#o-que-a-grade-não-confirma) e, em caso de dúvida, confira no SIGA
+ou com a coordenação.
 
-### A ECI por trás da Grade
+## Limitações conhecidas
 
-No modo completo, abra **Grade** e ligue **ECI por trás** na paleta. As disciplinas com experiência ficam destacadas
-e as outras ficam inativas. Escolha uma para abrir a experiência em tela cheia. **Voltar** ou Esc retornam ao cartão.
-A aba **A ECI por trás da Grade** explica o caminho e também abre as experiências.
+- Os horários e o guia vêm de uma página mantida por alunos e não confirmam a oferta oficial.
+- Se o SIGA mudar o layout dos PDFs, a importação pode falhar ou omitir linhas.
+- A Grade não calcula uma data de formatura: você monta a previsão com o planejamento.
+- A navegação por teclado nos links foi verificada em Chromium e Firefox; Safari no Mac, iPhone real e leitor de tela
+  estão pendentes.
 
-| Disciplina | Experiência |
-|---|---|
-| **COS110 · Algoritmos e Programação** (1º) | Um Histórico fictício vira linhas, registros e prévia de perfil. Você edita uma nota ou situação e vê o que muda. Mostra o cabeçalho descartado e uma linha fora do formato |
-| **COS242 · Teoria dos Grafos** (4º) | Requisitos como grafo dirigido: dependência direta, cadeia de pré-requisitos e co-requisito. Permite marcar disciplinas como cursadas (de mentira) e simular uma ligação, inclusive um ciclo |
-| **EEL873 · Engenharia de Software** (6º) | Paridade JavaScript × Python com os mesmos dados fictícios. A saída Python é **pré-computada**. Há cenários simulados de divergência de regra e de extração e um erro que as duas compartilham |
+A lista completa está em [`docs/MUDANCAS.md`](docs/MUDANCAS.md#limitações-conhecidas).
 
-As experiências usam dados fictícios e estado temporário. Elas não leem nem gravam seu perfil, seu planejamento ou o
-armazenamento do navegador. Próxima etapa: COS231 · Estruturas de Dados, com a detecção de choques de horário.
+## Próximos passos
 
-## Salvar e levar para outro computador
+Previsão de formatura calculada, aviso de dado desatualizado, automação da atualização dos horários e do guia com o
+Notion, e novas experiências de "A ECI por trás da Grade". A ordem e os critérios estão em
+[`docs/MANUTENCAO.md`](docs/MANUTENCAO.md#backlog-e-dívida).
 
-O site guarda tudo no navegador (`localStorage`). Para ter um arquivo, use **Exportar perfil.js** (Cronograma ou
-Equivalências) ou **Baixar perfil.js** no aviso do topo. Carregue o arquivo em **Importar do SIGA → Ou carregar
-um perfil pronto**. Se abrir o app direto do disco (`file://`), também pode colocar o arquivo em
-`perfil/perfil.js`, que fica no `.gitignore`.
+## Quem faz e para quem
 
-## Para quem quer mexer no código
+Alunos de ECI usam a Grade e podem contribuir; quem mantém revisa as fontes e coordena as atualizações a cada semestre.
+A tabela de partes interessadas está em [`docs/VISAO.md`](docs/VISAO.md#partes-interessadas).
+
+## Contribuir
+
+Qualquer aluno pode relatar um erro, propor uma experiência nova ou ajudar a manter os dados. **Use só dados
+fictícios**: não anexe PDFs do SIGA, capturas com nome ou matrícula, nem o seu perfil. Veja o
+[`CONTRIBUTING.md`](CONTRIBUTING.md) e, para relatar um erro, o link **Achou um erro? Crie uma nova issue** no rodapé
+da Grade.
+
+## Uso de IA
+
+Este projeto foi feito com apoio de ferramentas de IA para escrever e revisar código e documentos. Cada mudança é
+revisada por uma pessoa e verificada por testes com dados fictícios, e os commits trazem a atribuição
+(`Co-Authored-By`). As regras para quem contribui com IA estão em [`CONTRIBUTING.md`](CONTRIBUTING.md#contribuir-com-ia) e
+[`AGENTS.md`](AGENTS.md).
+
+## Documentação
 
 | Documento | Conteúdo |
-|---|---|
-| [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md) | Fontes de dados, camadas do app, chaves do navegador, regras centrais e o plano de automação com o Notion |
-| [`docs/PERFIL.md`](docs/PERFIL.md) | Formato do `perfil.js` |
-| [`docs/IMPORTADOR.md`](docs/IMPORTADOR.md) | Regras de leitura dos PDFs do SIGA, prévia e teste de paridade |
-| [`docs/PRIVACIDADE.md`](docs/PRIVACIDADE.md) | O que fica no computador e como conferir |
-| [`docs/DESIGN.md`](docs/DESIGN.md) | Identidade visual, componentes e acessibilidade |
-| [`docs/PUBLICAR.md`](docs/PUBLICAR.md) | Publicar no GitHub Pages e sincronizar o fork |
-| [`docs/MUDANCAS.md`](docs/MUDANCAS.md) | Registro das mudanças |
-
-```
-index.html            app                         classico.html   versão original
-js/app.js             modelo, telas, Configurações js/siga.js      regras do importador do SIGA
-js/tema.js            tema e aparência (no <head>) js/eci.js       A ECI por trás da Grade + setas (SVG)
-js/demo-pdf.js        PDFs fictícios + Python pré-computado (carregado só nas experiências)
-js/database.js        currículo e requisitos       js/optativas.js catálogo de eletivas (SIGA)
-js/horarios.js        turmas de referência         js/guia.js      dificuldade/presença (Notion)
-js/icones.js          ícones Lucide (ISC)          js/vendor/      pdf.js (Apache-2.0)
-static/               app.css, logo do Grêmio      docs/diagramas/ diagramas (gerar.js → SVG)
-ferramentas/          gerar_perfil.py · gerar_perfil_node.js · testar_paridade.sh
-perfil/               perfil.exemplo.js (o perfil.js pessoal fica fora do git)
-```
-
-Sem build e sem dependências em tempo de execução: edite e recarregue a página (Ctrl+F5). Abra `index.html` direto
-para usar os PDFs e o perfil do seu computador.
-
-### Testar por HTTP
-
-Sirva **uma cópia dos arquivos públicos**, acessível só neste computador. Assim o servidor não expõe `perfil/perfil.js` nem os PDFs.
-
-```powershell
-$gradePublica = Join-Path $env:TEMP ("grade-eci-" + [guid]::NewGuid())
-git archive --format=zip --output "$gradePublica.zip" HEAD index.html classico.html js static docs perfil/perfil.exemplo.js
-Expand-Archive -LiteralPath "$gradePublica.zip" -DestinationPath $gradePublica
-python -m http.server --bind 127.0.0.1 --directory "$gradePublica" 8000
-```
-
-Abra `http://127.0.0.1:8000` e use PDFs fictícios ou os seus pelo botão de importação. Ao terminar, pare o servidor com
-Ctrl+C e remova a cópia:
-
-```powershell
-$gradePasta = Resolve-Path -LiteralPath $gradePublica
-if ((Split-Path -Parent $gradePasta.Path) -eq (Resolve-Path -LiteralPath $env:TEMP).Path) {
-  Remove-Item -LiteralPath $gradePasta.Path -Recurse -Force
-  Remove-Item -LiteralPath "$gradePublica.zip"
-}
-```
-
-`git archive` usa o último commit (`HEAD`). Para testar mudanças ainda não commitadas, copie os mesmos arquivos da pasta de trabalho.
-
-### Teste de paridade do importador
-
-```bash
-GRADE_PYTHON=python bash ferramentas/testar_paridade.sh historico.pdf boa.pdf
-```
-
-Compara as regras JavaScript e Python sobre o mesmo texto e os perfis gerados com leitores independentes (pdf.js e pypdf).
+| --- | --- |
+| [`docs/VISAO.md`](docs/VISAO.md) | Por que a Grade existe, para quem, condições para publicar |
+| [`docs/REQUISITOS.md`](docs/REQUISITOS.md) | Histórias, requisitos e casos de teste |
+| [`docs/REGRAS-ACADEMICAS.md`](docs/REGRAS-ACADEMICAS.md) | Regras, fontes, glossário e o que a Grade não confirma |
+| [`docs/DECISOES.md`](docs/DECISOES.md) | Decisões e seus motivos |
+| [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md) | Como a Grade é feita (modelo C4) |
+| [`docs/DESIGN.md`](docs/DESIGN.md) | Identidade visual, critérios de UX e acessibilidade |
+| [`docs/PERFIL.md`](docs/PERFIL.md) | Formato do arquivo de perfil |
+| [`docs/IMPORTADOR.md`](docs/IMPORTADOR.md) | Como os PDFs do SIGA viram um perfil |
+| [`docs/PRIVACIDADE.md`](docs/PRIVACIDADE.md) | O que acontece com os seus dados |
+| [`docs/PLANO-DE-TESTE.md`](docs/PLANO-DE-TESTE.md) | Como verificamos uma versão |
+| [`docs/PUBLICAR.md`](docs/PUBLICAR.md) | Publicar no GitHub Pages |
+| [`docs/MANUTENCAO.md`](docs/MANUTENCAO.md) | Rotina semestral, backlog, métricas e reversão |
+| [`docs/MUDANCAS.md`](docs/MUDANCAS.md) | O que mudou em cada versão |
+| [`testes/README.md`](testes/README.md) | Como rodar os testes |
 
 ## Créditos e licença
 
-- Projeto original: Grêmio ECI / [carloseduardov8](https://github.com/carloseduardov8/Interactive-Flowchart) — AGPL-3.0.
+- Projeto original: **Grêmio ECI**, [`gremio-eci/grade`](https://github.com/gremio-eci/grade), a partir de
+  [carloseduardov8](https://github.com/carloseduardov8/Interactive-Flowchart). Esta Grade é um fork do trabalho deles.
 - Logo: Grêmio de ECI.
 - Currículo e catálogo: SIGA/UFRJ ([currículo oficial da ECI](https://www.siga.ufrj.br/sira/repositorio-curriculo/distribuicoes/A46B41C8-92A4-F79C-7383-BE627D84214E.html)).
-- Horários e guia dos alunos: página “Grades de ECI (Editável)” no Notion, feita por alunos de ECI.
-- pdf.js: Mozilla, Apache-2.0 (`js/vendor/LICENSE-pdfjs.txt`). Ícones da interface: Lucide, ISC.
-  As fontes das marcas dos diagramas estão na [arquitetura](docs/ARQUITETURA.md).
+- Horários e guia dos alunos: página "Grades de ECI (Editável)" no Notion, feita por alunos de ECI.
+- pdf.js: Mozilla, Apache-2.0 (`js/vendor/LICENSE-pdfjs.txt`). Ícones da interface: Lucide, ISC. As fontes das marcas dos
+  diagramas estão na [arquitetura](docs/ARQUITETURA.md).
 
 Licença: AGPL-3.0 (ver `LICENSE`).

@@ -349,7 +349,7 @@ arquivos do último conjunto aprovado. Antes de automatizar remoções, deve exi
 aprovada que sumiu ou voltou a rascunho. Os critérios estão em
 [RF-15](REQUISITOS.md#rf-15--sincronização-dos-dados-do-notion-h16--planejado), RNF-11 e RNF-13.
 
-A atualização do currículo a partir do SIGA ([RF-16](REQUISITOS.md#rf-16--atualização-do-currículo-a-partir-do-siga-h14))
+A atualização do currículo a partir do SIGA ([RF-16](REQUISITOS.md#rf-16--atualização-do-currículo-a-partir-do-siga-h14--planejado))
 segue o mesmo desenho, com falha fechada e relatório de divergências.
 
 ---
