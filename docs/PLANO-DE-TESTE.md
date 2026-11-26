@@ -242,20 +242,29 @@ Um registro curto por candidato; a lista da seção 7 consulta este registro.
 
 Verificado em 2026-11-26, no Windows 11 (10.0.26300), Python 3.12.10, Node 26.13.1.
 
+**Hash final medido: `ad60477607747f4e835776110aaf869bf5e00c22`.** Verificado em 2026-11-26 por `file://` e HTTP nos três motores, com a suíte abaixo.
+
 | Campo | Valor |
 | --- | --- |
-| Hash do app | `a7192a960cb411d8f5ef3a68ddcc43bafb85492a` (verificação completa). O candidato a publicar é o commit que acrescenta só este registro e os hashes dele; ver "Hash final" abaixo |
-| SHA-256 da suíte e das fixtures | `2536fc3d1a4305db76e224cc710f719529c71cfb0aef23839511c4855a88ba5c` |
+| Hash do app | `ad60477607747f4e835776110aaf869bf5e00c22`. O candidato a publicar é o commit que acrescenta só este registro; ver "Hash final" abaixo |
+| SHA-256 da suíte e das fixtures | `78c3890d9196b2051d70224912dd8fc5b026492e979b3b3f4109d1a5f5db3f4d` |
 | Versões | Chromium 159.0.8154.6, Firefox 159.0, WebKit 27.2, Playwright 1.65.2, axe-core 4.10.3 |
-| Matriz (seis pares) | Chromium, Firefox e WebKit: `file://` 85/85 e HTTP 86/86 em cada motor, zero eventos inesperados |
-| Paridade e oráculos | Paridade (`testar_paridade.sh`, pypdf × pdf.js): as 4 combinações iguais. Oráculos (`importador.py`): 26/26 |
-| Validador RF-17 | `referencia_casos.py` 80/80 e dados reais sem erro (5 exceções cadastradas, conferidas no Notion em 2026-11-26); 17f no navegador: 84/84 nos seis pares |
-| Acessibilidade (axe, contraste, teclado) | `t_axe_recorte` sem ocorrência grave ou crítica nos três motores; contraste, alvos, refluxo a 320 px, foco e abas verdes (ver [DESIGN.md](DESIGN.md#acessibilidade)) |
+| Matriz (seis pares) | Chromium, Firefox e WebKit: `file://` 85/85 e HTTP 86/86 em cada motor, zero eventos inesperados. Os seis pares rodaram em paralelo, uma vez cada, e passaram na primeira tentativa |
+| Paridade e oráculos | Paridade (`testar_paridade.sh`, pypdf × pdf.js): as 4 combinações iguais, inclusive com o perfil anterior (3, 4, 5 e 5 períodos). Oráculos (`importador.py`): 26/26 |
+| Validador RF-17 | `referencia_casos.py` 80/80 e dados reais sem erro (5 exceções cadastradas, conferidas no Notion em 2026-11-26) |
+| Acessibilidade (axe, contraste, teclado) | Dentro da matriz: `t_axe_recorte`, contraste, alvos, papéis ARIA e foco verdes nos três motores, incluindo o foco do importador aberto por Configurações e depois de Usar sem atalho fixado (`t_b2_importacao`) |
+| Correções dos ajustes finais | Aviso de linha do Histórico não lida na prévia (`t_m3_mensagens`, fixtures `historico-ficticio*.txt`); foco do importador pelo menu; `.nojekyll` e link da arquitetura (caso P) |
+| Aceite | Candidato **verificado**; a aprovação para publicar é registrada por quem mantém, no [PUBLICAR.md](PUBLICAR.md) |
+
+**Evidência histórica, medida em `aa9256cb5a6306ea2361509c1ce7dcc7716525fa`** (antes dos ajustes finais e das conferências dos horários; não repetida no hash final):
+
+| Campo | Valor |
+| --- | --- |
+| SHA-256 da suíte e das fixtures | `2536fc3d1a4305db76e224cc710f719529c71cfb0aef23839511c4855a88ba5c` |
+| Matriz e validador | Seis pares verdes (85/85 e 86/86); validador RF-17 80/80 e 17f no navegador 84/84 nos seis pares |
 | Privacidade (requisições e sentinelas) | Nenhuma requisição fora da origem nos seis pares. Sonda avulsa com sentinelas no cabeçalho dos PDFs fictícios (nome, CPF, RG e matrícula): sem sentinela no arquivo baixado e no exportado, no armazenamento, nos cookies, no console, na página nem em URL ou corpo de requisição, em Chromium, Firefox e WebKit, por `file://` e HTTP (6 de 6 pares limpos) |
 | Desempenho (linha de base) | Sonda avulsa, Pixel 7 emulado em Chromium: abrir 100 ms e importar 544 ms (medianas de 7; ver RNF-10 em [REQUISITOS.md](REQUISITOS.md#5-requisitos-não-funcionais)) |
 | Páginas e documentos | Links relativos e âncoras dos documentos sem problema; diagramas regenerados sem diferença em relação aos SVGs versionados; busca de termos internos e de dados pessoais sem ocorrência (fora do que a seção "Limitações" abaixo aponta) |
-| Tentativas, falhas e intermitências declaradas | Ver abaixo |
-| Aceite | Candidato **verificado**; a aprovação para publicar (revisão independente e conferência do Notion) é registrada por quem mantém, no [PUBLICAR.md](PUBLICAR.md) |
 
 **Tentativas e intermitências.** Cada execução completa dos seis pares conta, e nenhuma repetição verde encerrou uma
 falha. Em desenvolvimento, cinco ocorrências intermitentes foram investigadas:
@@ -275,9 +284,9 @@ falha. Em desenvolvimento, cinco ocorrências intermitentes foram investigadas:
 O Firefox por `file://` registra avisos de console do carregamento do `perfil/perfil.js` ausente, e por HTTP avisos de
 reordenação de microtarefas; nenhum é erro de página nem evento inesperado.
 
-**Hash final.** O commit que contém este registro difere de `a7192a960cb411d8f5ef3a68ddcc43bafb85492a` só em arquivos de documentação. Antes de
-publicar, confirme com `git diff --stat a7192a960cb411d8f5ef3a68ddcc43bafb85492a <hash a publicar>` e repita a lista da seção 7 se algo além de
-documentação tiver mudado.
+**Hash final.** O commit a publicar contém este registro e difere de `ad60477607747f4e835776110aaf869bf5e00c22` só em arquivos de documentação. Antes de
+publicar, confirme com `git diff --stat ad60477607747f4e835776110aaf869bf5e00c22 <hash a publicar>` e repita a lista da seção 7 se algo além de documentação
+tiver mudado.
 
 **Limitações conhecidas do candidato.** As cinco exceções do validador foram conferidas no Notion em 2026-11-26
 (ver [MANUTENCAO.md](MANUTENCAO.md)); leitor de tela real, Safari no Mac e iPhone real não foram verificados; as

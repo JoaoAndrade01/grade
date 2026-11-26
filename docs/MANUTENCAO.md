@@ -213,7 +213,7 @@ termina com código 0. Se algum diferir, meça de novo.
 
 | Campo | Valor |
 | --- | --- |
-| Hash medido | `2cac2a48bbadbe334718f556e3d698f83c538c8d` (2026-11-26; os quatro arquivos são idênticos aos do hash final do candidato: ver [PLANO-DE-TESTE.md](PLANO-DE-TESTE.md#8-resultado-por-candidato)) |
+| Hash medido | `da95b6aa9463312c692446c63c6d4ea8e7affd2f` (2026-11-26; os quatro arquivos são idênticos aos do hash final do candidato: ver [PLANO-DE-TESTE.md](PLANO-DE-TESTE.md#8-resultado-por-candidato)) |
 | ESLint | `9.39.5` (versão fixa; o npm avisa que a série 9 não tem mais suporte, e trocar de série exige nova linha de base) |
 | Node | `26.13.1` |
 
@@ -246,7 +246,7 @@ tabela serve de ponto de volta. Para os dados de referência, só serve um par q
 
 | Hash completo | Data | Resultado da verificação |
 | --- | --- | --- |
-| `a7192a960cb411d8f5ef3a68ddcc43bafb85492a` | 2026-11-26 | Candidato da v2.0.0 verificado: resultado em [PLANO-DE-TESTE.md](PLANO-DE-TESTE.md#8-resultado-por-candidato). A aprovação para publicar e a data da publicação entram aqui no dia em que a v2.0.0 for publicada |
+| `ad60477607747f4e835776110aaf869bf5e00c22` | 2026-11-26 | Candidato da v2.0.0 verificado: resultado em [PLANO-DE-TESTE.md](PLANO-DE-TESTE.md#8-resultado-por-candidato). A aprovação para publicar e a data da publicação entram aqui no dia em que a v2.0.0 for publicada |
 
 **Como agir** (sempre por commit novo; **nunca** reescreva a `master` com `git push --force`):
 
