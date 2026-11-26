@@ -36,11 +36,15 @@ flowchart LR
     HOR["js/horarios.js<br/>turmas /1 e /2"]
     GUIA["js/guia.js<br/>dificuldade e presença"]
     PERFIL["perfil/perfil.js ou localStorage<br/>perfil pessoal"]
+    DEMO["js/demo-pdf.js<br/>PDFs fictícios e saída Python pré-computada"]
   end
 
   subgraph APP["App no navegador (js/app.js)"]
     MODELO["montaModelo()<br/>status · totais · requisitos"]
     TELAS["Telas: Grade · Linha do tempo ·<br/>Optativas · Cronograma · Equivalências e Extensão/ACE"]
+    CFG["Configurações<br/>tema, aparência, modo e atalhos"]
+    PREF["Preferências locais<br/>localStorage"]
+    ECI["A ECI por trás da Grade<br/>experiências sem acesso ao perfil"]
   end
 
   subgraph SAIDAS["Saídas"]
@@ -54,6 +58,9 @@ flowchart LR
   ALUNO --> PERFIL
   DB & OPT & HOR & GUIA & PERFIL --> MODELO --> TELAS --> VER
   TELAS --> EXP
+  CFG --> PREF
+  CFG -.-> TELAS
+  DEMO --> ECI
 ```
 
 </details>

@@ -10,7 +10,7 @@ Fork de [`gremio-eci/grade`](https://github.com/gremio-eci/grade). A versão ori
 e seus planos ficam neste computador: *O BOA e o Histórico são lidos neste navegador. Os PDFs não são enviados ao GitHub.*
 Detalhes em [`docs/PRIVACIDADE.md`](docs/PRIVACIDADE.md).
 
-![Arquitetura da Grade ECI: origens dos dados, importador local, arquivos do curso e telas](docs/diagramas/arquitetura-atual.svg)
+![Arquitetura da Grade ECI com fontes públicas, importação local, Configurações e experiências com dados fictícios](docs/diagramas/arquitetura-atual.svg)
 
 ## Abrir
 

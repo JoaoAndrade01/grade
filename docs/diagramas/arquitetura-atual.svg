@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Gerado por docs/diagramas/gerar.js. Atribuição das marcas em docs/ARQUITETURA.md. -->
-<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="760" viewBox="0 0 1500 760" role="img" aria-labelledby="titulo">
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="870" viewBox="0 0 1500 870" role="img" aria-labelledby="titulo" aria-describedby="descricao">
 <title id="titulo">FLUXO DA GRADE INTERATIVA</title>
+<desc id="descricao">Dados públicos e perfil local alimentam a Grade. Configurações ajusta a interface e as experiências da ECI usam dados fictícios.</desc>
 <style>
 text{font-family:system-ui,Segoe UI,Arial,sans-serif;fill:#142238}
 .titulo{font-size:28px;font-weight:750}.coluna{font-size:13px;font-weight:700;letter-spacing:.8px;fill:#384d69}
@@ -12,15 +13,15 @@ text{font-family:system-ui,Segoe UI,Arial,sans-serif;fill:#142238}
 .setas{fill:none;stroke:#7186a2;stroke-width:1.6;marker-end:url(#seta)}
 </style>
 <defs><marker id="seta" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0 0 7 3.5 0 7z" fill="#7186a2"/></marker></defs>
-<rect width="1500" height="760" fill="#fcfdff"/>
+<rect width="1500" height="870" fill="#fcfdff"/>
 <text x="22" y="47" class="titulo">FLUXO DA GRADE INTERATIVA</text>
-<rect x="20" y="90" width="300" height="640" rx="20" class="grupo"/>
+<rect x="20" y="90" width="300" height="750" rx="20" class="grupo"/>
 <text x="42" y="77" class="coluna">ORIGENS DOS DADOS</text>
-<rect x="400" y="90" width="300" height="640" rx="20" class="grupo"/>
+<rect x="400" y="90" width="300" height="750" rx="20" class="grupo"/>
 <text x="422" y="77" class="coluna">PROCESSAMENTO</text>
-<rect x="760" y="90" width="260" height="640" rx="20" class="grupo"/>
+<rect x="760" y="90" width="260" height="750" rx="20" class="grupo"/>
 <text x="782" y="77" class="coluna">ARQUIVOS</text>
-<rect x="1080" y="70" width="400" height="660" rx="20" class="grupo destaque"/>
+<rect x="1080" y="70" width="400" height="770" rx="20" class="grupo destaque"/>
 <text x="1102" y="57" class="coluna">GRADE INTERATIVA (no seu navegador)</text>
 <g class="setas">
 <path d="M290 185 C360 185 360 260 427 260"/>
@@ -38,7 +39,8 @@ text{font-family:system-ui,Segoe UI,Arial,sans-serif;fill:#142238}
 <path d="M995 410 C1052.5 410 1052.5 175 1107 175"/>
 <path d="M995 555 C1052.5 555 1052.5 175 1107 175"/>
 <path d="M1280 220 C1280 243.5 1190 243.5 1190 267"/>
-<path d="M1280 220 C1280 243.5 1373 243.5 1373 267"/>
+<path d="M1280 220 C1280 243.5 1368 243.5 1368 267"/>
+<path d="M995 665 C1052.5 665 1052.5 645 1107 645"/>
 </g>
 <g id="siga">
 <rect x="50" y="130" width="240" height="110" rx="12" class="no"/>
@@ -122,6 +124,14 @@ text{font-family:system-ui,Segoe UI,Arial,sans-serif;fill:#142238}
 <text x="847" y="561" class="descricao">localStorage</text>
 <text x="847" y="580" class="descricao">ou perfil.js</text>
 </g>
+<g id="demo">
+<rect x="785" y="630" width="210" height="70" rx="12" class="no"/>
+<g transform="translate(801 649) scale(1.3333333333333333)" class="icone"><path fill="#fff" stroke="#f4cd47" d="M6 2h8l5 5v15H6z"/><path stroke="#f4cd47" d="M14 2v6h5"/>
+   <rect x="2" y="11" width="20" height="8" rx="2" fill="#f4cd47" stroke="none"/>
+   <text x="12" y="17" style="fill:#2b2100" stroke="none" font-family="Arial, sans-serif" font-size="6" font-weight="700" text-anchor="middle">JS</text></g>
+<text x="847" y="661" class="rotulo">demo-pdf.js</text>
+<text x="847" y="680" class="descricao">PDFs fictícios e paridade</text>
+</g>
 <g id="modelo">
 <rect x="1110" y="130" width="340" height="90" rx="12" class="no"/>
 <g transform="translate(1126 159) scale(1.3333333333333333)" class="icone"><path d="m3 8 9-5 9 5-9 5zM3 12l9 5 9-5M3 16l9 5 9-5"/></g>
@@ -132,10 +142,10 @@ text{font-family:system-ui,Segoe UI,Arial,sans-serif;fill:#142238}
 <rect x="1110" y="270" width="160" height="90" rx="12" class="no"/>
 <g transform="translate(1126 302.5) scale(1.0416666666666667)" class="icone"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16m6-16v16M3 10h18"/></g>
 <text x="1165" y="311" class="rotulo compacto">Grade</text>
-<text x="1165" y="330" class="descricao">clássica</text>
+<text x="1165" y="330" class="descricao">Tags e setas</text>
 </g>
 <g id="g2">
-<rect x="1286" y="270" width="174" height="90" rx="12" class="no"/>
+<rect x="1286" y="270" width="164" height="90" rx="12" class="no"/>
 <g transform="translate(1302 302.5) scale(1.0416666666666667)" class="icone"><path d="M6 4v16m0-13h13m-13 5h10m-10 5h13"/><circle cx="6" cy="7" r="1.5" fill="white"/><circle cx="6" cy="12" r="1.5" fill="white"/><circle cx="6" cy="17" r="1.5" fill="white"/></g>
 <text x="1341" y="320" class="rotulo compacto">Linha do tempo</text>
 </g>
@@ -145,26 +155,39 @@ text{font-family:system-ui,Segoe UI,Arial,sans-serif;fill:#142238}
 <text x="1165" y="430" class="rotulo compacto">Cronograma</text>
 </g>
 <g id="g4">
-<rect x="1286" y="380" width="174" height="90" rx="12" class="no"/>
+<rect x="1286" y="380" width="164" height="90" rx="12" class="no"/>
 <g transform="translate(1302 412.5) scale(1.0416666666666667)" class="icone"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 8h8m-8 4h8m-8 4h4"/></g>
 <text x="1341" y="421" class="rotulo compacto">Equivalências</text>
 <text x="1341" y="440" class="descricao">Extensão/ACE</text>
 </g>
 <g id="g5">
 <rect x="1110" y="490" width="160" height="90" rx="12" class="no"/>
-<g transform="translate(1126 519) scale(1.3333333333333333)" class="icone"><path d="M12 6c-3-2-6-2-9-1v14c3-1 6-1 9 1 3-2 6-2 9-1V5c-3-1-6-1-9 1v14m3-9 1 1 3-3"/></g>
-<text x="1172" y="540" class="rotulo">Optativas</text>
+<g transform="translate(1126 522.5) scale(1.0416666666666667)" class="icone"><path d="M12 6c-3-2-6-2-9-1v14c3-1 6-1 9 1 3-2 6-2 9-1V5c-3-1-6-1-9 1v14m3-9 1 1 3-3"/></g>
+<text x="1165" y="540" class="rotulo compacto">Optativas</text>
 </g>
 <g id="exp">
-<rect x="1286" y="490" width="174" height="90" rx="12" class="no"/>
+<rect x="1286" y="490" width="164" height="90" rx="12" class="no"/>
 <g transform="translate(1302 522.5) scale(1.0416666666666667)" class="icone"><path d="M12 3v12m-4-4 4 4 4-4M4 15v5h16v-5"/></g>
 <text x="1341" y="531" class="rotulo compacto">Exportar</text>
 <text x="1341" y="550" class="descricao">perfil.js</text>
 </g>
+<g id="eci">
+<rect x="1110" y="600" width="160" height="90" rx="12" class="no"/>
+<g transform="translate(1126 632.5) scale(1.0416666666666667)" class="icone"><path d="M12 6c-3-2-6-2-9-1v14c3-1 6-1 9 1 3-2 6-2 9-1V5c-3-1-6-1-9 1v14m3-9 1 1 3-3"/></g>
+<text x="1165" y="632" class="rotulo compacto">A ECI por trás</text>
+<text x="1165" y="651" class="descricao">da Grade</text>
+<text x="1165" y="670" class="descricao">Dados fictícios</text>
+</g>
+<g id="cfg">
+<rect x="1286" y="600" width="164" height="90" rx="12" class="no"/>
+<g transform="translate(1302 632.5) scale(1.0416666666666667)" class="icone"><path d="M10 3h4l1 3 3 1 3 3-2 3v3l-3 2-2 3h-4l-2-3-3-2v-3l-2-3 3-3 3-1z"/><circle cx="12" cy="12" r="3"/></g>
+<text x="1341" y="641" class="rotulo compacto">Configurações</text>
+<text x="1341" y="660" class="descricao">Tema e atalhos</text>
+</g>
 <g id="csp">
-<rect x="1110" y="620" width="340" height="90" rx="12" class="no local"/>
-<g transform="translate(1126 649) scale(1.3333333333333333)" class="icone"><path d="M12 3 5 6v5c0 5 3 8 7 10 4-2 7-5 7-10V6zM9 12l2 2 4-4"/></g>
-<text x="1172" y="661" class="rotulo">Importação no dispositivo</text>
-<text x="1172" y="680" class="descricao">Cabeçalhos pessoais descartados</text>
+<rect x="1110" y="730" width="340" height="90" rx="12" class="no local"/>
+<g transform="translate(1126 759) scale(1.3333333333333333)" class="icone"><path d="M12 3 5 6v5c0 5 3 8 7 10 4-2 7-5 7-10V6zM9 12l2 2 4-4"/></g>
+<text x="1172" y="771" class="rotulo">Importação no dispositivo</text>
+<text x="1172" y="790" class="descricao">Cabeçalhos pessoais descartados</text>
 </g>
 </svg>

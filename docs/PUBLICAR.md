@@ -6,63 +6,114 @@ no navegador; nada pessoal vai para o site (ver [PRIVACIDADE.md](PRIVACIDADE.md)
 Exemplo com o fork `https://github.com/JoaoAndrade01/grade` e a branch `master`.
 Rode os comandos no **PowerShell**, dentro da pasta do projeto (`C:\dev\gradeECI\grade`).
 
-## 1. Apontar o repositório local para o seu fork (uma vez)
+## 1. Conferir os remotes
 
 ```powershell
-git remote rename origin upstream          # o repositório original do Grêmio vira "upstream"
-git remote add origin https://github.com/JoaoAndrade01/grade.git
-git remote -v                               # confira: origin = seu fork, upstream = gremio-eci
-git config core.autocrlf true               # evita que o Windows marque todos os arquivos como alterados
+git remote -v
 ```
 
-## 2. Conferir que nada pessoal vai junto
+Se `origin` já aponta para `JoaoAndrade01/grade` e `upstream` para `gremio-eci/grade`, vá para o passo 2.
+Se você clonou o fork e só tem `origin`, acrescente o repositório original:
+
+```powershell
+git remote add upstream https://github.com/gremio-eci/grade.git
+```
+
+Se você clonou o original, `origin` aponta para `gremio-eci/grade` e ainda não existe `upstream`:
+
+```powershell
+git remote rename origin upstream
+git remote add origin https://github.com/JoaoAndrade01/grade.git
+```
+
+Confira com `git remote -v` se o destino de **push** de `origin` é o seu fork.
+
+## 2. Revisar os arquivos e o commit candidato
+
+Prepare e teste a versão em uma branch própria. Antes do commit, confira os arquivos alterados e adicione
+apenas os que fazem parte da entrega.
 
 ```powershell
 git status --short
+git diff --cached --name-only
 ```
 
-**Não podem aparecer:** `perfil/perfil.js`, `*.pdf`, `*.xlsx`, a página salva do SIGA, `Claude outputs/`.
-Eles estão no `.gitignore`; se algum aparecer, pare e me avise.
+Se encontrar `perfil/perfil.js`, PDFs pessoais, planilhas, páginas salvas do SIGA ou saídas locais de IA
+entre os arquivos preparados para o commit, pare e retire esses arquivos da entrega.
+Confirme também o uso do logo e dos comentários do guia antes de uma publicação pública.
 
-## 3. Commitar
+## 3. Integrar a versão revisada na `master`
 
-Um commit único:
+Com o checkout limpo, informe o **hash completo do commit aprovado**, conforme registrado na revisão.
+Mantenha a mesma janela do PowerShell para usar esse hash no passo 4.
 
 ```powershell
-git add -A
-git commit -m "Descreva a mudança"
+$shaAprovado = Read-Host 'Hash completo do commit aprovado'
+if ($shaAprovado -notmatch '^[0-9a-f]{40}$') { throw 'Informe o hash completo do commit.' }
+if (git status --porcelain) { throw 'Finalize as alterações locais antes de integrar.' }
+git fetch origin
+if ($LASTEXITCODE -ne 0) { throw 'Não consegui atualizar origin.' }
+git merge-base --is-ancestor origin/master $shaAprovado
+if ($LASTEXITCODE -ne 0) { throw 'O commit aprovado precisa incluir a master do fork.' }
+git switch master
+if ($LASTEXITCODE -ne 0) { throw 'Não consegui abrir a master local.' }
+git merge --ff-only $shaAprovado
 ```
 
-Mudanças grandes ficam numa branch própria (ex.: `codex/ajustes-de-interface`) e passam por revisão antes do merge
-na `master` e da publicação. Sugestão de commits por etapa no fim de [MUDANCAS.md](MUDANCAS.md).
+Se o commit aprovado já estiver na ponta da `master`, siga para o passo 4. Se o merge falhar por divergência
+ou a `master` já estiver além do hash aprovado, revise a integração e aprove o novo hash antes de publicar.
 
-## 4. Enviar para o fork
+## 4. Conferir a versão e enviar para o fork
 
 ```powershell
-git push -u origin master
+git status --short --branch
+git rev-parse --short master
+git log --oneline origin/master..master
+git log -m --format= --name-only origin/master..master
+git -c core.quotePath=false ls-tree -r --name-only master | Select-String '(^|/)perfil/perfil\.js$|\.(pdf|xlsx?|ods)$'
 ```
 
-## 5. Ligar o GitHub Pages
+Confira a árvore da `master` e os arquivos de todos os commits que serão enviados, inclusive os que foram
+adicionados e removidos em commits posteriores. A busca com `Select-String` deve ficar vazia.
+Se ela listar algum arquivo ou se houver dados pessoais no histórico a enviar, pare e revise a entrega.
 
-No GitHub: **Settings → Pages → Build and deployment → Source: Deploy from a branch → `master` / `(root)` → Save**.
-Em 1–2 minutos o site fica em **https://joaoandrade01.github.io/grade/** (em 25/11/2026 esse endereço ainda
-respondia 404: a publicação não tinha sido feita).
+Antes do push, abra a cópia pública descrita em [Testar por HTTP](../README.md#testar-por-http), criada a
+partir do commit aprovado. Confira:
 
-Mande o link para o pessoal: abrir → **Importar do SIGA** (no topo enquanto não há perfil) → Histórico + BOA →
-conferir a prévia → **Usar este perfil**. Quem preferir pode só pintar a grade ou usar **Criar perfil**.
+- a Grade abre no modo clássico, com o seletor de modo e a engrenagem no topo
+- em **F12 → Rede**, o app carrega os recursos do próprio site, sem buscar `perfil/perfil.js`
+- **Configurações → Referências** abre os links certos
+- **A ECI por trás da Grade** funciona sem perfil
+- com PDFs fictícios, a prévia do SIGA abre e permite aplicar e baixar o perfil.
 
-Antes de publicar, confira no site:
-- abre no modo clássico, com o seletor de modo e a engrenagem no topo;
-- F12 → Rede: nenhuma requisição para fora do domínio ao usar a Grade e nenhuma busca por `perfil/perfil.js`;
-- **Configurações → Referências** abre os links certos;
-- **A ECI por trás da Grade** funciona sem perfil.
+Com as verificações concluídas e o checkout limpo, confirme novamente o hash e envie a `master` para o fork:
+
+```powershell
+if (-not $shaAprovado -or (git rev-parse --verify master) -ne $shaAprovado -or $LASTEXITCODE -ne 0 -or
+    (git status --porcelain) -or $LASTEXITCODE -ne 0) {
+    throw 'Publicação bloqueada: confira o hash aprovado e o estado do checkout.'
+} else {
+    git push -u origin master
+}
+```
+
+## 5. Configurar o GitHub Pages e validar a publicação
+
+Na primeira publicação, abra **Settings → Pages → Build and deployment**. Em **Source**, selecione
+**Deploy from a branch**. Escolha **`master` / `(root)`** e clique em **Save**. Se o Pages já estiver
+ativo, confira se essa é a origem configurada.
+
+Em **Actions**, aguarde a publicação e confira se ela usou o commit enviado. Abra o endereço exibido em
+**Pages** por HTTPS, em uma janela anônima. Para este fork, o endereço esperado é
+[Grade ECI](https://joaoandrade01.github.io/grade/). No modo completo, confira também se o link
+**arquitetura** do rodapé abre no site publicado.
 
 ## Mantendo sincronizado
 
 | Situação | Comando |
 |---|---|
-| Publicar mudanças novas | `git add -A` → `git commit -m "..."` → `git push` |
-| Trazer novidades do repositório original | `git fetch upstream` → `git merge upstream/master` → `git push` |
+| Publicar mudanças novas | Revise o commit, integre à `master` e siga os passos 4 e 5 |
+| Trazer novidades do repositório original | Rode `git fetch upstream`, integre `upstream/master` em uma branch de revisão e siga os passos 2 a 5 |
 | Propor as melhorias ao Grêmio | No GitHub do fork: **Contribute → Open pull request** para `gremio-eci/grade` |
 
 ## Observações
