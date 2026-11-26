@@ -38,7 +38,8 @@ acadêmicos só no navegador. A Grade orienta; não substitui o SIGA, o BOA nem 
   - **Toque com o pincel.** No celular, o primeiro toque num cartão só consulta (mostra a situação e a origem, com o
     link "Detalhes") e o segundo toque marca. Mouse e teclado marcam com uma ativação.
   - **Foco e teclado.** O foco entra no painel ao abrir a importação e os detalhes, segue para o resultado e volta ao
-    botão de origem; não fica escondido sob a faixa nem sob a paleta. O painel de detalhes fica acima da paleta. As
+    botão de origem (no importador aberto por Configurações, volta a Configurações, inclusive quando o atalho do topo
+    some depois de Usar); não fica escondido sob a faixa nem sob a paleta. O painel de detalhes fica acima da paleta. As
     abas têm painel associado e respondem a setas, Home e End. A grade de horários do Cronograma funciona por teclado
     (setas movem, Espaço ou Enter marca), e "Escolher perfil" pode ser acionado por Tab e Enter e por toque.
   - **Nomes.** O seletor de PDFs e os campos de Pedidos e de atividades de extensão ganharam nome para leitores de tela;
@@ -87,8 +88,9 @@ duplicatas de `js/horarios.js` e `js/guia.js`, e lista as turmas sem código. O 
   oficial. O comportamento do BOA com pedidos deferidos foi observado em um caso.
 - **Extensão.** Com uma única entrada no histórico do curso atual, a Grade mostra 30 h confirmadas e 30 h a confirmar.
   Marcar atividades como distintas fica para uma versão seguinte.
-- **Horários e guia.** Vêm de uma página mantida por alunos e não confirmam a oferta oficial. Alguns códigos e quatro
-  turmas ainda dependem de conferência e aparecem só como informação ([MANUTENCAO.md](MANUTENCAO.md)).
+- **Horários e guia.** Vêm de uma página mantida por alunos e não confirmam a oferta oficial. Dois códigos e três
+  turmas sem código foram conferidos na página de referência e aparecem só como informação
+  ([MANUTENCAO.md](MANUTENCAO.md)). A disciplina "Comp 3" passou a ser a COS013.
 - **Layout do SIGA.** Se o SIGA mudar o layout dos PDFs, a importação pode falhar ou omitir linhas
   ([IMPORTADOR.md](IMPORTADOR.md#limitações-conhecidas)).
 - **Previsão de formatura.** A Grade não calcula uma data: você monta a previsão com o planejamento. A previsão calculada

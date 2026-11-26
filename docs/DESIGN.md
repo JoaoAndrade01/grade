@@ -60,7 +60,7 @@ movimento: só transições curtas; respeita prefers-reduced-motion
 | Seletor "ECI por trás" (`#pal-eci`) | desligado · ligado: cartões com experiência contornados, os demais `inert` e atenuados | Esc desliga |
 | Experiência (`#dlg-eci`) | `<dialog>` em tela cheia | "Voltar" e Esc fecham; o foco volta ao cartão ou botão que abriu |
 | Barra geral (`.bg-barra`) | concluída · cursando · planejada · não planejada | 8px no modo clássico; 14px com legenda no completo |
-| Painel lateral (`.detalhes`) | aberto · fechado | lateral no computador; folha inferior no celular; fica **acima da paleta** em qualquer largura. O foco entra no painel ao abrir e volta ao disparador ao fechar |
+| Painel lateral (`.detalhes`) | aberto · fechado | lateral no computador; folha inferior no celular; fica **acima da paleta** em qualquer largura. O foco entra no painel ao abrir e volta ao disparador ao fechar. Aberto por Configurações, o importador devolve o foco a Configurações, inclusive quando o atalho do topo some depois de Usar |
 | Abas (`.abas [role="tab"]`) | ativa · inativa · foco | `tablist` com painel associado (`aria-controls`, `aria-labelledby`); só a aba ativa entra no Tab; setas, Home e End movem e ativam |
 | Grade de horários (`.cel`) | livre · com disciplina · choque · foco | 45 células com nome ("Segunda 08h: livre"); uma só entra no Tab; setas movem, Espaço ou Enter marca, Home e End vão ao começo e ao fim; as linhas têm contraste de 3:1 |
 | Faixa de aviso (`#faixa-aviso`) | visível em todas as telas | texto estático curto ("Feita por alunos de ECI. Não substitui o SIGA, o BOA nem a coordenação."), `role="note"`, na ordem de leitura, fora do caminho dos controles; não recebe foco |
@@ -117,7 +117,7 @@ axe-core complementa o teclado e a inspeção visual. Leitor de tela real e o te
 | Contraste | Texto ≥ 4,5:1 e limites das células ≥ 3:1 nos dois temas, sem ocorrência de `color-contrast` | `t_b6_contraste`, `t_a11y` |
 | Refluxo a 320 px | Pedidos sem rolagem horizontal do documento; as tabelas rolam na própria região, que se alcança por teclado | `t_b7_pedidos_320` |
 | Alvos | 24 × 24 px nos botões de período, de usar e nos avisos de perfil; 44 px nos atalhos; sem ocorrência de `target-size` | `t_b8_alvos` |
-| Teclado | Foco entra no painel, segue ao resultado e volta ao disparador (importação, filtros e seleção do Cronograma); foco visível sob a faixa e a paleta, com Tab e Shift+Tab; grade de horários e "Escolher perfil" por teclado; abas com setas, Home e End | `t_b2_importacao`, `t_b2_foco_filtros`, `t_b2_foco_visivel`, `t_b4_grade_horarios`, `t_b5_escolher_perfil`, `t_b9_aria` |
+| Teclado | Foco entra no painel, segue ao resultado e volta ao disparador (importação, também quando aberta por Configurações e quando o atalho some depois de Usar; filtros e seleção do Cronograma); foco visível sob a faixa e a paleta, com Tab e Shift+Tab; grade de horários e "Escolher perfil" por teclado; abas com setas, Home e End | `t_b2_importacao`, `t_b2_foco_filtros`, `t_b2_foco_visivel`, `t_b4_grade_horarios`, `t_b5_escolher_perfil`, `t_b9_aria` |
 | Pistas além da cor | Situação e origem dos cartões em texto, em ambos os modos e a 320 px | `t_b1_estado_dos_cartoes` |
 | Nomes e papéis | Nenhum controle sem nome nos fluxos de Pedidos, ACE e importação; abas com painel associado e sem `aria-selected` inválido | `t_b3_nomes`, `t_b9_aria` |
 
