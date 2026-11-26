@@ -2015,8 +2015,10 @@
     const tinhaFoco = !box.hidden && (box.contains(document.activeElement) || document.activeElement === document.body);   // o foco pode ter sumido com o botão
     box.hidden = true;
     if (!tinhaFoco) return;
-    const alvo = gatilho && document.querySelector(gatilho);
+    let alvo = gatilho && document.querySelector(gatilho);
     gatilho = null;
+    // O atalho do importador some depois de Usar quando não está fixado: o retorno vai a Configurações.
+    if (!(alvo && alvo.getClientRects().length) && box.dataset.alvo === "importar") alvo = $("#btn-config");
     (alvo && alvo.getClientRects().length ? alvo : focaTitulo($("#titulo"))).focus();
   }
   function reabreDetalhes() {
@@ -2858,7 +2860,11 @@
         save("atalhos", atalhos); renderAtalhos(); atualizaConfig();
         return anuncia(atalhos.includes(id) ? `${infoAtalho(id).nome} fixado na barra.` : `${infoAtalho(id).nome} saiu da barra; continua em Configurações.`);
       }
-      if (t.dataset.abrirAtalho) { $("#dlg-config").close(); return ACAO_ATALHO[t.dataset.abrirAtalho](); }
+      if (t.dataset.abrirAtalho) {
+        $("#dlg-config").close();
+        if (t.dataset.abrirAtalho !== "importar") return ACAO_ATALHO[t.dataset.abrirAtalho]();
+        return abrePainel({ target: $("#btn-config"), detail: ev.detail }, abreImportador);   // mesma entrada de foco do atalho; retorno em Configurações
+      }
       if (t.id === "btn-importar") return abrePainel(ev, abreImportador);
       if (t.id === "btn-perfil") return abreDialogoPerfil();
       if (t.id === "btn-privacidade") return abrePainel(ev, abrePrivacidade);

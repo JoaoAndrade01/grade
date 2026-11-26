@@ -1823,6 +1823,38 @@ def t_b2_importacao(b):
     expect(pg.locator("#detalhes")).to_be_hidden()
     expect(gatilho).to_be_focused()
     ctx.close()
+    # perfil salvo e menu sem atalhos: Configurações → Importar do SIGA leva o foco ao painel e guarda Configurações como retorno
+    def abre_pelo_menu(pg):
+        pg.focus("#btn-config"); pg.keyboard.press("Enter"); expect(pg.locator("#dlg-config")).to_be_visible()
+        pg.focus('[data-abrir-atalho="importar"]'); pg.keyboard.press("Enter")
+        expect(pg.locator("#detalhes")).to_be_visible(); expect(pg.locator("#dlg-config")).to_be_hidden()
+    def controle_visivel(pg, seletor):
+        assert foco_em(pg, seletor), "o foco não voltou a " + seletor + ": " + descreve_foco(pg)
+        assert pg.evaluate("document.activeElement.getClientRects().length > 0"), "controle sem caixa: " + descreve_foco(pg)
+    ctx, pg = abre(b, perfil=PERFIL, atalhos=False, nome="b2-menu", relogio=RELOGIO)
+    assert pg.locator("#btn-importar").count() == 0
+    abre_pelo_menu(pg)
+    assert foco_em(pg, "#detalhes h3"), "o foco não entrou no painel: " + descreve_foco(pg)
+    pg.keyboard.press("Tab")
+    assert pg.evaluate("document.activeElement.closest('#detalhes') !== null"), "o Tab saiu do painel: " + descreve_foco(pg)
+    pg.keyboard.press("Escape"); expect(pg.locator("#detalhes")).to_be_hidden(); controle_visivel(pg, "#btn-config")
+    abre_pelo_menu(pg)
+    pg.set_input_files("#siga-pdfs", [str(PDFS / f) for f in ("historico-ficticio.pdf", "boa-ficticio.pdf")])
+    pg.focus("#siga-gerar"); pg.keyboard.press("Enter")
+    pg.wait_for_selector("#siga-usar", timeout=30000)
+    pg.focus("#siga-usar"); pg.keyboard.press("Enter")
+    expect(pg.locator("#detalhes")).to_be_hidden(); controle_visivel(pg, "#btn-config")
+    ctx.close()
+    # primeira importação sem atalho fixado: o botão do topo some ao usar o perfil e o foco vai a Configurações
+    ctx, pg = abre(b, atalhos=False, nome="b2-primeira", relogio=RELOGIO)
+    aciona_importar(pg)
+    pg.set_input_files("#siga-pdfs", [str(PDFS / f) for f in ("historico-ficticio.pdf", "boa-ficticio.pdf")])
+    pg.focus("#siga-gerar"); pg.keyboard.press("Enter")
+    pg.wait_for_selector("#siga-usar", timeout=30000)
+    pg.focus("#siga-usar"); pg.keyboard.press("Enter")
+    expect(pg.locator("#detalhes")).to_be_hidden(); assert pg.locator("#btn-importar").count() == 0
+    controle_visivel(pg, "#btn-config")
+    ctx.close()
     # inválida: o botão volta a ter o foco depois da leitura (desativado durante ela)
     ctx, pg = abre(b, nome="b2-invalida")
     aciona_importar(pg)
