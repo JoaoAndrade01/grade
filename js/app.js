@@ -1119,6 +1119,8 @@
   // Base do prazo de 5 anos (CR-04): semestre real, ou só o ano de um bloco de transferidos ("AAAA (transferidas)"
   // ou "AAAA/0"). Com só o ano, a idade fica entre `min` e `max`; `aprovadaEm` (data original) só informa.
   const anoDoBloco = (nome) => { const m = /^(\d{4})(?: \(transferidas\)|\/0)$/.exec(nome || ""); return m ? +m[1] : null; };
+  // Perfis antigos podem trazer historicoAtual "duvida"; os gerados agora nunca gravam esse valor (PC-05).
+  const papelEmDuvida = () => !!(perfil && perfil.fonte && perfil.fonte.historicoAtual === "duvida");
   function baseDoPrazo(code) {
     const r = (M.regs[code] || []).filter((x) => x.status === "aprovado").pop();
     if (!r) return null;
@@ -1263,7 +1265,7 @@
         const base = baseDoPrazo(c.code);
         const id = base ? base.max : null;
         const infoBase = textoBase(base);
-        return `<div class="cur">${descr(c.code)}${infoBase ? `<br><small class="base-prazo">${esc(infoBase)}</small>` : ""}
+        return `<div class="cur">${descr(c.code)}${infoBase ? `<br><small class="base-prazo">${esc(infoBase)}${papelEmDuvida() ? " Estimativa: o histórico do curso atual não foi confirmado." : ""}</small>` : ""}
           <div class="cur-acoes"><select class="campo campo-sm" data-eqpapel="${k}:${j}"><option value="conteudo" ${c.papel !== "horas" ? "selected" : ""}>conteúdo</option><option value="horas" ${c.papel === "horas" ? "selected" : ""}>só horas</option></select>
           ${base && base.min > 5 ? `<small class="alerta" title="Res. CEG 01/2017">⚠ ${base.ano != null ? "mais de 5 anos" : fmt(Math.floor(id * 2) / 2) + " anos"}: pode exigir exame de suficiência</small>` : ""}
           ${a.cs.length > 1 ? `<button type="button" class="x" data-eqrmc="${k}:${j}" title="Tirar do pedido">×</button>` : ""}</div></div>`;
