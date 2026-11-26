@@ -259,6 +259,9 @@ def papel_historicos(historicos, escolhido=None):
     # A escolha explícita vale mesmo que um dos históricos reconhecidos não traga datas.
     if escolhido is not None and len(com) >= 2 and any(i == escolhido for i, _, _ in com):
         return escolhido, "escolhido"
+    # Com dois ou mais históricos reconhecidos, datas ausentes (em todos ou em parte) não permitem decidir: dúvida.
+    if len(com) >= 2 and len(datados) < len(com):
+        return None, "duvida"
     if len(datados) < 2:
         return (datados[0][0] if datados else None), "unico"
     melhor = datados[0]

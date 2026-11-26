@@ -569,6 +569,53 @@
     }
    ],
    "historicoAtual": "escolhido"
+  },
+  "duvida-sem-datas": {
+   "arquivos": [
+    "sem-datas",
+    "sem-datas-b"
+   ],
+   "atual": null,
+   "duvida": true
+  },
+  "duvida-misto-ab": {
+   "arquivos": [
+    "sem-datas",
+    "papel-anterior-2024-2"
+   ],
+   "atual": null,
+   "duvida": true
+  },
+  "duvida-misto-ba": {
+   "arquivos": [
+    "papel-anterior-2024-2",
+    "sem-datas"
+   ],
+   "atual": null,
+   "duvida": true
+  },
+  "escolha-sem-datas-ambos": {
+   "arquivos": [
+    "sem-datas",
+    "sem-datas-b"
+   ],
+   "atual": 1,
+   "periodos": [
+    {
+     "nome": "? (transferidas)",
+     "disciplinas": [
+      {
+       "code": "MAC118",
+       "nota": 7
+      },
+      {
+       "code": "MAC128",
+       "nota": 7
+      }
+     ]
+    }
+   ],
+   "historicoAtual": "escolhido"
   }
  }
 }

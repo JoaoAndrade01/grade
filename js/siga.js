@@ -293,6 +293,8 @@
     const datados = com.filter((x) => x.d);
     // A escolha explícita vale mesmo que um dos históricos reconhecidos não traga datas.
     if (escolhido != null && com.length >= 2 && com.some((x) => x.i === escolhido)) return { indice: escolhido, estado: "escolhido" };
+    // Com dois ou mais históricos reconhecidos, datas ausentes (em todos ou em parte) não permitem decidir: dúvida.
+    if (com.length >= 2 && datados.length < com.length) return { indice: null, estado: "duvida" };
     if (datados.length < 2) return { indice: datados.length ? datados[0].i : null, estado: "unico" };
     const melhor = datados.reduce((a, x) => (comparaData(x.d, a.d) > 0 ? x : a));
     const certo = datados.every((x) => x === melhor || comparaData(melhor.d, x.d) > 0);

@@ -628,6 +628,21 @@ def t_cr04_escolha_sem_datas(b):
     confere_oraculo(perfil, "escolha-sem-datas")
     ctx.close()
 
+@caso("PC-05: datas ausentes contam como dúvida (dois sem datas; só um datado, nas duas ordens)")
+def t_pc05_datas_ausentes(b):
+    for cenario in ("duvida-sem-datas", "duvida-misto-ab", "duvida-misto-ba"):
+        ctx, pg = importa_cenario(b, cenario, f"pc05-{cenario}")
+        assert pg.locator('input[name="siga-papel"]').count() == 2, cenario
+        assert pg.locator('input[name="siga-papel"]:checked').count() == 0, cenario
+        assert "Reconhecido pela data mais recente" not in pg.locator(".papel-historico").inner_text(), cenario
+        expect(pg.locator(".papel-historico .alerta")).to_contain_text("ficam desativados até lá")
+        expect(pg.locator("#siga-usar")).to_be_disabled(); expect(pg.locator("#siga-baixar")).to_be_disabled()
+        pg.locator('input[name="siga-papel"][value="0"]').check()
+        expect(pg.locator("#siga-usar")).to_be_enabled(); expect(pg.locator("#siga-baixar")).to_be_enabled()
+        perfil, _ = aplica_e_le_pedido(pg)
+        assert perfil["fonte"]["historicoAtual"] == "escolhido", (cenario, perfil["fonte"])
+        ctx.close()
+
 @caso("CR-04/PC-05: trocar o histórico atual na prévia recalcula os planos que ficam de fora")
 def t_cr04_troca_recalcula_planos(b):
     perfil = {"periodos": [{"nome": "2025/1", "planejado": True, "disciplinas": ["MAC128"]}]}
@@ -1662,7 +1677,7 @@ CASOS = [
     t_compat, t_siga, t_siga_sem_boa, t_excluir, t_oferta, t_mac,
     t_cr01_pre, t_cr01_co, t_cr01_sugestoes, t_cr01_proposta, t_cr01_equivalencia, t_cr01_manual,
     t_cr03_historico, t_cr03_lista,
-    t_cr04_reingresso, t_cr04_ordem_dos_arquivos, t_cr04_escolha_sem_datas, t_cr04_troca_recalcula_planos, t_cr04_ace_duas_ocorrencias, t_cr04_controles, t_cr04_papel, t_cr04_fronteira,
+    t_cr04_reingresso, t_cr04_ordem_dos_arquivos, t_cr04_escolha_sem_datas, t_pc05_datas_ausentes, t_cr04_troca_recalcula_planos, t_cr04_ace_duas_ocorrencias, t_cr04_controles, t_cr04_papel, t_cr04_fronteira,
     t_cr02_pedidos, t_cr02_duas_dispensas, t_cr02_dispensa_unica, t_cr02_alvo_fora_do_catalogo,
     t_d02_dois_numeros, t_pedidos_sem_total_e_sem_check, t_d02_ausente_e_vazia, t_d02_outros_grupos, t_d02_importacao,
     t_rf08_faixa, t_rf08_notas_credito, t_rf08_periodo_atual, t_rf08_deduzido_regras, t_rf08_oferta, t_rf08_rodape, t_rf08_ace,
