@@ -2120,6 +2120,7 @@
   let resultadoImportacao = null;
   let previaObsoleta = false;
   const PREVIA_OBSOLETA = "Os dados da Grade mudaram. Escolha os PDFs e gere uma nova prévia.";
+  const MSG_PDF_ILEGIVEL = "não consegui ler um dos PDFs. Confira se são o Histórico e o BOA em PDF baixados do SIGA, sem senha nem edição, e escolha os arquivos e tente de novo.";
 
   function invalidaPrevia() {
     if (!resultadoImportacao) return;
@@ -2210,7 +2211,7 @@
     box.innerHTML = `<header><span class="cat-pill">Importar</span><button type="button" class="fechar" aria-label="Fechar">×</button></header>
       <h3>Importar do SIGA</h3>
       <ol class="passos">
-        <li>No SIGA, baixe em PDF o <b>Histórico</b> (e o do curso anterior, se você mudou de curso) e o <b>BOA</b>.</li>
+        <li>No SIGA, baixe em PDF o <b>Histórico</b> (e o do curso anterior, se você mudou de curso) e o <b>BOA</b> (Boletim de Orientação Acadêmica).</li>
         <li>Escolha os PDFs abaixo (pode selecionar todos de uma vez).</li>
         <li>Confira o resumo e clique em <b>Usar este perfil</b>. Planos, pedidos, extensão e tags que você já tinha são mantidos.</li>
       </ol>
@@ -2266,7 +2267,10 @@
       await carregaPdfJs();
       const lidos = [];
       for (const f of arquivos) {
-        const linhas = await linhasPDF(f);
+        let linhas;
+        // A mensagem do leitor de PDF vem em inglês e não ajuda: troca por orientação, sem nome nem conteúdo do arquivo.
+        try { linhas = await linhasPDF(f); }
+        catch (e) { throw new Error(MSG_PDF_ILEGIVEL); }
         const tipo = linhas.some((l) => /BOLETIM DE ORIENTA/i.test(l)) ? "BOA" : "Histórico";
         lidos.push({ tipo, linhas });
       }

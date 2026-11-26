@@ -2093,7 +2093,21 @@ def t_b9_aria(b):
     assert pg.locator("[data-cperiodo][aria-selected]").count() == 0 and pg.locator("[data-cperiodo][aria-pressed=true]").count() == 1
     ctx.close()
 
-CASOS4 = [t_b9_aria, t_b8_alvos, t_b7_pedidos_320, t_b6_contraste, t_b5_escolher_perfil, t_b4_grade_horarios, t_b3_nomes, t_m6_somente_informativo, t_b2_foco_visivel, t_b2_foco_filtros, t_b2_importacao, t_b1_estado_dos_cartoes]
+@caso("M3: falha de leitura do PDF em português com orientação, sem dados do arquivo; BOA por extenso na primeira menção")
+def t_m3_mensagens(b):
+    ctx, pg = abre(b, nome="m3", atalhos=False)
+    pg.click("#btn-importar")
+    painel = pg.locator("#detalhes").inner_text()
+    assert "BOA (Boletim de Orientação Acadêmica)" in painel, painel
+    assert painel.index("BOA") == painel.index("BOA (Boletim de Orientação Acadêmica)"), painel[:400]
+    pg.set_input_files("#siga-pdfs", files=[CORRUPTO]); pg.click("#siga-gerar")
+    pg.wait_for_selector("#siga-status a", timeout=30000)
+    msg = pg.locator("#siga-status").inner_text()
+    assert msg.startswith("Não deu certo: ") and "Invalid" not in msg and "invalido" not in msg.lower(), msg
+    assert "PDF" in msg and "tente de novo" in msg and "Achou um erro? Crie uma nova issue" in msg, msg
+    ctx.close()
+
+CASOS4 = [t_m3_mensagens, t_b9_aria, t_b8_alvos, t_b7_pedidos_320, t_b6_contraste, t_b5_escolher_perfil, t_b4_grade_horarios, t_b3_nomes, t_m6_somente_informativo, t_b2_foco_visivel, t_b2_foco_filtros, t_b2_importacao, t_b1_estado_dos_cartoes]
 CASOS += CASOS4
 
 
