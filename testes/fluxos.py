@@ -448,6 +448,60 @@ def t_cr01_manual(b):
     ctx.close()
     assert "marcação manual" in legenda and "marcação manual" in requisito, (legenda, requisito)
 
+# ------------------------------------------------------------------ extensão
+def horas_ace(pg):
+    return pg.evaluate("() => { const t = GradeInterativa.totais()[5]; return [t.ok, t.aConfirmar ?? 0, t.plan]; }")
+
+@caso("CR-03: horas de ACE no histórico e na extensão respeitam a identidade por período")
+def t_cr03_historico(b):
+    observado = {}
+    for nome, periodos, periodo_ext in [
+        ("mesmo-periodo", ["2026/1"], "2026/1"),
+        ("periodos-distintos", ["2025/2"], "2026/1"),
+        ("sem-periodo", ["2026/1"], ""),
+        ("dois-periodos-e-data-incerta", ["2025/2", "2026/1"], ""),
+    ]:
+        perfil = {
+            "periodos": [{"nome": p, "disciplinas": ["EEW002"]} for p in periodos],
+            "extensao": [{"code": "EEW002", "horas": 30, "periodo": periodo_ext, "status": "validada"}],
+        }
+        ctx, pg = abre(b, perfil=perfil, nome=f"cr03-historico-{nome}")
+        completo(pg, "grade")
+        bloco = pg.locator(".card.bloco.cat-5 .meta").inner_text()
+        pg.click("#bg-detalhes")
+        progresso = pg.locator("#progresso .cat-5")
+        largura = progresso.locator(".b-ok").evaluate("el => parseFloat(el.style.width)")
+        pg.click('[data-vista="pedidos"]')
+        observado[nome] = (horas_ace(pg), bloco, pg.locator(".ace-duplicidade").count(), largura)
+        ctx.close()
+    esperados = {
+        "mesmo-periodo": (30, 30), "periodos-distintos": (60, 0),
+        "sem-periodo": (30, 30), "dois-periodos-e-data-incerta": (60, 30),
+    }
+    for nome, (confirmadas, pendentes) in esperados.items():
+        horas, bloco, avisos_ace, largura = observado[nome]
+        assert horas == [confirmadas, pendentes, 0], observado
+        assert bloco == f"{confirmadas} / 405 h", observado
+        assert avisos_ace == int(bool(pendentes)), observado
+        assert abs(largura - confirmadas / 405 * 100) < 0.01, observado
+
+@caso("CR-03: duas entradas no mesmo período confirmam o maior valor e separam as demais horas")
+def t_cr03_lista(b):
+    perfil = {"periodos": [], "extensao": [
+        {"code": "EEW002", "horas": 20, "periodo": "2026/1", "status": "validada"},
+        {"code": "EEW002", "horas": 30, "periodo": "2026/1", "status": "validada"},
+        {"code": "EEW002", "horas": 15, "periodo": "2026/1", "status": "planejada"},
+        {"nome": "Atividade livre fictícia", "horas": 5, "status": "validada"},
+    ]}
+    ctx, pg = abre(b, perfil=perfil, nome="cr03-lista")
+    completo(pg, "pedidos")
+    observado = horas_ace(pg)
+    assert observado == [35, 20, 15], observado
+    expect(pg.locator(".ace-duplicidade")).to_contain_text("Possível duplicidade")
+    expect(pg.locator(".ace-duplicidade")).to_contain_text("20 h a confirmar")
+    expect(pg.locator(".ace-duplicidade")).to_contain_text("EEW002")
+    ctx.close()
+
 # ------------------------------------------------------------------ regressões gerais
 @caso("Regressões: abas, busca de optativas mantém foco, horários por clique, equivalências/ACE, exportação e recarga")
 def t_regressao(b):
@@ -932,6 +986,7 @@ CASOS = [
     t_descartar_salvo, t_tema, t_tema_abas, t_sem_perfil, t_criar_perfil, t_perfil_conflito,
     t_compat, t_siga, t_siga_sem_boa, t_excluir, t_oferta, t_mac,
     t_cr01_pre, t_cr01_co, t_cr01_sugestoes, t_cr01_proposta, t_cr01_equivalencia, t_cr01_manual,
+    t_cr03_historico, t_cr03_lista,
     t_regressao, t_a11y,
 ] + CASOS2 + CASOS3
 

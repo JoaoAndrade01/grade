@@ -1,9 +1,9 @@
 # Testes da Grade ECI
 
-A suíte tem 35 cenários de interface e cinco do kit de reimportação. Os casos A–D
+A suíte tem 37 cenários de interface e cinco do kit de reimportação. Os casos A–D
 testam a preservação de anotações e a igualdade entre baixar e aplicar. O caso P
-ensaia a publicação com HTTP estático sob `/grade/`. Por `file://`, rodam 39
-cenários. Por HTTP, rodam 40.
+ensaia a publicação com HTTP estático sob `/grade/`. Por `file://`, rodam 41
+cenários. Por HTTP, rodam 42.
 
 O executor testa a versão indicada por `--ref`. Ele exporta apenas os caminhos
 públicos do commit para uma cópia fora do checkout. Os PDFs são gerados das
@@ -35,7 +35,7 @@ Na mesma sessão PowerShell, com as variáveis acima, rode os seis pares.
 Alterar `$gradeRef` para avaliar outro commit.
 
 ```powershell
-$gradeRef = 'bedab2a'
+$gradeRef = 'HEAD'
 $gradeRun = Join-Path $env:TEMP ("grade-" + [guid]::NewGuid().ToString("N"))
 foreach ($browser in 'chromium', 'firefox', 'webkit') {
     foreach ($transport in 'file', 'http') {

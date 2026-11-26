@@ -378,7 +378,8 @@
           horas: it.horas != null ? it.horas : inf.horas,
           workload: inf.workload, cel: parseHorarios(it.horarios), dispensas: [],
         };
-        registra(alvo, { pi, status, nota: it.nota, via: it.equivale ? `equivalência: ${it.code} ${item.name}` : null });
+        registra(alvo, { pi, status, nota: it.nota, horas: alvo === it.code ? it.horas : undefined,
+          via: it.equivale ? `equivalência: ${it.code} ${item.name}` : null });
         (it.dispensa || []).forEach((d) => {
           const dn = typeof d === "string" ? { code: d } : { category: 2, ...d };
           conhece(dn);
@@ -541,7 +542,76 @@
 
   const valorCat = (i) => (i.category == 5 ? (i.horas != null ? i.horas : i.credits) : i.credits);
 
-  function totais() {
+  function resumoExtensao() {
+    const confirmadas = [], porCodigo = new Map();
+    const codigosDuvidosos = new Set();
+    let aConfirmar = 0;
+    function inclui(item) {
+      if (!(item.horas > 0)) return;
+      if (!item.code) {
+        confirmadas.push(item);
+        return;
+      }
+      const periodos = porCodigo.get(item.code) || new Map();
+      const grupo = periodos.get(item.semestre) || [];
+      grupo.push(item);
+      periodos.set(item.semestre, grupo);
+      porCodigo.set(item.code, periodos);
+    }
+
+    new Set([...Object.keys(M.regs), ...Object.keys(marcacoes)]).forEach((code) => {
+      if (M.consumidas.has(code) || statusDe(code) !== "aprovado") return;
+      const info = M.info(code);
+      if (info?.category != 5) return;
+      const registros = (M.regs[code] || []).filter((r) => r.status === "aprovado");
+      if (!registros.length) {
+        inclui({ code, nome: info.name, horas: valorCat(info), semestre: null, historico: true });
+      }
+      registros.forEach((r) => inclui({
+        code, nome: info.name, horas: r.horas ?? valorCat(info),
+        semestre: M.periodos[r.pi]?.semestre ?? null, historico: true,
+      }));
+    });
+    getExt().forEach((a) => {
+      if (a.status !== "validada") return;
+      inclui({ code: (a.code || "").trim().toUpperCase(), nome: a.nome || a.code || "atividade",
+        horas: Number(a.horas) || 0, semestre: semIdx(a.periodo) });
+    });
+
+    for (const [code, periodos] of porCodigo) {
+      const semData = periodos.get(null) || [];
+      const grupos = [...periodos].filter(([semestre]) => semestre != null)
+        .sort(([a], [b]) => a - b).map(([, grupo]) => grupo);
+      if (semData.length) {
+        // Uma data desconhecida pode repetir qualquer período. Mantemos separados os
+        // períodos conhecidos e comparamos os valores sem data com o maior já registrado.
+        let grupoMaior = null, maisHoras = 0;
+        for (const grupo of grupos) {
+          for (const item of grupo) {
+            if (item.horas > maisHoras) {
+              grupoMaior = grupo;
+              maisHoras = item.horas;
+            }
+          }
+        }
+        if (grupoMaior) {
+          semData.forEach((item) => grupoMaior.push(item));
+        } else {
+          grupos.push(semData);
+        }
+      }
+      grupos.forEach((grupo) => {
+        const maior = grupo.reduce((a, b) => a.horas >= b.horas ? a : b);
+        confirmadas.push(maior);
+        if (grupo.length < 2) return;
+        codigosDuvidosos.add(code);
+        aConfirmar += grupo.reduce((soma, a) => soma + a.horas, 0) - maior.horas;
+      });
+    }
+    return { confirmadas, aConfirmar, codigosDuvidosos };
+  }
+
+  function totais(extensao = resumoExtensao()) {
     const t = {};
     // ok = concluído · prev = aprovação esperada · plan = planejado + cursando · cur = só cursando · anal = pedido em análise
     for (const k in CATS) t[k] = { total: 0, ok: 0, prev: 0, plan: 0, cur: 0, anal: 0 };
@@ -550,14 +620,14 @@
       if (M.consumidas.has(code)) return;
       const i = M.info(code); if (!i || !t[i.category]) return;
       const T = t[i.category], v = valorCat(i), s = statusDe(code);
+      if (i.category == 5 && s === "aprovado") return; // tratado por ocorrência
       if (s === "aprovado") T.ok += v; else if (s === "previsto") T.prev += v; else if (emCurso(s)) T.plan += v;
       else if (s === "analise") T.anal += v;
       if (s === "cursando") T.cur += v;
     });
-    getExt().forEach((a) => {
-      const h = Number(a.horas) || 0;
-      if (a.status === "validada") t[5].ok += h; else t[5].plan += h;
-    });
+    t[5].ok = extensao.confirmadas.reduce((soma, a) => soma + a.horas, 0);
+    t[5].aConfirmar = extensao.aConfirmar;
+    getExt().forEach((a) => { if (a.status !== "validada") t[5].plan += Number(a.horas) || 0; });
     for (const k in creditosManuais) if (t[k]) t[k].ok += Number(creditosManuais[k]) || 0;
     return t;
   }
@@ -569,11 +639,15 @@
       if (M.curr[code] || M.consumidas.has(code)) return;
       const i = M.info(code); if (!i) return;
       const s = statusDe(code); if (!(concluido(s) || emCurso(s))) return;
+      if (i.category == 5 && s === "aprovado") return;
       (filas[i.category] = filas[i.category] || []).push({ code, name: i.name, v: valorCat(i), s, f: FORCA[s] });
+    });
+    resumoExtensao().confirmadas.forEach((a) => {
+      (filas[5] = filas[5] || []).push({ code: a.historico ? a.code : null, name: a.nome, v: a.horas, s: "aprovado", f: FORCA.aprovado });
     });
     getExt().forEach((a) => {
       const h = Number(a.horas) || 0;
-      if (h) (filas[5] = filas[5] || []).push({ code: null, name: a.nome || a.code || "atividade", v: h, s: a.status === "validada" ? "aprovado" : "planejado", f: a.status === "validada" ? 5 : 2 });
+      if (h && a.status !== "validada") (filas[5] = filas[5] || []).push({ code: null, name: a.nome || a.code || "atividade", v: h, s: "planejado", f: FORCA.planejado });
     });
     for (const k in creditosManuais) {
       const v = Number(creditosManuais[k]) || 0;
@@ -1061,7 +1135,8 @@
   }
 
   function renderPedidos() {
-    const tot = totais();
+    const resumo = resumoExtensao();
+    const tot = totais(resumo);
     const eqs = getEq(), ext = getExt();
     const boaNE = (M.boa && M.boa.naoExplicitadas) || null;
     const neCodes = boaNE ? boaNE.map((d) => d.code)
@@ -1181,8 +1256,10 @@
         <table class="tabela"><thead><tr><th>Disciplina</th><th>Cursada há</th><th>Uso</th></tr></thead><tbody>${linhasLivre}</tbody></table>
       </section>
       <section class="sec">
-        <h2>Extensão / ACE <small>${fmt(T5.ok)} h validadas${T5.plan ? ` · ${fmt(T5.plan)} h em andamento/planejadas` : ""} · exigido ${fmt(T5.total)} h</small></h2>
+        <h2>Extensão / ACE <small>${fmt(T5.ok)} h confirmadas${T5.plan ? ` · ${fmt(T5.plan)} h em andamento/planejadas` : ""} · exigido ${fmt(T5.total)} h</small></h2>
         <div class="barra"><span class="b-ok" style="width:${Math.min(100, (T5.ok / T5.total) * 100)}%;background:var(--cat5)"></span><span class="b-plan" style="width:${Math.min(100 - Math.min(100, (T5.ok / T5.total) * 100), (T5.plan / T5.total) * 100)}%;background:color-mix(in srgb, var(--cat5) 30%, transparent)"></span></div>
+        ${T5.aConfirmar ? `<p class="ace-duplicidade alerta">Possível duplicidade em ${esc([...resumo.codigosDuvidosos].join(", "))}.
+          ${fmt(T5.aConfirmar)} h a confirmar.</p>` : ""}
         <table class="tabela"><thead><tr><th>Atividade</th><th>Código ACE</th><th>Horas</th><th>Período</th><th>Situação</th><th></th></tr></thead>
         <tbody>${linhasExt || `<tr><td colspan="6" class="vazio">Nenhuma atividade.</td></tr>`}</tbody></table>
         <datalist id="ace-list">${aceOpc}</datalist>
@@ -1456,7 +1533,7 @@
       return `<div class="prog cat-${k}">
         <div class="prog-topo"><span>${c.nome}</span><b>${fmt(T.ok)}${T.prev ? `<i> +${fmt(T.prev)}</i>` : ""} / ${fmt(T.total)} ${c.un}</b></div>
         <div class="barra"><span class="b-ok" style="width:${pOk}%"></span><span class="b-prev" style="width:${pPrev}%"></span><span class="b-plan" style="width:${pPlan}%"></span><span class="b-anal" style="width:${pAnal}%"></span></div>
-        <small>${falta ? `faltam ${fmt(falta)} ${c.un}${T.plan ? ` · ${fmt(Math.min(T.plan, falta))} planejados` : ""}${T.anal ? ` · ${fmt(T.anal)} em análise` : ""}` : "completo ✓"}</small>
+        <small>${falta ? `faltam ${fmt(falta)} ${c.un}${T.plan ? ` · ${fmt(Math.min(T.plan, falta))} planejados` : ""}${T.anal ? ` · ${fmt(T.anal)} em análise` : ""}` : "completo ✓"}${T.aConfirmar ? ` · ${fmt(T.aConfirmar)} h a confirmar (possível duplicidade)` : ""}</small>
       </div>`;
     }).join("");
   }
