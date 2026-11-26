@@ -602,6 +602,77 @@ def t_cr04_fronteira(b):
         assert not any(x["nome"].startswith(f"{ano}/") for x in perfil["periodos"]), perfil["periodos"]   # sem inventar semestre
         ctx.close()
 
+# ------------------------------------------------------------------ CR-02: origem em dispensas (D-07)
+def creditos_por_grupo(pg):
+    return pg.evaluate("() => { const t = GradeInterativa.totais(); return Object.fromEntries([1, 2, 3, 4].map((k) => [k, t[k].ok])); }")
+
+XYZ101 = {"code": "XYZ101", "name": "Origem fictícia", "credits": 4, "category": 3}
+ABC123 = {"code": "ABC123", "name": "Livre fictícia", "credits": 4, "category": 3}
+def pedido_deferido(origem, pedida): return {"cursadas": [origem], "pedida": pedida, "status": "deferido"}
+
+@caso("CR-02: origem em dois pedidos deferidos (04a) e em pedido e dispensa (04b)")
+def t_cr02_pedidos(b):
+    ctx, pg = abre(b, perfil={"periodos": [{"nome": "2025/1", "disciplinas": [dict(ABC123)]}],
+                              "equivalencias": [pedido_deferido("ABC123", "COP232"), pedido_deferido("ABC123", "COP364")]}, nome="cr02-04a")
+    completo(pg, "pedidos")
+    assert creditos_por_grupo(pg) == {"1": 0, "2": 0, "3": 4, "4": 0}, creditos_por_grupo(pg)     # COP232 e COP364 não contam
+    linhas = pg.locator('.pedidos tr[class^="eq-"]')
+    assert linhas.count() == 2
+    for i in range(2):
+        texto = linhas.nth(i).inner_text()
+        assert "já usada em outro pedido/dispensa" in texto and "Créditos fora da soma" in texto, texto
+    ctx.close()
+
+    base = {"periodos": [{"nome": "2024/1", "disciplinas": [dict(XYZ101, dispensa=["FIS111"])]}]}
+    for nome, pedidos in (("sem-pedido", []), ("com-pedido", [pedido_deferido("XYZ101", "COP232")])):
+        ctx, pg = abre(b, perfil=dict(base, equivalencias=pedidos), nome=f"cr02-04b-{nome}")
+        completo(pg, "pedidos")
+        assert creditos_por_grupo(pg) == {"1": 1, "2": 0, "3": 0, "4": 0}, (nome, creditos_por_grupo(pg))   # FIS111 1 cr; origem 0 cr
+        assert pg.locator(".aviso-dispensa").count() == 0
+        if pedidos:
+            texto = pg.locator('.pedidos tr[class^="eq-"]').first.inner_text()
+            assert "já usada em outro pedido/dispensa" in texto and "Créditos fora da soma" in texto, texto
+        ctx.close()
+
+def exporta_e_reimporta(b, pg, perfil, nome):
+    """O registro histórico fica como entrou; reimportar o exportado repete os totais."""
+    exportado = pg.evaluate("() => GradeInterativa.perfilExportado()")
+    assert exportado["periodos"] == perfil["periodos"], exportado["periodos"]
+    antes = creditos_por_grupo(pg)
+    ctx2, pg2 = abre(b, perfil=exportado, nome=nome)
+    assert creditos_por_grupo(pg2) == antes
+    ctx2.close()
+
+@caso("CR-02: duas dispensas pela mesma origem contam os alvos, não a origem, e avisam (04c)")
+def t_cr02_duas_dispensas(b):
+    perfil = {"periodos": [{"nome": "2025/1", "disciplinas": [{"code": "MAC118", "dispensa": ["MAC128", "COS242"]}]}]}
+    ctx, pg = abre(b, perfil=perfil, nome="cr02-04c")
+    completo(pg, "pedidos")
+    assert creditos_por_grupo(pg) == {"1": 8, "2": 0, "3": 0, "4": 0}, creditos_por_grupo(pg)      # 0 + 4 + 4, não 6 + 4 + 4
+    aviso = pg.locator(".aviso-dispensa")
+    expect(aviso).to_have_count(1)
+    expect(aviso).to_contain_text("MAC118"); expect(aviso).to_contain_text("art. 46, II")
+    completo(pg, "timeline")
+    pg.locator('.card[data-code="MAC118"]').click()
+    expect(pg.locator("#detalhes .aviso-dispensa")).to_contain_text("art. 46, II")
+    exporta_e_reimporta(b, pg, perfil, "cr02-04c-reimporta")
+    ctx.close()
+
+@caso("CR-02: dispensa única conta o alvo e não a origem, sem aviso de reutilização (04d)")
+def t_cr02_dispensa_unica(b):
+    perfil = {"periodos": [{"nome": "2024/1", "disciplinas": [dict(XYZ101, dispensa=["FIS111"])]}]}
+    ctx, pg = abre(b, perfil=perfil, nome="cr02-04d")
+    completo(pg, "pedidos")
+    assert creditos_por_grupo(pg) == {"1": 1, "2": 0, "3": 0, "4": 0}, creditos_por_grupo(pg)      # FIS111 1 cr; XYZ101 0 cr
+    assert pg.locator(".aviso-dispensa").count() == 0
+    # a grade (classe de livre escolha) também não preenche blocos com a origem
+    completo(pg, "grade")
+    pg.click("#bg-detalhes")
+    largura = pg.locator("#progresso .cat-3 .b-ok").evaluate("el => parseFloat(el.style.width)")
+    assert largura == 0, largura
+    exporta_e_reimporta(b, pg, perfil, "cr02-04d-reimporta")
+    ctx.close()
+
 # ------------------------------------------------------------------ regressões gerais
 @caso("Regressões: abas, busca de optativas mantém foco, horários por clique, equivalências/ACE, exportação e recarga")
 def t_regressao(b):
@@ -1088,6 +1159,7 @@ CASOS = [
     t_cr01_pre, t_cr01_co, t_cr01_sugestoes, t_cr01_proposta, t_cr01_equivalencia, t_cr01_manual,
     t_cr03_historico, t_cr03_lista,
     t_cr04_reingresso, t_cr04_controles, t_cr04_papel, t_cr04_fronteira,
+    t_cr02_pedidos, t_cr02_duas_dispensas, t_cr02_dispensa_unica,
     t_regressao, t_a11y,
 ] + CASOS2 + CASOS3
 

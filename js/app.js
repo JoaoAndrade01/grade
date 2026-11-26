@@ -442,10 +442,17 @@
       }
     });
 
+    // D-07: os alvos contam como no histórico e a origem de uma dispensa não soma créditos em grupo nenhum.
+    // Duas ou mais dispensas pela mesma origem recebem aviso (CEG 01/2017, art. 46, II).
+    const origensDispensa = new Set(Object.keys(dispensou));
+    const reutilizadas = Object.entries(dispensou).map(([origem, alvos]) => ({ origem, alvos: [...new Set(alvos)] }))
+      .filter((x) => x.alvos.length > 1);
+
     const ref = (window.horarios || {})[cursoId] || null;
     const guia = (window.guia || {})[cursoId] || null;
     const boa = (perfil && perfil.boa) || null;
-    M = { grade, curr, opt, catalogo, info, deps, regs, periodos, cursoId, ref, consumidas, pendEq, pendConsumo, guia, dispensou, boa, pedidosComConflito };
+    M = { grade, curr, opt, catalogo, info, deps, regs, periodos, cursoId, ref, consumidas, pendEq, pendConsumo, guia, dispensou, boa, pedidosComConflito,
+      origensDispensa, reutilizadas };
   }
 
   /** Status vindo só do perfil (histórico, período atual, planos e pedidos), sem as marcações do pincel. */
@@ -618,7 +625,7 @@
     for (const k in CATS) t[k] = { total: 0, ok: 0, prev: 0, plan: 0, cur: 0, anal: 0 };
     M.grade.forEach((c) => { if (t[c.category]) t[c.category].total += c.credits; });
     new Set([...Object.keys(M.regs), ...Object.keys(marcacoes), ...Object.keys(M.pendEq)]).forEach((code) => {
-      if (M.consumidas.has(code)) return;
+      if (M.consumidas.has(code) || M.origensDispensa.has(code)) return;
       const i = M.info(code); if (!i || !t[i.category]) return;
       const T = t[i.category], v = valorCat(i), s = statusDe(code);
       if (i.category == 5 && s === "aprovado") return; // tratado por ocorrência
@@ -637,7 +644,7 @@
   function preenchimentoBlocos() {
     const filas = {};
     new Set([...Object.keys(M.regs), ...Object.keys(marcacoes)]).forEach((code) => {
-      if (M.curr[code] || M.consumidas.has(code)) return;
+      if (M.curr[code] || M.consumidas.has(code) || M.origensDispensa.has(code)) return;
       const i = M.info(code); if (!i) return;
       const s = statusDe(code); if (!(concluido(s) || emCurso(s))) return;
       if (i.category == 5 && s === "aprovado") return;
@@ -1102,6 +1109,13 @@
     const de = i != null ? i : ano * 2, ate = i != null ? i : ano * 2 + 1;
     return { ano, min: (semAtual() - ate) / 2, max: (semAtual() - de) / 2, aprovadaEm: r.aprovadaEm || null };
   }
+  /** Aviso de origem reutilizada em mais de uma dispensa (D-07). `origem` limita o aviso a uma disciplina. */
+  function avisoReuso(origem) {
+    const lista = M.reutilizadas.filter((x) => !origem || x.origem === origem);
+    if (!lista.length) return "";
+    return `<p class="aviso-dispensa alerta" role="note">⚠ ${lista.map((x) => `${esc(x.origem)} aparece como origem de ${x.alvos.length} dispensas (${x.alvos.map(esc).join(", ")}).`).join(" ")}
+      A Resolução CEG 01/2017, art. 46, II, veda reutilizar a mesma origem. Os alvos contam como no histórico; os créditos da origem não são somados de novo.</p>`;
+  }
   /** Sem o histórico do curso atual confirmado, a idade é só uma estimativa. */
   const papelEmDuvida = () => !!(perfil && perfil.fonte && perfil.fonte.historicoAtual === "duvida");
   /** Texto curto da base e da origem de uma cursada, para o pedido e a tabela de livre escolha. */
@@ -1234,7 +1248,7 @@
     // ----- livre escolha: de onde vem e para onde vai -----
     let somaLivre = 0, somaUsada = 0;
     const linhasLivre = neCodes.map((c) => {
-      const cr = crDe(c); somaLivre += cr;
+      const cr = crDe(c); if (!M.origensDispensa.has(c)) somaLivre += cr;
       const u = usosDe(c);
       const usada = M.consumidas.has(c);
       if (usada) somaUsada += cr;
@@ -1258,6 +1272,7 @@
 
     return `<div class="pedidos">
       ${temEdicoes() ? `<p class="aviso-edicao">Há edições só neste navegador. <button type="button" class="btn btn-sm" id="exportar">${icone("baixar", 14)} Exportar perfil.js</button></p>` : ""}
+      ${avisoReuso()}
       ${contas}
       <section class="sec">
         <h2>Pedidos de dispensa / equivalência</h2>
@@ -1814,6 +1829,7 @@
         <h3>${esc(i.name)}</h3>
         <p class="det-meta">${esc(metaDe(code, valorCat(i), i.category))}${i.workload ? ` · ${i.workload} h` : ""} · ${esc(fonte)}</p>
         <p class="det-status s-${s}"><i class="dot s-${s}"></i>${ROTULO[s]}${Object.prototype.hasOwnProperty.call(marcacoes, code) ? " (marcada com o pincel)" : ""}</p>
+        ${avisoReuso(code)}
         ${(() => {
           const lst = periodosFuturos().filter((p) => p.itens.some((it) => it.alvo === code && it.status !== "reprovado"))
             .map((p) => [p.nome, avisoOferta(code, p.nome)]).filter((x) => x[1]);
