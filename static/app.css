@@ -873,3 +873,9 @@ html {
 /* ---------- B2.5 · B4: células da grade de horários operáveis por teclado ---------- */
 .crono-grade .cel { appearance: none; margin: 0; padding: 0; border-radius: 0; font: inherit; color: inherit; background: transparent; border-right: 0; border-bottom: 0; text-align: left; }
 .crono-grade .cel:focus-visible { outline: 3px solid var(--foco); outline-offset: -3px; position: relative; z-index: 2; }
+
+/* ---------- B2.5 · B5: o painel de detalhes fica acima da paleta fixa ---------- */
+body:has(.paleta:not([hidden])) .detalhes {
+  bottom: calc(var(--paleta-h, 0px) + 16px);
+  max-height: calc(100vh - var(--paleta-h, 0px) - var(--faixa-h, 0px) - 28px);
+}

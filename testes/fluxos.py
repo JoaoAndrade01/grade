@@ -1935,7 +1935,48 @@ def t_b4_grade_horarios(b):
     assert "Quinta 15h" not in pg.locator(".plano").inner_text()
     ctx.close()
 
-CASOS4 = [t_b4_grade_horarios, t_b3_nomes, t_m6_somente_informativo, t_b2_foco_visivel, t_b2_foco_filtros, t_b2_importacao, t_b1_estado_dos_cartoes]
+@caso("B5: Escolher perfil por teclado (arquivo válido e inválido) e por toque, sem encobrimento pela paleta, em 320 e 390 px")
+def t_b5_escolher_perfil(b):
+    def procura_controle(pg):
+        for _ in range(90):
+            pg.keyboard.press("Tab")
+            if pg.evaluate("(() => { const e = document.activeElement; return !!e && e.tagName !== 'BODY' && (e.id === 'importar' || /Escolher perfil/.test(e.textContent || '')); })()"): return True
+        return False
+    ctx, pg = abre(b, perfil=ANTIGO, nome="b5-teclado")
+    aciona_importar(pg)
+    assert procura_controle(pg), "Tab não alcança Escolher perfil: " + descreve_foco(pg)
+    with pg.expect_file_chooser(timeout=5000) as fc:
+        pg.wait_for_timeout(200)       # deixa a interceptação do seletor de arquivo ativa antes da tecla
+        pg.keyboard.press("Enter")
+    fc.value.set_files({"name": "perfil.json", "mimeType": "application/json", "buffer": json.dumps(PERFIL).encode()})
+    expect(pg.locator("#titulo")).to_have_text(re.compile(r"Grade ECI — Ana"))
+    antes = snapshot(pg)
+    aciona_importar(pg)
+    assert procura_controle(pg)
+    pg.once("dialog", lambda d: d.accept())
+    with pg.expect_file_chooser(timeout=5000) as fc:
+        pg.wait_for_timeout(200)       # deixa a interceptação do seletor de arquivo ativa antes da tecla
+        pg.keyboard.press("Enter")
+    fc.value.set_files({"name": "perfil.json", "mimeType": "application/json", "buffer": b"isto nao e json"})
+    pg.wait_for_timeout(400)
+    assert snapshot(pg) == antes and "Ana" in pg.locator("#titulo").inner_text()      # o estado anterior fica
+    ctx.close()
+    for vp in (C320, C):
+        ctx, pg = abre(b, vp=vp, perfil=ANTIGO, nome=f"b5-toque-{vp['width']}", toque=True)
+        pg.locator("#btn-importar").tap()
+        ctl = pg.locator("#detalhes").get_by_text("Escolher perfil.js / .json")
+        ctl.scroll_into_view_if_needed()
+        coberto = ctl.evaluate("""(e) => { const r = e.getBoundingClientRect(); const t = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+                                  return !(t && (t === e || e.contains(t))) ? (t ? (t.id || t.className) : 'nada') : null; }""")
+        assert coberto is None, f"encoberto por {coberto} a {vp['width']} px"
+        with pg.expect_file_chooser(timeout=5000) as fc:
+            pg.wait_for_timeout(200)
+            ctl.tap()
+        fc.value.set_files({"name": "perfil.json", "mimeType": "application/json", "buffer": json.dumps(PERFIL).encode()})
+        expect(pg.locator("#titulo")).to_have_text(re.compile(r"Grade ECI — Ana"))
+        ctx.close()
+
+CASOS4 = [t_b5_escolher_perfil, t_b4_grade_horarios, t_b3_nomes, t_m6_somente_informativo, t_b2_foco_visivel, t_b2_foco_filtros, t_b2_importacao, t_b1_estado_dos_cartoes]
 CASOS += CASOS4
 
 

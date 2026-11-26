@@ -2246,7 +2246,9 @@
         <button type="button" class="btn btn-ghost" id="siga-descartar">Descartar prévia</button>
       </div>` : ""}
       <h4>Ou carregar um perfil pronto</h4>
-      <label class="btn btn-sm">Escolher perfil.js / .json<input type="file" id="importar" accept=".json,.js" hidden></label>`;
+      <button type="button" class="btn btn-sm" id="escolher-perfil" aria-describedby="escolher-perfil-dica">Escolher perfil.js / .json</button>
+      <input type="file" id="importar" accept=".json,.js" hidden aria-label="Arquivo de perfil (.js ou .json)">
+      <p class="dica" id="escolher-perfil-dica">Um arquivo válido substitui o perfil salvo; um inválido é recusado e nada muda.</p>`;
     box.hidden = false;
     box.dataset.alvo = "importar";
   }
@@ -2900,6 +2902,7 @@
       if (t.id === "tag-nova") { tags.push({ id: "tag-" + Date.now().toString(36), nome: "Nova tag", cor: "#f59e0b", status: "pendente" }); return salvaTags(); }
       if (t.id === "tag-padrao") { if (confirm("Restaurar as tags padrão?")) { tags = clone(TAGS_PADRAO); return salvaTags(); } return; }
       // importador
+      if (t.id === "escolher-perfil") return $("#importar").click();
       if (t.id === "siga-gerar") return geraPerfilDoSiga();
       if (t.id === "siga-usar" && resultadoImportacao) {
         if (!previaLiberada()) return;
