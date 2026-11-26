@@ -286,10 +286,10 @@ Casos de regressão do importador (achados da revisão independente):
 
 | Caso | Situação | Ação | Resultado esperado |
 | --- | --- | --- | --- |
-| 06j · escolha explícita | Dois históricos; o reconhecido automaticamente como atual não tem semestre real, só o bloco de transferidos | Escolher na prévia o outro como atual | A escolha explícita vence, no navegador e no CLI (`--atual`), e o perfil registra o papel como escolhido |
-| 06k · confirmação de colisão | Dois históricos e um plano da pessoa que coincide com um semestre de um deles | Abrir a prévia e trocar o histórico atual | A prévia recalcula o perfil **e** a lista de planos em colisão. Nenhum plano é descartado sem confirmação, ao aplicar ou ao baixar |
-| 06l · ordem dos arquivos | O mesmo código (MAC118) em bloco de 2019, em `2020/1` e em bloco de 2025, em históricos diferentes | Importar em todas as ordens possíveis | O mesmo perfil e a mesma base de prazo em qualquer ordem |
-| 06m · ACE em períodos distintos | O mesmo código de ACE (`ACE901`, 30 h) em `2020/1` e em `2021/1` no histórico anterior, e o mesmo código e grau no bloco de 2025 do atual | Importar os dois | As duas ocorrências em períodos conhecidos distintos continuam distintas (**60 h**); o registro do bloco não elimina nenhuma |
+| 06j · escolha explícita | Um histórico tem uma linha de transferência reconhecida sem data utilizável. O outro tem semestre real 2024/2 | Escolher explicitamente o primeiro como atual, na prévia e no CLI com `--atual` | O perfil preserva o bloco sem semestre do histórico escolhido, registra `fonte.historicoAtual = "escolhido"` e preserva `2024/2` como origem informativa de MAC118 |
+| 06k · confirmação de colisão | Perfil com plano em 2025/1, dois históricos e BOA. Na prévia inicial, o plano não colide | Escolher o histórico cujo último semestre real é 2024/2; depois voltar à escolha inicial e repetir a troca | A prévia sugere 2025/1 e lista o plano em colisão. Usar e baixar ficam desativados até confirmar o descarte. Voltar à escolha inicial remove a colisão; repetir a troca exige nova confirmação. Depois de confirmar, o perfil salvo ou baixado tem 2025/1 como atual e não contém o plano descartado |
+| 06l · ordem dos arquivos | O histórico anterior tem MAC118 no bloco de 2019 e em 2020/1. O atual tem MAC118 no bloco de 2025 | Importar nas duas ordens, com os mesmos arquivos e relógio | A saída canônica contém um único registro de MAC118 no bloco de 2025, com `aprovadaEm: "2020/1"` só como origem. O prazo usa 2025 nas duas ordens, sem usar 2019 |
+| 06m · ACE no reingresso | O histórico anterior registra a mesma ACE fictícia de 30 h (EEW002 no teste) em 2020/1 e em 2021/1. O atual traz o mesmo código e grau no bloco de 2025 | Importar nas duas ordens e abrir o progresso de ACE | O perfil mantém a ocorrência em 2021/1 e a do bloco de 2025, com `aprovadaEm: "2020/1"`. O progresso exibe 30 h confirmadas e 30 h a confirmar; o total das duas parcelas é 60 h. Descreve o comportamento atual; muda se a regra da ACE no reingresso for decidida de outro modo |
 
 ### RF-07 · Aviso de oferta e horários de referência (RA-20)
 
@@ -407,16 +407,16 @@ versão curricular, grupos e equações em `js/database.js`. Em falha, preserva 
 
 ### RF-17 · Validação dos dados de referência (H14)
 
-O kit valida `js/horarios.js` e `js/guia.js`. A validação é local e não depende do Notion.
+O kit valida `js/horarios.js` e `js/guia.js`. A validação é local e não depende do Notion. Os nomes de arquivo e o comando do validador entram em [testes/README.md](../testes/README.md) depois da integração.
 
 | Caso | Situação | Ação | Resultado esperado |
 | --- | --- | --- | --- |
-| 17a | Arquivos de referência válidos | Rodar o validador | Passa |
-| 17b | Turma com código que não está no currículo nem no catálogo e sem exceção | Rodar o validador | Falha, apontando o código |
-| 17c | O mesmo código, com exceção justificada (origem, motivo, efeito no cálculo) | Rodar o validador | Passa. A exceção aparece na lista, e a turma não entra em cálculo nem em sugestão |
-| 17d | Entrada inválida: formato errado, horário com início depois do fim ou duplicata conflitante | Rodar o validador | Falha, apontando a entrada |
-| 17e | Turmas sem código | Rodar o validador | Aparecem numa lista; as justificadas não fazem o caso falhar |
-| 17f | Descrição de guia com caracteres especiais (`<`, `&`, aspas) | Abrir o detalhe da optativa | O texto aparece literalmente, sem virar marcação |
+| 17a | Horário e guia válidos | Rodar o validador | Passa |
+| 17b | Em cada arquivo, por vez, um código ausente do currículo, do catálogo e da lista de exceções | Rodar o validador | Falha e identifica o código |
+| 17c | O mesmo código cadastrado como exceção, com origem, motivo e efeito no cálculo | Rodar o validador | A entrada passa e a exceção é reportada. Se o efeito registrado for "somente informativo", a entrada fica fora de cálculos e sugestões |
+| 17d | Uma variante por execução: campo obrigatório ausente, tipo inválido, horário malformado (inclusive início igual ou posterior ao fim) e duplicata, mesmo idêntica, conforme a identidade da entrada | Rodar o validador separadamente para cada variante | Cada variante falha e identifica a entrada |
+| 17e | Turmas sem código | Rodar o validador | O relatório lista todas as turmas sem código e permite conferir as exceções justificadas |
+| 17f | Fixture local válida de guia com uma optativa cuja descrição contém `<`, `&` e aspas | Abrir o detalhe da optativa no navegador | Os caracteres aparecem literalmente e o trecho não cria elementos HTML |
 
 A validação editorial, a entrada vazia ou incompleta e a remoção em massa ficam com RF-15.
 
