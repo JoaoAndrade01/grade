@@ -1,0 +1,9 @@
+{"titulo":"Grade ECI","subtitulo":"Engenharia de Computação e Informação · UFRJ","nome":"Ana","curso":1,
+ "periodos":[
+  {"nome":"2025/1","disciplinas":[{"code":"COS110","nota":8.5},"COS111","EEL280",{"code":"MAC118","status":"reprovado"},"FIT112","FIS111"]},
+  {"nome":"2025/2","disciplinas":["EEL670","MAE125","EEL480","FIT122","FIS121"]},
+  {"nome":"2026/1","disciplinas":["COS231","EEL881","EEL580","FIM230","FIN231"]},
+  {"nome":"2026/2","atual":true,"disciplinas":[{"code":"MAC118","status":"previsto"},"MAC128","COS242","COE241"]},
+  {"nome":"2027/1","planejado":true,"disciplinas":[{"code":"EEL871","horarios":["seg 08-10","sex 08-10"]},"COS360","IQG112","EEWX00"]},
+  {"nome":"2027/2","planejado":true,"disciplinas":["EEL873"]}
+ ]}

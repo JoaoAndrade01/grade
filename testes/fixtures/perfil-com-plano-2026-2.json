@@ -1,0 +1,8 @@
+{"titulo":"Grade ECI","nome":"Bia","curso":1,
+ "periodos":[
+  {"nome":"2025/1","disciplinas":["COS110","COS111","EEL280","FIT112","FIS111"]},
+  {"nome":"2025/2","disciplinas":["EEL670","MAE125","EEL480"]},
+  {"nome":"2026/1","disciplinas":["COS231","MAC118"]},
+  {"nome":"2026/2","planejado":true,"disciplinas":[{"code":"EEL881","horarios":["ter 08-10","qui 08-10"]},{"code":"EEL580","horarios":["ter 13-15","qui 12-15"]}]},
+  {"nome":"2027/2","planejado":true,"disciplinas":["COS360"]}
+ ]}

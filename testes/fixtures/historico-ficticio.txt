@@ -1,0 +1,13 @@
+UNIVERSIDADE FEDERAL DO RIO DE JANEIRO - HISTÓRICO ESCOLAR
+Nome: PESSOA FICTICIA DE TESTE   CPF: 000.000.000-00   RG: 00.000.000-0
+Período Código Nome CrR CH Grau CrO Pontos SF
+2025/1 COS110 Programação de Computadores I 4.0 60.0 8.5 4.0 34.0 AP
+COS111 Introdução à Engenharia 2.0 30.0 9.0 2.0 18.0 AP
+EEL280 Circuitos Lógicos 5.0 75.0 7.0 5.0 35.0 AP
+FIT112 Física Experimental I 1.0 30.0 8.0 1.0 8.0 AP
+FIS111 Física I 4.0 60.0 6.0 4.0 24.0 AP
+2025/2 EEL670 Programação Avançada 4.0 60.0 7.5 4.0 30.0 AP
+MAE125 Álgebra Linear II 4.0 60.0 6.5 4.0 26.0 AP
+EEL480 Sistemas Digitais 5.0 75.0 8.0 5.0 40.0 AP
+2026/1 COS231 Linguagens Formais 4.0 60.0 7.0 4.0 28.0 AP
+MAC118 Cálculo Diferencial e Integral I 6.0 90.0 6.0 6.0 36.0 AP

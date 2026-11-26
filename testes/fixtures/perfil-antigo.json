@@ -1,0 +1,3 @@
+{"titulo":"Grade ECI — Fulano","subtitulo":"Eng. de Computação e Informação · UFRJ","nome":"Fulano","curso":1,
+ "periodos":[{"nome":"2025/1","disciplinas":["COS110","COS111","EEL280","MAC118","FIT112","FIS111"]},
+  {"nome":"2025/2","atual":true,"disciplinas":["EEL670","MAE125","MAC128"]}]}

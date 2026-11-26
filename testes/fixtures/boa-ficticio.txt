@@ -1,0 +1,9 @@
+BOLETIM DE ORIENTAÇÃO ACADÊMICA
+Aluno Matrícula Curso Emissão
+PESSOA FICTICIA DE TESTE 000000000 Eng. Computação 20/11/2026 10:30
+Atividades Acadêmicas Obrigatórias
+MAC128 Cálculo Diferencial e Integral II 4.0 60 2 Cursando
+COS242 Estruturas de Dados 4.0 60 4 Cursando
+FIT122 Física Experimental II 1.0 30 2 Cursando
+Frequência de reprovações
+MAC118 Cálculo Diferencial e Integral I -> 1 vez(es) 2025/2
