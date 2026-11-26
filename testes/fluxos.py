@@ -1780,7 +1780,90 @@ def t_b1_estado_dos_cartoes(b):
     pg.locator('.card[data-code="MAC248"]').click(); assert ls(pg, "marcacoes") == {"MAC248": "aprovada"}
     ctx.close()
 
-CASOS4 = [t_b1_estado_dos_cartoes]
+@caso("B2: importação válida, inválida e ambígua com o teclado: foco entra no painel, segue para o resultado e volta ao disparador")
+def t_b2_importacao(b):
+    ctx, pg = abre(b, nome="b2-valida", relogio=RELOGIO)
+    gatilho = pg.locator("#btn-importar")
+    aciona_importar(pg)
+    assert pg.evaluate("document.activeElement.closest('#detalhes') !== null"), "o foco ficou fora do painel: " + descreve_foco(pg)
+    pg.keyboard.press("Escape"); expect(pg.locator("#detalhes")).to_be_hidden(); expect(gatilho).to_be_focused()
+    aciona_importar(pg)
+    pg.set_input_files("#siga-pdfs", [str(PDFS / f) for f in ("historico-ficticio.pdf", "boa-ficticio.pdf")])
+    pg.focus("#siga-gerar"); pg.keyboard.press("Enter")
+    pg.wait_for_selector("#siga-usar", timeout=30000)
+    assert foco_em(pg, ".resumo-import h4"), "o foco não foi para o resultado: " + descreve_foco(pg)
+    assert "Prévia" in pg.locator("#anuncio").inner_text(), pg.locator("#anuncio").inner_text()
+    pg.focus("#siga-usar"); pg.keyboard.press("Enter")
+    expect(pg.locator("#detalhes")).to_be_hidden()
+    expect(gatilho).to_be_focused()
+    ctx.close()
+    # inválida: o botão volta a ter o foco depois da leitura (desativado durante ela)
+    ctx, pg = abre(b, nome="b2-invalida")
+    aciona_importar(pg)
+    pg.set_input_files("#siga-pdfs", files=[CORRUPTO])
+    pg.focus("#siga-gerar"); pg.keyboard.press("Enter")
+    pg.wait_for_selector("#siga-status a", timeout=30000)
+    assert pg.evaluate("document.activeElement.closest('#detalhes') !== null"), "foco perdido após o erro: " + descreve_foco(pg)
+    pg.keyboard.press("Escape"); expect(pg.locator("#detalhes")).to_be_hidden(); expect(pg.locator("#btn-importar")).to_be_focused()
+    ctx.close()
+    # ambígua: o resultado recebe o foco; Tab chega ao primeiro rádio; a escolha por teclado mantém o foco
+    ctx, pg = abre(b, perfil=PEDIDO_MAC118, nome="b2-ambigua", relogio=RELOGIO)
+    gera(pg, [f"{n}.pdf" for n in ORACULOS["duvida-sem-datas"]["arquivos"]])
+    assert foco_em(pg, ".resumo-import h4"), descreve_foco(pg)
+    for _ in range(12):
+        pg.keyboard.press("Tab")
+        if foco_em(pg, 'input[name="siga-papel"]'): break
+    assert foco_em(pg, 'input[name="siga-papel"]'), descreve_foco(pg)
+    pg.keyboard.press("Space")
+    expect(pg.locator("#siga-usar")).to_be_enabled()
+    assert foco_em(pg, 'input[name="siga-papel"]:checked'), descreve_foco(pg)
+    ctx.close()
+
+@caso("B2: filtros de Optativas e seleção no Cronograma mantêm o foco no controle acionado")
+def t_b2_foco_filtros(b):
+    ctx, pg = abre(b, perfil=PERFIL, extra={"modoClassico": False, "vista": "optativas"}, nome="b2-filtros")
+    for sel in ('[data-fcheck="liberadas"]', '[data-fcheck="ocultarFeitas"]', '[data-fgrupo="4"]', '[data-fgrupo="2"]', '[data-fprefixo]:nth-of-type(2)'):
+        pg.locator(sel).first.focus(); pg.keyboard.press("Space" if "fcheck" in sel else "Enter")
+        pg.wait_for_timeout(60)
+        assert pg.evaluate("document.activeElement !== document.body"), (sel, "foco no body")
+        assert pg.evaluate("(s) => document.activeElement === document.querySelector(s)", sel.replace(":nth-of-type(2)", ":nth-of-type(2)")) or foco_em(pg, sel.split(":")[0]), (sel, descreve_foco(pg))
+    pg.click('[data-vista="cronograma"]')
+    for sel in ('[data-cperiodo="2027/1"]', '[data-csel="COS360"]', '[data-cperiodo="2027/2"]'):
+        pg.locator(sel).focus(); pg.keyboard.press("Enter"); pg.wait_for_timeout(60)
+        assert foco_em(pg, sel), (sel, descreve_foco(pg))
+    ctx.close()
+
+PONTO_OCULTO = """() => {
+  const el = document.activeElement;
+  if (!el || el === document.body) return 'foco no body';
+  if (el.closest('.paleta, .faixa-aviso, #detalhes, dialog')) return null;
+  const alvo = el.matches('.interruptor input') ? el.nextElementSibling : el;    // o interruptor mostra o trilho
+  const r = alvo.getBoundingClientRect();
+  if (!r.width || !r.height) return 'sem caixa: ' + el.outerHTML.slice(0, 70);
+  const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+  if (cx < 0 || cy < 0 || cx >= innerWidth || cy >= innerHeight) return 'fora da janela: ' + el.outerHTML.slice(0, 70);
+  const topo = document.elementFromPoint(cx, cy);
+  if (topo && (topo === alvo || alvo.contains(topo))) return null;
+  return 'encoberto por ' + (topo ? (topo.id || topo.className || topo.tagName) : 'nada') + ': ' + el.outerHTML.slice(0, 70);
+}"""
+
+@caso("B2: foco visível após a rolagem, com faixa e paleta, em 320 px (Tab e Shift+Tab na Grade)")
+def t_b2_foco_visivel(b):
+    ctx, pg = abre(b, vp=C320, perfil=PERFIL, nome="b2-visivel", toque=True)
+    ruins = []
+    for _ in range(70):
+        pg.keyboard.press("Tab"); pg.wait_for_timeout(40)
+        p = pg.evaluate(PONTO_OCULTO)
+        if p: ruins.append(p)
+    pg.locator("#link-credito").focus()
+    for _ in range(70):
+        pg.keyboard.press("Shift+Tab"); pg.wait_for_timeout(40)
+        p = pg.evaluate(PONTO_OCULTO)
+        if p: ruins.append("(Shift+Tab) " + p)
+    assert not ruins, ruins[:6]
+    ctx.close()
+
+CASOS4 = [t_b2_foco_visivel, t_b2_foco_filtros, t_b2_importacao, t_b1_estado_dos_cartoes]
 CASOS += CASOS4
 
 

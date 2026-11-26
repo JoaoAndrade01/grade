@@ -861,3 +861,11 @@ body:has(.paleta:not([hidden])) .rodape { padding-bottom: 84px; }
 .paleta .consulta { margin: 0 0 6px; padding: 8px 12px; border-radius: 12px; font-size: 13px; line-height: 1.35;
   background: var(--surface); color: var(--text); border: 1px solid var(--border); box-shadow: 0 10px 30px rgb(0 0 0 / .18); }
 .paleta .consulta .btn { margin-left: 4px; min-height: 32px; }
+
+/* ---------- B2.5 · B2: foco e rolagem com a faixa e a paleta fixas ---------- */
+.principal { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.painel:focus { outline: none; }
+html {
+  scroll-padding-top: calc(var(--faixa-h, 0px) + 12px);
+  scroll-padding-bottom: calc(var(--paleta-h, 0px) + 20px);
+}

@@ -55,12 +55,12 @@
     </nav>
     <!-- abas: só aparecem com o modo clássico desligado -->
     <div class="seg abas" role="tablist" aria-label="Telas">
-      <button type="button" data-vista="grade" role="tab" data-icone="grade" title="Grade"><span class="rot">Grade</span></button>
-      <button type="button" data-vista="timeline" role="tab" data-icone="linha-do-tempo" title="Linha do tempo"><span class="rot">Linha do tempo</span></button>
-      <button type="button" data-vista="optativas" role="tab" data-icone="optativas" title="Optativas"><span class="rot">Optativas</span></button>
-      <button type="button" data-vista="cronograma" role="tab" data-icone="cronograma" title="Cronograma"><span class="rot">Cronograma</span></button>
-      <button type="button" data-vista="pedidos" role="tab" data-icone="equivalencias" title="Equivalências e Extensão / ACE"><span class="rot">Equivalências e Extensão / ACE</span></button>
-      <button type="button" data-vista="eci" role="tab" data-icone="eci" title="A ECI por trás da Grade"><span class="rot">A ECI por trás da Grade</span></button>
+      <button type="button" id="aba-grade" data-vista="grade" role="tab" aria-controls="painel" data-icone="grade" title="Grade"><span class="rot">Grade</span></button>
+      <button type="button" id="aba-timeline" data-vista="timeline" role="tab" aria-controls="painel" data-icone="linha-do-tempo" title="Linha do tempo"><span class="rot">Linha do tempo</span></button>
+      <button type="button" id="aba-optativas" data-vista="optativas" role="tab" aria-controls="painel" data-icone="optativas" title="Optativas"><span class="rot">Optativas</span></button>
+      <button type="button" id="aba-cronograma" data-vista="cronograma" role="tab" aria-controls="painel" data-icone="cronograma" title="Cronograma"><span class="rot">Cronograma</span></button>
+      <button type="button" id="aba-pedidos" data-vista="pedidos" role="tab" aria-controls="painel" data-icone="equivalencias" title="Equivalências e Extensão / ACE"><span class="rot">Equivalências e Extensão / ACE</span></button>
+      <button type="button" id="aba-eci" data-vista="eci" role="tab" aria-controls="painel" data-icone="eci" title="A ECI por trás da Grade"><span class="rot">A ECI por trás da Grade</span></button>
     </div>
   </header>
 
@@ -73,7 +73,7 @@
   <div id="legenda" class="legenda" hidden></div>
   <!-- Página inicial: pincel de tags, exibição e filtros -->
   <div id="ferramentas" class="ferramentas" hidden></div>
-  <main id="painel" class="painel"></main>
+  <main class="principal"><div id="painel" class="painel" tabindex="-1"></div></main>
   <!-- Paleta flutuante do pincel (aba Grade) -->
   <div id="paleta" class="paleta" hidden></div>
   <aside id="detalhes" class="detalhes" hidden></aside>

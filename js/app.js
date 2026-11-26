@@ -102,6 +102,27 @@
     catch (e) { /* armazenamento indisponível: segue só em memória */ }
   };
   const clone = (o) => JSON.parse(JSON.stringify(o));
+  /** Seletor que reencontra um controle depois que a tela é redesenhada (id, atributos data-* ou name). */
+  function chaveFoco(el) {
+    if (!el || el === document.body || el === document.documentElement) return null;
+    if (el.id) return "#" + CSS.escape(el.id);
+    const q = (v) => CSS.escape(v);
+    const dados = [...el.attributes].filter((a) => a.name.startsWith("data-") && a.name !== "data-icone").map((a) => `[${a.name}="${q(a.value)}"]`).join("");
+    if (dados) return el.tagName.toLowerCase() + dados;
+    if (el.name) return `${el.tagName.toLowerCase()}[name="${q(el.name)}"]${el.type === "radio" ? `[value="${q(el.value)}"]` : ""}`;
+    return null;
+  }
+  /** Executa `fn` (que redesenha parte da tela) e devolve o foco ao mesmo controle; se ele sumiu, ao painel. */
+  function preservaFoco(fn, fallback) {
+    const antes = document.activeElement, chave = chaveFoco(antes);
+    const r = fn();
+    if (antes && antes !== document.body && !antes.isConnected && (!document.activeElement || document.activeElement === document.body)) {
+      const novo = (chave && document.querySelector(chave)) || (fallback && fallback());
+      if (novo) novo.focus({ preventScroll: true });
+    }
+    return r;
+  }
+  const focaTitulo = (el) => { if (!el) return null; el.tabIndex = -1; return el; };
   const objeto = (v) => v != null && typeof v === "object" && !Array.isArray(v);
   const texto = (v) => typeof v === "string";
   const numero = (v) => Number.isFinite(v) && v >= 0;
@@ -1835,14 +1856,22 @@
   }
 
   function render() {
+    return preservaFoco(desenha, () => focaTitulo($("#painel")));
+  }
+  function desenha() {
     // Modo clássico: força a aba Grade e mantém um pincel sempre ativo
     document.body.classList.toggle("classico", modoClassico);
     $("#modo-classico").checked = modoClassico;
     if (modoClassico) { if (pincel === null) pincel = (tags[0] || {}).id || ""; }
     const vista = modoClassico ? "grade" : vistaAtual;
     renderCabecalho();
-    document.querySelectorAll("[data-vista]").forEach((b) =>
-      b.setAttribute("aria-selected", String(b.dataset.vista === vista)));
+    document.querySelectorAll(".abas [data-vista]").forEach((b) => {
+      const on = b.dataset.vista === vista;
+      b.setAttribute("aria-selected", String(on)); b.tabIndex = on ? 0 : -1;
+    });
+    // O painel é o tabpanel da aba ativa (no modo clássico as abas não aparecem e o painel é só a Grade).
+    if (modoClassico) { painelRef.removeAttribute("role"); painelRef.removeAttribute("aria-labelledby"); }
+    else { painelRef.setAttribute("role", "tabpanel"); painelRef.setAttribute("aria-labelledby", `aba-${vista}`); }
     document.body.classList.toggle("pintando", pincel !== null);
     // Sem perfil válido, os indicadores de progresso ficam ocultos (a grade continua utilizável).
     $("#barra-geral").hidden = !perfil;
@@ -1886,6 +1915,7 @@
   }
 
   // ---------- Detalhes ----------
+  const painelRef = document.querySelector("#painel");
   function linhaCurso(code, requisito = false) {
     const i = M.info(code), s = statusDe(code);
     const origem = requisito && aprovacaoManual(code) ? " por marcação manual (pincel)" : "";
@@ -1965,8 +1995,28 @@
     box.hidden = false;
   }
 
-  function fechaDetalhes() { $("#detalhes").hidden = true; }
+  // Foco do painel de detalhes: entra no título quando aberto pelo teclado e volta ao disparador ao fechar.
+  let gatilho = null;
+  const guardaGatilho = (el) => { gatilho = chaveFoco(el); };
+  function focaPainel() { const h = focaTitulo($("#detalhes h3") || $("#detalhes header")); if (h) h.focus(); }
+  function abrePainel(ev, abre, foco = true) {
+    guardaGatilho(ev.target.closest("button, [data-code]") || ev.target);
+    abre();
+    if (ev.detail === 0 && foco) focaPainel();
+  }
+  function fechaDetalhes() {
+    const box = $("#detalhes");
+    const tinhaFoco = !box.hidden && (box.contains(document.activeElement) || document.activeElement === document.body);   // o foco pode ter sumido com o botão
+    box.hidden = true;
+    if (!tinhaFoco) return;
+    const alvo = gatilho && document.querySelector(gatilho);
+    gatilho = null;
+    (alvo && alvo.getClientRects().length ? alvo : focaTitulo($("#titulo"))).focus();
+  }
   function reabreDetalhes() {
+    return preservaFoco(reabreDetalhes0, () => { focaPainel(); return document.activeElement; });
+  }
+  function reabreDetalhes0() {
     const box = $("#detalhes");
     if (box.hidden || !box.dataset.alvo) return;
     if (box.dataset.alvo === "tags") return abreEditorTags();
@@ -2234,10 +2284,17 @@
       derivaPrevia(resultadoImportacao, null);
       avaliaImportacao(resultadoImportacao);
       abreImportador();
+      // A prévia substitui o conteúdo do painel: o foco vai para o resultado e a região viva estável avisa.
+      const resumo = focaTitulo($(".resumo-import h4")); if (resumo) resumo.focus();
+      anuncia("Prévia pronta. Confira o resumo e escolha Usar este perfil ou Baixar perfil.js.");
     } catch (e) {
       status.innerHTML = `${esc("Não deu certo: " + e.message)} ${htmlRelato()}`;
     } finally {
-      if (status.isConnected) $("#siga-gerar").disabled = false;
+      if (status.isConnected) {
+        const eraFoco = document.activeElement === document.body || document.activeElement === $("#siga-gerar");
+        $("#siga-gerar").disabled = false;
+        if (eraFoco && !resultadoImportacao) $("#siga-gerar").focus();     // desativado durante a leitura, o botão perdeu o foco
+      }
     }
   }
 
@@ -2553,7 +2610,7 @@
       const abrir = t.closest("[data-abrir]");
       if (abrir) {
         if (pincel !== null) { consultado = null; return pinta(abrir.dataset.abrir); }
-        destaca(abrir.dataset.abrir); return abreDetalhes({ code: abrir.dataset.abrir });
+        destaca(abrir.dataset.abrir); return abrePainel(ev, () => abreDetalhes({ code: abrir.dataset.abrir }));
       }
       const fg = t.closest("[data-fgrupo]");
       if (fg) { filtros.grupo = fg.dataset.fgrupo; filtros.prefixo = ""; save("filtros", filtros); return render(); }
@@ -2658,7 +2715,7 @@
       }
       destaca(el.dataset.code);
       if (el.dataset.code) defineFoco(el.dataset.code);
-      abreDetalhes(el.dataset.code ? { code: el.dataset.code } : { idx: el.dataset.idx });
+      abrePainel(ev, () => abreDetalhes(el.dataset.code ? { code: el.dataset.code } : { idx: el.dataset.idx }));
     });
 
     // pintar horários (clique ou arrasto)
@@ -2749,16 +2806,16 @@
         filtroNivel = filtroNivel.includes(n) ? filtroNivel.filter((x) => x !== n) : filtroNivel.concat([n]);
         save("filtroNivel", filtroNivel); return render();
       }
-      if (t.id === "consulta-detalhes") { const c = consultado; consultado = null; $("#paleta").innerHTML = renderPaleta(); return c && abreDetalhes({ code: c }); }
-      if (t.id === "editar-tags") return abreEditorTags();
+      if (t.id === "consulta-detalhes") { const c = consultado; consultado = null; $("#paleta").innerHTML = renderPaleta(); return c && abrePainel(ev, () => abreDetalhes({ code: c })); }
+      if (t.id === "editar-tags") return abrePainel(ev, abreEditorTags);
       if (t.id === "cadeado") {
         cadeado = !cadeado; save("cadeado", cadeado); render(); $("#cadeado").focus(); atualizaConfig();
         return anuncia(cadeado ? "Cadeado ligado: as cursadas estão protegidas." : "Cadeado desligado: as cursadas podem ser alteradas.");
       }
       if (t.id === "btn-config") return abreConfiguracoes();
       if (t.id === "btn-tema") return window.TEMA && window.TEMA.alterna();
-      if (t.id === "btn-referencias") return abreReferencias();
-      if (t.id === "btn-tags") return abreEditorTags();
+      if (t.id === "btn-referencias") return abrePainel(ev, abreReferencias);
+      if (t.id === "btn-tags") return abrePainel(ev, abreEditorTags);
       if (t.id === "btn-limpar") return limpaDados();
       if (t.dataset.fixar) {
         const id = t.dataset.fixar;
@@ -2767,9 +2824,9 @@
         return anuncia(atalhos.includes(id) ? `${infoAtalho(id).nome} fixado na barra.` : `${infoAtalho(id).nome} saiu da barra; continua em Configurações.`);
       }
       if (t.dataset.abrirAtalho) { $("#dlg-config").close(); return ACAO_ATALHO[t.dataset.abrirAtalho](); }
-      if (t.id === "btn-importar") return abreImportador();
+      if (t.id === "btn-importar") return abrePainel(ev, abreImportador);
       if (t.id === "btn-perfil") return abreDialogoPerfil();
-      if (t.id === "btn-privacidade") return abrePrivacidade();
+      if (t.id === "btn-privacidade") return abrePainel(ev, abrePrivacidade);
       if (t.id === "baixar-importado") return baixa("perfil.js", textoPerfil(perfilExportado()));
       if (t.id === "apagar-tudo") {
         if (!confirm("Apagar TUDO o que este site guardou neste navegador (perfil importado, tags, marcações, planos e preferências)?")) return;
@@ -2841,6 +2898,7 @@
         const alvo = document.querySelector(`.painel [data-code="${CSS.escape(t.dataset.ir)}"]`);
         if (alvo) { alvo.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" }); destaca(t.dataset.ir); }
         abreDetalhes({ code: t.dataset.ir });
+        if (ev.detail === 0) focaPainel();
       }
     });
     $("#detalhes").addEventListener("change", (ev) => {
@@ -2913,9 +2971,17 @@
       if (cronoSel) { cronoSel = null; render(); }
     });
 
-    document.querySelectorAll("[data-vista]").forEach((b) => b.addEventListener("click", () => {
+    document.querySelectorAll(".abas [data-vista]").forEach((b) => b.addEventListener("click", () => {
       vistaAtual = b.dataset.vista; save("vista", vistaAtual); fechaDetalhes(); render();
     }));
+    // Abas: setas, Home e End movem e ativam a aba (foco móvel: só a aba ativa entra na ordem de Tab).
+    $(".abas").addEventListener("keydown", (ev) => {
+      const abas = [...document.querySelectorAll(".abas [role=tab]")];
+      const i = abas.indexOf(document.activeElement); if (i < 0) return;
+      const j = { ArrowRight: (i + 1) % abas.length, ArrowLeft: (i + abas.length - 1) % abas.length, Home: 0, End: abas.length - 1 }[ev.key];
+      if (j == null) return;
+      ev.preventDefault(); abas[j].focus(); abas[j].click();
+    });
 
   }
 
@@ -2940,6 +3006,24 @@
   // A faixa de aviso é fixa: o painel de detalhes começa abaixo dela.
   const faixa = $("#faixa-aviso");
   if (faixa && "ResizeObserver" in window) new ResizeObserver(() => document.documentElement.style.setProperty("--faixa-h", faixa.offsetHeight + "px")).observe(faixa);
+  // A paleta também é fixa: a rolagem por foco reserva o espaço dela (scroll-padding) e o painel de detalhes fica acima dela.
+  const paletaEl = $("#paleta");
+  // Nem todo navegador respeita scroll-padding na rolagem por foco (o Firefox não): confere e corrige o que ficou sob a faixa ou a paleta.
+  document.addEventListener("focusin", (ev) => {
+    const el = ev.target;
+    if (!(el instanceof HTMLElement) || el.closest(".paleta, .faixa-aviso, #detalhes, dialog")) return;
+    requestAnimationFrame(() => {
+      if (!el.isConnected || document.activeElement !== el) return;
+      const alvo = el.matches(".interruptor input") && el.nextElementSibling ? el.nextElementSibling : el;
+      const r = alvo.getBoundingClientRect();
+      const topo = faixa ? faixa.getBoundingClientRect().bottom + 8 : 0;
+      const base = paletaEl && !paletaEl.hidden && paletaEl.offsetHeight ? paletaEl.getBoundingClientRect().top - 8 : innerHeight;
+      if (r.height > base - topo) return;
+      if (r.top < topo) window.scrollBy({ top: r.top - topo, behavior: "instant" });
+      else if (r.bottom > base) window.scrollBy({ top: r.bottom - base, behavior: "instant" });
+    });
+  });
+  if (paletaEl && "ResizeObserver" in window) new ResizeObserver(() => document.documentElement.style.setProperty("--paleta-h", (paletaEl.hidden ? 0 : paletaEl.offsetHeight) + "px")).observe(paletaEl);
 
   montaModelo();
   liga();
