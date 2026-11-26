@@ -17,7 +17,7 @@ TESTES = Path(__file__).resolve().parent
 REPO = TESTES.parent
 FIXTURES = TESTES / "fixtures"
 MOTORES = ("chromium", "firefox", "webkit")
-PUBLICO = ("index.html", "classico.html", "README.md", "docs", "js", "static")
+PUBLICO = ("index.html", "classico.html", "README.md", ".nojekyll", "docs", "js", "static")
 SUFIXOS_PUBLICOS = {".html", ".md", ".mmd", ".js", ".mjs", ".css", ".svg", ".png", ".ico",
                     ".map", ".txt", ".ttf", ".otf", ".pfb", ".bcmap", ".wasm", ".ftl", ".json", ".fla"}
 
@@ -43,16 +43,22 @@ def git(*args):
 def exporta_site(ref, raiz):
     sha = git("rev-parse", "--verify", "--end-of-options", f"{ref}^{{commit}}").decode().strip()
     arquivos = git("ls-tree", "-r", "-z", sha, "--", *PUBLICO).decode().split("\0")
+    nomes = {linha.split("\t", 1)[1] for linha in arquivos if linha}
     for linha in filter(None, arquivos):
         entrada, nome = linha.split("\t", 1)
         caminho = PurePosixPath(nome)
+        if nome == ".nojekyll":      # único arquivo oculto publicado: marcador vazio da raiz
+            if not entrada.startswith("100644 blob ") or git("cat-file", "-s", entrada.split()[2]).strip() != b"0":
+                raise ValueError(f"A cópia pública tem um caminho que exige revisão: {nome}")
+            continue
         if (not entrada.startswith(("100644 blob ", "100755 blob "))
                 or caminho.suffix.lower() not in SUFIXOS_PUBLICOS
                 or any(p.startswith((".", "_")) for p in caminho.parts)
                 or caminho.name.lower() == "perfil.js"):
             raise ValueError(f"A cópia pública tem um caminho que exige revisão: {nome}")
     raiz.mkdir(parents=True)
-    arquivo = git("archive", "--format=tar", sha, *PUBLICO)
+    publico = [c for c in PUBLICO if c != ".nojekyll" or ".nojekyll" in nomes]     # opcional na exportação; a conferência P exige
+    arquivo = git("archive", "--format=tar", sha, *publico)
     with tarfile.open(fileobj=io.BytesIO(arquivo)) as copia:
         copia.extractall(raiz, filter="data")
     return sha

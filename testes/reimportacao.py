@@ -217,6 +217,11 @@ def publicacao_local(b, url, site, eventos, avisos, faltando):
     info["arquivos_com_underscore_ou_ponto"] = sorted(a for a in arquivos if any(s.startswith(("_", ".")) for s in a.split("/")) and not a.startswith(".git"))
     info["liquid_em_md_html"] = sorted(a for a in arquivos if a.endswith((".md", ".html")) and re.search(r"\{\{|\{%", (site / a).read_text(encoding="utf-8", errors="ignore")))
     info["tem_.nojekyll"] = ".nojekyll" in arquivos
+    info["nojekyll_vazio"] = (site / ".nojekyll").is_file() and (site / ".nojekyll").stat().st_size == 0
+    info["link_arquitetura"] = re.findall(r'href="([^"]*ARQUITETURA\.md)"', (site / "index.html").read_text(encoding="utf-8"))
+    if not info["nojekyll_vazio"]: falhas.append("falta o .nojekyll vazio na raiz: o Jekyll do Pages converteria os .md")
+    if info["link_arquitetura"] != ["https://github.com/JoaoAndrade01/grade/blob/master/docs/ARQUITETURA.md"]:
+        falhas.append(f"o link 'arquitetura' do index.html deve apontar ao GitHub: {info['link_arquitetura']}")
     if info["refs_absolutas"]: falhas.append(f"caminhos absolutos quebram sob /grade/: {info['refs_absolutas']}")
     if info["refs_faltando_case_sensitive"]: falhas.append(f"referências que não existem com essa caixa: {info['refs_faltando_case_sensitive']}")
     if info["liquid_em_md_html"] and not info["tem_.nojekyll"]: falhas.append(f"Jekyll pode quebrar o build (Liquid sem .nojekyll): {info['liquid_em_md_html']}")
