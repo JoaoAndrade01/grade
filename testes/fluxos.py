@@ -1,5 +1,5 @@
 """Cenários de interface portados dos três kits de revisão da Grade."""
-import json, pathlib, re
+import json, pathlib, re, time
 from traceback import format_exc
 from playwright.sync_api import expect
 from auditoria import observa
@@ -26,6 +26,19 @@ def caso(nome):
     return deco
 
 TODOS_ATALHOS = ["perfil", "importar", "tema", "privacidade", "referencias", "tags"]
+def pronto(pg, nome):
+    """O app inicia de forma assíncrona (em file:// espera a tentativa de carregar perfil/perfil.js) e, de vez em quando,
+    o evento load dispara antes (ReferenceError em GradeInterativa, cliques sem efeito). Confere a prontidão logo após o
+    load; se ainda não iniciou, registra o atraso em `avisos` (não descarta a ocorrência) e espera de forma dirigida."""
+    if pg.evaluate("typeof window.GradeInterativa") == "object": return
+    t0 = time.time()
+    try:
+        pg.wait_for_function("typeof window.GradeInterativa === 'object'", timeout=15000)
+    except Exception:
+        raise AssertionError("o app não iniciou: " + json.dumps(pg.evaluate("({ readyState: document.readyState, scripts: [...document.scripts].map((s) => s.src.split('/').pop()) })")))
+    avisos.append(f"[{nome}] app iniciado {int((time.time() - t0) * 1000)} ms depois do evento load (readyState={pg.evaluate('document.readyState')})")
+
+
 def abre(b, vp=D, esquema="light", perfil=None, extra=None, nome="", toque=False, atalhos=True, relogio=None):
     # Os cenários antigos usam os botões do topo: por padrão, fixa todos os atalhos (atalhos=False = primeira visita real).
     if atalhos: extra = {"atalhos": TODOS_ATALHOS, **(extra or {})}
@@ -33,11 +46,11 @@ def abre(b, vp=D, esquema="light", perfil=None, extra=None, nome="", toque=False
     if relogio: ctx.clock.set_fixed_time(relogio)      # datas que dependem do relógio ficam fixas
     pg = ctx.new_page()
     observa(ctx, URL, nome, eventos, avisos)
-    pg.goto(URL); pg.wait_for_load_state("load")
+    pg.goto(URL); pg.wait_for_load_state("load"); pronto(pg, nome)
     if perfil is not None or extra:
         pg.evaluate("""([p, extra, K]) => { if (p) localStorage.setItem(K + 'perfilImportado', JSON.stringify(p));
                        for (const [k, v] of Object.entries(extra || {})) localStorage.setItem(K + k, JSON.stringify(v)); }""", [perfil, extra, CHAVE])
-        pg.reload(); pg.wait_for_load_state("load")
+        pg.reload(); pg.wait_for_load_state("load"); pronto(pg, nome)
     return ctx, pg
 
 
