@@ -89,7 +89,7 @@ coordenação.
 | **Período** | Semestre real `AAAA/1` ou `AAAA/2`; período atual (com ou sem data); bloco de transferidos (`AAAA` ou `AAAA/0`, só com o ano); período planejado | rótulo, data, se foi deduzido |
 | **Registro** | A situação de um componente num período | status (aprovada, reprovada, cursando, prevista, planejada, dispensada "T"), créditos, grau, origem (importado ou marcação manual) |
 | **Histórico** | Um PDF do SIGA importado | papel (atual ou anterior), último semestre real, ano do bloco de transferidos |
-| **BOA** | Boletim de oferta e aproveitamento importado | seção "Cursadas e Não Explicitadas": presente, vazia ou ausente; atividades em curso |
+| **BOA** | Boletim de Orientação Acadêmica importado | seção "Cursadas e Não Explicitadas": presente, vazia ou ausente; atividades em curso |
 | **Dispensa** | Alvo dispensado a partir de uma origem | alvo, origem, créditos do alvo no histórico |
 | **Pedido de equivalência** | Pedida e cursadas de origem | situação (a pedir, deferido), cursadas (conteúdo ou só horas), idade, carga horária |
 | **Ocorrência de extensão** | Uma realização de atividade de ACE | código, período, horas, validada, marcada como distinta pela pessoa (versão seguinte) |
@@ -123,7 +123,7 @@ Cada invariante aponta para a regra e para os casos de [REQUISITOS.md](REQUISITO
 
 ## Glossário
 
-- **BOA** — Boletim de Oferta e Aproveitamento do SIGA. Traz o que está em curso e as "Cursadas e Não
+- **BOA** — Boletim de Orientação Acadêmica do SIGA. Traz o que está em curso e as "Cursadas e Não
   Explicitadas".
 - **ACE** — atividades curriculares de extensão, contadas em horas (405 h no currículo de ECI), à parte dos
   créditos.
