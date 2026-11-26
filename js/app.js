@@ -286,6 +286,7 @@
   const ATALHOS = ["perfil", "importar", "tema", "privacidade", "referencias", "tags"];
   let atalhos = load("atalhos", [], (v) => listaDe(v, (x) => ATALHOS.includes(x)));
   let ocultarSeletor = load("ocultarSeletor", false, (v) => typeof v === "boolean");
+  let consultado = null;             // toque: cartão consultado, à espera do segundo toque que marca
   let seletorECI = false;            // paleta "ECI por trás" (só nesta visita): destaca os cartões com experiência
   let exibir = Object.assign({ codigo: true, notas: false, dificuldade: false, presenca: false, setas: "ocultas" }, load("exibir", {}));
   if (!["ocultas", "foco", "todas"].includes(exibir.setas)) exibir.setas = "ocultas";
@@ -782,6 +783,16 @@
   const metaDe = (code, valor, cat) =>
     [code, valor != null ? `${fmt(valor)} ${cat == 5 || valor >= 30 ? "h" : "cr"}` : null].filter(Boolean).join(" · ");
 
+  /** Situação e origem em texto (nunca só por cor): marcação do pincel, registro do perfil ou nenhuma. */
+  function situacaoOrigem(code) {
+    if (Object.prototype.hasOwnProperty.call(marcacoes, code)) {
+      const t = tagPorId(marcacoes[code]);
+      return { rot: t ? t.nome : "Sem tag", origem: "marcação" };
+    }
+    const s = statusPerfil(code);
+    return s === "pendente" ? { rot: "Pendente", origem: null } : { rot: ROTULO[s], origem: "perfil" };
+  }
+
   function card(o) {
     const temAviso = o.aviso && o.aviso.length;
     const attrs = [
@@ -797,6 +808,7 @@
       ${nota != null ? `<span class="nota">${esc(nota)}</span>` : ""}
       ${temAviso ? `<span class="aviso" aria-label="aviso">!</span>` : ""}
       <span class="nome">${esc(o.name)}</span>
+      ${o.status && o.status !== "pendente" && ROTULO[o.status] ? `<span class="estado">${esc(ROTULO[o.status])}</span>` : ""}
       ${o.sub ? `<span class="sub">${o.sub}</span>` : ""}
       <span class="meta">${o.code ? seloGuia(o.code, true) + " " : ""}${esc(o.meta)}</span>
     </button>`;
@@ -826,6 +838,8 @@
     ].filter(Boolean).join(" · ");
     const prot = protegida(c.code);
     const exp = seletorECI && window.ECI.tem(c.code);
+    const so = situacaoOrigem(c.code);
+    const estado = so.origem ? `${so.rot} · ${so.origem}` : "";
     return `<button type="button" class="card limpo${tag ? " com-tag" : ""}${s === "analise" ? " s-analise" : ""}${apagado ? " apagado" : ""}${prot ? " protegida" : ""}${exp ? " com-eci" : ""}"
       data-code="${esc(c.code)}" ${tag ? `style="--tag:${esc(tag.cor)}"` : ""} title="${exp ? "Abrir a experiência: " + esc(window.ECI.tem(c.code).titulo) : esc(tag ? tag.nome : ROTULO[s]) + (prot ? " · protegida pelo cadeado" : "")}"
       ${seletorECI && !exp ? "inert" : ""}${exp ? ` aria-describedby="dica-eci"` : ""}>
@@ -833,6 +847,7 @@
       ${prot ? `<span class="cad" aria-hidden="true">${icone("cadeado", 11)}</span>` : ""}
       ${nota != null ? `<span class="nota">${esc(typeof nota === "number" ? nota.toFixed(1) : nota)}</span>` : ""}
       <span class="nome">${esc(c.name)}</span>
+      ${estado ? `<span class="estado">${esc(estado)}</span>` : ""}
       ${extras ? `<span class="meta">${extras}</span>` : ""}
     </button>`;
   }
@@ -886,7 +901,15 @@
         ${cor ? `style="--tag:${esc(cor)};--tag-txt:${corTextoSobre(cor)}"` : ""} ${extra}>
         ${cor ? `<i class="pal-cor"></i>` : ""}<span>${rotulo}</span></button>`;
     };
-    return `<div class="pal-trilho" role="toolbar" aria-label="Paleta: escolha a tag e clique nas disciplinas">
+    const pinc = tagPorId(pincel);
+    const jaTem = consultado && tagDe(consultado) && pinc && marcacoes[consultado] === pinc.id;
+    const consulta = consultado && pinc ? (() => {
+      const so = situacaoOrigem(consultado), i = M.info(consultado);
+      return `<p class="consulta" id="consulta" role="status">${esc(consultado)} · ${esc(i ? i.name : "")}: ${esc(so.rot)} · ${so.origem ? esc(so.origem) : "sem marcação"}.
+        ${jaTem ? `Toque de novo para tirar a tag ${esc(pinc.nome)}.` : `Toque de novo para marcar como ${esc(pinc.nome)}.`}
+        <button type="button" class="btn btn-sm" id="consulta-detalhes">Detalhes</button></p>`;
+    })() : "";
+    return `${consulta}<div class="pal-trilho" role="toolbar" aria-label="Paleta: escolha a tag e clique nas disciplinas">
       ${modoClassico ? "" : botao("__detalhes", `${icone("detalhes")} Detalhes`, null, 'title="Clique abre os detalhes da disciplina"')}
       ${modoClassico ? "" : `<button type="button" class="pal-btn pal-eci${seletorECI ? " on" : ""}" id="pal-eci" aria-pressed="${seletorECI}"
         title="Destaca as disciplinas com experiência de A ECI por trás da Grade">${icone("eci")} <span>ECI por trás</span></button>`}
@@ -1769,6 +1792,7 @@
     const el = sel && d.querySelector(sel); if (el) el.focus();
   }
   function defineModo(classico) {
+    consultado = null;
     modoClassico = classico; save("modoClassico", modoClassico);
     if (!modoClassico) pincel = null;   // no modo completo o clique volta a abrir detalhes
     seletorECI = false;
@@ -2489,7 +2513,21 @@
   }
 
   // ---------- Eventos ----------
+  // Toque: não há hover nem `title`. A primeira ativação de um cartão só consulta (situação e origem em texto,
+  // no próprio painel da paleta); a segunda, no mesmo cartão, aplica o pincel. Mouse e teclado marcam de uma vez.
+  let toqueEm = 0;
+  const porToque = () => Date.now() - toqueEm < 1200;
+  function consulta(code) {
+    consultado = code;
+    destaca(code); defineFoco(code);
+    $("#paleta").innerHTML = renderPaleta();
+    const so = situacaoOrigem(code);
+    anuncia(`${code}: ${so.rot}, ${so.origem || "sem marcação"}. Toque de novo para aplicar a tag.`);
+  }
+
   function liga() {
+    document.addEventListener("touchstart", () => { toqueEm = Date.now(); }, { capture: true, passive: true });
+    document.addEventListener("pointerdown", (ev) => { if (ev.pointerType === "touch") toqueEm = Date.now(); }, true);
     document.querySelectorAll("[data-icone]").forEach((el) => el.insertAdjacentHTML("afterbegin", icone(el.dataset.icone)));
     const painel = $("#painel");
     let arrasto = null; // { modo: true (adicionar) / false (remover), visit }
@@ -2514,7 +2552,7 @@
       if (plan) return alternaPlano(plan.dataset.plan, plan.dataset.pcode);
       const abrir = t.closest("[data-abrir]");
       if (abrir) {
-        if (pincel !== null) return pinta(abrir.dataset.abrir);
+        if (pincel !== null) { consultado = null; return pinta(abrir.dataset.abrir); }
         destaca(abrir.dataset.abrir); return abreDetalhes({ code: abrir.dataset.abrir });
       }
       const fg = t.closest("[data-fgrupo]");
@@ -2614,7 +2652,10 @@
       // cartões
       const el = t.closest(".card"); if (!el) return;
       if (seletorECI && el.dataset.code && window.ECI.tem(el.dataset.code)) return window.ECI.abre(el.dataset.code, contextoECI(), el);
-      if (pincel !== null && el.dataset.code) return pinta(el.dataset.code);
+      if (pincel !== null && el.dataset.code) {
+        if (porToque() && consultado !== el.dataset.code && !protegida(el.dataset.code)) return consulta(el.dataset.code);
+        consultado = null; return pinta(el.dataset.code);
+      }
       destaca(el.dataset.code);
       if (el.dataset.code) defineFoco(el.dataset.code);
       abreDetalhes(el.dataset.code ? { code: el.dataset.code } : { idx: el.dataset.idx });
@@ -2697,7 +2738,7 @@
     document.addEventListener("click", (ev) => {
       const t = ev.target.closest("button"); if (!t) return;
       if (t.id === "bg-detalhes") { progressoAberto = !progressoAberto; save("progressoAberto", progressoAberto); return render(); }
-      if (t.dataset.pincel != null) { pincel = t.dataset.pincel === "__detalhes" ? null : t.dataset.pincel; seletorECI = false; return render(); }
+      if (t.dataset.pincel != null) { consultado = null; pincel = t.dataset.pincel === "__detalhes" ? null : t.dataset.pincel; seletorECI = false; return render(); }
       if (t.id === "pal-eci") {
         seletorECI = !seletorECI; if (seletorECI) { pincel = null; fechaDetalhes(); }
         render(); $("#pal-eci").focus();
@@ -2708,6 +2749,7 @@
         filtroNivel = filtroNivel.includes(n) ? filtroNivel.filter((x) => x !== n) : filtroNivel.concat([n]);
         save("filtroNivel", filtroNivel); return render();
       }
+      if (t.id === "consulta-detalhes") { const c = consultado; consultado = null; $("#paleta").innerHTML = renderPaleta(); return c && abreDetalhes({ code: c }); }
       if (t.id === "editar-tags") return abreEditorTags();
       if (t.id === "cadeado") {
         cadeado = !cadeado; save("cadeado", cadeado); render(); $("#cadeado").focus(); atualizaConfig();
@@ -2864,6 +2906,7 @@
     document.addEventListener("keydown", (ev) => {
       if (ev.key !== "Escape") return;
       if (document.querySelector("dialog[open]")) return;   // o próprio <dialog> trata o Esc
+      if (consultado) { consultado = null; $("#paleta").innerHTML = renderPaleta(); return; }
       if (seletorECI) { seletorECI = false; render(); return; }
       if (pincel !== null && !modoClassico) { pincel = null; render(); }
       fechaDetalhes();

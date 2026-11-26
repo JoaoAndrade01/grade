@@ -1699,6 +1699,91 @@ CASOS = [
     t_regressao, t_a11y,
 ] + CASOS2 + CASOS3
 
+# ---- B2.5: UX e acessibilidade
+
+# ------------------------------------------------------------------ B2.5: UX e acessibilidade (inspeção de 26/11/2026)
+import os
+AXE = pathlib.Path(os.environ.get("GRADE_AXE") or (FX.parents[2] / ".b11-runtime" / "axe" / "node_modules" / "axe-core" / "axe.min.js"))
+C320 = {"width": 320, "height": 720}
+TAGS_AXE = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]
+
+def axe_roda(pg, regras=None, contexto=None):
+    """Roda o axe-core (instalado fora do repositório; ver testes/README.md) e devolve as violações."""
+    if not AXE.exists():
+        raise AssertionError(f"axe-core não encontrado em {AXE}: defina GRADE_AXE com o caminho de axe.min.js")
+    if pg.evaluate("typeof window.axe") != "object":
+        pg.evaluate(AXE.read_text(encoding="utf-8"))
+    opcoes = {"runOnly": {"type": "rule", "values": regras}} if regras else {"runOnly": {"type": "tag", "values": TAGS_AXE}}
+    pg.wait_for_timeout(450)       # transições terminadas: o axe mede a cor final
+    return pg.evaluate("""([ctx, o]) => axe.run(ctx || document, o).then((r) => r.violations.map((v) =>
+        ({ id: v.id, impacto: v.impact, nos: v.nodes.map((n) => n.target.join(' ') + ' :: ' + (n.failureSummary || '').split('\\n').slice(1, 2).join(' ')).slice(0, 5) })))""", [contexto, opcoes])
+
+def axe_graves(pg, regras=None, contexto=None):
+    return [v for v in axe_roda(pg, regras, contexto) if v["impacto"] in ("serious", "critical")]
+
+SEM_NOME = """(raiz) => {
+  const nome = (el) => {
+    const lb = el.getAttribute('aria-labelledby');
+    if (lb) { const t = lb.split(/\\s+/).map((i) => (document.getElementById(i) || {}).textContent || '').join(' ').trim(); if (t) return t; }
+    const al = (el.getAttribute('aria-label') || '').trim(); if (al) return al;
+    const rot = [...(el.labels || [])].map((l) => l.textContent).join(' ').trim(); if (rot) return rot;
+    if (el.tagName === 'BUTTON') return (el.textContent || '').trim() || (el.title || '').trim();
+    return (el.getAttribute('title') || '').trim();
+  };
+  const r = document.querySelector(raiz);
+  return [...r.querySelectorAll('input:not([type=hidden]), select, textarea, button')]
+    .filter((e) => !e.closest('[hidden]') && e.getClientRects().length).filter((e) => !nome(e)).map((e) => e.outerHTML.slice(0, 90));
+}"""
+
+CORRUPTO = {"name": "invalido.pdf", "mimeType": "application/pdf", "buffer": b"%PDF-1.4\nnao e um historico"}
+
+def aciona_importar(pg):
+    pg.focus("#btn-importar"); pg.keyboard.press("Enter")
+    expect(pg.locator("#detalhes")).to_be_visible()
+
+def foco_em(pg, seletor): return pg.evaluate("(s) => !!document.activeElement && document.activeElement.matches(s)", seletor)
+def descreve_foco(pg): return pg.evaluate("document.activeElement ? document.activeElement.outerHTML.slice(0, 90) : 'nada'")
+
+
+
+@caso("B1: situação e origem dos cartões em texto, sem cor nem hover; no toque a primeira ativação só consulta")
+def t_b1_estado_dos_cartoes(b):
+    for nome, vp, toque in [("desktop", D, False), ("celular", C320, True)]:
+        ctx, pg = abre(b, vp=vp, perfil=PERFIL, extra={"marcacoes": {"MAC238": "aprovada"}}, nome=f"b1-{nome}", toque=toque)
+        textos = {c: pg.locator(f'.card[data-code="{c}"]').inner_text() for c in ("COS110", "MAC118", "COS360", "MAC238", "MAC248")}
+        assert "Aprovada" in textos["COS110"] and "perfil" in textos["COS110"], textos["COS110"]
+        assert "Aprovação prevista" in textos["MAC118"] and "perfil" in textos["MAC118"], textos["MAC118"]
+        assert "Planejada" in textos["COS360"] and "perfil" in textos["COS360"], textos["COS360"]
+        assert "Cursada" in textos["MAC238"] and "marcação" in textos["MAC238"], textos["MAC238"]
+        estados = [pg.locator(f'.card[data-code="{c}"] .estado').inner_text() for c in ("COS110", "MAC118", "COS360", "MAC238")]
+        assert len(set(estados)) == 4, estados                      # estados diferentes não repetem o mesmo texto
+        assert pg.locator('.card[data-code="MAC248"] .estado').count() == 0, textos["MAC248"]
+        # o texto vale também no completo (linha do tempo, cartões com a situação)
+        completo(pg, "timeline")
+        assert "Aprovada" in pg.locator('.card[data-code="COS110"]').first.inner_text()
+        ctx.close()
+    # toque, primeira visita: a 1ª ativação consulta (situação e origem em texto) e só a 2ª marca
+    ctx, pg = abre(b, vp=C320, nome="b1-toque", toque=True, atalhos=False)
+    card = pg.locator('.card[data-code="MAC248"]')
+    card.tap()
+    assert ls(pg, "marcacoes") in (None, {}), ls(pg, "marcacoes")
+    consulta = pg.locator("#consulta"); expect(consulta).to_be_visible()
+    texto = consulta.inner_text()
+    assert "MAC248" in texto and "sem marcação" in texto and "Toque de novo" in texto, texto
+    r = consulta.bounding_box(); assert r["height"] > 0
+    card.tap()
+    assert ls(pg, "marcacoes") == {"MAC248": "aprovada"}, ls(pg, "marcacoes")
+    assert "Cursada" in card.inner_text() and "marcação" in card.inner_text()
+    ctx.close()
+    # mouse e teclado continuam marcando com uma ativação
+    ctx, pg = abre(b, nome="b1-mouse", atalhos=False)
+    pg.locator('.card[data-code="MAC248"]').click(); assert ls(pg, "marcacoes") == {"MAC248": "aprovada"}
+    ctx.close()
+
+CASOS4 = [t_b1_estado_dos_cartoes]
+CASOS += CASOS4
+
+
 def rodar(navegador, url, pasta, fixtures_pdf, filtro=None):
     global URL, OUT, PDFS
     URL, OUT, PDFS = url, pasta, fixtures_pdf
