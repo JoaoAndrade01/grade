@@ -238,17 +238,49 @@ candidato; um item que falha volta a verificação ao começo com um novo hash.
 
 Um registro curto por candidato; a lista da seção 7 consulta este registro.
 
-<!-- INTEGRAÇÃO: preencher o resultado do candidato integrado: hash do app, SHA-256 da suíte e das fixtures, versões, contagens por par motor × forma de abertura, paridade, oráculos, validador, axe, contraste, sentinelas, tentativas e falhas intermitentes declaradas, e o aceite. -->
+### Candidato da v2.0.0
+
+Verificado em 2026-11-26, no Windows 11 (10.0.26300), Python 3.12.10, Node 26.13.1.
 
 | Campo | Valor |
 | --- | --- |
-| Hash do app | a preencher na verificação do candidato |
-| SHA-256 da suíte e das fixtures | a preencher |
-| Versões (motores, Playwright, Python, Node, sistema) | a preencher |
-| Matriz (seis pares) | a preencher |
-| Paridade e oráculos | a preencher |
-| Validador RF-17 | a preencher |
-| Acessibilidade (axe, contraste, teclado) | a preencher |
-| Privacidade (requisições e sentinelas) | a preencher |
-| Tentativas, falhas e intermitências declaradas | a preencher |
-| Aceite | a preencher |
+| Hash do app | `@@HASH@@` (verificação completa). O candidato a publicar é o commit que acrescenta só este registro e os hashes dele; ver "Hash final" abaixo |
+| SHA-256 da suíte e das fixtures | `@@SUITE@@` |
+| Versões | Chromium 159.0.8154.6, Firefox 159.0, WebKit 27.2, Playwright 1.65.2, axe-core 4.10.3 |
+| Matriz (seis pares) | Chromium, Firefox e WebKit: `file://` 85/85 e HTTP 86/86 em cada motor, zero eventos inesperados |
+| Paridade e oráculos | Paridade (`testar_paridade.sh`, pypdf × pdf.js): as 4 combinações iguais. Oráculos (`importador.py`): 26/26 |
+| Validador RF-17 | `referencia_casos.py` 80/80 e dados reais sem erro (6 exceções cadastradas, todas "pendente de conferência no Notion"); 17f no navegador: 84/84 nos seis pares |
+| Acessibilidade (axe, contraste, teclado) | `t_axe_recorte` sem ocorrência grave ou crítica nos três motores; contraste, alvos, refluxo a 320 px, foco e abas verdes (ver [DESIGN.md](DESIGN.md#acessibilidade)) |
+| Privacidade (requisições e sentinelas) | Nenhuma requisição fora da origem nos seis pares. Sonda avulsa com sentinelas no cabeçalho dos PDFs fictícios (nome, CPF, RG e matrícula): sem sentinela no arquivo baixado e no exportado, no armazenamento, nos cookies, no console, na página nem em URL ou corpo de requisição, em Chromium, Firefox e WebKit, por `file://` e HTTP (6 de 6 pares limpos) |
+| Desempenho (linha de base) | Sonda avulsa, Pixel 7 emulado em Chromium: abrir 100 ms e importar 544 ms (medianas de 7; ver RNF-10 em [REQUISITOS.md](REQUISITOS.md#5-requisitos-não-funcionais)) |
+| Páginas e documentos | Links relativos e âncoras dos documentos sem problema; diagramas regenerados sem diferença em relação aos SVGs versionados; busca de termos internos e de dados pessoais sem ocorrência (fora do que a seção "Limitações" abaixo aponta) |
+| Tentativas, falhas e intermitências declaradas | Ver abaixo |
+| Aceite | Candidato **verificado**; a aprovação para publicar (revisão independente e conferência do Notion) é registrada por quem mantém, no [PUBLICAR.md](PUBLICAR.md) |
+
+**Tentativas e intermitências.** Cada execução completa dos seis pares conta, e nenhuma repetição verde encerrou uma
+falha. Em desenvolvimento, cinco ocorrências intermitentes foram investigadas:
+
+1. Corrida do próprio kit com o seletor de arquivo no Chromium (3 de 11 execuções): corrigida com espera dirigida,
+   depois 10 de 10.
+2. Rolagem de 10 px ao recarregar a página no Chromium (4 de 20 recargas): defeito do app, corrigido; depois 0 de 40, com
+   teste que falhava antes.
+3. Cliques perdidos no WebKit (6 a 8 de 50): defeito do app, causado por uma correção de rolagem do foco, corrigido; depois
+   0 de 60, com teste que falhava antes.
+4. "Paleta ECI por trás" no WebKit por HTTP (1 de 5): a mesma causa da ocorrência 3, sem repetição depois da correção.
+5. Em `file://`, o evento `load` do WebKit chega de 17 a 65 ms antes de o app terminar de iniciar, porque o app espera a
+   tentativa de carregar o `perfil/perfil.js` opcional. **Declarada como intermitência de ambiente, não corrigida:** o kit
+   confere a prontidão logo após o `load`, registra o atraso em `avisos` e espera de forma dirigida. Por HTTP e nos
+   outros motores não ocorre. A conclusão sobre piora ou igualdade em relação à base não é possível com os dados.
+
+O Firefox por `file://` registra avisos de console do carregamento do `perfil/perfil.js` ausente, e por HTTP avisos de
+reordenação de microtarefas; nenhum é erro de página nem evento inesperado.
+
+**Hash final.** O commit que contém este registro difere de `@@HASH@@` só em arquivos de documentação. Antes de
+publicar, confirme com `git diff --stat @@HASH@@ <hash a publicar>` e repita a lista da seção 7 se algo além de
+documentação tiver mudado.
+
+**Limitações conhecidas do candidato.** A conferência dos dados no Notion ainda não foi feita (seis exceções do validador
+em [MANUTENCAO.md](MANUTENCAO.md)); leitor de tela real, Safari no Mac e iPhone real não foram verificados; as
+sentinelas de privacidade e o desempenho foram medidos por sonda avulsa, sem teste versionado; os casos 11a–11d e 06n
+não têm teste; o WebKit do Playwright no Windows não alcança links por Tab (seção 6); a suíte ainda traz, em nomes de
+casos, rótulos da inspeção de acessibilidade (por exemplo, `t_b1_estado_dos_cartoes`).
