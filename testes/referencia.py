@@ -25,8 +25,8 @@ EXCECOES = TESTES / "fixtures" / "excecoes-referencia.json"
 ARQUIVOS = {"horarios": "js/horarios.js", "guia": "js/guia.js",
             "database": "js/database.js", "optativas": "js/optativas.js"}
 EFEITOS = ("somente-informativo", "entra-no-calculo")
-CODIGO = re.compile(r"^[A-Z]{3}[A-Z0-9]{3}$")
-HORARIO = re.compile(r"^(seg|ter|qua|qui|sex) (\d{2})-(\d{2})$")
+CODIGO = re.compile(r"[A-Z]{3}[A-Z0-9]{3}")      # fullmatch: sem LF final nem dígitos fora de ASCII
+HORARIO = re.compile(r"(seg|ter|qua|qui|sex) ([0-9]{2})-([0-9]{2})")      # gramática estrita; fullmatch (o `$` aceitaria LF final)
 PRESENCAS = ("com", "sem", "depende")
 
 
@@ -71,7 +71,7 @@ class Leitor:
             return self.lista(caminho)
         if c in "\"'":
             return self.texto()
-        m = re.compile(r"-?\d+(?:\.\d+)?").match(self.t, self.i)
+        m = re.compile(r"-?[0-9]+(?:\.[0-9]+)?").match(self.t, self.i)
         if m:
             self.i = m.end()
             return float(m.group()) if "." in m.group() else int(m.group())
@@ -110,7 +110,7 @@ class Leitor:
         self.espaco()
         if self.t[self.i:self.i + 1] in "\"'":
             return self.texto()
-        m = re.compile(r"[A-Za-z_$][\w$]*|\d+").match(self.t, self.i)
+        m = re.compile(r"[A-Za-z_$][A-Za-z0-9_$]*|[0-9]+").match(self.t, self.i)
         if not m:
             self.erro(f"chave inesperada: {self.t[self.i:self.i + 20]!r}")
         self.i = m.end()
@@ -235,7 +235,7 @@ def valida_excecoes(excecoes):
 # ---------------------------------------------------------------- validação
 def data_iso(v):
     try:
-        return isinstance(v, str) and bool(re.fullmatch(r"\d{4}-\d{2}-\d{2}", v)) and bool(date.fromisoformat(v))
+        return isinstance(v, str) and bool(re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", v)) and bool(date.fromisoformat(v))
     except ValueError:
         return False
 
@@ -250,7 +250,7 @@ def valida_horarios_lista(lista, rot, erros):
         return
     vistos = set()
     for h in lista:
-        m = HORARIO.match(h) if isinstance(h, str) else None
+        m = HORARIO.fullmatch(h) if isinstance(h, str) else None
         if not m:
             erros.append(f"{rot}: horário malformado {h!r} (esperado 'ter 10-12': seg a sex, duas casas por hora)")
             continue
@@ -282,7 +282,7 @@ def valida(dados, duplicadas, excecoes, curriculo_ou_catalogo=None):
                 por_nome.setdefault((e.get("curso", 1), a, e["nome"]), []).append(n)
 
     def confere_codigo(curso, arq, codigo, rot):
-        if not (isinstance(codigo, str) and CODIGO.match(codigo)):
+        if not (isinstance(codigo, str) and CODIGO.fullmatch(codigo)):
             erros.append(f"{rot}: código com formato inválido {codigo!r}")
             return
         if codigo in conhecidos.get(curso, {}):
