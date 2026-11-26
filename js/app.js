@@ -1211,7 +1211,8 @@
     const semConteudo = !cs.some((c) => c.papel !== "horas");
     const repetidas = (e.status || "a pedir") === "indeferido" ? [] : cs.filter((c) => usosDe(c.code, getEq().indexOf(e)).length).map((c) => c.code);
     const pedidaFeita = concluido((M.regs[e.pedida] || []).reduce((a, r) => (FORCA[r.status] > FORCA[a] ? r.status : a), "pendente")) && (e.status || "") !== "deferido";
-    return { cs, ch, chPed, chOk: !chPed || ch >= chPed, velhas, imprecisas, semData, cr, semConteudo, repetidas, pedidaFeita };
+    const semCarga = cs.filter((c) => !chDe(c.code)).map((c) => c.code);   // carga indisponível: a soma não a inclui
+    return { cs, ch, chPed, semCarga, velhas, imprecisas, semData, cr, semConteudo, repetidas, pedidaFeita };
   }
 
   function renderPedidos() {
@@ -1270,7 +1271,10 @@
           ${a.cs.length > 1 ? `<button type="button" class="x" data-eqrmc="${k}:${j}" title="Tirar do pedido">×</button>` : ""}</div></div>`;
       }).join("") + `<div class="add add-cur"><input class="campo campo-sm" list="eq-cursadas" data-eqnovo="${k}" placeholder="+ cursada"><button type="button" class="mini-btn" data-eqaddc="${k}">juntar</button></div>`;
       const checks = [
-        a.chPed ? `<li class="${a.chOk ? "ok" : "alerta"}">${a.chOk ? "✓" : "✗"} C.H. ${a.ch} h ${a.chOk ? "≥" : "<"} ${a.chPed} h</li>` : "",
+        // D-01: a comparação de carga horária é orientação (a CEG 01/2017 pede conteúdo e orientação, não percentual): sem ✓/✗.
+        a.chPed ? `<li class="orientacao-carga">Carga horária: ${a.ch} h de ${a.chPed} h: ${a.ch < a.chPed ? "abaixo da carga da pedida" : a.ch === a.chPed ? "igual" : "acima"}</li>`
+          : `<li class="orientacao-carga">Carga horária da pedida indisponível</li>`,
+        a.semCarga.length ? `<li class="orientacao-carga">Carga horária indisponível para ${a.semCarga.map(esc).join(", ")}; a soma não a inclui.</li>` : "",
         a.semConteudo ? `<li class="alerta">✗ nenhuma cursada marcada como conteúdo</li>` : "",
         a.velhas.length ? `<li class="alerta">⚠ mais de 5 anos: ${a.velhas.map((v) => esc(v.code)).join(", ")}</li>` : "",
         a.imprecisas.length ? `<li class="alerta">Precisão insuficiente: só o ano é conhecido; pode passar de 5 anos (${a.imprecisas.map((v) => esc(v.code)).join(", ")}).</li>` : "",
@@ -1326,7 +1330,7 @@
       ${contas}
       <section class="sec">
         <h2>Pedidos de dispensa / equivalência</h2>
-        <p class="dica">Um pedido pode juntar várias cursadas para uma eletiva. Marque qual cursada traz o <b>conteúdo</b> e quais entram <b>só pelas horas</b>. O app soma a C.H. e avisa sobre o prazo de 5 anos (Res. CEG 01/2017).</p>
+        <p class="dica">Um pedido pode juntar várias cursadas para uma eletiva. Marque qual cursada traz o <b>conteúdo</b> e quais entram <b>só pelas horas</b>. O app soma a C.H. só como orientação e avisa sobre o prazo de 5 anos (Res. CEG 01/2017).</p>
         <table class="tabela"><thead><tr><th>Cursada(s)</th><th></th><th>Eletiva pedida</th><th>Checagens</th><th>Situação</th><th></th></tr></thead>
         <tbody>${linhasEq || `<tr><td colspan="6" class="vazio">Nenhum pedido.</td></tr>`}</tbody></table>
         <div class="add">

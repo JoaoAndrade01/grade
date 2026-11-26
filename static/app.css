@@ -852,3 +852,4 @@ dialog.dlg-eci:modal { overscroll-behavior: contain; }
 .nota-estimativa { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
 .rodape p { margin: 0 0 4px; }
 body:has(.paleta:not([hidden])) .rodape { padding-bottom: 84px; }
+.checks .orientacao-carga { color: var(--muted); }   /* D-01: orientação, sem estilo de aprovação ou falha */

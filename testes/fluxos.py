@@ -994,6 +994,69 @@ def t_pc03_manual_requisito(b):
     linhas, _ = nota({"periodos": []}, {"MAC118": "aprovada"}, "MAC128", "grade")            # dependente fora de qualquer período
     assert len(linhas) == 1 and "MAC118" in linhas[0], linhas
 
+# ------------------------------------------------------------------ D-01: carga horária como orientação
+def boa_com(*itens):
+    return {"emissao": "20/11/2026", "naoExplicitadasPresente": True, "naoExplicitadas": [
+        {"code": c, "name": f"Cursada fictícia {c}", "credits": 4, "ch": ch, "grau": "7.0"} for c, ch in itens]}
+
+def perfil_carga(cursadas, boa, pedida="EEL817", extra_periodos=()):
+    codigos = [c["code"] if isinstance(c, dict) else c for c in cursadas]
+    return {"periodos": [{"nome": "2024/1", "disciplinas": [dict(XYZ101, code=c, name=f"Cursada fictícia {c}") for c in codigos]}, *extra_periodos],
+            "equivalencias": [{"cursadas": cursadas, "pedida": pedida, "status": "a pedir"}], "boa": boa}
+
+def checagens(pg):
+    completo(pg, "pedidos")
+    linha = pg.locator('.pedidos tr[class^="eq-"]').first
+    itens = linha.locator(".checks li")
+    return [{"texto": itens.nth(i).inner_text(), "classe": itens.nth(i).get_attribute("class") or ""} for i in range(itens.count())]
+
+def linha_carga(itens):
+    achadas = [x for x in itens if x["classe"].split() == ["orientacao-carga"]]
+    assert len(achadas) == 1, itens
+    return achadas[0]
+
+@caso("D-01 (03d–03f, 03g): a carga horária é orientação neutra, sem ✓/✗, e a pedida sem carga fica indisponível")
+def t_d01_carga(b):
+    for cenario, horas, esperado in (("03d", 45, "45 h de 60 h: abaixo da carga da pedida"), ("03e", 60, "60 h de 60 h: igual"),
+                                      ("03f", 75, "75 h de 60 h: acima")):
+        ctx, pg = abre(b, perfil=perfil_carga(["XYZ101"], boa_com(("XYZ101", horas))), nome=f"d01-{cenario}")
+        itens = checagens(pg)
+        carga = linha_carga(itens)
+        assert esperado in carga["texto"], (cenario, carga)
+        assert "✓" not in carga["texto"] and "✗" not in carga["texto"] and "C.H." not in carga["texto"], carga
+        assert not any(x["classe"] in ("ok", "alerta") and "carga" in x["texto"].lower() for x in itens), itens     # nenhuma aparência de aprovação ou falha
+        if cenario == "03d": foto(pg, "d01-carga-orientacao")
+        ctx.close()
+    pedida_sem_carga = {"nome": "2027/1", "planejado": True, "disciplinas": [{"code": "XYZ202", "name": "Pedida fictícia", "credits": 4, "category": 2}]}
+    ctx, pg = abre(b, perfil=perfil_carga(["XYZ101"], boa_com(("XYZ101", 60)), pedida="XYZ202", extra_periodos=[pedida_sem_carga]), nome="d01-03g")
+    carga = linha_carga(checagens(pg))
+    assert "Carga horária da pedida indisponível" in carga["texto"], carga
+    assert not re.search(r"igual|abaixo|acima|✓|✗", carga["texto"]), carga                      # nada é considerado cumprido
+    ctx.close()
+
+@caso("D-01 (03h, 03j): o sinal de conteúdo segue separado; carga de cursadas só por horas soma na orientação")
+def t_d01_conteudo(b):
+    cursadas = [{"code": "XYZ101", "papel": "horas"}, {"code": "ABC123", "papel": "horas"}]
+    ctx, pg = abre(b, perfil=perfil_carga(cursadas, boa_com(("XYZ101", 30), ("ABC123", 30))), nome="d01-03h")
+    itens = checagens(pg)
+    conteudo = [x for x in itens if "nenhuma cursada marcada como conteúdo" in x["texto"]]
+    assert len(conteudo) == 1 and conteudo[0] is not linha_carga(itens), itens                 # sinal separado da linha de carga
+    assert "60 h de 60 h: igual" in linha_carga(itens)["texto"]
+    ctx.close()
+    cursadas = [{"code": "XYZ101", "papel": "conteudo"}, {"code": "ABC123", "papel": "horas"}]
+    ctx, pg = abre(b, perfil=perfil_carga(cursadas, boa_com(("XYZ101", 45), ("ABC123", 15))), nome="d01-03j")
+    itens = checagens(pg)
+    assert "60 h de 60 h: igual" in linha_carga(itens)["texto"], itens
+    assert not any("conteúdo" in x["texto"] for x in itens), itens                             # nenhuma falta de conteúdo
+    ctx.close()
+    # carga de uma cursada indisponível: a soma não a inclui e isso aparece em linha própria, neutra
+    ctx, pg = abre(b, perfil=perfil_carga(["XYZ101", "ABC123"], boa_com(("XYZ101", 45), ("ABC123", 0))), nome="d01-cursada-sem-carga")
+    itens = checagens(pg)
+    sem = [x for x in itens if "Carga horária indisponível para ABC123" in x["texto"]]
+    assert len(sem) == 1 and sem[0]["classe"] == "orientacao-carga", itens
+    assert "45 h de 60 h: abaixo da carga da pedida" in linha_carga([x for x in itens if x not in sem])["texto"]
+    ctx.close()
+
 # ------------------------------------------------------------------ regressões gerais
 @caso("Regressões: abas, busca de optativas mantém foco, horários por clique, equivalências/ACE, exportação e recarga")
 def t_regressao(b):
@@ -1484,6 +1547,7 @@ CASOS = [
     t_d02_dois_numeros, t_d02_ausente_e_vazia, t_d02_outros_grupos, t_d02_importacao,
     t_rf08_faixa, t_rf08_notas_credito, t_rf08_periodo_atual, t_rf08_oferta, t_rf08_rodape, t_rf08_ace,
     t_pc02_manual_credito, t_pc03_manual_requisito,
+    t_d01_carga, t_d01_conteudo,
     t_regressao, t_a11y,
 ] + CASOS2 + CASOS3
 
