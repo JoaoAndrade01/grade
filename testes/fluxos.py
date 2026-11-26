@@ -1916,6 +1916,9 @@ def t_m6_somente_informativo(b):
     assert "Mapas (livre escolha)" in txt and ("cabe" in txt or "choca" in txt), txt
     assert lista.locator("button, [data-plan], [data-sugadd]").count() == 0       # nada para planejar ou incluir
     assert "Outras turmas na referência de 2027/1" in pg.locator("#painel").inner_text()
+    cos013 = pg.locator('.opt[data-code="COS013"]')                # "Comp 3" agora é a COS013, com horário e selo de referência
+    assert cos013.count() == 1
+    assert "ter 13-15, qui 13-15" in cos013.locator(".hor").inner_text() and "/1" in cos013.locator(".selo").inner_text()
     pg.click('[data-vista="cronograma"]'); pg.click('[data-cperiodo="2027/1"]')
     sug = pg.locator(".lista-sug").inner_text()
     for fora in ("EET100", "EEL891", "Mapas", "Estrutura de Dados"): assert fora not in sug, (fora, sug)
