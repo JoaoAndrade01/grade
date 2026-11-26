@@ -38,8 +38,8 @@ Como rodar os testes: [testes/README.md](../testes/README.md).
 | H7 | aluno que reingressou | ter o prazo de 5 anos contado pelo histórico do curso atual | não receber alertas falsos | RF-03, RF-06, RNF-05 |
 | H8 | aluno | acompanhar as horas de extensão sem contar a mesma atividade duas vezes | saber quanto falta de ACE | RF-01 |
 | H9 | aluno | escolher optativas vendo o guia dos colegas e os horários | montar um semestre que faça sentido | RF-11 |
-| H10 | aluno | saber que a Grade não é oficial, onde conferir e como relatar um erro | não decidir só por ela | RF-08, RNF-08 |
-| H11 | aluno | que os meus dados fiquem só no meu navegador e eu possa exportá-los | ter privacidade e não perder o trabalho | RNF-01, RF-12 |
+| H10 | aluno | saber que a Grade não é oficial, onde conferir e como relatar um erro | não decidir só por ela | RF-08, RF-14, RNF-08 |
+| H11 | aluno | que os meus dados fiquem só no meu navegador e eu possa exportá-los | ter privacidade e não perder o trabalho | RNF-01, RF-06, RF-12 |
 | H12 | aluno curioso ou calouro | ver como as disciplinas do curso aparecem no próprio site | me motivar a cursá-las | RF-13 |
 | H13 | aluno que quer contribuir | saber como propor uma experiência e rodar os testes | colaborar sem quebrar nada | [CONTRIBUTING.md](../CONTRIBUTING.md), RNF-07 |
 | H14 | mantenedor | atualizar horários e currículo a cada semestre com segurança | a Grade continuar certa | [MANUTENCAO.md](MANUTENCAO.md), RF-17, RNF-07, RNF-08 |
@@ -62,7 +62,7 @@ Disciplinas, por Pull Request revisado por uma pessoa.
 | H7 | 03i, 06h–06m | [RF-03](#rf-03--análise-de-um-pedido-de-equivalência-ra-07-ra-09-ra-11-ra-12-ra-21), [RF-06](#rf-06--importação-do-siga-ra-05-ra-06-ra-17-ra-19-ra-21) |
 | H8 | 01c–01f, 06m (01g na versão seguinte) | [RF-01](#rf-01--progresso-por-grupo-ra-01-ra-05-ra-06-ra-16), [RF-06](#rf-06--importação-do-siga-ra-05-ra-06-ra-17-ra-19-ra-21) |
 | H9 | 11a–11d | [RF-11](#rf-11--optativas-guia-e-oferta-h9) |
-| H10 | 08a–08k, 14g | [RF-08](#rf-08--aviso-de-que-a-grade-não-é-oficial-versão-e-relato-d-06), [RF-14](#rf-14--marcação-manual-aparência-tags-e-referências-h1-h3-h10) |
+| H10 | 08a–08l, 14g | [RF-08](#rf-08--aviso-de-que-a-grade-não-é-oficial-versão-e-relato-d-06), [RF-14](#rf-14--marcação-manual-aparência-tags-e-referências-h1-h3-h10) |
 | H11 | 06f–06g, 12a–12e, RNF-01 | [RF-06](#rf-06--importação-do-siga-ra-05-ra-06-ra-17-ra-19-ra-21), [RF-12](#rf-12--perfil-e-dados-locais-h11) |
 | H12 | 13a–13c | [RF-13](#rf-13--a-eci-por-trás-da-grade-h12) |
 | H13 | P13: seguir o `CONTRIBUTING.md` e propor uma experiência fictícia | [CONTRIBUTING.md](../CONTRIBUTING.md) |
@@ -130,7 +130,7 @@ histórico anterior. Os arquivos ficam no dispositivo.
 - **A6 · Terminal.** `ferramentas/gerar_perfil.py` gera o mesmo perfil. Com dois históricos e dúvida, exige
   `--atual` (06h). Ver [IMPORTADOR.md](IMPORTADOR.md).
 - **A7 · Só BOA.** Com disciplinas em curso, sem histórico nem período anterior: o período fica sem data e sem
-  a nota de dedução (08f).
+  a nota de dedução (08l).
 
 **Falhas**
 
@@ -345,7 +345,8 @@ sem sobreposição. A passada com leitor de tela real está no backlog ([MANUTEN
 | 08c · RA-13 | P5 | Abrir o progresso e Pedidos | Nota de estimativa junto dos dois números de livre escolha de 05a |
 | 08d · RA-09 | Cursada com idade calculada (03a ou 03b) | Abrir o pedido e a tabela de livre escolha | Nota de estimativa junto da idade. A nota permanece enquanto a regra de reingresso (RA-21) não tiver sido implementada e testada; retirá-la depois é decisão registrada em [DECISOES.md](DECISOES.md) |
 | 08e · RA-19 | Perfil importado com período atual deduzido | Abrir a linha do tempo e a prévia de importação | Nota de estimativa no período atual. A nota volta ao reimportar os mesmos PDFs enquanto o semestre real deduzido for mantido |
-| 08f · RA-19 | Perfil com período atual informado pela pessoa; depois, importação só de BOA sem data inferível | Abrir a linha do tempo | **Sem** nota de período deduzido. Só BOA sem data inferível não gera nota nem campo `deduzido` |
+| 08f · RA-19 | Perfil com período atual informado pela pessoa | Abrir a linha do tempo | **Sem** nota de período deduzido |
+| 08l · RA-19 | Navegador sem perfil | Importar só o BOA, com disciplinas em curso e sem data inferível; abrir a linha do tempo | O período fica sem data, sem nota de dedução e sem campo `deduzido` |
 | 08g · RA-20 | 07a | Abrir a linha do tempo e o Cronograma | Nota de estimativa no aviso de oferta |
 | 08h · RA-20 | MAC238 planejada em 2027/1, sem horários no perfil | Abrir o Cronograma e adotar a referência | Antes, o item está sem horário e a referência traz ter e qui 10–12, a fonte, a data e a nota. Depois, os horários ficam gravados como iguais à referência |
 | 08i · versão e currículo | Modo clássico e modo completo | Ler o rodapé | Exibe `v2.0.0` e a data `consultado` de `js/database.js`. A data representa o recorte de conferência descrito nas [regras acadêmicas](REGRAS-ACADEMICAS.md#fontes) |
