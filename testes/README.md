@@ -1,10 +1,21 @@
 # Testes da Grade ECI
 
-A suíte tem 81 cenários de interface e cinco do kit de reimportação. Os casos A–D
-testam a preservação de anotações e a igualdade entre baixar e aplicar. O caso P
-ensaia a publicação com HTTP estático sob `/grade/`. Por `file://`, rodam 85
-cenários. Por HTTP, rodam 86. Os casos B1 a B9, M3 e M6 e o do axe-core vêm da
-inspeção de UX e acessibilidade (B2.5).
+A verificação de uma versão reúne cinco suítes. O plano, a matriz de rastreabilidade e a lista de verificação estão em
+[docs/PLANO-DE-TESTE.md](../docs/PLANO-DE-TESTE.md); os casos, em [docs/REQUISITOS.md](../docs/REQUISITOS.md).
+
+| Suíte | O que verifica | Arquivos | Como rodar | Resultado esperado |
+| --- | --- | --- | --- | --- |
+| Interface (matriz) | Os casos dos requisitos no navegador, com dados fictícios | `runner.py`, `fluxos.py`, `reimportacao.py`, `auditoria.py` | "Rodar a matriz", nos seis pares | 85 cenários por `file://` e 86 por HTTP, sem evento inesperado |
+| Paridade do importador | Que o importador em JavaScript e o em Python geram o mesmo perfil | `../ferramentas/testar_paridade.sh` | "Rodar a paridade do importador" | As quatro combinações iguais |
+| Oráculos do importador | Que as duas saídas batem com perfis esperados escritos à mão | `importador.py`, `fixtures/oraculos.json` | `python -B testes/importador.py` | Todos os cenários verdes |
+| Validador dos dados de referência (RF-17) | Formato, códigos e duplicatas de `js/horarios.js` e `js/guia.js` | `referencia_casos.py`, `referencia.py`, `fixtures/excecoes-referencia.json` | "Validar os dados de referência" | Todos os casos verdes |
+| Acessibilidade (axe-core) | Regras WCAG A e AA, contraste, alvos e papéis ARIA, no recorte de telas | casos de `fluxos.py` que usam o axe | Dentro da matriz; "Axe-core" | Sem ocorrência grave ou crítica |
+
+A matriz reúne 81 cenários de interface (`fluxos.py`) e os cinco do kit de reimportação. Os casos A a D testam a
+preservação de anotações e a igualdade entre baixar e aplicar; o caso P ensaia a publicação com HTTP estático sob
+`/grade/` e só roda por HTTP, por isso a contagem é 85 por `file://` e 86 por HTTP. Os casos de acessibilidade (foco,
+nomes, contraste, refluxo, alvos, papéis ARIA, mensagens do PDF e o recorte do axe) e o de turmas sem código vêm da
+inspeção de experiência de uso e acessibilidade feita antes da publicação.
 
 O executor testa a versão indicada por `--ref`. Ele exporta apenas os caminhos
 públicos do commit para uma cópia fora do checkout. Os PDFs são gerados das
@@ -67,13 +78,13 @@ O axe-core fica fora do repositório. Instale a versão 4.10.3 numa pasta irmã 
 checkout (`.b11-runtime/axe`) ou aponte `GRADE_AXE` para o `axe.min.js`:
 
 ```powershell
-New-Item -ItemType Directory -Force "$gradeRuntimexe" | Out-Null
-npm install --prefix "$gradeRuntimexe" axe-core@4.10.3
-$env:GRADE_AXE = "$gradeRuntimexe
-ode_modulesxe-corexe.min.js"   # opcional: este é o caminho padrão
+$gradeAxe = Join-Path $gradeRuntime 'axe'
+New-Item -ItemType Directory -Force $gradeAxe | Out-Null
+npm install --prefix $gradeAxe axe-core@4.10.3
+$env:GRADE_AXE = Join-Path $gradeAxe 'node_modules/axe-core/axe.min.js'   # opcional: este é o caminho padrão
 ```
 
-Os casos B6, B8 e B9 e o caso "Axe-core no recorte da inspeção" usam o axe. Sem
+Os casos de contraste, de alvos e de papéis ARIA e o caso "Axe-core no recorte da inspeção" usam o axe. Sem
 ele, esses casos falham com a mensagem do caminho procurado.
 
 ## Validar os dados de referência
