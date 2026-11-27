@@ -1830,7 +1830,8 @@
     const te = window.TEMA ? window.TEMA.escolha() || "sistema" : "sistema";
     const radio = (nome, v, rot, marcado) => `<label class="opcao"><input type="radio" name="${nome}" value="${v}"${marcado ? " checked" : ""}> ${rot}</label>`;
     $("#config-corpo").innerHTML = `
-      <h1 id="dlg-config-titulo" class="dlg-titulo">${icone("configuracoes", 20)} Configurações</h1>
+      <div class="dlg-cabeca"><h1 id="dlg-config-titulo" class="dlg-titulo">${icone("configuracoes", 20)} Configurações</h1>
+        <button type="submit" value="" class="dlg-x" aria-label="Fechar Configurações" title="Fechar (Esc)"><span aria-hidden="true">×</span></button></div>
       <p class="dlg-texto">As escolhas valem na hora e ficam salvas neste navegador. Fixe um item para ele aparecer também na barra do topo; ele continua aqui.</p>
       <section class="cfg-sec" aria-labelledby="cfg-h-perfil"><h2 id="cfg-h-perfil">Perfil e dados</h2>
         ${linhaAtalho("perfil")}${linhaAtalho("importar")}${linhaAtalho("privacidade")}
@@ -2525,14 +2526,44 @@
       d.showModal();
     });
   }
+  /** Fecha o diálogo modal com clique (ou toque) no fundo, fora da janela; começar o gesto dentro não conta. */
+  function fechaAoClicarFora(d) {
+    const fora = (ev) => { const r = d.getBoundingClientRect(); return ev.clientX < r.left || ev.clientX > r.right || ev.clientY < r.top || ev.clientY > r.bottom; };
+    let comecouFora = false;
+    d.addEventListener("pointerdown", (ev) => { comecouFora = ev.target === d && fora(ev); });
+    d.addEventListener("click", (ev) => { if (comecouFora && ev.target === d && fora(ev)) d.close(); comecouFora = false; });
+  }
+
+  // ---------- Novo período planejado (janela central, como "Excluir período") ----------
+  function abreDialogoPeriodo(sugestao) {
+    const d = $("#dlg-periodo"), campo = $("#periodo-nome");
+    campo.value = sugestao; campo.removeAttribute("aria-invalid"); $("#periodo-msg").textContent = "";
+    d.returnValue = "";
+    d.showModal(); campo.focus(); campo.select();
+  }
+  function criaPeriodo(ev) {
+    ev.preventDefault();
+    const campo = $("#periodo-nome"), nome = campo.value.trim();
+    const erro = !nomePeriodo(nome) ? "Informe o nome do período, por exemplo 2028/1."
+      : M.periodos.some((p) => p.nome === nome) ? `O período ${nome} já existe.` : null;
+    if (erro) { $("#periodo-msg").textContent = erro; campo.setAttribute("aria-invalid", "true"); campo.focus(); return; }
+    $("#dlg-periodo").close("ok");
+    if ((plano.removidos || []).includes(nome)) plano.removidos = plano.removidos.filter((x) => x !== nome);   // recria vazio
+    else plano.novos = (plano.novos || []).concat([{ nome, planejado: true }]);
+    plano.periodos[nome] = [];
+    cronoPeriodo = nome; save("cronoPeriodo", nome); save("plano", plano); montaModelo(); render();
+    focaPeriodo(nome);
+  }
   const focaPeriodo = (nome) => {
     const b = nome && document.querySelector(`[data-cperiodo="${CSS.escape(nome)}"]`);
     (b || $("#novo-periodo") || $("#painel")).focus();
   };
 
   // ---------- Configurações (aparência e tema) ----------
+  let abriuConfig = null;   // botão que abriu Configurações: recebe o foco de volta ao fechar
   function abreConfiguracoes() {
     const d = $("#dlg-config");
+    abriuConfig = document.activeElement;
     renderConfig();
     d.showModal();
     d.querySelector(".cfg-abrir").focus();
@@ -2776,13 +2807,7 @@
         const ult = M.periodos[M.periodos.length - 1];
         let sug = "";
         if (ult && /^(\d{4})\/(\d)$/.test(ult.nome)) { const [a, s] = ult.nome.split("/").map(Number); sug = s >= 2 ? `${a + 1}/1` : `${a}/2`; }
-        const nome = (prompt("Nome do novo período planejado:", sug) || "").trim();
-        if (!nomePeriodo(nome) || M.periodos.some((p) => p.nome === nome)) return;
-        if ((plano.removidos || []).includes(nome)) plano.removidos = plano.removidos.filter((x) => x !== nome);   // recria vazio
-        else plano.novos = (plano.novos || []).concat([{ nome, planejado: true }]);
-        plano.periodos[nome] = [];
-        cronoPeriodo = nome; save("cronoPeriodo", nome); save("plano", plano); montaModelo(); render();
-        return;
+        return abreDialogoPeriodo(sug);
       }
       const celula = t.closest(".cel");
       if (celula) { if (ev.detail === 0) ativaCelula(+celula.dataset.cel, false); return; }   // com o mouse, tratado no mousedown
@@ -3073,7 +3098,19 @@
     });
 
     // Configurações é redesenhada a cada abertura; ao fechar, sai do DOM (sem controles duplicados escondidos).
-    $("#dlg-config").addEventListener("close", () => { $("#config-corpo").innerHTML = ""; });
+    $("#dlg-config").addEventListener("close", () => {
+      if ($("#dlg-config").open) return;   // o evento chega depois: se a pessoa já reabriu, não apaga o conteúdo novo
+      $("#config-corpo").innerHTML = "";
+      // Nem todo navegador devolve o foco ao fechar um <dialog>; sem outro destino, volta ao botão que abriu.
+      if ((!document.activeElement || document.activeElement === document.body) && abriuConfig && abriuConfig.isConnected) abriuConfig.focus();
+    });
+    ["#dlg-config", "#dlg-periodo", "#dlg-confirma"].forEach((s) => fechaAoClicarFora($(s)));
+    $("#periodo-cancelar").addEventListener("click", () => $("#dlg-periodo").close());
+    $("#form-periodo").addEventListener("submit", criaPeriodo);
+    $("#dlg-periodo").addEventListener("close", () => {
+      const b = $("#novo-periodo");
+      if ((!document.activeElement || document.activeElement === document.body) && b) b.focus();
+    });
     // Tema: o atalho sol/lua mostra a ação disponível; Configurações acompanha a escolha.
     if (window.TEMA) window.TEMA.aoMudar(() => { renderAtalhos(); atualizaConfig(); });
 

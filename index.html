@@ -94,6 +94,20 @@
   <dialog id="dlg-config" class="dlg dlg-config" aria-labelledby="dlg-config-titulo">
     <form method="dialog" id="config-corpo"></form>
   </dialog>
+  <!-- Cronograma: novo período planejado (mesma janela central de "Excluir período"). -->
+  <dialog id="dlg-periodo" class="dlg" aria-labelledby="dlg-periodo-titulo" aria-describedby="dlg-periodo-dica">
+    <form method="dialog" id="form-periodo" novalidate>
+      <h1 id="dlg-periodo-titulo" class="dlg-titulo">Adicionar período</h1>
+      <p id="dlg-periodo-dica" class="dlg-texto">O período novo entra no planejamento, vazio. Fica só neste navegador até você exportar o perfil.</p>
+      <label class="rotulo" for="periodo-nome">Nome do período</label>
+      <input id="periodo-nome" class="campo" maxlength="20" autocomplete="off" spellcheck="false" placeholder="ex.: 2028/1" aria-describedby="periodo-msg">
+      <p id="periodo-msg" class="msg-campo" aria-live="polite"></p>
+      <div class="dlg-acoes">
+        <button type="button" class="btn" id="periodo-cancelar">Cancelar</button>
+        <button type="submit" value="ok" class="btn btn-escuro" id="periodo-ok">Adicionar período</button>
+      </div>
+    </form>
+  </dialog>
   <!-- "A ECI por trás da Grade": experiência em tela cheia sobre a Grade (js/eci.js). -->
   <dialog id="dlg-eci" class="dlg-eci" aria-labelledby="dlg-eci-titulo">
     <div class="eci-barra">

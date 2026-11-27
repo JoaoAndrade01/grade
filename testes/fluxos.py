@@ -236,6 +236,67 @@ def t_siga_sem_boa(b):
     ctx.close()
 
 # ------------------------------------------------------------------ excluir período
+def centro_da_janela(pg, sel):
+    r = pg.locator(sel).bounding_box(); v = pg.viewport_size
+    return abs(r["x"] + r["width"] / 2 - v["width"] / 2) < 30 and abs(r["y"] + r["height"] / 2 - v["height"] / 2) < 60
+
+@caso("Configurações: fecha pelo X no topo, por clique fora e por Esc; o foco volta ao botão que abriu")
+def t_config_fechar(b):
+    ctx, pg = abre(b, perfil=PERFIL, nome="config-fechar")
+    observado = {}
+    for jeito in ("x-mouse", "x-teclado", "fora", "esc"):
+        pg.focus("#btn-config"); pg.keyboard.press("Enter")
+        dlg = pg.locator("#dlg-config"); expect(dlg).to_be_visible()
+        x = pg.locator("#dlg-config .dlg-x")
+        assert x.get_attribute("aria-label") == "Fechar Configurações"
+        if jeito == "x-mouse":
+            r = dlg.bounding_box(); pg.mouse.click(r["x"] + 6, r["y"] + r["height"] - 6)     # clique dentro (borda interna) não fecha
+            expect(dlg).to_be_visible()
+            assert x.bounding_box()["y"] - r["y"] < 40, "o X fica no topo"
+            x.click()
+        elif jeito == "x-teclado":
+            pg.keyboard.press("Shift+Tab")
+            for _ in range(40):
+                if pg.evaluate("document.activeElement.classList.contains('dlg-x')"): break
+                pg.keyboard.press("Tab")
+            pg.keyboard.press("Enter")
+        elif jeito == "fora":
+            pg.mouse.click(8, pg.viewport_size["height"] - 8)
+        else:
+            pg.keyboard.press("Escape")
+        try: expect(dlg).to_be_hidden()
+        except AssertionError: raise AssertionError(f"{jeito}: Configurações continua aberta; foco em {descreve_foco(pg)}")
+        observado[jeito] = pg.evaluate("document.activeElement.id")
+    ctx.close()
+    assert observado == {"x-mouse": "btn-config", "x-teclado": "btn-config", "fora": "btn-config", "esc": "btn-config"}, observado
+
+@caso("Períodos: Adicionar e Excluir usam a mesma janela central; validação, teclado e foco")
+def t_periodo_janela(b):
+    for vp in (D, C):
+        ctx, pg = abre(b, vp=vp, perfil=PERFIL, nome=f"periodo-janela-{vp['width']}")
+        completo(pg, "cronograma")
+        pg.locator("#novo-periodo").press("Enter")
+        dlg = pg.locator("#dlg-periodo"); expect(dlg).to_be_visible()
+        assert centro_da_janela(pg, "#dlg-periodo"), dlg.bounding_box()
+        assert pg.evaluate("document.activeElement.id") == "periodo-nome"
+        assert pg.locator("#periodo-nome").input_value() == "2028/1"                 # sugestão: o semestre seguinte ao último
+        pg.keyboard.press("Escape"); expect(dlg).to_be_hidden()
+        assert pg.evaluate("document.activeElement.id") == "novo-periodo"
+        assert pg.locator('[data-cperiodo="2028/1"]').count() == 0
+        pg.click("#novo-periodo"); pg.fill("#periodo-nome", "2027/1"); pg.press("#periodo-nome", "Enter")
+        expect(dlg).to_be_visible(); expect(pg.locator("#periodo-msg")).to_contain_text("já existe")
+        assert pg.locator("#periodo-nome").get_attribute("aria-invalid") == "true"
+        pg.fill("#periodo-nome", "  "); pg.click("#periodo-ok"); expect(pg.locator("#periodo-msg")).to_contain_text("Informe")
+        pg.fill("#periodo-nome", "2028/1"); pg.press("#periodo-nome", "Enter"); expect(dlg).to_be_hidden()
+        expect(pg.locator('[data-cperiodo="2028/1"]')).to_have_attribute("aria-pressed", "true")
+        assert pg.evaluate("document.activeElement.dataset.cperiodo") == "2028/1"
+        if vp is D: foto(pg, "periodo-adicionado")
+        pg.locator("#excluir-periodo").press("Enter")
+        expect(pg.locator("#dlg-confirma")).to_be_visible()
+        assert centro_da_janela(pg, "#dlg-confirma"), pg.locator("#dlg-confirma").bounding_box()
+        pg.keyboard.press("Escape"); expect(pg.locator("#excluir-periodo")).to_be_focused()
+        ctx.close()
+
 @caso("Excluir período: importado e local, confirmação com contagem, persiste, sai da exportação, protege atual, Descartar distinto")
 def t_excluir(b):
     ctx, pg = abre(b, perfil=PERFIL, nome="excluir")
@@ -260,7 +321,7 @@ def t_excluir(b):
     with pg.expect_download() as d: pg.click("#exportar")
     exp = pathlib.Path(d.value.path()).read_text(encoding="utf-8"); assert '"nome":"2027/1"' not in exp and '"nome":"2027/2"' in exp
     # período local novo
-    pg.once("dialog", lambda di: di.accept("2028/1")); pg.click("#novo-periodo")
+    pg.click("#novo-periodo"); pg.fill("#periodo-nome", "2028/1"); pg.press("#periodo-nome", "Enter")
     expect(pg.locator('[data-cperiodo="2028/1"]')).to_have_attribute("aria-pressed", "true")
     assert pg.locator("#descartar").count() == 0                     # local: só Excluir
     pg.click("#excluir-periodo"); assert "O período está vazio" in pg.locator("#dlg-confirma-texto").inner_text()
@@ -1914,7 +1975,7 @@ CASOS3 = [t_fecha_durante_leitura, t_previa_confirmacao, t_previa_download, t_fo
 
 CASOS = [
     t_descartar_salvo, t_tema, t_tema_abas, t_sem_perfil, t_criar_perfil, t_perfil_conflito,
-    t_compat, t_siga, t_siga_sem_boa, t_excluir, t_oferta, t_mac,
+    t_compat, t_siga, t_siga_sem_boa, t_excluir, t_periodo_janela, t_config_fechar, t_oferta, t_mac,
     t_cr01_pre, t_cr01_co, t_cr01_sugestoes, t_cr01_proposta, t_cr01_equivalencia, t_cr05_transferida_requisito, t_timeline_detalhes_e_clique, t_timeline_transferidas, t_cr01_manual,
     t_cr03_historico, t_cr03_lista,
     t_cr04_reingresso, t_cr04_ordem_dos_arquivos, t_cr04_escolha_sem_datas, t_pc05_datas_ausentes, t_cr04_troca_recalcula_planos, t_cr04_ace_duas_ocorrencias, t_cr04_controles, t_pc05_perfil_antigo_duvida, t_cr04_papel, t_cr04_fronteira,

@@ -750,6 +750,15 @@ dialog.dlg:modal { overscroll-behavior: contain; }
    ===================================================================== */
 .dlg { overflow: auto; }
 .dlg-config { width: min(620px, calc(100vw - 24px)); }
+.dlg-cabeca { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.dlg-config .dlg-cabeca { position: sticky; top: -20px; z-index: 1; margin: -20px -22px 0; padding: 20px 22px 6px; background: var(--surface); }
+.dlg-x {
+  flex: none; display: grid; place-items: center; min-width: 40px; min-height: 40px; margin: -6px -8px 0 0;
+  font: inherit; font-size: 24px; line-height: 1; color: var(--text); background: transparent;
+  border: 1px solid transparent; border-radius: 8px; cursor: pointer;
+}
+.dlg-x:hover { border-color: var(--border); background: var(--surface-2); }
+.dlg-x:focus-visible { outline: 2px solid var(--foco); outline-offset: 1px; }
 .dlg-titulo .ico { vertical-align: -3px; }
 .cfg-sec { border-top: 1px solid var(--border); margin-top: 16px; padding-top: 10px; }
 .cfg-sec h2 { margin: 0 0 6px; font-size: 15px; }
