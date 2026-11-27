@@ -174,9 +174,9 @@ dispositivo (RNF-01).
 | RF-16 | Atualização do currículo a partir do SIGA | H14 | planejado |
 | RF-17 | Validação dos dados de referência | H14 | **Cumprido.** 17a a 17f: `testes/referencia_casos.py` (80 casos sintéticos e os dados reais) e, com `--browser`, o 17f nos seis pares; o 17f não tem controle negativo |
 | RF-18 | Aviso de dado desatualizado | H14 | planejado |
-| RF-19 | Previsão de formatura calculada | H4 | **Cumprido** no modo Foco. 19a a 19e: `t_motivacao` e os casos diretos de `node testes/progresso.js` |
+| RF-19 | Previsão de formatura calculada | H4 | **Parcial.** 19a a 19i: `t_motivacao`, `t_previsao_cobertura`, `t_previsao_equivalencia_prevista`, `t_equivalencia_vizinhos`, `t_equivalencia_encadeada` e `node testes/progresso.js`. Motivo: com o período atual sem semestre, o aviso de plano em período passado não aparece; com equivalências encadeadas, os créditos do plano podem sair inconsistentes (limitações conhecidas de PC-14) |
 | RF-20 | Modo Foco, fase do curso e conquistas | H3, H4 | **Cumprido.** 20a a 20l: `t_foco`, `t_motivacao`, `t_conquistas_estante` e os casos diretos de `node testes/progresso.js` (fronteiras de fase e um caso por selo) |
-| RF-21 | Registrar marcações (aprovações registradas por você) | H1, H3, H11 | **Cumprido.** R01 a R37: `t_registrar_sem_perfil`, `t_registrar_com_perfil`, `t_declaradas_modelo`, `t_declaradas_prazo_ace`, `t_declaradas_arquivo`, `t_declaradas_reimportar`, `t_declaradas_detalhe`, `t_declaradas_gestao`, `t_declaradas_lote_foco`, `t_declarada_cursando`, o oráculo `declaradas-mesclar`, a paridade com perfil anterior e `node testes/progresso.js`. Fase e selos (R27 a R29, R34): `node testes/progresso.js` e `t_motivacao` |
+| RF-21 | Registrar marcações (aprovações registradas por você) | H1, H3, H11 | **Parcial** (equivalências encadeadas; ver o fim desta linha). R01 a R37: `t_registrar_sem_perfil`, `t_registrar_com_perfil`, `t_declaradas_modelo`, `t_declaradas_prazo_ace`, `t_declaradas_arquivo`, `t_declaradas_reimportar`, `t_declaradas_detalhe`, `t_declaradas_gestao`, `t_declaradas_lote_foco`, `t_declarada_cursando`, o oráculo `declaradas-mesclar`, a paridade com perfil anterior e `node testes/progresso.js`. Fase e selos (R27 a R29, R34): `node testes/progresso.js` e `t_motivacao`. **Parcial** em equivalências encadeadas: quando o SIGA confirma a equivalência do meio, a data e a fonte da última podem sair inconsistentes; o pedido que usa a própria pedida como origem não é sinalizado (limitações conhecidas de PC-14) |
 
 ### RF-01 · Progresso por grupo (RA-01, RA-05, RA-06, RA-16)
 
@@ -504,6 +504,10 @@ obrigatórias (inclusive Projeto de Graduação e Estágio) e ACE em horas. O pl
 disciplina conta uma vez, na primeira ocorrência, e as horas de ACE planejadas contam no semestre delas. O semestre
 mostrado é o **primeiro** em que tudo fica coberto, marcado como estimativa. Nenhum número aparece sem aviso.
 
+**Estado: parcial.** Com o período atual sem semestre, o aviso de plano num período que já passou não aparece. Com
+equivalências encadeadas, os créditos do plano podem sair inconsistentes. Ver as limitações conhecidas de
+[PC-14](DECISOES.md#pc-14--registrar-marcações-aprovações-registradas-por-você).
+
 | Caso | Situação | Ação | Resultado esperado |
 | --- | --- | --- | --- |
 | 19a | Plano que cobre créditos, obrigatórias e ACE | Ligar o Foco | "No seu plano, você forma em AAAA/n (estimativa)" |
@@ -540,6 +544,11 @@ O 🎯 Foco fica na barra do topo e funciona no Planejador. Totais, barra e plan
 O pincel continua simulação. "Registrar marcações" grava as marcações aprovadas como "Aprovação registrada por
 você" no campo `aprovacoesDeclaradas` do perfil ([PERFIL.md](PERFIL.md)). Elas contam para fase e conquistas com a
 marca "declarado" e nunca aparecem como registro do SIGA. Regras em [REGRAS-ACADEMICAS.md](REGRAS-ACADEMICAS.md).
+
+**Estado: parcial em equivalências encadeadas.** Quando uma equivalência é origem de outra e o SIGA confirma a do meio,
+a data e a fonte da última podem sair inconsistentes; um pedido que usa a própria pedida como origem não é sinalizado e
+pode retirar créditos. A Grade não bloqueia esses pedidos. Ver as limitações conhecidas de
+[PC-14](DECISOES.md#pc-14--registrar-marcações-aprovações-registradas-por-você).
 
 | Casos | Situação | Resultado esperado |
 | --- | --- | --- |

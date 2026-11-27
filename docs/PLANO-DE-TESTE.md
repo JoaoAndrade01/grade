@@ -76,8 +76,10 @@ transferida com e sem `aprovadaEm`, declarada com e sem semestre, prevista e em 
 co-requisito em oito semestres; prazo × requisito por tipo de origem, direto e em pedida de pedida; prevista e em curso em
 período passado, atual e futuro; pedido deferido, a pedir e em análise com origem aprovada, ausente e reprovada; desempate
 do período exibido em todas as permutações de duas e três origens); invariância: o mesmo resultado (status, fontes,
-datas, prazo, período, cobertura, previsão e selos) em 24 embaralhamentos de pedidos, origens, itens de período e
-declaradas, com pedidos encadeados, ciclo, plano no passado e registros repetidos da mesma origem).
+datas, prazo, período, pendentes, cobertura, previsão e selos) em 24 embaralhamentos de pedidos, origens, itens e ordem
+dos períodos, declaradas, ACE e edições do plano, com pedidos encadeados, ciclo, plano no passado, registros repetidos da
+mesma origem, dois blocos de transferidos e itens que convergem para o mesmo código; ficam de fora, por limitação
+conhecida de PC-14, a cadeia com a equivalência do meio confirmada pelo SIGA e o pedido que usa a própria pedida).
 
 **Lacunas conhecidas** (também marcadas na matriz): os casos 11a–11d (resultado dos filtros e do guia nas
 optativas) e o 06n (atividade em curso desconhecida) **não têm teste automatizado**; os casos 12c a 12e e 14e a 14g

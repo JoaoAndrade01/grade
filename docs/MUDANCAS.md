@@ -145,6 +145,12 @@ duplicatas de `js/horarios.js` e `js/guia.js`, e lista as turmas sem código. O 
   estimativa a partir do seu plano. O prazo máximo de integralização não é calculado.
 - **Aprovações registradas por você.** São informação sua, não registro do SIGA. Uma versão anterior do app ou do
   importador de terminal não conhece o campo e o perde ao reimportar.
+- **Equivalências encadeadas.** Quando uma equivalência é usada como origem de outra, a data, a fonte ou os créditos da
+  última podem sair inconsistentes, principalmente quando o SIGA confirma a equivalência do meio. Um pedido que usa a
+  própria pedida como origem não é sinalizado e pode retirar créditos. Ciclos maiores são sinalizados, mas o aviso fala
+  em "uso em duplicidade". A Grade não bloqueia esses pedidos; confira com a coordenação
+  ([DECISOES.md](DECISOES.md#pc-14--registrar-marcações-aprovações-registradas-por-você)).
+- **Plano num período que já passou.** Com o período atual sem semestre, o aviso não aparece.
 - **Navegação por teclado nos links do Safari.** A verificação automatizada de Tab nos links cobre Chromium e Firefox; o
   Safari no Mac, o iPhone real e a passada com leitor de tela estão pendentes
   ([PLANO-DE-TESTE.md](PLANO-DE-TESTE.md#6-limite-do-ambiente-webkit)).

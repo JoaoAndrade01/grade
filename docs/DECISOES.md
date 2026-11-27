@@ -378,6 +378,11 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
       B a de A) ficam em conflito, sinalizados, e não registram nada; os demais seguem.
     - *consumo:* a cursada ou a pedida usada por um pedido deferido é consumida: não soma créditos no próprio grupo nem
       entra de novo no plano. Só a pedida final conta.
+  - **Ordem fixa fora das equivalências:** nada depende da ordem dos períodos, dos itens ou dos pedidos.
+    - *Mesma disciplina em mais de um registro:* vale o mais recente pelo semestre, depois pela base do prazo e pelo nome
+      do período. Com dois blocos de transferidos, o prazo usa o mais recente, que é o do curso atual (D-03, PC-05).
+    - *Dois itens do plano para a mesma disciplina no mesmo semestre:* conta a origem de menor código.
+    - *Dois pedidos pendentes para a mesma pedida:* "em análise" vence "a pedir"; depois, o de menor pedida e cursadas.
   - **Semestre ausente:** requisito pelo limite de `registradoEm` (pré-requisito depois dele; co-requisito também nele),
     com aviso no próprio semestre; o prazo de cinco anos fica "Data de aprovação não confirmada", sem idade e sem data
     inventada. D-03 e D-08 não são reabertas.
@@ -387,6 +392,13 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
     no detalhe, no detalhamento e na Linha do tempo (coluna "Registradas por você · sem semestre").
 - **Consequências:** RF-21 (casos R01 a R37) e RF-12. Campo em [PERFIL.md](PERFIL.md); regras em
   [REGRAS-ACADEMICAS.md](REGRAS-ACADEMICAS.md); cópia no importador em [IMPORTADOR.md](IMPORTADOR.md).
+- **Limitações conhecidas** (a Grade não bloqueia nada; confira estes casos com a coordenação):
+  - *Equivalências encadeadas:* quando uma equivalência é usada como origem de outra, a data, a fonte ou os créditos da
+    última podem sair inconsistentes, principalmente quando o SIGA confirma a equivalência do meio.
+  - *Pedido que usa a própria pedida como origem:* não é sinalizado e pode retirar créditos da conta.
+  - *Ciclos maiores* (A usa a pedida de B, B a de C, C a de A): são sinalizados, mas o aviso fala em "uso em
+    duplicidade", não em ciclo.
+  - *Período atual sem semestre:* o aviso de plano num período que já passou não aparece.
 
 ## Publicação e processo
 
