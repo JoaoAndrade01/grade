@@ -2186,7 +2186,7 @@ def t_b1_estado_dos_cartoes(b):
         estados = [pg.locator(f'.card[data-code="{c}"] .estado').inner_text() for c in ("COS110", "MAC118", "COS360", "MAC238")]
         assert len(set(estados)) == 4, estados                      # estados diferentes não repetem o mesmo texto
         assert pg.locator('.card[data-code="MAC248"] .estado').count() == 0, textos["MAC248"]
-        # o texto vale também no completo (linha do tempo, cartões com a situação)
+        # o texto vale também no Planejador (linha do tempo, cartões com a situação)
         completo(pg, "timeline")
         assert "Aprovada" in pg.locator('.card[data-code="COS110"]').first.inner_text()
         ctx.close()

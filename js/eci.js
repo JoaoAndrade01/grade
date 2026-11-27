@@ -101,7 +101,7 @@
       </header>
       <h3 class="eci-sub">Como entrar</h3>
       <ol class="eci-passos">
-        <li>No modo completo, abra a aba <b>Grade</b>.</li>
+        <li>No <b>Planejador</b>, abra a aba <b>Grade</b>.</li>
         <li>Na paleta, ligue <b>${icone("eci", 14)} ECI por trás</b>. As disciplinas com experiência ficam destacadas e as outras ficam inativas.</li>
         <li>Escolha um cartão destacado. A experiência abre em tela cheia; <b>Voltar</b> ou Esc retornam ao cartão.</li>
       </ol>
