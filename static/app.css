@@ -179,6 +179,15 @@ code { background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
 .card.s-previsto, .card.s-planejado { border-style: dashed; }
 .card.s-reprovado { border-style: dotted; }
 .card.s-reprovado .nome { text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--reprovado) 60%, transparent); }
+/* transferida mostrada no semestre original: listras discretas e etiqueta (o texto diz o que é; a cor só reforça) */
+.card.transferida {
+  background: repeating-linear-gradient(135deg, var(--st-bg) 0 7px, color-mix(in srgb, var(--muted) 9%, var(--st-bg)) 7px 14px);
+  border-style: dashed;
+}
+.card .etq-transferida {
+  display: inline-block; padding: 0 5px; border-radius: 6px; border: 1px solid var(--borda-forte);
+  color: var(--text); background: var(--surface); font-size: 10.5px;
+}
 /* blocos genéricos parcialmente cumpridos */
 .card[style*="--ok"] {
   background:

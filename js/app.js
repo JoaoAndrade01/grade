@@ -832,7 +832,7 @@
       o.idx != null ? `data-idx="${o.idx}"` : "",
       o.inerte ? "inert" : "",
       o.fill ? `style="--ok:${o.fill.ok}%;--prev:${o.fill.prev}%;--plan:${o.fill.plan}%"` : "",
-      `title="${esc(ROTULO[o.status] || "")}${temAviso ? " — " + esc(o.aviso.join("; ")) : ""}"`,
+      `title="${esc(ROTULO[o.status] || "")}${o.titulo ? " · " + esc(o.titulo) : ""}${temAviso ? " — " + esc(o.aviso.join("; ")) : ""}"`,
     ].join(" ");
     const nota = o.nota != null && o.nota !== "" ? (typeof o.nota === "number" ? o.nota.toFixed(1) : o.nota) : null;
     return `<button type="button" ${attrs}>
@@ -1030,14 +1030,41 @@
       Também dá para carregar um <code>perfil.js</code> pronto pelo painel de importação.</p></div>`;
   }
 
+  /**
+   * Colunas da linha do tempo. A transferida com semestre original conhecido (`aprovadaEm`) aparece nele, com etiqueta;
+   * sem ele, fica no bloco. Só exibição: o prazo (D-03), os requisitos (D-08) e as contagens não mudam.
+   */
+  function colunasTimeline() {
+    const cols = M.periodos.map((p) => ({ p, nome: p.nome, semestre: p.semestre, tipo: p.tipo, itens: [] }));
+    const proprias = cols.slice(), porNome = new Map(cols.map((c) => [c.nome, c]));
+    M.periodos.forEach((p, k) => {
+      const ano = p.semestre == null ? anoDoBloco(p.nome) : null;
+      p.itens.forEach((it) => {
+        const reg = ano != null && (M.regs[it.alvo] || []).find((r) => r.pi === p.pi && r.aprovadaEm);
+        const original = reg && semestreValido(reg.aprovadaEm) ? reg.aprovadaEm : null;
+        if (!original) return proprias[k].itens.push({ it });
+        let c = porNome.get(original);
+        if (!c) {
+          const s = semIdx(original);
+          c = { p: null, nome: original, semestre: s, tipo: "cursado", itens: [], so: true };
+          const depois = cols.reduce((u, x, i) => (x.semestre != null && x.semestre < s ? i : u), -1);
+          cols.splice(depois + 1, 0, c); porNome.set(original, c);
+        }
+        c.itens.push({ it, bloco: ano });
+      });
+    });
+    return cols;
+  }
+
   function renderTimeline() {
     if (!M.periodos.length) return semPerfil("A linha do tempo mostra as disciplinas no período em que você cursou (ou planeja cursar).");
     let html = "";
-    M.periodos.forEach((p) => {
+    colunasTimeline().forEach((col) => {
+      const p = col.p || col;
       let cr = 0, temOferta = false;
-      const cards = p.itens.map((it) => {
+      const cards = col.itens.map(({ it, bloco }) => {
         if (it.status !== "reprovado" && it.category != 5) cr += it.credits;
-        const subs = [];
+        const subs = bloco != null ? [`<span class="etq-transferida">transferida · bloco ${bloco}</span>`] : [];
         if (it.equivale && M.curr[it.equivale]) subs.push(`≡ ${esc(it.equivale)} ${esc(M.curr[it.equivale].name)}`);
         if (it.dispensas.length) subs.push("dispensa " + it.dispensas.map(esc).join(", "));
         const aviso = p.tipo !== "cursado" && it.status !== "reprovado" ? avisos(it.alvo, p.semestre) : [];
@@ -1046,12 +1073,13 @@
         return card({
           code: it.alvo, name: it.name, cat: it.category, status: it.status, nota: it.nota,
           meta: metaDe(it.code, it.category == 5 ? it.horas : it.credits, it.category), sub: subs.join("<br>"), aviso,
+          ...(bloco != null ? { classe: "transferida", titulo: `transferida do curso anterior (bloco ${bloco})` } : {}),
         });
       }).join("");
       const tipoChip = { atual: `<span class="chip chip-atual">atual</span>`, planejado: `<span class="chip chip-plan">planejado</span>`, cursado: "" }[p.tipo];
       const chips = `${tipoChip}${p.nota ? `<span class="chip">${esc(p.nota)}</span>` : ""}<span class="chip">${fmt(cr)} cr</span>${p.editado ? `<span class="chip chip-alerta" title="Editado no navegador — exporte o perfil para salvar">editado</span>` : ""}`;
       const notas = (p.tipo === "atual" && p.deduzido ? notaHtml(NOTA_RA19) : "") + (temOferta ? notaHtml(notaRA20()) : "");
-      html += coluna(p.nome, chips, cards, `col-${p.tipo}`, notas);
+      html += coluna(p.nome, chips, cards, `col-${p.tipo}${col.so ? " col-original" : ""}`, notas);
     });
 
     const tot = totais();
@@ -1890,7 +1918,7 @@
     // Sem perfil válido, os indicadores de progresso ficam ocultos (a grade continua utilizável).
     $("#barra-geral").hidden = !perfil;
     if (perfil) renderBarraGeral();
-    const detalhado = !!perfil && (vista === "timeline" || progressoAberto);
+    const detalhado = !!perfil && progressoAberto;
     $("#progresso").hidden = !detalhado;
     const mostraLegenda = vista === "timeline" || detalhado;
     $("#legenda").hidden = !mostraLegenda;
@@ -2734,7 +2762,8 @@
       // cartões
       const el = t.closest(".card"); if (!el) return;
       if (seletorECI && el.dataset.code && window.ECI.tem(el.dataset.code)) return window.ECI.abre(el.dataset.code, contextoECI(), el);
-      if (pincel !== null && el.dataset.code) {
+      // O pincel só pinta na Grade; nas outras vistas o clique abre os detalhes.
+      if (pincel !== null && el.dataset.code && (modoClassico || vistaAtual === "grade")) {
         if (porToque() && consultado !== el.dataset.code && !protegida(el.dataset.code)) return consulta(el.dataset.code);
         consultado = null; return pinta(el.dataset.code);
       }

@@ -502,6 +502,61 @@ def t_cr05_transferida_requisito(b):
         "dois-historicos": False,
     }, observado
 
+@caso("Linha do tempo: 'detalhes' recolhe e expande; clique no cartão abre os detalhes mesmo com pincel escolhido na Grade")
+def t_timeline_detalhes_e_clique(b):
+    ctx, pg = abre(b, perfil=PERFIL, nome="timeline-detalhes")
+    completo(pg, "timeline")
+    observado = {"inicial": pg.locator("#progresso").is_visible()}
+    pg.click("#bg-detalhes"); observado["aberto"] = pg.locator("#progresso").is_visible()
+    pg.click("#bg-detalhes"); observado["fechado"] = pg.locator("#progresso").is_visible()
+    # Pincel escolhido na Grade não pinta (nem manda para "A alocar") na linha do tempo: o clique abre os detalhes.
+    pg.click('[data-vista="grade"]'); pg.click('#paleta [data-pincel="planejada"]')
+    pg.click('[data-vista="timeline"]')
+    codigo = pg.locator("#painel .col-cursado .card[data-code]").first.get_attribute("data-code")
+    antes = ls(pg, "marcacoes")
+    pg.locator(f'#painel .col-cursado .card[data-code="{codigo}"]').first.click()
+    observado["detalhes"] = pg.locator("#detalhes").is_visible()
+    observado["marcacoes-iguais"] = ls(pg, "marcacoes") == antes
+    observado["fora-de-alocar"] = pg.locator(f'#painel .col-alocar .card[data-code="{codigo}"]').count() == 0
+    ctx.close()
+    assert observado == {"inicial": False, "aberto": True, "fechado": False, "detalhes": True,
+                         "marcacoes-iguais": True, "fora-de-alocar": True}, observado
+
+@caso("Linha do tempo: transferida aparece no semestre original, com etiqueta; sem ele, fica no bloco; prazo e contagens iguais")
+def t_timeline_transferidas(b):
+    def colunas(pg):
+        return pg.evaluate("""() => [...document.querySelectorAll('#painel .coluna')].map((c) => [c.querySelector('h2').textContent,
+            [...c.querySelectorAll('.card[data-code]')].map((k) => k.dataset.code + (k.classList.contains('transferida') ? '*' : ''))])""")
+    def perfil(com_original):
+        bloco = [{"code": "MAC118", "nota": 7, **({"aprovadaEm": "2020/1"} if com_original else {})},
+                 {"code": "MAC128", "nota": 7, **({"aprovadaEm": "2020/2"} if com_original else {})}, {"code": "COS111", "nota": 8}]
+        return {"periodos": [{"nome": "2020/2", "disciplinas": [{"code": "FIS111", "nota": 7}]},
+                             {"nome": "2025 (transferidas)", "disciplinas": bloco},
+                             {"nome": "2026/2", "atual": True, "disciplinas": [{"code": "MAC238", "status": "cursando"}]}],
+                "equivalencias": [{"cursadas": ["MAC118"], "pedida": "COC602", "status": "a pedir"}]}
+    vistos = {}
+    for com_original in (True, False):
+        ctx, pg = abre(b, perfil=perfil(com_original), nome=f"timeline-transferidas-{com_original}", relogio=RELOGIO)
+        completo(pg, "timeline")
+        cols = colunas(pg)
+        if com_original:
+            assert [c[0] for c in cols][:4] == ["2020/1", "2020/2", "2025 (transferidas)", "2026/2"], cols
+            assert cols[0][1] == ["MAC118*"] and cols[1][1] == ["FIS111", "MAC128*"] and cols[2][1] == ["COS111"], cols
+            card = pg.locator('#painel .card.transferida[data-code="MAC118"]')
+            expect(card).to_contain_text("transferida")
+            assert "transferida" in card.get_attribute("title"), card.get_attribute("title")
+            foto(pg, "timeline-transferidas")
+        else:
+            assert [c[0] for c in cols][:3] == ["2020/2", "2025 (transferidas)", "2026/2"], cols
+            assert cols[1][1] == ["MAC118", "MAC128", "COS111"], cols
+        totais = pg.evaluate("JSON.stringify(GradeInterativa.totais())")
+        completo(pg, "pedidos")
+        linha = pg.locator('.pedidos tr[class^="eq-"]').first.inner_text()
+        assert "2025" in linha, linha                                              # prazo pelo ano do bloco (D-03)
+        vistos[com_original] = totais
+        ctx.close()
+    assert vistos[True] == vistos[False]
+
 @caso("PC-02/03: aprovação pelo pincel conta crédito e identifica a simulação")
 def t_cr01_manual(b):
     perfil = {"periodos": [
@@ -1776,7 +1831,7 @@ CASOS3 = [t_fecha_durante_leitura, t_previa_confirmacao, t_previa_download, t_fo
 CASOS = [
     t_descartar_salvo, t_tema, t_tema_abas, t_sem_perfil, t_criar_perfil, t_perfil_conflito,
     t_compat, t_siga, t_siga_sem_boa, t_excluir, t_oferta, t_mac,
-    t_cr01_pre, t_cr01_co, t_cr01_sugestoes, t_cr01_proposta, t_cr01_equivalencia, t_cr05_transferida_requisito, t_cr01_manual,
+    t_cr01_pre, t_cr01_co, t_cr01_sugestoes, t_cr01_proposta, t_cr01_equivalencia, t_cr05_transferida_requisito, t_timeline_detalhes_e_clique, t_timeline_transferidas, t_cr01_manual,
     t_cr03_historico, t_cr03_lista,
     t_cr04_reingresso, t_cr04_ordem_dos_arquivos, t_cr04_escolha_sem_datas, t_pc05_datas_ausentes, t_cr04_troca_recalcula_planos, t_cr04_ace_duas_ocorrencias, t_cr04_controles, t_pc05_perfil_antigo_duvida, t_cr04_papel, t_cr04_fronteira,
     t_cr02_pedidos, t_cr02_duas_dispensas, t_cr02_dispensa_unica, t_cr02_alvo_fora_do_catalogo,
@@ -2140,6 +2195,7 @@ def t_b6_contraste(b):
                 limite = 3 if borda else 4.5
                 if r is None: ruins.append((esq, s, "ausente"))
                 elif r < limite: ruins.append((esq, s, r))
+        pg.click("#bg-detalhes")                       # o detalhamento começa recolhido; mede aberto
         mede([(".prog-topo i", False), (".card.s-cursando .meta", False), (".chip-atual", False)])
         assert not axe_roda(pg, ["color-contrast"]), (esq, "timeline", axe_roda(pg, ["color-contrast"]))
         pg.click('[data-vista="optativas"]')
