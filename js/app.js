@@ -355,9 +355,12 @@
   // Foco (Planejador): ficam Grade, Linha do tempo e Cronograma; o concluído some e aparecem a fase e as conquistas.
   let foco = load("foco", false, (v) => typeof v === "boolean");
   let tom = load("tom", "zoeira", (v) => v === "zoeira" || v === "discreto");
-  const VISTAS_FOCO = ["grade", "timeline", "cronograma"];
-  const NOMES_VISTA = { optativas: "Optativas", pedidos: "Equivalências e Extensão / ACE", eci: "A ECI por trás da Grade" };
+  const VISTAS_FOCO = ["grade", "timeline", "cronograma", "conquistas"];
+  const NOMES_VISTA = { optativas: "Optativas", pedidos: "Equivalências e Extensão / ACE", eci: "A ECI por trás da Grade", conquistas: "Conquistas" };
+  // Aba Conquistas (Planejador): com o Foco ligado e, se Configurações → Conquistas permitir, também fora do Foco.
+  let conquistasFora = load("conquistasFora", false, (v) => typeof v === "boolean");
   const focoAtivo = () => foco && !modoClassico && !!perfil;
+  const abaConquistas = () => !modoClassico && (focoAtivo() || conquistasFora);
   let infoLivreAberta = false;      // explicação dos números da livre escolha (ⓘ do detalhamento), só nesta visita
   // Modo clássico (padrão ao abrir): só a grade inteira numa tela e a paleta para pintar.
   // Desligado = modo Planejador, com as abas (linha do tempo, optativas, cronograma, pedidos).
@@ -1902,6 +1905,15 @@
     return codes.map((c) => [c, (M.deps[c] || []).filter((d) => !concluido(statusDe(d)))]).sort((a, b) => b[1].length - a[1].length)[0] || null;
   }
   const htmlLibera = (lib) => lib.slice(0, 2).map((d) => `<span class="chip">🔓 ${esc((M.info(d) || {}).name || d)}</span>`).join("") + (lib.length > 2 ? `<span class="chip">+${lib.length - 2}</span>` : "");
+  const cursandoAgora = () => Object.keys(M.regs).filter((c) => statusDe(c) === "cursando" && !M.consumidas.has(c));
+  /** Fração do curso que o período em curso acrescenta se tudo for aprovado (estimativa). */
+  const ganhoDoPeriodo = (m) => cursandoAgora().reduce((a, c) => { const i = M.info(c); return a + (i && i.category != 5 ? valorCat(i) : 0); }, 0) / m.totalCr;
+  /** Barra da fase: o registrado e, listrado, o que o período em curso acrescenta (estimativa). */
+  function barraDaFase(m) {
+    const pct = Math.min(1, m.fase.pct), ganho = Math.max(0, Math.min(1 - pct, ganhoDoPeriodo(m)));
+    const texto = `${pctTela(pct)} do curso registrado${ganho ? `; passando em tudo neste período, mais ${pctTela(ganho)} (estimativa)` : ""}`;
+    return `<div class="cq-barra" role="img" aria-label="${esc(texto)}" title="${esc(texto)}"><i class="cq-ok" style="width:${pct * 100}%"></i><i class="cq-prev" style="width:${ganho * 100}%"></i></div>`;
+  }
   function htmlCartaoFase(m) {
     const z = tom === "zoeira";
     const { fase } = m, [emoji, nome] = FASES[fase.fase];
@@ -1913,28 +1925,27 @@
       const pend = M.grade.filter((c) => c.code && c.category === 1 && !concluido(statusDe(c.code)));
       const menor = Math.min(...pend.map((c) => c.semester));
       const base = maisDestrava(pend.filter((c) => c.semester === menor).map((c) => c.code));
-      if (base && base[1].length) partes.push(`<h3>${z ? "Base que destrava tudo" : "Base do curso"}</h3><p>Passando em <b>${esc(M.info(base[0]).name)}</b>, você libera ${base[1].length} ${base[1].length === 1 ? "matéria" : "matérias"} nos próximos períodos.</p><p class="chips">${htmlLibera(base[1])}</p>`);
+      if (base && base[1].length) partes.push(`<h4>${z ? "Base que destrava tudo" : "Base do curso"}</h4><p>Passando em <b>${esc(M.info(base[0]).name)}</b>, você libera ${base[1].length} ${base[1].length === 1 ? "matéria" : "matérias"} nos próximos períodos.</p><p class="chips">${htmlLibera(base[1])}</p>`);
       const alvo = fase.pct < 0.1 ? 0.1 : 0.25;
-      partes.push(`<h3>Primeiro marco 🏁</h3><p>${marco(alvo) === 1 ? "Falta" : "Faltam"} ${marco(alvo)} cr para ${alvo * 100}% do curso.</p>`);
+      partes.push(`<h4>Primeiro marco 🏁</h4><p>${marco(alvo) === 1 ? "Falta" : "Faltam"} ${marco(alvo)} cr para ${alvo * 100}% do curso.</p>`);
       const temPlano = M.periodos.some((p) => p.tipo === "planejado" && p.itens.length);
       const temOpt = M.periodos.some((p) => p.tipo === "planejado" && p.itens.some((it) => it.category == 2 || it.category == 4));
       const doSiga = /^siga/i.test((perfil.fonte && perfil.fonte.geradoPor) || "");
-      partes.push(`<h3>Primeiros passos</h3><ul class="checklist">${[[doSiga, "Importar o histórico"], [temPlano, "Planejar o próximo período"], [temOpt, "Dar uma olhada nas optativas"]]
+      partes.push(`<h4>Primeiros passos</h4><ul class="checklist">${[[doSiga, "Importar o histórico"], [temPlano, "Planejar o próximo período"], [temOpt, "Dar uma olhada nas optativas"]]
         .map(([v, t]) => `<li>${v ? "☑" : "☐"} ${t}<span class="sr">${v ? ": feito" : ": a fazer"}</span></li>`).join("")}</ul>`);
     } else if (fase.fase === "meio") {
-      const cursando = Object.keys(M.regs).filter((c) => statusDe(c) === "cursando" && !M.consumidas.has(c));
-      const ganho = cursando.reduce((a, c) => { const i = M.info(c); return a + (i && i.category != 5 ? valorCat(i) : 0); }, 0) / m.totalCr;
-      if (ganho > 0) partes.push(`<h3>${z ? "Bora, academia 💪" : "Andamento do período"}</h3><p>Passando em tudo, você avança +${pctTela(ganho)}: ${pctTela(fase.pct)} → ${pctTela(Math.min(1, fase.pct + ganho))} no fim do período (estimativa).</p>`);
+      const cursando = cursandoAgora(), ganho = ganhoDoPeriodo(m);
+      if (ganho > 0) partes.push(`<h4>${z ? "Bora, academia 💪" : "Andamento do período"}</h4><p>Passando em tudo, você avança +${pctTela(ganho)}: ${pctTela(fase.pct)} → ${pctTela(Math.min(1, fase.pct + ganho))} no fim do período (estimativa).</p>`);
       const d = maisDestrava(cursando);
-      if (d && d[1].length) partes.push(`<h3>O que você destrava</h3><p>Passando em <b>${esc(M.info(d[0]).name)}</b>:</p><p class="chips">${htmlLibera(d[1])}</p>`);
+      if (d && d[1].length) partes.push(`<h4>O que você destrava</h4><p>Passando em <b>${esc(M.info(d[0]).name)}</b>:</p><p class="chips">${htmlLibera(d[1])}</p>`);
       const alvo = fase.pct < 0.5 ? 0.5 : 0.75;
-      partes.push(`<h3>${alvo === 0.5 ? "Metade do caminho ⛰️" : "Rumo à reta final 🏁"}</h3><p>${z ? "🐢 Devagar e sempre. " : ""}${marco(alvo) === 1 ? "Falta" : "Faltam"} ${marco(alvo)} cr para ${alvo * 100}%. Optativas: ${fmt(cr(2).ok)} de ${fmt(cr(2).total)} cr${z ? "; escolha pelo que te interessa" : ""}.</p>`);
+      partes.push(`<h4>${alvo === 0.5 ? "Metade do caminho ⛰️" : "Rumo à reta final 🏁"}</h4><p>${z ? "🐢 Devagar e sempre. " : ""}${marco(alvo) === 1 ? "Falta" : "Faltam"} ${marco(alvo)} cr para ${alvo * 100}%. Optativas: ${fmt(cr(2).ok)} de ${fmt(cr(2).total)} cr${z ? "; escolha pelo que te interessa" : ""}.</p>`);
     } else {
       const falta = Math.max(0, Math.ceil(m.totalCr - feitoCr - 1e-9));
-      partes.push(`<h3>${z ? "Reta final 🏁" : "O que falta"}</h3><p>${falta === 1 ? "Falta" : "Faltam"} ${falta} cr${falta ? `, em ${Math.ceil(falta / 4) === 1 ? "uma matéria" : `umas ${Math.ceil(falta / 4)} matérias`} (estimativa)` : ""}.</p>`);
+      partes.push(`<h4>${z ? "Reta final 🏁" : "O que falta"}</h4><p>${falta === 1 ? "Falta" : "Faltam"} ${falta} cr${falta ? `, em ${Math.ceil(falta / 4) === 1 ? "uma matéria" : `umas ${Math.ceil(falta / 4)} matérias`} (estimativa)` : ""}.</p>`);
       const ok = (code) => fonteDe(code) === "importado" || fonteDe(code) === "declarado";
       const t5 = cr("5");
-      partes.push(`<h3>Checklist da formatura</h3><ul class="checklist">${[[ok(CQ().PG), "Projeto de Graduação"], [ok(CQ().ESTAGIO), "Estágio obrigatório"],
+      partes.push(`<h4>Checklist da formatura</h4><ul class="checklist">${[[ok(CQ().PG), "Projeto de Graduação"], [ok(CQ().ESTAGIO), "Estágio obrigatório"],
         [t5.ok >= t5.total, `Extensão/ACE: ${fmt(t5.ok)} de ${fmt(t5.total)} h`], [cr(4).ok >= cr(4).total, `Humanas: ${fmt(cr(4).ok)} de ${fmt(cr(4).total)} cr`],
         [cr(2).ok >= cr(2).total, `Optativas: ${fmt(cr(2).ok)} de ${fmt(cr(2).total)} cr`]]
         .map(([v, t]) => `<li>${v ? "☑" : "☐"} ${t}<span class="sr">${v ? ": cumprido" : ": falta"}</span></li>`).join("")}</ul>`);
@@ -1945,50 +1956,92 @@
       if (n >= 2) partes.push(`<p class="frase-dificeis">${z ? `🧘 Calma, Calabreso. Período ${esc(p.nome)} com ${n} matérias difíceis: dá para planejar.`
         : `O período ${esc(p.nome)} tem ${n} matérias difíceis. Vale planejar com folga.`}</p>`);
     });
-    partes.push(`<h3>Previsão de formatura</h3><p class="previsao">${esc(m.previsao.texto)}${m.previsao.estado === "previsao" ? " 🎓" : ""}</p>`);
+    partes.push(`<h4>Previsão de formatura</h4><p class="previsao">${esc(m.previsao.texto)}${m.previsao.estado === "previsao" ? " 🎓" : ""}</p>`);
     return `<article class="cartao-fase fase-${fase.fase}" aria-labelledby="fase-titulo">
-      <h2 id="fase-titulo">${emoji} ${nome}${fase.declarado ? ` <span class="marca-declarado">· declarado</span><span class="sr"> (inclui aprovações registradas por você)</span>` : ""}</h2>
+      <h3 id="fase-titulo">${emoji} ${nome}${fase.declarado ? ` <span class="marca-declarado">· declarado</span><span class="sr"> (inclui aprovações registradas por você)</span>` : ""}</h3>
       <p class="fase-pct">${pctTela(fase.pct)} do curso registrado${fase.declarado || m.pctComDeclaradas !== m.pctImportado ? ", com aprovações registradas por você" : ""}.</p>
+      ${barraDaFase(m)}
       ${partes.join("")}</article>`;
   }
   let avisoSelos = "";   // conquistas novas ainda não anunciadas
+  let avisoAba = "";     // a aba Conquistas sumiu com ela selecionada
+  let avisoTempo = null;
+  /** Os avisos saem depois do desenho, juntos; se uma ação já vai anunciar algo (ex.: ligar o Foco), entram nela. */
+  function agendaAvisos() {
+    if (avisoTempo) return;
+    avisoTempo = setTimeout(() => {
+      avisoTempo = null;
+      const t = [avisoAba, avisoSelos].filter(Boolean).join(" ");
+      avisoAba = avisoSelos = "";
+      if (t) anuncia(t);
+    }, 0);
+  }
   /** Identidade local opaca do perfil: chave dos avisos de conquistas (nunca nome, matrícula ou código do aluno). */
   function idDoPerfil() {
     let id = load("perfilId", null, (v) => typeof v === "string" && /^[a-z0-9]{8,}$/.test(v));
     if (!id && perfil) { id = Array.from({ length: 16 }, () => "abcdefghijklmnopqrstuvwxyz0123456789"[Math.floor(Math.random() * 36)]).join(""); save("perfilId", id); }
     return id;
   }
-  function htmlEstante(m) {
-    const obtidos = m.selos.filter((s) => s.estado === "obtido");
-    const id = idDoPerfil();
+  const selosNovos = new Set();   // obtidos e já anunciados, ainda não vistos na aba (aparecem como .novo)
+  let selosNaTela = false;
+  /**
+   * Anúncio de conquista nova, separado do desenho (T10): só no Planejador, com a aba disponível (Foco ligado ou
+   * "também fora do Foco"), mesmo com a aba fechada. A deduplicação por perfil (perfilId e selosAvisados) continua.
+   */
+  function anunciaSelosNovos() {
+    if (!abaConquistas() || !perfil) return;
+    const id = idDoPerfil(); if (!id) return;
+    const m = calculaMotivacao();
     const salvo = load("selosAvisados", null, (v) => objeto(v) && typeof v.id === "string" && Array.isArray(v.vistos));
     const vistos = new Set(salvo && salvo.id === id ? salvo.vistos : []);
-    const novos = obtidos.filter((s) => !vistos.has(s.id));
-    if (novos.length && id) {
-      save("selosAvisados", { id, vistos: [...vistos, ...novos.map((s) => s.id)] });
-      const lista = novos.map((s) => `${s.emoji} ${s.titulo}`).join(", ");
-      // O aviso sai depois do desenho; se uma ação já vai anunciar algo (ex.: ligar o Foco), ele entra junto.
-      avisoSelos = novos.length === 1 ? `${tom === "zoeira" ? "Receba! " : ""}Nova conquista: ${lista}.` : `${novos.length} novas conquistas: ${lista}.`;
-      setTimeout(() => { if (avisoSelos) { anuncia(avisoSelos); avisoSelos = ""; } }, 0);
-    }
-    const novo = new Set(novos.map((s) => s.id));
+    const novos = m.selos.filter((x) => x.estado === "obtido" && !vistos.has(x.id));
+    if (!novos.length) return;
+    save("selosAvisados", { id, vistos: [...vistos, ...novos.map((x) => x.id)] });
+    novos.forEach((x) => selosNovos.add(x.id));
+    const lista = novos.map((x) => `${x.emoji} ${x.titulo}`).join(", ");
+    avisoSelos = novos.length === 1 ? `${tom === "zoeira" ? "Receba! " : ""}Nova conquista: ${lista}.` : `${novos.length} novas conquistas: ${lista}.`;
+    agendaAvisos();
+  }
+  /** Conquistas em cartões grandes por grupo: emoji, nome, regra, progresso e "· declarado" ou "quase lá" quando couber. */
+  function htmlEstante(m) {
+    const obtidos = m.selos.filter((x) => x.estado === "obtido");
+    selosNaTela = true;
     const prox = m.proximo;
-    const item = (s) => `<li class="selo s-${s.estado}${novo.has(s.id) ? " novo" : ""}">
-      <span class="selo-emoji" aria-hidden="true">${s.emoji}</span>
-      <span class="selo-texto"><b>${esc(s.titulo)}</b>${s.estado === "obtido" && s.declarado ? ` <span class="marca-declarado">· declarado</span>` : ""}
-        <small>${s.estado === "obtido" ? esc(s.regra) + (s.nota ? ` · ${esc(s.nota)}` : "")
-          : s.estado === "quase" ? `quase lá (${esc(s.origem)}) · ${esc(s.falta)}`
-          : esc(s.regra) + (s.falta && s.falta !== `falta ${s.regra}` ? " · " + esc(s.falta) : "")}</small></span>
-      <span class="sr">${s.estado === "obtido" ? "obtida" : s.estado === "quase" ? "quase lá" : "ainda não"}</span></li>`;
-    const grupos = Object.entries(CQ().GRUPOS).map(([g, t]) => `<h3>${t}</h3><ul class="estante-lista">${m.selos.filter((s) => s.grupo === g).map(item).join("")}</ul>`).join("");
+    const pc = (x) => (x.estado === "obtido" ? 100 : Math.round(Math.max(0, Math.min(1, Number(x.progresso) || 0)) * 100));
+    const item = (x) => `<li class="selo s-${x.estado}${selosNovos.has(x.id) ? " novo" : ""}">
+      <span class="selo-emoji" aria-hidden="true">${x.emoji}</span>
+      <span class="selo-texto"><b>${esc(x.titulo)}</b>${x.estado === "obtido" && x.declarado ? ` <span class="marca-declarado">· declarado</span>` : ""}
+        <small>${x.estado === "obtido" ? esc(x.regra) + (x.nota ? ` · ${esc(x.nota)}` : "")
+          : x.estado === "quase" ? `quase lá (${esc(x.origem)}) · ${esc(x.falta)}`
+          : esc(x.regra) + (x.falta && x.falta !== `falta ${x.regra}` ? " · " + esc(x.falta) : "")}</small></span>
+      <span class="selo-barra" aria-hidden="true"><i style="width:${pc(x)}%"></i></span>
+      <span class="sr">${x.estado === "obtido" ? "obtida" : `${x.estado === "quase" ? "quase lá" : "ainda não"}, ${pc(x)}%`}</span></li>`;
+    const grupos = Object.entries(CQ().GRUPOS).map(([g, t]) => {
+      const sel = m.selos.filter((x) => x.grupo === g), n = sel.filter((x) => x.estado === "obtido").length;
+      return `<section class="cq-grupo" aria-labelledby="cq-g-${g}"><h3 id="cq-g-${g}">${t} · ${n} de ${sel.length}</h3><ul class="estante-lista">${sel.map(item).join("")}</ul></section>`;
+    }).join("");
     return `<section class="estante" aria-labelledby="estante-titulo">
       <h2 id="estante-titulo">Conquistas</h2>
-      <p class="estante-resumo">${obtidos.length} ${obtidos.length === 1 ? "conquista" : "conquistas"}${obtidos.length ? ` <span aria-hidden="true">${obtidos.map((s) => s.emoji).join(" ")}</span>` : ""}${prox ? ` · próxima: ${prox.emoji} ${esc(prox.titulo)} (${esc(prox.falta)})` : ""}</p>
-      <details class="estante-todas"><summary>Ver todas as conquistas</summary>${grupos}</details></section>`;
+      <p class="estante-resumo">${obtidos.length} ${obtidos.length === 1 ? "conquista" : "conquistas"}${obtidos.length ? ` <span aria-hidden="true">${obtidos.map((x) => x.emoji).join(" ")}</span>` : ""}${prox ? ` · próxima: ${prox.emoji} ${esc(prox.titulo)} (${esc(prox.falta)})` : ""}</p>
+      ${grupos}</section>`;
   }
-  function renderMotivacao() {
+  /**
+   * Página Conquistas (#painel): Situação à esquerda (em cima no celular) e as conquistas à direita. Sem perfil, um ramo
+   * próprio com orientação. Tom zoeira: "Bora, [nome] 💪"; discreto: "Situação · [nome]". O nome passa por esc().
+   */
+  function renderConquistas() {
+    const z = tom === "zoeira", nome = nomeDoPerfil(perfil);
+    if (!perfil) {
+      return `<div class="conquistas sem-dados"><section class="cq-situacao" aria-labelledby="cq-titulo">
+        <h2 id="cq-titulo" class="cq-cabeca">${z ? "Bora 💪" : "Situação"}</h2>
+        <p>Crie ou importe um perfil no Planejador para ver a sua fase do curso, o progresso, as conquistas e a previsão de formatura.</p>
+        <p class="dica">Use <b>Criar perfil</b> ou <b>Importar do SIGA</b>, na barra do topo. Os dados ficam só neste navegador.</p></section></div>`;
+    }
     const m = calculaMotivacao();
-    $("#motivacao").innerHTML = htmlCartaoFase(m) + htmlEstante(m);
+    const cab = z ? `Bora${nome ? ", " + esc(nome) : ""} 💪` : `Situação${nome ? " · " + esc(nome) : ""}`;
+    return `<div class="conquistas">
+      <section class="cq-situacao" aria-labelledby="cq-titulo"><h2 id="cq-titulo" class="cq-cabeca">${cab}</h2>${htmlCartaoFase(m)}</section>
+      ${htmlEstante(m)}</div>`;
   }
 
   // ---------- Barra de atalhos e Configurações ----------
@@ -2030,7 +2083,7 @@
     }
     render();
     $("#btn-foco").focus();
-    anuncia(avisoSelos ? `${msg} ${avisoSelos}` : msg); avisoSelos = "";
+    anuncia([msg, avisoAba, avisoSelos].filter(Boolean).join(" ")); avisoAba = avisoSelos = "";
   }
   function renderAtalhos() {
     renderBotaoFoco();
@@ -2081,6 +2134,10 @@
         </fieldset>
         <fieldset class="opcoes"><legend>Tom das mensagens do Foco</legend>
           ${radio("tom", "zoeira", "Zoeira", tom === "zoeira")}${radio("tom", "discreto", "Discreto", tom === "discreto")}
+        </fieldset>
+        <fieldset class="opcoes"><legend>Conquistas</legend>
+          ${radio("conquistas", "foco", "Mostrar a aba só no Foco", !conquistasFora)}${radio("conquistas", "sempre", "Mostrar a aba também fora do Foco", conquistasFora)}
+          <p class="dica">A aba fica no Planejador, depois de Cronograma.</p>
         </fieldset>
         <fieldset class="opcoes"><legend>Tema</legend>
           ${radio("tema", "sistema", "Igual ao sistema", te === "sistema")}${radio("tema", "claro", "Claro", te === "claro")}${radio("tema", "escuro", "Escuro", te === "escuro")}
@@ -2211,8 +2268,16 @@
     box.dataset.alvo = "referencias";
   }
 
+  let abaSumiu = false;
   function render() {
-    return preservaFoco(desenha, () => focaTitulo($("#painel")));
+    // A aba Conquistas pode sumir com ela selecionada (T11): o foco fica no controle que causou a mudança; só vai para a
+    // aba Grade se estava na aba ou no painel removido.
+    const a = document.activeElement, painel = $("#painel");
+    const naAba = !!a && (a.id === "aba-conquistas" || (vistaAtual === "conquistas" && painel.contains(a)));
+    abaSumiu = false;
+    const r = preservaFoco(desenha, () => focaTitulo($("#painel")));
+    if (abaSumiu) { if (naAba) $("#aba-grade").focus(); agendaAvisos(); }
+    return r;
   }
   function desenha() {
     if (pressao) { clearTimeout(pressao.timer); pressao = null; }   // troca de tela cancela a pressão longa
@@ -2223,10 +2288,15 @@
     const emFoco = focoAtivo();
     document.body.classList.toggle("em-foco", emFoco);
     if (emFoco && !VISTAS_FOCO.includes(vistaAtual)) vistaAtual = "timeline";
+    const comConquistas = abaConquistas();
+    if (vistaAtual === "conquistas" && !comConquistas) {   // vista salva normalizada: a aba ficou indisponível
+      vistaAtual = "grade"; save("vista", vistaAtual); abaSumiu = true;
+      avisoAba = "A aba Conquistas fica escondida; você está na Grade.";
+    }
     const vista = modoClassico ? "grade" : vistaAtual;
     renderCabecalho();
     document.querySelectorAll(".abas [data-vista]").forEach((b) => {
-      b.hidden = emFoco && !VISTAS_FOCO.includes(b.dataset.vista);
+      b.hidden = (emFoco && !VISTAS_FOCO.includes(b.dataset.vista)) || (b.dataset.vista === "conquistas" && !comConquistas);
       const on = b.dataset.vista === vista;
       b.setAttribute("aria-selected", String(on)); b.tabIndex = on ? 0 : -1;
     });
@@ -2246,9 +2316,7 @@
     const mostraLegenda = vista === "timeline";   // a escala de dificuldade fica junto a Exibir → Dificuldade (Planejador)
     $("#legenda").hidden = !mostraLegenda;
     if (detalhado) renderProgresso();
-    const comMotivacao = emFoco && (vista === "grade" || vista === "timeline");
-    $("#motivacao").hidden = !comMotivacao;
-    if (comMotivacao) renderMotivacao();
+    if (vista !== "conquistas" && selosNaTela) { selosNovos.clear(); selosNaTela = false; }   // .novo só até a aba ser vista
     if (mostraLegenda) renderLegenda();
     $("#ferramentas").hidden = vista !== "grade" || modoClassico;
     if (vista === "grade" && !modoClassico) $("#ferramentas").innerHTML = mini ? `
@@ -2269,7 +2337,7 @@
     painel.dataset.vista = vista;
     const foco = document.activeElement && document.activeElement.id === "busca-opt" ? document.activeElement.selectionStart : null;
     const fn = { timeline: renderTimeline, optativas: renderOptativas, cronograma: renderCronograma, pedidos: renderPedidos,
-      eci: () => window.ECI.renderSecao(contextoECI()) }[vista] || renderGrade;
+      eci: () => window.ECI.renderSecao(contextoECI()), conquistas: renderConquistas }[vista] || renderGrade;
     painel.innerHTML = fn();
     if (vista === "eci") window.ECI.montado(painel, contextoECI());
     if (scroll) { painel.scrollLeft = scroll.x; window.scrollTo(0, scroll.y); }
@@ -2281,6 +2349,7 @@
       }
     }
     if (foco != null) { const b = $("#busca-opt"); b.focus(); b.setSelectionRange(foco, foco); }
+    anunciaSelosNovos();
   }
 
   // ---------- Detalhes ----------
@@ -3653,6 +3722,7 @@
       if (t.name === "aparencia" && window.TEMA) { window.TEMA.defineAparencia(t.value); ferrAberto = false; render(); atualizaConfig(); }
       if (t.name === "tema" && window.TEMA) window.TEMA.define(t.value === "sistema" ? null : t.value);
       if (t.name === "tom") { tom = t.value; save("tom", tom); render(); atualizaConfig(); }
+      if (t.name === "conquistas") { conquistasFora = t.value === "sempre"; save("conquistasFora", conquistasFora || null); render(); atualizaConfig(); }
     });
 
     $("#detalhes").addEventListener("keydown", (ev) => {

@@ -651,16 +651,15 @@ dialog.dlg:modal { overscroll-behavior: contain; }
 .dlg .rotulo { display: block; margin-top: 14px; font-weight: 600; font-size: 13px; }
 .dlg .campo { margin-top: 6px; }
 .dlg .dica { margin: 4px 0 0; }
-/* Foco: cartão da fase, previsão e estante de conquistas */
+/* Foco e aba Conquistas: cartão da fase, previsão e estante de conquistas */
 #btn-foco[aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
 #btn-foco[aria-disabled="true"] { opacity: .5; cursor: not-allowed; }
-.motivacao { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 12px; padding: 8px 24px 0; }
-.motivacao[hidden] { display: none; }
 .cartao-fase, .estante { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; }
-.motivacao h2 { margin: 0 0 4px; font-size: 16px; }
-.motivacao h3 { margin: 10px 0 2px; font-size: 13px; }
-.motivacao p { margin: 2px 0; font-size: 13px; }
-.motivacao .chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.conquistas h2 { margin: 0 0 4px; font-size: 16px; }
+.conquistas h3 { margin: 10px 0 2px; font-size: 14px; }
+.conquistas h4 { margin: 10px 0 2px; font-size: 13px; }
+.conquistas p { margin: 2px 0; font-size: 13px; }
+.conquistas .chips { display: flex; flex-wrap: wrap; gap: 4px; }
 .fase-pct, .estante-resumo { color: var(--muted); }
 .marca-declarado { font-size: 12px; font-weight: 600; color: var(--muted); }
 .checklist { list-style: none; margin: 2px 0; padding: 0; font-size: 13px; }
@@ -673,8 +672,27 @@ dialog.dlg:modal { overscroll-behavior: contain; }
 .selo.novo { animation: selo-novo 1.2s ease-out 2; }
 @keyframes selo-novo { 50% { transform: scale(1.04); box-shadow: 0 0 0 3px var(--dep); } }
 @media (prefers-reduced-motion: reduce) { .selo.novo { animation: none; outline: 2px solid var(--dep); } }
-.estante-todas summary { cursor: pointer; min-height: 32px; display: flex; align-items: center; font-weight: 600; font-size: 13px; }
-@media (max-width: 640px) { .motivacao { padding-left: 12px; padding-right: 12px; } }
+/* Página Conquistas: Situação à esquerda (em cima no celular); conquistas em cartões grandes, por grupo */
+.painel.vista-conquistas { display: block; overflow-x: visible; }
+.conquistas { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 16px; align-items: start; max-width: 1200px; }
+.conquistas.sem-dados { grid-template-columns: minmax(0, 560px); }
+@media (max-width: 720px) { .conquistas { grid-template-columns: minmax(0, 1fr); } }
+.cq-situacao { background: var(--surface-2); border-radius: 12px; padding: 14px 16px; overflow-wrap: anywhere; }
+.cq-cabeca { font-size: 20px; }
+.cq-situacao .cartao-fase { background: transparent; border: 0; padding: 0; }
+.cq-barra { display: flex; height: 10px; margin: 6px 0; border-radius: 5px; overflow: hidden; background: var(--surface); border: 1px solid var(--borda-forte); }
+.cq-barra i { display: block; height: 100%; }
+.cq-barra .cq-ok { background: var(--aprovado); }
+.cq-barra .cq-prev { background: repeating-linear-gradient(45deg, var(--cursando) 0 4px, transparent 4px 8px); }
+.estante .cq-grupo h3 { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 14px 0 6px; }
+.estante .estante-lista { grid-template-columns: repeat(auto-fill, minmax(min(100%, 130px), 1fr)); gap: 10px; }
+.estante .selo { flex-direction: column; gap: 4px; margin: 0; padding: 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface);
+  font-size: 13px; overflow-wrap: anywhere; }
+.estante .selo .selo-emoji { font-size: 30px; line-height: 1.1; }
+.estante .selo.s-obtido { background: var(--surface); border-color: #ca8a04; box-shadow: 0 0 0 2px rgb(234 179 8 / .25); }
+.estante .selo.s-falta, .estante .selo.s-quase { border-style: dashed; }
+.selo-barra { display: block; align-self: stretch; height: 6px; margin-top: auto; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
+.selo-barra i { display: block; height: 100%; background: #ca8a04; }
 
 /* Registrar marcações */
 .dlg-registrar { width: min(520px, calc(100vw - 24px)); overflow-y: auto; }

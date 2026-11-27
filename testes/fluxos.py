@@ -3528,8 +3528,10 @@ def t_foco(b):
     assert colunas(pg) == ["2026/2", "2027/1", "2027/2", "A alocar"], colunas(pg)
     assert pg.locator("#painel .card.s-aprovado").count() == 0
     expect(pg.locator('#painel .col-atual .card[data-code="MAC118"]')).to_have_count(1)     # prevista fica
-    expect(pg.locator("#motivacao .cartao-fase")).to_be_visible(); expect(pg.locator("#motivacao .estante")).to_be_visible()
+    expect(pg.locator("#aba-conquistas")).to_be_visible(); assert pg.locator("#painel .cartao-fase").count() == 0   # a fase e a estante ficam na aba
     foto(pg, "foco-linha-do-tempo")
+    abre_conquistas(pg); expect(pg.locator("#painel .cartao-fase")).to_be_visible(); expect(pg.locator("#painel .estante")).to_be_visible()
+    pg.locator('.abas [data-vista="timeline"]').click()
     # Grade: some o concluído, a prevista fica; os totais e o plano não mudam
     pg.locator('.abas [data-vista="grade"]').click()
     assert pg.locator('#painel .card[data-code="COS110"]').count() == 0 and pg.locator('#painel .card[data-code="MAC118"]').count() == 1
@@ -3545,12 +3547,12 @@ def t_foco(b):
     # Clássico guarda a preferência; ao voltar ao Planejador, o Foco volta
     f.click(); alterna_modo(pg)
     expect(f).to_be_hidden(); expect(f).to_have_attribute("aria-pressed", "false")
-    assert ls(pg, "foco") is True and pg.locator("#motivacao").is_hidden()
+    assert ls(pg, "foco") is True and pg.locator("#aba-conquistas").is_hidden()
     alterna_modo(pg); expect(f).to_have_attribute("aria-pressed", "true")
     pg.reload(); pronto(pg, "foco"); expect(pg.locator("#btn-foco")).to_have_attribute("aria-pressed", "true")
     # sem perfil: desabilitado com orientação; o planejamento fica intacto
     pg.once("dialog", lambda d: d.accept()); pg.locator("#descartar-importado").click()
-    expect(pg.locator("#btn-foco")).to_have_attribute("aria-disabled", "true"); assert pg.locator("#motivacao").is_hidden()
+    expect(pg.locator("#btn-foco")).to_have_attribute("aria-disabled", "true"); assert pg.locator("#aba-conquistas").is_hidden()
     ctx.close()
     ctx, pg = abre(b, vp=C320, perfil=PERFIL, extra={"modoClassico": False, "vista": "timeline", "foco": True}, nome="foco-320", relogio=HOJE, toque=True, esquema="dark")
     expect(pg.locator("#btn-foco")).to_have_attribute("aria-pressed", "true")
@@ -3560,16 +3562,19 @@ def t_foco(b):
     ctx.close()
 
 def motivacao(pg): return pg.evaluate("GradeInterativa.motivacao()")
+def abre_conquistas(pg):
+    """Aba Conquistas: o cartão da fase (.cartao-fase) e a estante (.estante) ficam dentro de #painel."""
+    pg.click('[data-vista="conquistas"]'); expect(pg.locator("#painel .conquistas")).to_be_visible()
 def obrigatorias(pg): return pg.evaluate("window.courses[1].filter((c) => c.code && (c.category || 1) === 1).map((c) => [c.code, c.credits, c.semester])")
 @caso("Motivação: fase calouro, meio (P5) e veterano; marca declarado (R27); reingresso; sem Histórico; cartões por fase; tom zoeira e discreto; previsão de formatura (C4)")
 def t_motivacao(b):
-    base = {"modoClassico": False, "vista": "grade", "foco": True}
+    base = {"modoClassico": False, "vista": "conquistas", "foco": True}
     # calouro: um semestre e menos de 25%
     cal = {"periodos": [{"nome": "2025/2", "disciplinas": ["COS110", "COS111"]}, {"nome": "2026/2", "atual": True, "disciplinas": ["MAC118"]}]}
     ctx, pg = abre(b, perfil=cal, extra=base, nome="motivacao-calouro", relogio=HOJE)
     m = motivacao(pg); assert (m["fase"]["fase"], m["fase"]["declarado"], m["semestres"]) == ("calouro", False, 1), m["fase"]
-    card = pg.locator("#motivacao .cartao-fase")
-    expect(card.locator("h2")).to_have_text("🌱 Calouro")
+    card = pg.locator("#painel .cartao-fase")
+    expect(card.locator("h3").first).to_have_text("🌱 Calouro")
     for t in ("Base que destrava tudo", "Primeiro marco", "Faltam", "Primeiros passos", "Planejar o próximo período"): expect(card).to_contain_text(t)
     abre_config(pg); pg.check('#dlg-config input[name="tom"][value="discreto"]'); pg.keyboard.press("Escape")
     assert ls(pg, "tom") == "discreto"; expect(card).to_contain_text("Base do curso"); expect(card).not_to_contain_text("Base que destrava tudo")
@@ -3579,8 +3584,8 @@ def t_motivacao(b):
     p5 = {"periodos": [{"nome": n, "disciplinas": [c]} for n, c in (("2024/1", "COS110"), ("2024/2", "COS111"), ("2025/1", "EEL280"))]}
     ctx, pg = abre(b, perfil=p5, extra=base, nome="motivacao-p5", relogio=HOJE)
     m = motivacao(pg); assert m["fase"]["fase"] == "meio" and m["pctComDeclaradas"] < 0.25 and m["semestres"] == 3, m
-    expect(pg.locator("#motivacao .cartao-fase h2")).to_have_text("🏋️ Meio do curso")
-    expect(pg.locator("#motivacao .cartao-fase")).to_contain_text("Metade do caminho")
+    expect(pg.locator("#painel .cartao-fase #fase-titulo")).to_have_text("🏋️ Meio do curso")
+    expect(pg.locator("#painel .cartao-fase")).to_contain_text("Metade do caminho")
     obr = obrigatorias(pg)
     ctx.close()
     # R27 (b): ~40 cr importados e ~20 declarados, um semestre: "Meio do curso · declarado"; (a) 60 + 50: sem marca
@@ -3595,7 +3600,7 @@ def t_motivacao(b):
     r27 = {"periodos": [{"nome": "2025/2", "disciplinas": imp}], "aprovacoesDeclaradas": [{"code": c, "registradoEm": "2026-11-27"} for c in dec]}
     ctx, pg = abre(b, perfil=r27, extra=base, nome="motivacao-r27", relogio=HOJE)
     m = motivacao(pg); assert (m["fase"]["fase"], m["fase"]["declarado"]) == ("meio", True), m["fase"]
-    expect(pg.locator("#motivacao .cartao-fase h2")).to_contain_text("Meio do curso · declarado")
+    expect(pg.locator("#painel .cartao-fase #fase-titulo")).to_contain_text("Meio do curso · declarado")
     ctx.close()
     imp, si = escolhe(60); dec, sd = escolhe(50, set(imp))
     r27a = {"periodos": [{"nome": "2025/2", "disciplinas": imp}], "aprovacoesDeclaradas": [{"code": c, "registradoEm": "2026-11-27"} for c in dec]}
@@ -3613,7 +3618,7 @@ def t_motivacao(b):
     ctx, pg = abre(b, perfil=sh, extra=base, nome="motivacao-sem-historico", relogio=HOJE)
     m = motivacao(pg); assert (m["fase"]["fase"], m["semestres"]) == ("calouro", 0)
     assert m["previsao"]["estado"] == "indisponivel" and "Sem período atual" in m["previsao"]["texto"]
-    expect(pg.locator("#motivacao .previsao")).to_contain_text("Sem período atual")
+    expect(pg.locator("#painel .previsao")).to_contain_text("Sem período atual")
     ctx.close()
     # veterano com o plano cobrindo tudo: previsão; sem o plano de ACE: a pendência concreta só de horas
     feitas = [c for c, _, _ in obr if c not in ("EEWX00", "EEWU00")]
@@ -3625,7 +3630,7 @@ def t_motivacao(b):
     ctx, pg = abre(b, perfil=vet, extra=base, nome="motivacao-veterano", relogio=HOJE)
     m = motivacao(pg); assert m["fase"]["fase"] == "veterano", m["fase"]
     assert (m["previsao"]["estado"], m["previsao"].get("semestre")) == ("previsao", "2027/1"), m["previsao"]
-    card = pg.locator("#motivacao .cartao-fase")
+    card = pg.locator("#painel .cartao-fase")
     for t in ("🎓 Veterano", "Reta final", "Checklist da formatura", "Projeto de Graduação", "Extensão/ACE: 0 de 405 h", "No seu plano, você forma em 2027/1 (estimativa)"):
         expect(card).to_contain_text(t)
     foto(pg, "motivacao-veterano")
@@ -3641,15 +3646,16 @@ def t_motivacao(b):
     assert next(s for s in m["selos"] if s["id"] == "notion")["estado"] == "falta" and "Estágio" in m["previsao"]["texto"], m["previsao"]
     ctx.close()
 
-@caso("Conquistas na estante do Foco: declarado, quase lá, próximo marco; avisos uma vez por perfil (recarga e atualização mantêm; substituição recomeça); movimento reduzido")
+@caso("Conquistas na aba do Foco: declarado, quase lá, próximo marco; aviso com a aba fechada e .novo ao abrir; uma vez por perfil (recarga e atualização mantêm; substituição recomeça); movimento reduzido")
 def t_conquistas_estante(b):
     perfil = {"periodos": [{"nome": "2025/1", "disciplinas": ["MAC118", "MAC128", "MAC238"]}, {"nome": "2026/2", "atual": True, "disciplinas": ["COS231"]}],
               "aprovacoesDeclaradas": [{"code": "MAC248", "registradoEm": "2026-11-27"}]}
     ctx, pg = abre(b, perfil=perfil, extra={"modoClassico": False, "vista": "grade", "foco": True}, nome="conquistas", relogio=HOJE)
-    est = pg.locator("#motivacao .estante")
-    expect(pg.locator("#anuncio")).to_contain_text("Rei dos Cálculos")                       # aviso da conquista nova
-    pg.locator(".estante-todas summary").click()
+    est = pg.locator("#painel .estante")
+    expect(pg.locator("#anuncio")).to_contain_text("Rei dos Cálculos")                       # aviso da conquista nova, com a aba fechada
+    abre_conquistas(pg)
     rei = est.locator(".selo", has_text="Rei dos Cálculos")
+    expect(rei).to_have_class(re.compile(r"(^| )novo( |$)"))                                  # aparece como novo ao abrir a aba
     expect(rei).to_contain_text("· declarado"); expect(rei).to_have_class(re.compile(r"s-obtido"))
     expect(est.locator(".estante-resumo")).to_contain_text("próxima:")
     assert ls(pg, "selosAvisados")["vistos"] and ls(pg, "perfilId") and "MAC" not in ls(pg, "perfilId")
@@ -3673,13 +3679,13 @@ def t_conquistas_estante(b):
     p2 = {"periodos": [{"nome": "2025/1", "disciplinas": ["MAC118", "MAC128", "MAC238"]}, {"nome": "2026/2", "atual": True, "disciplinas": []}]}
     ctx, pg = abre(b, perfil=p2, extra={"modoClassico": False, "vista": "grade", "foco": True, "marcacoes": {"MAC248": "aprovada"}}, nome="conquistas-pincel", relogio=HOJE, esquema="dark")
     pg.emulate_media(reduced_motion="reduce")
-    pg.locator(".estante-todas summary").click()
-    rei = pg.locator("#motivacao .selo", has_text="Rei dos Cálculos")
+    abre_conquistas(pg)
+    rei = pg.locator("#painel .selo", has_text="Rei dos Cálculos")
     expect(rei).to_contain_text("quase lá (simulação ✎)"); expect(rei).to_have_class(re.compile(r"s-quase"))
-    novo = pg.locator("#motivacao .selo.novo").first
+    novo = pg.locator("#painel .selo.novo").first
     if novo.count(): assert novo.evaluate("e => getComputedStyle(e).animationName") == "none"
     assert pg.evaluate("document.documentElement.scrollWidth - innerWidth") <= 1
-    vs = axe_graves(pg, contexto="#motivacao"); assert not vs, vs
+    vs = axe_graves(pg, contexto="#painel"); assert not vs, vs
     foto(pg, "conquistas-pincel-escuro", full=True)
     ctx.close()
 
@@ -3706,24 +3712,23 @@ def t_foco_ajustes(b):
         assert not cobertos, (nome, cobertos)
         foto(pg, f"foco-aviso-{nome}")
         if vp is C320:
-            # a paleta fixa embaixo não encobre o cartão da fase nem a estante: cada linha visível fica acima dela
-            ruins = pg.evaluate("""() => [...document.querySelectorAll('#motivacao h2, #motivacao h3, #motivacao p, #motivacao summary')].filter((e) => e.getClientRects().length && !e.closest('details:not([open]) > :not(summary)')).filter((e) => {
-                e.scrollIntoView({ block: 'end' }); return e.getBoundingClientRect().bottom > document.querySelector('#paleta').getBoundingClientRect().top + 0.5; }).map((e) => e.textContent.slice(0, 30))""")
-            assert not ruins, ruins
+            # na aba Conquistas não há paleta por cima; a Situação fica acima das conquistas, sem rolagem lateral
+            abre_conquistas(pg); expect(pg.locator("#paleta")).to_be_hidden()
+            assert pg.locator("#painel .cq-situacao").bounding_box()["y"] < pg.locator("#painel .estante").bounding_box()["y"]
+            assert pg.evaluate("document.documentElement.scrollWidth - innerWidth") <= 1
         ctx.close()
     # estante: no selo não obtido, sem repetir a regra no "falta"
-    ctx, pg = abre(b, perfil={"periodos": [{"nome": "2025/1", "disciplinas": ["FIT112"]}]}, extra={"modoClassico": False, "vista": "grade", "foco": True}, nome="foco-estante-falta", relogio=HOJE)
-    pg.locator(".estante-todas summary").click()
-    einstein = pg.locator("#motivacao .selo", has_text="Valeu, Einstein").locator("small").inner_text()
+    ctx, pg = abre(b, perfil={"periodos": [{"nome": "2025/1", "disciplinas": ["FIT112"]}]}, extra={"modoClassico": False, "vista": "conquistas", "foco": True}, nome="foco-estante-falta", relogio=HOJE)
+    einstein = pg.locator("#painel .selo", has_text="Valeu, Einstein").locator("small").inner_text()
     assert "· falta" in einstein and einstein.split("· falta")[1].count(",") == 2, einstein
-    rede = pg.locator("#motivacao .selo", has_text="Ping 0 ms").locator("small").inner_text()
+    rede = pg.locator("#painel .selo", has_text="Ping 0 ms").locator("small").inner_text()
     assert "falta" not in rede, rede                                                         # nada aprovado: só a regra
     ctx.close()
     # frases: Devagar e sempre (meio de curso) e Calma, Calabreso (período planejado com duas difíceis); discreto é sóbrio
     perfil = {"periodos": [{"nome": n, "disciplinas": [c]} for n, c in (("2024/1", "COS110"), ("2024/2", "COS111"), ("2025/1", "EEL280"))]
               + [{"nome": "2027/1", "planejado": True, "disciplinas": ["MAC238", "COS360"]}]}
-    ctx, pg = abre(b, perfil=perfil, extra={"modoClassico": False, "vista": "grade", "foco": True}, nome="foco-frases", relogio=HOJE)
-    card = pg.locator("#motivacao .cartao-fase")
+    ctx, pg = abre(b, perfil=perfil, extra={"modoClassico": False, "vista": "conquistas", "foco": True}, nome="foco-frases", relogio=HOJE)
+    card = pg.locator("#painel .cartao-fase")
     expect(card).to_contain_text("🐢 Devagar e sempre. Faltam")
     expect(card).to_contain_text("🧘 Calma, Calabreso. Período 2027/1 com 2 matérias difíceis: dá para planejar.")
     abre_config(pg); pg.check('#dlg-config input[name="tom"][value="discreto"]'); pg.keyboard.press("Escape")
@@ -3765,8 +3770,8 @@ def t_previsao_cobertura(b):
     r, barra = resumo(x, {"creditos": {"2": 40, "3": 8, "4": 4}}, nome="manuais")                    # B1: créditos manuais simulam
     assert r[0] == "pendente" and r[2] == "falta" and "Planeje os 52 cr que faltam" in r[3], r
     assert barra.startswith("226 de 226 cr"), barra                                                  # a barra continua com a simulação
-    ctx, pg = abre(b, perfil=x, extra={"modoClassico": False, "vista": "grade", "foco": True, "creditos": {"2": 40, "3": 8, "4": 4}}, nome="previsao-cobertura-tela", relogio=HOJE)
-    expect(pg.locator("#motivacao .previsao")).to_contain_text("Planeje os 52 cr que faltam"); expect(pg.locator("#motivacao .previsao")).not_to_contain_text("Você já cumpriu")
+    ctx, pg = abre(b, perfil=x, extra={"modoClassico": False, "vista": "conquistas", "foco": True, "creditos": {"2": 40, "3": 8, "4": 4}}, nome="previsao-cobertura-tela", relogio=HOJE)
+    expect(pg.locator("#painel .previsao")).to_contain_text("Planeje os 52 cr que faltam"); expect(pg.locator("#painel .previsao")).not_to_contain_text("Você já cumpriu")
     ctx.close()
 
 @caso("Trocar e descartar perfil com declaradas: avisa pelas que sairiam (mesmo sem edições); arquivo inválido não apaga os avisos; descartar tira as do plano")
@@ -4079,7 +4084,7 @@ def t_classico_so_pintar(b):
     arvore = pg.locator(".topo").aria_snapshot()
     assert "Configurações" not in arvore and "Foco" not in arvore and "Importar" not in arvore, arvore
     # nada de barra, detalhamento, legenda, ferramentas nem aviso do perfil salvo
-    for sel in ("#barra-geral", "#progresso", "#legenda", "#ferramentas", "#aviso-importado", "#motivacao"):
+    for sel in ("#barra-geral", "#progresso", "#legenda", "#ferramentas", "#aviso-importado", "#aba-conquistas"):
         expect(pg.locator(sel)).to_be_hidden()
     # cartões só com cor e nome; blocos sem a barra de preenchimento; sem contagem do período
     for sel in (".meta", ".nota", ".plano-flag", ".estado", ".sub"):
@@ -4363,6 +4368,162 @@ def t_clique_fora(b):
     pg.locator("#detalhes [data-decl-remover]").click(); expect(pg.locator("#dlg-confirma")).to_be_visible()
     pg.locator('#dlg-confirma button[value=""]').click(); expect(pg.locator("#dlg-confirma")).to_be_hidden()
     expect(det).to_be_visible()
+    ctx.close()
+
+PERFIS_FASE = {
+    "calouro": {"periodos": [{"nome": "2025/2", "disciplinas": ["COS110", "COS111"]}, {"nome": "2026/2", "atual": True, "disciplinas": ["MAC118"]}]},
+    "meio": {"periodos": [{"nome": n, "disciplinas": [c]} for n, c in (("2024/1", "COS110"), ("2024/2", "COS111"), ("2025/1", "EEL280"))]},
+}
+def perfil_veterano(pg):
+    feitas = [c for c, _, _ in obrigatorias(pg) if c not in ("EEWX00", "EEWU00")]
+    return {"periodos": [{"nome": "2025/1", "disciplinas": feitas}, {"nome": "2026/2", "atual": True, "disciplinas": ["EEWX00"]}]}
+
+@v210
+@caso("Aba Conquistas no Foco: aba por teclado (role=tab, aria-selected, painel associado), depois de Cronograma; Situação à esquerda (em cima a 320 px); cartões por grupo com 'N de M'; 3 fases × 2 tons; nome ausente, longo e com <b>; dois temas; axe")
+def t_aba_conquistas(b):
+    base = {"vista": "timeline", "foco": True}
+    ctx, pg = abre(b, perfil=PERFIL, extra=base, nome="aba-conquistas", relogio=HOJE)
+    abas = pg.evaluate("[...document.querySelectorAll('.abas [role=tab]')].filter((e) => !e.hidden).map((e) => e.dataset.vista)")
+    assert abas == ["grade", "timeline", "cronograma", "conquistas"], abas
+    aba = pg.locator("#aba-conquistas")
+    assert aba.get_attribute("aria-controls") == "painel" and aba.locator("svg.ico").count() == 1
+    pg.locator('.abas [data-vista="cronograma"]').click(); pg.locator('.abas [data-vista="cronograma"]').focus(); pg.keyboard.press("ArrowRight")
+    expect(aba).to_have_attribute("aria-selected", "true"); assert foco_em(pg, "#aba-conquistas")
+    expect(pg.locator("#painel")).to_have_attribute("role", "tabpanel"); expect(pg.locator("#painel")).to_have_attribute("aria-labelledby", "aba-conquistas")
+    expect(pg.locator("#painel .cartao-fase")).to_be_visible(); expect(pg.locator("#painel .estante")).to_be_visible()
+    assert pg.locator("#painel details").count() == 0 and pg.locator("#barra-geral").is_hidden() and pg.locator("#paleta").is_hidden()
+    sit, est = pg.locator("#painel .cq-situacao").bounding_box(), pg.locator("#painel .estante").bounding_box()
+    assert sit["x"] + sit["width"] <= est["x"] + 1 and abs(sit["y"] - est["y"]) < 40, (sit, est)          # Situação à esquerda
+    grupos = pg.locator("#painel .cq-grupo h3").all_inner_texts()
+    assert len(grupos) == 4 and all(re.search(r" · \d+ de \d+$", g) for g in grupos), grupos
+    assert pg.locator("#painel .selo .selo-barra").count() == pg.locator("#painel .selo").count()
+    obt = pg.locator("#painel .selo.s-obtido .selo-barra i").first
+    if obt.count(): assert obt.evaluate("e => e.style.width") == "100%"
+    expect(pg.locator("#painel .cq-cabeca")).to_have_text("Bora, Ana 💪")                       # o perfil fictício chama Ana
+    for esq in ("light", "dark"):
+        pg.emulate_media(color_scheme=esq); foto(pg, f"aba-conquistas-1440-{esq}", full=True)
+        graves = axe_graves(pg, contexto="#painel"); assert not graves, (esq, graves[:3])
+    ctx.close()
+    # 3 fases × 2 tons: cabeçalho e conteúdo da fase
+    ctx, pg = abre(b, perfil={"periodos": []}, nome="aba-conquistas-obr", relogio=HOJE); vet = perfil_veterano(pg); ctx.close()
+    perfis = {**PERFIS_FASE, "veterano": vet}
+    titulos = {"calouro": "🌱 Calouro", "meio": "🏋️ Meio do curso", "veterano": "🎓 Veterano"}
+    proprio = {"calouro": "Primeiros passos", "meio": "Optativas:", "veterano": "Checklist da formatura"}
+    for fase, perfil in perfis.items():
+        for tom in ("zoeira", "discreto"):
+            p = {**perfil, "nome": "Bia"}
+            ctx, pg = abre(b, perfil=p, extra={"vista": "conquistas", "foco": True, "tom": tom}, nome=f"aba-conquistas-{fase}-{tom}", relogio=HOJE)
+            expect(pg.locator("#painel .cq-cabeca")).to_have_text("Bora, Bia 💪" if tom == "zoeira" else "Situação · Bia")
+            expect(pg.locator("#painel #fase-titulo")).to_contain_text(titulos[fase])
+            expect(pg.locator("#painel .cartao-fase")).to_contain_text(proprio[fase]); expect(pg.locator("#painel .previsao")).to_be_visible()
+            ctx.close()
+    # sem nome; nome longo a 320 px; nome com <b> é texto
+    ctx, pg = abre(b, perfil=PERFIS_FASE["meio"], extra={"vista": "conquistas", "foco": True}, nome="aba-conquistas-sem-nome", relogio=HOJE)
+    expect(pg.locator("#painel .cq-cabeca")).to_have_text("Bora 💪")
+    abre_config(pg); pg.check('#dlg-config input[name="tom"][value="discreto"]'); pg.keyboard.press("Escape")
+    expect(pg.locator("#painel .cq-cabeca")).to_have_text("Situação")
+    ctx.close()
+    longo = {**PERFIS_FASE["meio"], "nome": "Maria Eduarda Fictícia de Albuquerque Cavalcanti Nogueira <b>negrito</b>"}
+    for esq in ("light", "dark"):
+        ctx, pg = abre(b, vp=C320, perfil=longo, extra={"vista": "conquistas", "foco": True}, nome=f"aba-conquistas-320-{esq}", relogio=HOJE, toque=True, esquema=esq)
+        cab = pg.locator("#painel .cq-cabeca")
+        expect(cab).to_contain_text("<b>negrito</b>"); assert cab.locator("b").count() == 0
+        assert pg.evaluate("document.documentElement.scrollWidth - innerWidth") <= 1
+        sit, est = pg.locator("#painel .cq-situacao").bounding_box(), pg.locator("#painel .estante").bounding_box()
+        assert sit["y"] + sit["height"] <= est["y"] + 1, (sit, est)                                    # Situação em cima
+        cortes = pg.locator("#painel .estante .selo").evaluate_all("es => es.filter((e) => e.scrollWidth > e.clientWidth + 1).length")
+        assert cortes == 0, cortes
+        colunas = pg.locator("#painel .estante-lista").first.evaluate("e => getComputedStyle(e).gridTemplateColumns.split(' ').length")
+        assert colunas in (1, 2), colunas
+        foto(pg, f"aba-conquistas-320-{esq}", full=True)
+        ctx.close()
+
+@v210
+@caso("Conquistas fora do Foco: padrão só no Foco; Configurações → também fora do Foco persiste; sem perfil, 'Bora 💪' com orientação")
+def t_conquistas_fora_do_foco(b):
+    ctx, pg = abre(b, perfil=PERFIL, extra={"vista": "grade"}, nome="conquistas-fora")
+    expect(pg.locator("#aba-conquistas")).to_be_hidden()
+    abre_config(pg); expect(pg.locator('#dlg-config input[name="conquistas"][value="foco"]')).to_be_checked()
+    pg.check('#dlg-config input[name="conquistas"][value="sempre"]'); pg.keyboard.press("Escape")
+    assert ls(pg, "conquistasFora") is True; expect(pg.locator("#aba-conquistas")).to_be_visible()
+    pg.reload(); pronto(pg, "conquistas-fora"); expect(pg.locator("#aba-conquistas")).to_be_visible()
+    abre_conquistas(pg); expect(pg.locator("#painel .cartao-fase")).to_be_visible()
+    alterna_modo(pg); expect(pg.locator("#aba-conquistas")).to_be_hidden()                       # o Clássico não tem a aba
+    ctx.close()
+    ctx, pg = abre(b, extra={"vista": "grade", "conquistasFora": True}, nome="conquistas-sem-perfil", atalhos=False)
+    abre_conquistas(pg)
+    expect(pg.locator("#painel .cq-cabeca")).to_have_text("Bora 💪")
+    expect(pg.locator("#painel .cq-situacao")).to_contain_text("Crie ou importe um perfil no Planejador")
+    assert pg.locator("#painel .cartao-fase, #painel .estante").count() == 0
+    abre_config(pg); pg.check('#dlg-config input[name="tom"][value="discreto"]'); pg.keyboard.press("Escape")
+    expect(pg.locator("#painel .cq-cabeca")).to_have_text("Situação")
+    ctx.close()
+
+AVISO_ABA = "A aba Conquistas fica escondida; você está na Grade"
+
+@v210
+@caso("A aba Conquistas some (um caso por gatilho): desligar o Foco, rádio em Configurações, descartar o perfil, recarregar com vista conquistas; volta à Grade, foco no controle e anúncio")
+def t_conquistas_some(b):
+    # desligar o Foco com a aba aberta
+    ctx, pg = abre(b, perfil=PERFIL, extra={"vista": "conquistas", "foco": True}, nome="some-foco", relogio=HOJE)
+    expect(pg.locator("#aba-conquistas")).to_have_attribute("aria-selected", "true")
+    pg.locator("#btn-foco").focus(); pg.keyboard.press("Enter")
+    expect(pg.locator("#aba-conquistas")).to_be_hidden(); expect(pg.locator("#aba-grade")).to_have_attribute("aria-selected", "true")
+    assert foco_em(pg, "#btn-foco"), descreve_foco(pg)
+    expect(pg.locator("#anuncio")).to_contain_text("Foco desligado"); expect(pg.locator("#anuncio")).to_contain_text(AVISO_ABA)
+    assert ls(pg, "vista") == "grade"
+    ctx.close()
+    # rádio em Configurações (fora do Foco)
+    ctx, pg = abre(b, perfil=PERFIL, extra={"vista": "conquistas", "conquistasFora": True}, nome="some-config", relogio=HOJE)
+    expect(pg.locator("#aba-conquistas")).to_have_attribute("aria-selected", "true")
+    abre_config(pg); pg.locator('#dlg-config input[name="conquistas"][value="foco"]').check()
+    assert foco_em(pg, '#dlg-config input[name="conquistas"]'), descreve_foco(pg)
+    expect(pg.locator("#anuncio")).to_contain_text(AVISO_ABA); pg.keyboard.press("Escape")
+    expect(pg.locator("#aba-conquistas")).to_be_hidden(); expect(pg.locator("#aba-grade")).to_have_attribute("aria-selected", "true")
+    assert ls(pg, "conquistasFora") is None
+    ctx.close()
+    # descartar o perfil salvo
+    ctx, pg = abre(b, perfil=PERFIL, extra={"vista": "conquistas", "foco": True}, nome="some-descartar", relogio=HOJE)
+    pg.once("dialog", lambda d: d.accept()); pg.locator("#descartar-importado").click()
+    expect(pg.locator("#aba-conquistas")).to_be_hidden(); expect(pg.locator("#aba-grade")).to_have_attribute("aria-selected", "true")
+    expect(pg.locator("#anuncio")).to_contain_text(AVISO_ABA)
+    ctx.close()
+    # recarregar com a vista salva e a aba indisponível
+    ctx, pg = abre(b, perfil=PERFIL, extra={"vista": "conquistas"}, nome="some-recarga", relogio=HOJE)
+    expect(pg.locator("#aba-grade")).to_have_attribute("aria-selected", "true"); expect(pg.locator("#aba-conquistas")).to_be_hidden()
+    assert ls(pg, "vista") == "grade"
+    ctx.close()
+    # foco na própria aba quando ela some: vai para a aba Grade
+    ctx, pg = abre(b, perfil=PERFIL, extra={"vista": "conquistas", "conquistasFora": True}, nome="some-foco-na-aba", relogio=HOJE)
+    pg.locator("#aba-conquistas").focus()
+    pg.evaluate("""() => { const r = document.createElement('input'); r.type = 'radio'; r.name = 'conquistas'; r.value = 'foco'; r.hidden = true;
+        document.body.append(r); r.checked = true; r.dispatchEvent(new Event('change', { bubbles: true })); r.remove(); }""")   # mesma mudança de Configurações, sem tirar o foco da aba
+    expect(pg.locator("#aba-conquistas")).to_be_hidden(); assert foco_em(pg, "#aba-grade"), descreve_foco(pg)
+    ctx.close()
+
+@v210
+@caso("Selo novo com a aba fechada: Registrar marcações anuncia a conquista uma vez; abrir a aba mostra .novo; recarregar não repete")
+def t_conquistas_aviso_aba_fechada(b):
+    perfil = {"periodos": [{"nome": "2025/1", "disciplinas": ["MAC118", "MAC128", "MAC238"]}, {"nome": "2026/2", "atual": True, "disciplinas": []}]}
+    ctx, pg = abre(b, perfil=perfil, extra={"vista": "grade", "foco": True, "marcacoes": {"MAC248": "aprovada"}}, nome="aviso-aba-fechada", relogio=HOJE)
+    pg.wait_for_timeout(200); pg.evaluate("document.querySelector('#anuncio').textContent = ''")
+    anuncios = []
+    pg.expose_function("registraAnuncio", lambda t: anuncios.append(t))
+    pg.evaluate("""() => new MutationObserver(() => { const t = document.querySelector('#anuncio').textContent; if (t) window.registraAnuncio(t); })
+        .observe(document.querySelector('#anuncio'), { childList: true, characterData: true, subtree: true })""")
+    abre_registro(pg); pg.get_by_role("button", name=re.compile(r"^Gravar 1 aprova")).click()
+    expect(pg.locator("#reg-resultado")).to_have_text("1 aprovação registrada por você.")
+    expect(pg.locator("#anuncio")).to_contain_text("Rei dos Cálculos")
+    pg.wait_for_timeout(300)
+    assert sum("Rei dos Cálculos" in t for t in anuncios) == 1, anuncios
+    assert pg.locator("#reg-resultado").count() == 1
+    pg.get_by_role("button", name="Fechar").click()
+    abre_conquistas(pg)
+    expect(pg.locator("#painel .selo.novo", has_text="Rei dos Cálculos")).to_have_count(1)
+    pg.evaluate("document.querySelector('#anuncio').textContent = ''")
+    pg.reload(); pronto(pg, "aviso-aba-fechada"); pg.wait_for_timeout(300)
+    assert "Rei dos Cálculos" not in pg.locator("#anuncio").inner_text()
+    assert pg.locator("#painel .selo.novo").count() == 0
     ctx.close()
 
 CASOS += CASOS6

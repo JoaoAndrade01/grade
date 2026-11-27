@@ -48,7 +48,7 @@
          No Clássico (só pintar), só o seletor e o botão de tema, sempre visíveis. -->
     <nav class="acoes" aria-label="Atalhos">
       <div id="atalhos" class="atalhos"></div>
-      <!-- Foco (só no Planejador e com perfil): esconde o que já foi concluído e mostra a fase e as conquistas. -->
+      <!-- Foco (só no Planejador e com perfil): esconde o que já foi concluído e mostra a aba Conquistas. -->
       <button type="button" id="btn-foco" class="btn btn-icone btn-atalho" aria-pressed="false" title="Foco" data-icone="alvo"><span class="rot">Foco</span></button>
       <span id="btn-foco-motivo" class="sr"></span>
       <button type="button" id="btn-config" class="btn btn-icone btn-atalho" data-icone="configuracoes" title="Configurações"><span class="rot">Configurações</span></button>
@@ -66,6 +66,8 @@
       <button type="button" id="aba-cronograma" data-vista="cronograma" role="tab" aria-controls="painel" data-icone="cronograma" title="Cronograma"><span class="rot">Cronograma</span></button>
       <button type="button" id="aba-pedidos" data-vista="pedidos" role="tab" aria-controls="painel" data-icone="equivalencias" title="Equivalências e Extensão / ACE"><span class="rot">Equivalências e Extensão / ACE</span></button>
       <button type="button" id="aba-eci" data-vista="eci" role="tab" aria-controls="painel" data-icone="eci" title="A ECI por trás da Grade"><span class="rot">A ECI por trás da Grade</span></button>
+      <!-- Conquistas: com o Foco ligado e, se Configurações permitir, também fora do Foco -->
+      <button type="button" id="aba-conquistas" data-vista="conquistas" role="tab" aria-controls="painel" data-icone="trofeu" title="Conquistas" hidden><span class="rot">Conquistas</span></button>
     </div>
   </header>
 
@@ -76,8 +78,6 @@
   <!-- Camada 2: detalhes por grupo e legenda de situações (linha do tempo, ou "detalhes ▾") -->
   <section id="progresso" class="progresso" aria-label="Progresso por grupo" hidden></section>
   <div id="legenda" class="legenda" hidden></div>
-  <!-- Modo Foco: cartão da fase do curso, previsão de formatura e estante de conquistas -->
-  <section id="motivacao" class="motivacao" aria-label="Fase do curso e conquistas" hidden></section>
   <!-- Página inicial: pincel de tags, exibição e filtros -->
   <div id="ferramentas" class="ferramentas" hidden></div>
   <main class="principal"><div id="painel" class="painel"></div></main>
