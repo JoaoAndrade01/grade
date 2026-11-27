@@ -3479,6 +3479,7 @@
         if (porToque() && consultado !== el.dataset.code && !protegida(el.dataset.code)) return consulta(el.dataset.code);
         consultado = null; return pinta(el.dataset.code);
       }
+      if (modoClassico && !el.dataset.code) return;   // Clássico (só pintar): os blocos sem código não abrem Detalhes
       destaca(el.dataset.code);
       abrePainel(ev, () => abreDetalhes(el.dataset.code ? { code: el.dataset.code, periodo: el.dataset.periodo || null, reg: el.dataset.reg != null ? +el.dataset.reg : null,
         status: el.dataset.status || null, transferida: el.hasAttribute("data-transferida"), declarada: el.hasAttribute("data-declarada") } : { idx: el.dataset.idx }));
