@@ -4344,6 +4344,28 @@ def t_folha_celular(b):
         ctx.close()
 
 @v210
+@caso("Folha no celular: tocar no fundo em cima de um cartão só fecha a folha e devolve o foco ao cartão de origem, sem abrir os detalhes do cartão de baixo")
+def t_folha_fundo_nao_atravessa(b):
+    if b.browser_type.name not in ("chromium", "webkit"): return
+    ctx, pg = abre(b, vp=C, perfil=PERFIL, extra={"vista": "grade"}, nome="folha-fundo", toque=True)
+    for x in (100, 300):
+        # rola até haver cartões no alto da tela, sob o ponto do toque
+        pg.evaluate("""() => { const c = document.querySelector('#painel .col-cards .card[data-code]');
+            window.scrollTo(0, c.getBoundingClientRect().top + scrollY - 20); }""")
+        pg.wait_for_timeout(150)
+        baixo = pg.evaluate(f"(() => {{ const e = document.elementFromPoint({x}, 40); const c = e && e.closest('.card[data-code]'); return c ? c.dataset.code : null; }})()")
+        assert baixo, ("nenhum cartão sob o ponto", x)
+        origem = pg.evaluate(f"""(() => {{ const cs = [...document.querySelectorAll('#painel .card[data-code]')].filter((c) => {{ const r = c.getBoundingClientRect();
+            return r.top > 200 && r.bottom < innerHeight - 140 && c.dataset.code !== '{baixo}'; }}); return cs[0].dataset.code; }})()""")
+        pg.locator(f'#painel .card[data-code="{origem}"]').tap(); expect(pg.locator("#detalhes")).to_be_visible()
+        assert pg.locator("#detalhes").get_attribute("data-alvo") == f"c:{origem}"
+        pg.touchscreen.tap(x, 40); pg.wait_for_timeout(400)
+        expect(pg.locator("#detalhes")).to_be_hidden()                                          # não reabriu com o cartão de baixo
+        assert foco_em(pg, f'#painel .card[data-code="{origem}"]'), (x, descreve_foco(pg))
+        assert pg.evaluate("document.querySelector('main').inert") is False
+    ctx.close()
+
+@v210
 @caso("Clique fora fecha os detalhes da disciplina e o editor de tags; clique dentro mantém (chip que redesenha, edição preservada); outro cartão troca; prévia do SIGA, Privacidade e diálogo de confirmação não fecham")
 def t_clique_fora(b):
     if b.browser_type.name not in ("chromium", "webkit"): return

@@ -3741,9 +3741,15 @@
     if (midiaFolha.addEventListener) midiaFolha.addEventListener("change", aplicaFolha);
     // Clique fora (decidido no pointerdown) fecha os detalhes da disciplina e o editor de tags; o fundo da folha também.
     // Não fecham: importador, Privacidade e Referências; nem cliques em cartões (abrem outro), na paleta e em diálogos.
+    // O fundo da folha fecha no clique, não no pointerdown: assim o fundo continua cobrindo a página até o fim do toque e
+    // o clique não atravessa para o cartão de baixo (que abriria outros detalhes).
+    $("#detalhes-fundo").addEventListener("click", (ev) => {
+      ev.preventDefault(); ev.stopPropagation();
+      if (fechaComCliqueFora()) fechaDetalhes();
+    });
     document.addEventListener("pointerdown", (ev) => {
       const box = $("#detalhes"), t = ev.target;
-      if (box.hidden || !fechaComCliqueFora() || !t.isConnected || box.contains(t)) return;
+      if (box.hidden || !fechaComCliqueFora() || !t.isConnected || box.contains(t) || t.id === "detalhes-fundo") return;
       if (t.closest && t.closest(".card, [data-abrir], #paleta, dialog")) return;
       fechaDetalhes();
     });
