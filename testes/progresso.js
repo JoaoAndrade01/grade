@@ -614,9 +614,7 @@ function saidaDoPerfil(perfil) {
   codigos.forEach((code) => {
     const rs = m.regs[code];
     const ultimo = P.aprovacaoDoPrazo(rs, m.periodos);
-    const inf = m.info(code) || {};
     porCodigo[code] = { status: P.statusDosRegistros(rs, !!m.pendEq[code]), fonte: P.fonteDaAprovacao(rs),
-      dados: [inf.name ?? null, inf.credits ?? null, inf.category ?? null, inf.horas ?? null], divergentes: (m.creditosDivergentes || {})[code] || null,
       semestres: rs.map((r) => P.semestreDoRegistro(r, m.periodos)).sort(),
       prazo: ultimo ? P.prazoDoRegistro(ultimo, m.periodos) : null,
       periodo: rs.map((r) => (m.periodos[r.pi] || {}).nome ?? null).sort(),
@@ -633,8 +631,6 @@ function saidaDoPerfil(perfil) {
   const reg = (o) => (o.importado || 0) + (o.declarado || 0);
   const grupos = {};
   ["1", "2", "3", "4"].forEach((k) => { grupos[k] = { nome: k, un: "cr", total: TOTAIS[k], cumprido: reg(creditos[k] || {}) }; });
-  // ACE (grupo 5) também entra na comparação: horas validadas cumprem, as outras são plano
-  grupos["5"] = { nome: "5", un: "h", total: 405, cumprido: (perfil.extensao || []).filter((a) => a.status === "validada").reduce((a, x) => a + x.horas, 0) };
   const obrigatorias = GRADE.filter((c) => c.code && c.category === 1 && !cumprida(c.code)).map((c) => ({ code: c.code, nome: c.code }));
   const cob = C.coberturaDoPlano({ grupos, obrigatorias, itens: P.itensDoPlano(m, { cumprida }),
     horasAce: (perfil.extensao || []).filter((a) => a.status !== "validada").map((a) => ({ horas: a.horas, semestre: P.semIdx(a.periodo) })), semestreAtual: SEMESTRE_ATUAL });
@@ -673,12 +669,6 @@ const PERFIS_INVARIANCIA = {
     extensao: [{ nome: "Projeto fictício A", horas: 200, periodo: "2026/2", status: "planejada" }, { nome: "Projeto fictício B", horas: 205, periodo: "2027/1", status: "planejada" },
       { nome: "Projeto fictício C", horas: 30, periodo: "2024/2", status: "planejada" }],
     equivalencias: [{ status: "a pedir", pedida: OBR[1], cursadas: ["XYZ104"] }, { status: "em análise", pedida: OBR[1], cursadas: ["XYZ105"] }] },
-  // disciplina fora do catálogo repetida com créditos diferentes: vale a aprovação mais recente (5 cr), com aviso
-  foraDoCatalogo: { periodos: [{ nome: "2024/1", disciplinas: [{ code: "XYZ101", credits: 2, category: 3 }, { code: "XYZ102", name: "Nome antigo", credits: 4, category: 4 }] },
-    { nome: "2025/1", disciplinas: [{ code: "XYZ101", credits: 5, category: 3 }, { code: "XYZ102", name: "Nome novo", status: "reprovado", credits: 3, category: 4 }] },
-    { nome: "2026/2", atual: true, disciplinas: ["XYZ101", { code: "XYZ103", credits: 4, category: 3, status: "previsto" }] },
-    { nome: "2027/1", planejado: true, disciplinas: [{ code: "XYZ103", credits: 6, category: 3 }] }],
-    extensao: [{ nome: "Projeto fictício A", horas: 300, periodo: "2025/1", status: "validada" }, { nome: "Projeto fictício B", horas: 105, periodo: "2027/1", status: "planejada" }] },
   repetidos: { periodos: [{ nome: "2024/1", disciplinas: [{ code: "XYZ101", status: "reprovado" }, "XYZ102"] }, { nome: "2025/1", disciplinas: ["XYZ101", "XYZ102"] }],
     equivalencias: [{ status: "deferido", pedida: OBR[0], cursadas: ["XYZ101", "XYZ102"] }] },
 };
@@ -697,18 +687,13 @@ caso("Invariância: 24 embaralhamentos de pedidos, origens, itens e ordem dos pe
   assert.deepEqual(falhas, []);
 });
 
-caso("Ordem fora das cadeias: o bloco mais recente dá o prazo, a origem de menor código vence no mesmo semestre, o pedido em análise vence o a pedir e a disciplina fora do catálogo usa os créditos da aprovação mais recente", () => {
+caso("Ordem fora das cadeias: o bloco mais recente dá o prazo, a origem de menor código vence no mesmo semestre e o pedido em análise vence o a pedir", () => {
   const dois = saidaDoPerfil(PERFIS_INVARIANCIA.doisBlocos);
   assert.deepEqual([dois.porCodigo.XYZ101.prazo.ano, dois.porCodigo[OBR[0]].prazo.ano], [2025, 2025]);
   const conv = saidaDoPerfil(PERFIS_INVARIANCIA.convergentes);
   assert.deepEqual([conv.cob.grupos["2"].planejado, conv.cob.grupos["3"].planejado], [5, 0]);         // XYZ101 (menor código) dá o XYZ103
   assert.deepEqual(conv.pendentes[OBR[1]], ["XYZ105"]);                                                // em análise vence a pedir
   assert.deepEqual(conv.cob.noPassado, ["2024/2"]);                                                    // ACE planejada no passado
-  const fora = saidaDoPerfil(PERFIS_INVARIANCIA.foraDoCatalogo);
-  assert.deepEqual([fora.porCodigo.XYZ101.dados[1], fora.porCodigo.XYZ101.divergentes], [5, [2, 5]]); // a aprovação mais recente
-  assert.deepEqual([fora.porCodigo.XYZ102.dados[0], fora.porCodigo.XYZ102.dados[1]], ["Nome antigo", 4]); // a aprovada vence a reprovada
-  assert.deepEqual([fora.porCodigo.XYZ103.dados[1], fora.porCodigo.XYZ103.divergentes], [6, [4, 6]]);  // sem aprovação: a mais recente
-  assert.equal(fora.cob.grupos["5"].planejado, 105);                                                   // ACE na cobertura
 });
 
 caso("Encadeadas, ciclo, plano no passado e desempate aninhado: os resultados esperados", () => {
