@@ -184,6 +184,8 @@ code { background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
   background: repeating-linear-gradient(135deg, var(--st-bg) 0 7px, color-mix(in srgb, var(--muted) 9%, var(--st-bg)) 7px 14px);
   border-style: dashed;
 }
+.card .estado.e-declarada { font-weight: 700; }
+.det-declarada p { margin: 4px 0; }
 .card .etq-transferida {
   display: inline-block; padding: 0 5px; border-radius: 6px; border: 1px solid var(--borda-forte);
   color: var(--text); background: var(--surface); font-size: 10.5px;

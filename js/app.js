@@ -17,7 +17,7 @@
  *  ESTADO NO NAVEGADOR (localStorage, prefixo "gradeECI.v2.")
  *    perfilImportado  perfil gerado pelo "Importar do SIGA" (tem prioridade sobre perfil.js)
  *    tags, marcacoes  tags de cor e o que foi pintado com o pincel
- *    plano            edições de planejamento/pedidos/extensão ainda não exportadas
+ *    plano            edições de planejamento/pedidos/extensão e aprovações registradas por você ainda não exportadas
  *                     (plano.removidos = períodos planejados do perfil excluídos no Cronograma)
  *    tema             "claro" | "escuro": escolha do botão sol/lua (js/tema.js); sem ela, segue o sistema
  *    modoClassico     seletor Clássico | Planejador do topo (padrão: Clássico = só a grade e a paleta)
@@ -199,6 +199,13 @@
         }
       }
     }
+    if (p.aprovacoesDeclaradas != null) {
+      if (!Array.isArray(p.aprovacoesDeclaradas)) return "aprovacoesDeclaradas";
+      for (const [i, d] of p.aprovacoesDeclaradas.entries()) {
+        const erro = window.PROGRESSO.erroDeclarada(d, `aprovacoesDeclaradas[${i}]`);
+        if (erro) return erro;
+      }
+    }
     if (p.tags != null) {
       if (!Array.isArray(p.tags)) return "tags";
       for (const [i, t] of p.tags.entries()) {
@@ -348,6 +355,13 @@
   let creditosManuais = load("creditos", {}, (v) => objeto(v)
     && Object.entries(v).every(([k, n]) => Object.hasOwn(CATS, k) && numero(n))); // categoria -> créditos extras
   let plano = { periodos: {}, novos: [], ...load("plano", {}, planoValido) }; // edições de planejamento
+  // Aprovações registradas por você no navegador: lidas item a item (um item inválido não derruba o plano inteiro).
+  let avisoDeclaradas = "";
+  if (plano.aprovacoesDeclaradas !== undefined) {
+    const lidas = window.PROGRESSO.normalizaDeclaradas(plano.aprovacoesDeclaradas);
+    if (lidas.ignoradas) avisoDeclaradas = `${lidas.ignoradas} ${lidas.ignoradas === 1 ? "aprovação registrada por você foi ignorada" : "aprovações registradas por você foram ignoradas"} por formato inválido.`;
+    if (Array.isArray(plano.aprovacoesDeclaradas)) plano.aprovacoesDeclaradas = lidas.itens; else delete plano.aprovacoesDeclaradas;
+  }
   let vistaAtual = load("vista", perfil ? "timeline" : "grade");   // aba do Planejador
   let filtros = Object.assign({ busca: "", grupo: "2", prefixo: "", liberadas: false, ocultarFeitas: true, cabe: false, alvo: "", ativas: true, acesas: false }, load("filtros", {}));
   let cronoPeriodo = load("cronoPeriodo", null);
@@ -359,6 +373,8 @@
   // Listas editáveis no app (o navegador guarda as edições até exportar)
   const getEq = () => plano.equivalencias || (perfil && perfil.equivalencias) || [];
   const getExt = () => plano.extensao || (perfil && perfil.extensao) || [];
+  /** Aprovações registradas por você (plano sobre perfil), um item por código: vale o último. */
+  const getDecl = () => window.PROGRESSO.normalizaDeclaradas(plano.aprovacoesDeclaradas || (perfil && perfil.aprovacoesDeclaradas) || []).itens;
   function setLista(chave, arr) { plano[chave] = arr; save("plano", plano); montaModelo(); render(); }
 
   // ---------- Modelo ----------
@@ -371,7 +387,7 @@
     const removidos = new Set(plano.removidos || []);
     const base = ((perfil && perfil.periodos) || []).filter((p) => !(p.planejado && removidos.has(p.nome))).map((p) => ({ ...p }));
     (plano.novos || []).forEach((n) => { if (!base.some((p) => p.nome === n.nome)) base.push({ disciplinas: [], ...n }); });
-    const r = montaRegistros({ grade, catalogo, periodos: base, editados: plano.periodos, pedidos: getEq() });
+    const r = montaRegistros({ grade, catalogo, periodos: base, editados: plano.periodos, pedidos: getEq(), declaradas: getDecl() });
     const ref = (window.horarios || {})[cursoId] || null;
     const guia = (window.guia || {})[cursoId] || null;
     const boa = (perfil && perfil.boa) || null;
@@ -412,24 +428,15 @@
     const r = (M.regs[code] || []).filter((x) => concluido(x.status)).pop();
     return r ? r.nota : null;
   };
-  const periodoDe = (code, filtro) => (M.regs[code] || []).filter((r) => filtro(r.status)).map((r) => M.periodos[r.pi]?.nome).filter(Boolean);
+  /** Nome do período de um registro; a declarada usa o semestre informado (ou nenhum). */
+  const nomeDoRegistro = (r) => M.periodos[r.pi]?.declarado ? (r.semestreDeclarado || null) : M.periodos[r.pi]?.nome;
+  const periodoDe = (code, filtro) => (M.regs[code] || []).filter((r) => filtro(r.status)).map(nomeDoRegistro).filter(Boolean);
 
   // A marcação manual simula aprovação mesmo sem uma data no histórico.
   /** O registro do perfil (com data) cumpre o requisito neste semestre, sem contar a marcação manual. */
   // Transferida (D-08): vale o semestre original (`aprovadaEm`); sem ele, só períodos de anos posteriores ao do bloco.
   function registroCumpre(code, semestre, aceitaMesmoSemestre = false) {
-    if (semestre == null) return false;
-    return (M.regs[code] || []).some((r) => {
-      const p = M.periodos[r.pi];
-      if (!p || FORCA[r.status] < FORCA.planejado) return false;
-      let origem = semestreDoRegistro(r);
-      if (origem == null && r.status === "aprovado") {
-        origem = semIdx(r.aprovadaEm);
-        const ano = anoDoBloco(p.nome);
-        if (origem == null) return ano != null && Math.floor(semestre / 2) > ano;
-      }
-      return origem != null && (origem < semestre || (aceitaMesmoSemestre && origem === semestre));
-    });
+    return window.PROGRESSO.registroCumpre(M.regs[code], M.periodos, semestre, aceitaMesmoSemestre);
   }
   function requisitoCumprido(code, semestre, aceitaMesmoSemestre = false) {
     return aprovacaoManual(code) || registroCumpre(code, semestre, aceitaMesmoSemestre);
@@ -445,9 +452,13 @@
       ? semestres.some((sem) => !registroCumpre(r, sem, coreq)) : statusPerfil(r) !== "aprovado");
     return i.req.filter((r) => so(r, false)).concat(i.coreq.filter((r) => so(r, true)));
   }
+  /** Requisitos (P e C) de `code` cumpridos por uma aprovação registrada por você (sem registro importado nem pincel). */
+  const requisitosPorDeclarada = (code) => { const i = M.info(code); return i ? i.req.concat(i.coreq).filter((r) => !aprovacaoManual(r) && fonteDe(r) === "declarado") : []; };
   function avisos(code, semestre) {
     const i = M.info(code); if (!i) return [];
-    return i.req.filter((r) => !requisitoCumprido(r, semestre)).map((r) => `Requisito ${r} não cumprido antes deste período`)
+    return i.req.filter((r) => !requisitoCumprido(r, semestre)).map((r) => window.PROGRESSO.declaradaSemSemestreEm(M.regs[r], M.periodos, semestre)
+      ? `Requisito ${r} registrado por você sem semestre: não dá para saber se foi antes deste período.`
+      : `Requisito ${r} não cumprido antes deste período`)
       .concat(i.coreq.filter((r) => !requisitoCumprido(r, semestre, true)).map((r) => `Co-requisito ${r} não cumprido até este período`));
   }
   // Para o catálogo: requisitos que faltam hoje (aprovado/previsto contam)
@@ -680,13 +691,16 @@
     out.periodos.forEach((p) => { if (plano.periodos[p.nome]) p.disciplinas = clone(plano.periodos[p.nome]); });
     if (plano.equivalencias) out.equivalencias = clone(plano.equivalencias);
     if (plano.extensao) out.extensao = clone(plano.extensao);
+    if (plano.aprovacoesDeclaradas) {
+      if (plano.aprovacoesDeclaradas.length) out.aprovacoesDeclaradas = clone(plano.aprovacoesDeclaradas); else delete out.aprovacoesDeclaradas;
+    }
     out.tags = clone(tags);
     if (Object.keys(marcacoes).length) out.marcacoes = clone(marcacoes); else delete out.marcacoes;
     return out;
   }
   function textoPerfil(obj) {
     const linhas = ["{"];
-    const listas = ["equivalencias", "extensao", "tags"];
+    const listas = ["equivalencias", "extensao", "aprovacoesDeclaradas", "tags"];
     Object.keys(obj).filter((k) => k !== "periodos" && !listas.includes(k)).forEach((k) => linhas.push(`  ${JSON.stringify(k)}: ${JSON.stringify(obj[k])},`));
     listas.filter((k) => obj[k]).forEach((k) => {
       linhas.push(`  ${JSON.stringify(k)}: [`);
@@ -706,7 +720,7 @@
   }
   function exportaPerfil() { baixa("perfil.js", textoPerfil(perfilExportado())); }
   const temEdicoes = () => Object.keys(plano.periodos).length > 0 || (plano.novos || []).length > 0 || (plano.removidos || []).length > 0
-    || !!plano.equivalencias || !!plano.extensao
+    || !!plano.equivalencias || !!plano.extensao || !!plano.aprovacoesDeclaradas
     || JSON.stringify(marcacoes) !== JSON.stringify((perfil && perfil.marcacoes) || {})
     || JSON.stringify(tags) !== JSON.stringify(normalizaTags(migraTags((perfil && perfil.tags) || TAGS_PADRAO, marcacoes)));
 
@@ -721,8 +735,10 @@
       return { rot: t ? t.nome : "Sem tag", origem: "marcação" };
     }
     const s = statusPerfil(code);
+    if (s === "aprovado" && fonteDe(code) === "declarado") return { rot: ROTULO[s], origem: ORIGEM_DECL };
     return s === "pendente" ? { rot: "Pendente", origem: null } : { rot: ROTULO[s], origem: "perfil" };
   }
+  const ORIGEM_DECL = "registrada por você";
 
   /**
    * Ícone de estado do cartão (decisão M2, WCAG 1.4.1): a situação não depende só da cor. O ícone é decorativo; a
@@ -730,8 +746,9 @@
    */
   const ICONE_ESTADO = { aprovado: "✓", previsto: "…", cursando: "◐", planejado: "○", reprovado: "✗", analise: "⇄" };
   const ICONE_MARCACAO = "✎";
+  const ICONE_DECLARADA = "☑";   // aprovação registrada por você: distinta do ✓ do registro importado (PC-08)
   function estadoHtml(ico) {
-    return ico ? `<span class="estado${ico === ICONE_MARCACAO ? " e-marcacao" : ""}" aria-hidden="true">${ico}</span>` : "";
+    return ico ? `<span class="estado${ico === ICONE_MARCACAO ? " e-marcacao" : ico === ICONE_DECLARADA ? " e-declarada" : ""}" aria-hidden="true">${ico}</span>` : "";
   }
   /**
    * Nome visível e nome acessível do cartão. Com situação, o nome visível fica fora da árvore de acessibilidade e um
@@ -748,7 +765,7 @@
       `class="card s-${esc(o.status)} cat-${esc(o.cat)}${temAviso ? " tem-aviso" : ""}${o.classe ? " " + o.classe : ""}"`,
       o.code ? `data-code="${esc(o.code)}"` : "",
       o.periodo ? `data-periodo="${esc(o.periodo)}"` : "",
-      o.ri != null ? `data-reg="${o.ri}" data-status="${esc(o.status)}"${o.transferida ? " data-transferida" : ""}` : "",
+      o.ri != null ? `data-reg="${o.ri}" data-status="${esc(o.status)}"${o.transferida ? " data-transferida" : ""}${o.declarada ? " data-declarada" : ""}` : "",
       o.idx != null ? `data-idx="${o.idx}"` : "",
       o.inerte ? "inert" : "",
       o.fill ? `style="--ok:${o.fill.ok}%;--prev:${o.fill.prev}%;--plan:${o.fill.plan}%"` : "",
@@ -758,7 +775,7 @@
     return `<button type="button" ${attrs}>
       ${nota != null ? `<span class="nota">${esc(nota)}</span>` : ""}
       ${temAviso ? `<span class="aviso" aria-label="aviso">!</span>` : ""}
-      ${nomeDoCartao(o.name, ICONE_ESTADO[o.status], ICONE_ESTADO[o.status] && ROTULO[o.status] ? ROTULO[o.status] + (o.origem ? " · " + o.origem : "") : "")}
+      ${nomeDoCartao(o.name, o.icone || ICONE_ESTADO[o.status], ICONE_ESTADO[o.status] && ROTULO[o.status] ? ROTULO[o.status] + (o.origem ? " · " + o.origem : "") : "")}
       ${o.sub ? `<span class="sub">${o.sub}</span>` : ""}
       <span class="meta">${o.code ? seloGuia(o.code, true) + " " : ""}${esc(o.meta)}</span>
     </button>`;
@@ -793,7 +810,7 @@
     const plano = planos.length ? `<span class="plano-flag" aria-hidden="true" title="Planejada em ${esc(planos.join(", "))}">📅 ${esc(planos[0])}${planos.length > 1 ? ` <b>+${planos.length - 1}</b>` : ""}</span><span class="sr">, planejada em ${esc(planos.join(", "))}</span>` : "";
     const so = situacaoOrigem(c.code);
     const estado = so.origem ? `${so.rot} · ${so.origem}` : "";
-    const ico = !so.origem ? "" : so.origem === "marcação" ? ICONE_MARCACAO : ICONE_ESTADO[statusPerfil(c.code)] || "";
+    const ico = !so.origem ? "" : so.origem === "marcação" ? ICONE_MARCACAO : so.origem === ORIGEM_DECL ? ICONE_DECLARADA : ICONE_ESTADO[statusPerfil(c.code)] || "";
     return `<button type="button" class="card limpo${tag ? " com-tag" : ""}${s === "analise" ? " s-analise" : ""}${apagado ? " apagado" : ""}${prot ? " protegida" : ""}${exp ? " com-eci" : ""}"
       data-code="${esc(c.code)}" ${tag ? `style="--tag:${esc(tag.cor)}"` : ""} title="${exp ? "Abrir a experiência: " + esc(window.ECI.tem(c.code).titulo) : esc(tag ? tag.nome : ROTULO[s]) + (prot ? " · protegida pelo cadeado" : "")}"
       ${seletorECI && !exp ? "inert" : ""}${exp ? ` aria-describedby="dica-eci"` : ""}>
@@ -986,8 +1003,13 @@
     M.periodos.forEach((p, k) => {
       const ano = p.semestre == null ? anoDoBloco(p.nome) : null;
       p.itens.forEach((it) => {
+        // Aprovação registrada por você com semestre: vai para a coluna dele, com etiqueta; sem semestre, fica na própria.
+        if (p.declarado) {
+          if (!it.semestreDeclarado) return proprias[k].itens.push({ it, decl: true });
+        }
         // A data é a do próprio item: duas ocorrências do mesmo código no bloco podem ter semestres originais diferentes.
-        const original = ano != null && it.status === "aprovado" && semestreValido(it.aprovadaEm) ? it.aprovadaEm : null;
+        const original = p.declarado ? it.semestreDeclarado
+          : ano != null && it.status === "aprovado" && semestreValido(it.aprovadaEm) ? it.aprovadaEm : null;
         if (!original) return proprias[k].itens.push({ it });
         let c = porNome.get(original);
         if (!c) {
@@ -996,9 +1018,12 @@
           const depois = cols.reduce((u, x, i) => (x.semestre != null && x.semestre < s ? i : u), -1);
           cols.splice(depois + 1, 0, c); porNome.set(original, c);
         }
-        c.itens.push({ it, bloco: ano });
+        c.itens.push(p.declarado ? { it, decl: true } : { it, bloco: ano });
       });
     });
+    // A coluna "Registradas por você · sem semestre" vem primeiro: a posição não afirma ordem.
+    const virtual = cols.findIndex((c) => c.p && c.p.declarado);
+    if (virtual > 0) cols.unshift(cols.splice(virtual, 1)[0]);
     return cols;
   }
 
@@ -1009,24 +1034,28 @@
       const p = col.p || col;
       // Bloco de transferidas sem nenhum item (todas foram ao semestre original): some da tela, fica no modelo (D-03, D-08).
       if (col.p && col.p.semestre == null && anoDoBloco(col.p.nome) != null && !col.itens.length) return;
+      if (col.p && col.p.declarado && !col.itens.length) return;
       let cr = 0, temOferta = false;
-      const cards = col.itens.map(({ it, bloco }) => {
+      const cards = col.itens.map(({ it, bloco, decl }) => {
         if (it.status !== "reprovado" && it.category != 5) cr += it.credits;
-        const subs = bloco != null ? [`<span class="etq-transferida">transferida · bloco ${bloco}</span>`] : [];
+        const subs = bloco != null ? [`<span class="etq-transferida">transferida · bloco ${bloco}</span>`]
+          : decl ? [`<span class="etq-transferida etq-declarada">${ICONE_DECLARADA} registrada por você${it.semestreDeclarado ? "" : " · sem semestre"}</span>`] : [];
         if (it.equivale && M.curr[it.equivale]) subs.push(`≡ ${esc(it.equivale)} ${esc(M.curr[it.equivale].name)}`);
         if (it.dispensas.length) subs.push("dispensa " + it.dispensas.map(esc).join(", "));
         // Alertas pelo tipo do registro de origem: a transferida é histórico aprovado, mesmo na coluna do atual ou de um plano.
-        const tipo = bloco != null ? "cursado" : p.tipo;
+        const tipo = bloco != null || decl ? "cursado" : p.tipo;
         const aviso = tipo !== "cursado" && it.status !== "reprovado" ? avisos(it.alvo, p.semestre) : [];
         const oferta = tipo === "planejado" && it.status !== "reprovado" ? avisoOferta(it.alvo, p.nome) : null;
         if (oferta) { temOferta = true; aviso.push(oferta.texto); subs.push(`<span class="aviso-oferta">${esc(oferta.curto)}</span>`); }
         return card({
-          code: it.alvo, name: it.name, cat: it.category, status: it.status, nota: it.nota, origem: "perfil", periodo: col.nome, ri: it.ri, transferida: bloco != null,
+          code: it.alvo, name: it.name, cat: it.category, status: it.status, nota: it.nota, origem: decl ? ORIGEM_DECL : "perfil", periodo: col.nome, ri: it.ri, transferida: bloco != null,
+          declarada: !!decl, ...(decl ? { icone: ICONE_DECLARADA } : {}),
           meta: metaDe(it.code, it.category == 5 ? it.horas : it.credits, it.category), sub: subs.join("<br>"), aviso,
           ...(bloco != null ? { classe: "transferida", titulo: `transferida do curso anterior (bloco ${bloco})` } : {}),
         });
       }).join("");
-      const tipoChip = { atual: `<span class="chip chip-atual">atual</span>`, planejado: `<span class="chip chip-plan">planejado</span>`, cursado: "" }[p.tipo];
+      const tipoChip = p.declarado ? `<span class="chip">sem semestre</span>`
+        : { atual: `<span class="chip chip-atual">atual</span>`, planejado: `<span class="chip chip-plan">planejado</span>`, cursado: "" }[p.tipo];
       const chips = `${tipoChip}${p.nota ? `<span class="chip">${esc(p.nota)}</span>` : ""}<span class="chip">${fmt(cr)} cr</span>${p.editado ? `<span class="chip chip-alerta" title="Editado no navegador — exporte o perfil para salvar">editado</span>` : ""}`;
       const notas = (p.tipo === "atual" && p.deduzido ? notaHtml(NOTA_RA19) : "") + (temOferta ? notaHtml(notaRA20()) : "");
       html += coluna(p.nome, chips, cards, `col-${p.tipo}${col.so ? " col-original" : ""}`, notas);
@@ -1163,10 +1192,11 @@
     const r = (M.regs[code] || []).filter((x) => x.status === "aprovado").pop();
     if (!r) return null;
     const nome = M.periodos[r.pi]?.nome;
-    const i = semestreDoRegistro(r), ano = i == null ? anoDoBloco(nome) : null;
-    if (i == null && ano == null) return null;
+    const declarado = r.origem === "declarado";
+    const i = semestreDoRegistro(r), ano = i == null && !declarado ? anoDoBloco(nome) : null;
+    if (i == null && ano == null) return null;      // declarada sem semestre: "Data de aprovação não confirmada" (sem idade)
     const de = i != null ? i : ano * 2, ate = i != null ? i : ano * 2 + 1;
-    return { ano, min: (semAtual() - ate) / 2, max: (semAtual() - de) / 2, aprovadaEm: r.aprovadaEm || null };
+    return { ano, min: (semAtual() - ate) / 2, max: (semAtual() - de) / 2, aprovadaEm: r.aprovadaEm || null, declarado };
   }
   /**
    * Os dois números da livre escolha (D-02, PC-04): o da Grade e a soma da lista "Cursadas e Não Explicitadas" do BOA.
@@ -1223,7 +1253,8 @@
   /** Texto curto da base e da origem de uma cursada, para o pedido e a tabela de livre escolha. */
   function textoBase(b) {
     if (!b) return "";
-    return (b.ano != null ? `Base do prazo: só o ano ${b.ano} (bloco de transferidos).` : "")
+    return (b.declarado ? "Semestre informado por você, sem registro do SIGA." : "")
+      + (b.ano != null ? `Base do prazo: só o ano ${b.ano} (bloco de transferidos).` : "")
       + (b.aprovadaEm ? ` Aprovação original em ${b.aprovadaEm}: não conta para o prazo.` : "");
   }
   const boaDe = (c) => ((M.boa && M.boa.naoExplicitadas) || []).find((d) => d.code === c) || null;
@@ -1331,7 +1362,7 @@
         a.semConteudo ? `<li class="alerta">✗ nenhuma cursada marcada como conteúdo</li>` : "",
         a.velhas.length ? `<li class="alerta">⚠ mais de 5 anos: ${a.velhas.map((v) => esc(v.code)).join(", ")}</li>` : "",
         a.imprecisas.length ? `<li class="alerta">Precisão insuficiente: só o ano é conhecido; pode passar de 5 anos (${a.imprecisas.map((v) => esc(v.code)).join(", ")}).</li>` : "",
-        a.semData.length ? `<li class="alerta">Data de aprovação não confirmada: ${a.semData.map((v) => esc(v.code)).join(", ")}</li>` : "",
+        a.semData.length ? `<li class="alerta">Data de aprovação não confirmada: ${a.semData.map((v) => esc(v.code) + (fonteDe(v.code) === "declarado" ? " (aprovação registrada por você, sem semestre)" : "")).join(", ")}</li>` : "",
         a.cs.some((c) => baseDoPrazo(c.code)) ? `<li class="nota-estimativa">${esc(NOTA_RA09)}</li>` : "",
         a.repetidas.length ? `<li class="alerta">⚠ já usada em outro pedido/dispensa: ${a.repetidas.map(esc).join(", ")}</li>` : "",
         M.pedidosComConflito.has(e) ? `<li class="alerta">Créditos fora da soma até resolver o uso em duplicidade.</li>` : "",
@@ -1691,7 +1722,11 @@
     }).join("")
       // PC-02/03: a aprovação pelo pincel é identificada no detalhamento, com o mesmo ícone do cartão.
       + (Object.keys(marcacoes).some(aprovacaoManual)
-        ? `<p class="leg-manual"><span aria-hidden="true">${ICONE_MARCACAO}</span> Aprovação por marcação manual (pincel): simulação, não é registro importado.</p>` : "");
+        ? `<p class="leg-manual"><span aria-hidden="true">${ICONE_MARCACAO}</span> Aprovação por marcação manual (pincel): simulação, não é registro importado.</p>` : "")
+      + (() => {
+        const n = Object.keys(M.regs).filter((c) => !aprovacaoManual(c) && fonteDe(c) === "declarado").length;
+        return n ? `<p class="leg-manual leg-declarada"><span aria-hidden="true">${ICONE_DECLARADA}</span> ${n} ${n === 1 ? "aprovação registrada" : "aprovações registradas"} por você: ${n === 1 ? "conta" : "contam"} para fase e conquistas, não ${n === 1 ? "é" : "são"} registro do SIGA.</p>` : "";
+      })();
   }
 
   /** Escala de dificuldade do guia (Exibir → Dificuldade). */
@@ -1713,9 +1748,9 @@
 
   function renderAvisoPerfil() {
     const el = $("#aviso-perfil");
-    el.hidden = !avisosPerfil.size;
+    el.hidden = !avisosPerfil.size && !avisoDeclaradas;
     el.textContent = [...avisosPerfil].map(([origem, erro]) =>
-      `Não foi possível usar ${origem}. Campo inválido: ${erro}.`).join(" ");
+      `Não foi possível usar ${origem}. Campo inválido: ${erro}.`).concat(avisoDeclaradas ? [avisoDeclaradas] : []).join(" ");
   }
 
   /** Nome pessoal do perfil: campo "nome" ou, em perfis antigos, o "Fulano" de "Grade ECI — Fulano". */
@@ -1989,7 +2024,7 @@
       if (!i) return;
       const s = statusDe(code);
       const hist = (M.regs[code] || []).map((r) =>
-        `<li><b>${esc(M.periodos[r.pi]?.nome ?? "Período não confirmado")}</b> — ${ROTULO[r.status]}${r.nota != null ? ` · nota ${esc(r.nota)}` : ""}${r.via ? `<br><small>${esc(r.via)}</small>` : ""}</li>`).join("");
+        `<li><b>${esc(M.periodos[r.pi]?.declarado ? (r.semestreDeclarado || "Semestre não informado") : M.periodos[r.pi]?.nome ?? "Período não confirmado")}</b> — ${ROTULO[r.status]}${r.nota != null ? ` · nota ${esc(r.nota)}` : ""}${r.via ? `<br><small>${esc(r.via)}</small>` : ""}</li>`).join("");
       const ds = M.deps[code] || [];
       const fonte = i.fonte === "grade" ? `${i.semester}º período recomendado` : i.fonte === "catalogo" ? (GRUPOS_OPT[i.category] || "optativa") : "fora do currículo";
       const futuros = periodosFuturos();
@@ -1999,21 +2034,26 @@
       // aberto. Vale o registro que corresponde ao cartão (semestre, situação e, se transferida, bloco com aprovadaEm);
       // se a ocorrência deixou de existir, a linha some.
       const nomeDe = (r) => M.periodos[r.pi]?.nome;
-      const casa = (r) => !!r && (alvo.status == null || r.status === alvo.status) && (alvo.transferida
-        ? r.aprovadaEm === alvo.periodo && anoDoBloco(nomeDe(r)) != null : nomeDe(r) === alvo.periodo);
+      const casa = (r) => !!r && (alvo.status == null || r.status === alvo.status) && (alvo.declarada ? r.origem === "declarado" && M.periodos[r.pi]?.declarado
+        : alvo.transferida ? r.aprovadaEm === alvo.periodo && anoDoBloco(nomeDe(r)) != null : nomeDe(r) === alvo.periodo);
       const oc = !alvo.periodo ? null : casa(regs[alvo.reg]) ? regs[alvo.reg] : regs.find(casa) || null;
       const blocoOc = oc && alvo.transferida ? nomeDe(oc) : null;
       html = `
         <header><span class="cat-pill cat-${i.category}">${CATS[i.category] ? CATS[i.category].nome : ""}</span>
           <button type="button" class="fechar" aria-label="Fechar">×</button></header>
         <h3>${esc(i.name)}</h3>
-        ${oc ? `<p class="det-ocorrencia s-${oc.status}"><b>${esc(alvo.periodo)}</b>: ${ROTULO[oc.status]} · perfil${oc.nota != null ? ` · nota ${esc(oc.nota)}` : ""}${blocoOc ? ` (transferida, ${esc(blocoOc)})` : ""}</p>` : ""}
+        ${oc ? `<p class="det-ocorrencia s-${oc.status}"><b>${esc(alvo.declarada && !oc.semestreDeclarado ? "Sem semestre" : alvo.periodo)}</b>: ${ROTULO[oc.status]} · ${oc.origem === "declarado" ? ORIGEM_DECL : "perfil"}${oc.nota != null ? ` · nota ${esc(oc.nota)}` : ""}${blocoOc ? ` (transferida, ${esc(blocoOc)})` : ""}</p>` : ""}
         <p class="det-meta">${esc(metaDe(code, valorCat(i), i.category))}${i.workload ? ` · ${i.workload} h` : ""} · ${esc(fonte)}</p>
         <p class="det-status s-${s}"><i class="dot s-${s}"></i>${oc ? "Na disciplina: " : ""}${ROTULO[s]}${aprovacaoManual(code) ? " por marcação manual (pincel), não é registro importado"
-          : Object.prototype.hasOwnProperty.call(marcacoes, code) ? " (marcada com o pincel)" : ""}</p>
+          : Object.prototype.hasOwnProperty.call(marcacoes, code) ? " (marcada com o pincel)" : s === "aprovado" && fonteDe(code) === "declarado" ? ` · ${ORIGEM_DECL}, não é registro do SIGA` : ""}</p>
+        ${htmlDeclarada(code)}
         ${(() => {
           const por = requisitosPorMarcacao(code);
           return por.length ? `<p class="aviso-manual alerta" role="note">Requisito satisfeito por marcação manual: ${por.map(esc).join(", ")}. É uma simulação sua, sem data no histórico importado.</p>` : "";
+        })()}
+        ${(() => {
+          const por = requisitosPorDeclarada(code);
+          return por.length ? `<p class="aviso-manual" role="note">Requisito satisfeito por aprovação registrada por você: ${por.map(esc).join(", ")}. Não é registro do SIGA.</p>` : "";
         })()}
         ${avisoReuso(code)}
         ${(() => {
@@ -2067,6 +2107,24 @@
     } else return;
     box.innerHTML = html;
     box.hidden = false;
+  }
+
+  /** Seção "Aprovação registrada por você" do detalhe: o registro, a confirmação pelo SIGA e as divergências. */
+  function htmlDeclarada(code) {
+    const d = getDecl().find((x) => x.code === code);
+    if (!d) return "";
+    const c = M.declaradas.confirmadas[code], k = M.declaradas.conflitos[code], n = M.declaradas.notas[code];
+    const futuro = d.semestre && semIdx(d.semestre) > semAtual();
+    const linhas = [
+      `<p class="det-meta">${ICONE_DECLARADA} Registrada por você${d.registradoEm ? ` em ${esc(d.registradoEm)}` : ""} · ${d.semestre ? `semestre ${esc(d.semestre)}` : "semestre não informado"}. Não é registro do SIGA.</p>`,
+      futuro ? `<p class="alerta">O semestre informado (${esc(d.semestre)}) é posterior ao atual. Confira.</p>` : "",
+      c && c.diverge ? `<p class="alerta" role="note">Você registrou ${esc(d.semestre)}; o SIGA traz ${esc(c.nome)}. Vale o SIGA.</p>`
+        : c ? `<p class="det-meta">Confirmada pelo SIGA${c.nome ? ` em ${esc(c.nome)}` : ""}${c.via && /dispensa|equival/.test(c.via) ? " como dispensa ou equivalência" : ""}. Fica guardada, fora da conta.</p>` : "",
+      k ? `<p class="alerta" role="note">O SIGA traz reprovação em ${esc(k.nome)}, no semestre ou depois da aprovação que você registrou. Ela não conta até você editar o semestre ou remover o registro.</p>` : "",
+      n && n.tipo === "reprovacao-antes" ? `<p class="det-meta">O SIGA traz reprovação em ${esc(n.nome)}. Sua aprovação registrada ainda não aparece no Histórico.</p>` : "",
+      n && n.tipo === "cursando" ? `<p class="det-meta">O BOA mostra a disciplina em curso${n.nome ? ` em ${esc(n.nome)}` : ""}.</p>` : "",
+    ];
+    return `<section class="det-declarada" aria-label="Aprovação registrada por você"><h4>Aprovação registrada por você</h4>${linhas.join("")}</section>`;
   }
 
   // Foco do painel de detalhes: entra no título quando aberto pelo teclado e volta ao disparador ao fechar.
@@ -2553,7 +2611,7 @@
     ev.preventDefault();
     const campo = $("#periodo-nome"), nome = campo.value.trim();
     const erro = !nomePeriodo(nome) ? "Informe o nome do período, por exemplo 2028/1."
-      : M.periodos.some((p) => p.nome === nome) ? `O período ${nome} já existe.` : null;
+      : M.periodos.some((p) => p.nome === nome) || nome === window.PROGRESSO.NOME_DECL ? `O período ${nome} já existe.` : null;
     if (erro) { $("#periodo-msg").textContent = erro; campo.setAttribute("aria-invalid", "true"); campo.focus(); return; }
     $("#dlg-periodo").close("ok");
     if ((plano.removidos || []).includes(nome)) plano.removidos = plano.removidos.filter((x) => x !== nome);   // recria vazio
@@ -2816,7 +2874,7 @@
       }
       if (t.closest("#excluir-periodo")) { excluiPeriodo(cronoPeriodo); return; }
       if (t.closest("#novo-periodo")) {
-        const ult = M.periodos[M.periodos.length - 1];
+        const ult = M.periodos.filter((p) => !p.declarado).pop();
         let sug = "";
         if (ult && /^(\d{4})\/(\d)$/.test(ult.nome)) { const [a, s] = ult.nome.split("/").map(Number); sug = s >= 2 ? `${a + 1}/1` : `${a}/2`; }
         return abreDialogoPeriodo(sug);
@@ -2834,7 +2892,7 @@
       }
       destaca(el.dataset.code);
       abrePainel(ev, () => abreDetalhes(el.dataset.code ? { code: el.dataset.code, periodo: el.dataset.periodo || null, reg: el.dataset.reg != null ? +el.dataset.reg : null,
-        status: el.dataset.status || null, transferida: el.hasAttribute("data-transferida") } : { idx: el.dataset.idx }));
+        status: el.dataset.status || null, transferida: el.hasAttribute("data-transferida"), declarada: el.hasAttribute("data-declarada") } : { idx: el.dataset.idx }));
     });
 
     // Horários: mouse e toque (mousedown, com arrasto) e teclado (Espaço/Enter, que chegam como clique sem detalhe).
@@ -3189,6 +3247,7 @@
 
   // Ganchos para testes e para quem quiser depurar no console do navegador.
   window.GradeInterativa = { carregaPdfJs, linhasPDF, perfilExportado: () => perfilExportado(), totais: () => totais(), fonte: (c) => fonteDe(c),
+    declaradas: () => JSON.parse(JSON.stringify({ ativas: M.declaradas.ativas, confirmadas: M.declaradas.confirmadas, conflitos: M.declaradas.conflitos, notas: M.declaradas.notas })),
     avisoOferta: (c, p) => avisoOferta(c, p), avisos: (c, nome) => { const p = M.periodos.find((x) => x.nome === nome); return p ? avisos(c, p.semestre) : null; } };
 
   // Rodapé: data da conferência do currículo com o SIGA (campo `consultado` de js/database.js).

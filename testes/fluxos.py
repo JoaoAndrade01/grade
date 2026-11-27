@@ -3130,7 +3130,111 @@ def t_plano_na_grade(b):
     foto(pg, "plano-na-grade-320-escuro")
     ctx.close()
 
-CASOS5 = [t_controles_icones, t_todas_acesas, t_minimalista, t_plano_na_grade]
+# ------------------------------------------------------------------ Aprovações registradas por você (Registrar marcações)
+HOJE = "2026-11-27T12:00:00"
+DECL = {"periodos": [{"nome": "2025/2", "disciplinas": [{"code": "FIT112", "status": "reprovado"}, "COS111"]},
+                     {"nome": "2026/2", "atual": True, "disciplinas": ["MAC128"]},
+                     {"nome": "2027/1", "planejado": True, "disciplinas": ["MAC238"]}],
+        "aprovacoesDeclaradas": [{"code": "MAC118", "registradoEm": "2026-11-27"},
+                                 {"code": "COS110", "registradoEm": "2026-11-27", "semestre": "2025/1"},
+                                 {"code": "FIT112", "registradoEm": "2026-11-27", "semestre": "2025/1"}]}
+
+@caso("Declaradas no modelo: ícone ☑ com a origem no nome acessível; Linha do tempo com a coluna sem semestre; aviso de requisito; conflito; detalhamento; exportação")
+def t_declaradas_modelo(b):
+    ctx, pg = abre(b, perfil=DECL, extra={"modoClassico": False, "vista": "grade", "progressoAberto": True}, nome="declaradas-modelo", relogio=HOJE)
+    expect(pg.locator('.card[data-code="MAC118"] .estado')).to_have_text("☑")
+    expect(pg.get_by_role("button", name=re.compile(r"^Cálculo I, Aprovada · registrada por você"))).to_have_count(1)
+    expect(pg.locator('.card[data-code="COS110"] .estado')).to_have_text("☑")
+    assert pg.locator('.card[data-code="FIT112"] .estado').count() == 0 or pg.locator('.card[data-code="FIT112"] .estado').inner_text() != "☑"   # conflito: não conta
+    assert pg.evaluate("GradeInterativa.fonte('MAC118')") == "declarado" and pg.evaluate("GradeInterativa.fonte('FIT112')") is None
+    assert "2 aprovações registradas por você: contam para fase e conquistas, não são registro do SIGA" in pg.locator("#progresso").inner_text()
+    foto(pg, "declaradas-grade")
+    # detalhes: registro, semestre não informado e o conflito com a reprovação
+    pg.locator('.card[data-code="MAC118"]').click()
+    det = pg.locator("#detalhes").inner_text()
+    assert "Registrada por você em 2026-11-27 · semestre não informado" in det and "não é registro do SIGA" in det, det
+    pg.keyboard.press("Escape"); pg.locator('.card[data-code="FIT112"]').click()
+    assert "O SIGA traz reprovação em 2025/2, no semestre ou depois da aprovação que você registrou" in pg.locator("#detalhes").inner_text()
+    pg.keyboard.press("Escape")
+    # Linha do tempo: a coluna sem semestre vem primeiro; a declarada com semestre vai para a coluna dele, com etiqueta
+    pg.click('[data-vista="timeline"]')
+    cols = pg.locator("#painel .coluna h2").all_inner_texts()
+    assert cols[0] == "Registradas por você" and "2025/1" in cols, cols
+    primeira = pg.locator("#painel .coluna").first
+    assert "sem semestre" in primeira.inner_text() and primeira.locator('.card[data-code="MAC118"]').count() == 1
+    c2025 = pg.locator("#painel .coluna").filter(has=pg.locator("h2", has_text="2025/1"))
+    assert "registrada por você" in c2025.locator('.card[data-code="COS110"]').inner_text()
+    assert "Requisito MAC118 registrado por você sem semestre" in pg.locator('#painel .col-atual .card[data-code="MAC128"]').get_attribute("title")
+    assert "MAC128" not in (pg.locator('#painel .col-planejado .card[data-code="MAC238"]').get_attribute("title") or "").split("—")[-1]
+    pg.locator('#painel .coluna').first.locator('.card[data-code="MAC118"]').click()
+    assert "Sem semestre" in pg.locator("#detalhes .det-ocorrencia").inner_text()
+    pg.keyboard.press("Escape")
+    foto(pg, "declaradas-linha-do-tempo")
+    # o período virtual fica fora do Cronograma e da sugestão de "+ Período"; a exportação não o leva
+    pg.click('[data-vista="cronograma"]')
+    assert "Registradas" not in pg.locator(".crono-topo").inner_text()
+    pg.get_by_role("button", name="Adicionar período").click()
+    assert pg.locator("#periodo-nome").input_value() == "2027/2"
+    pg.fill("#periodo-nome", "Registradas por você"); pg.click("#periodo-ok")
+    expect(pg.locator("#periodo-msg")).to_contain_text("já existe"); pg.keyboard.press("Escape")
+    exp = pg.evaluate("GradeInterativa.perfilExportado()")
+    assert exp["aprovacoesDeclaradas"] == DECL["aprovacoesDeclaradas"] and [p["nome"] for p in exp["periodos"]] == ["2025/2", "2026/2", "2027/1"], exp
+    ctx.close()
+    # A4: ☑ distinto do ✓, nos dois temas e a 320 px
+    for esquema in ("light", "dark"):
+        ctx, pg = abre(b, vp=C320, perfil=DECL, nome=f"declaradas-320-{esquema}", esquema=esquema, relogio=HOJE, toque=True)
+        c = pg.locator('.card[data-code="MAC118"]'); c.scroll_into_view_if_needed(); expect(c.locator(".estado")).to_have_text("☑")
+        assert pg.evaluate("document.documentElement.scrollWidth - innerWidth") <= 1
+        foto(pg, f"declaradas-icone-320-{esquema}")
+        ctx.close()
+
+@caso("Declaradas: prazo sem semestre (data não confirmada) e com semestre (idade, nota e origem); ACE sem semestre e com semestre (R10, R11, R16, R35)")
+def t_declaradas_prazo_ace(b):
+    perfil = {"periodos": [], "aprovacoesDeclaradas": [{"code": "COS110", "registradoEm": "2026-11-27"}, {"code": "MAC118", "registradoEm": "2026-11-27", "semestre": "2020/1"}],
+              "equivalencias": [{"pedida": "COS351", "cursadas": ["COS110"], "status": "a pedir"}, {"pedida": "COS360", "cursadas": ["MAC118"], "status": "a pedir"}]}
+    ctx, pg = abre(b, perfil=perfil, extra={"modoClassico": False, "vista": "pedidos"}, nome="declaradas-prazo", relogio=HOJE)
+    linhas = pg.locator("table tr").all_inner_texts()
+    l110 = next(l for l in linhas if "COS351" in l); l118 = next(l for l in linhas if "COS360" in l)
+    assert "Data de aprovação não confirmada: COS110 (aprovação registrada por você, sem semestre)" in l110 and "anos" not in l110, l110
+    assert "6.5 anos: pode exigir exame de suficiência" in l118 and "Semestre informado por você, sem registro do SIGA" in l118, l118
+    assert "Idade estimada pelo semestre de aprovação" in l118, l118
+    foto(pg, "declaradas-prazo")
+    ctx.close()
+    for nome, decl, esperado in (("sem-semestre", {"code": "EEW002", "registradoEm": "2026-11-27"}, [30, 30, 0]),
+                                 ("com-semestre", {"code": "EEW002", "registradoEm": "2026-11-27", "semestre": "2025/1"}, [60, 0, 0])):
+        perfil = {"periodos": [], "aprovacoesDeclaradas": [decl], "extensao": [{"code": "EEW002", "horas": 30, "periodo": "2026/1", "status": "validada"}]}
+        ctx, pg = abre(b, perfil=perfil, nome=f"declaradas-ace-{nome}", relogio=HOJE)
+        assert horas_ace(pg) == esperado, (nome, horas_ace(pg))
+        ctx.close()
+
+@caso("Declaradas em arquivo e no navegador: perfil antigo aceito (pincel continua ✎); arquivo inválido recusado com o campo; item inválido do navegador ignorado com aviso (R20 a R22)")
+def t_declaradas_arquivo(b):
+    ctx, pg = abre(b, nome="declaradas-arquivo", relogio=HOJE)
+    def carrega(obj, nome):
+        pg.click("#btn-importar")
+        pg.set_input_files("#importar", {"name": nome, "mimeType": "application/json", "buffer": json.dumps(obj).encode("utf-8")})
+    antigo = json.loads(json.dumps(ANTIGO)); antigo["marcacoes"] = {"MAC128": "aprovada"}
+    carrega(antigo, "antigo.json")
+    expect(pg.locator("#titulo")).to_have_text(re.compile(r"Grade ECI — Fulano"))
+    expect(pg.locator('.card[data-code="MAC128"] .estado')).to_have_text("✎")
+    assert "aprovacoesDeclaradas" not in pg.evaluate("GradeInterativa.perfilExportado()")
+    alertas = []; pg.on("dialog", lambda d: (alertas.append(d.message), d.accept()))
+    ruim = {"periodos": [], "aprovacoesDeclaradas": [{"code": "MAC118", "semestre": "2025"}]}
+    carrega(ruim, "ruim.json")
+    pg.wait_for_function("() => true"); pg.wait_for_timeout(300)
+    assert alertas and "aprovacoesDeclaradas[0].semestre" in alertas[0], alertas
+    expect(pg.locator("#titulo")).to_have_text(re.compile(r"Grade ECI — Fulano"))            # o perfil anterior fica
+    ctx.close()
+    plano = {"periodos": {}, "novos": [], "equivalencias": [{"pedida": "COS351", "cursadas": ["COS111"], "status": "a pedir"}],
+             "aprovacoesDeclaradas": [{"semestre": "2025/1"}, {"code": "MAC118", "registradoEm": "2026-11-27"}]}
+    ctx, pg = abre(b, perfil={"periodos": []}, extra={"plano": plano}, nome="declaradas-plano-tolerante", relogio=HOJE)
+    expect(pg.locator("#aviso-perfil")).to_contain_text("1 aprovação registrada por você foi ignorada por formato inválido")
+    assert pg.evaluate("GradeInterativa.fonte('MAC118')") == "declarado"
+    exp = pg.evaluate("GradeInterativa.perfilExportado()")
+    assert exp["aprovacoesDeclaradas"] == [{"code": "MAC118", "registradoEm": "2026-11-27"}] and exp["equivalencias"] == plano["equivalencias"], exp
+    ctx.close()
+
+CASOS5 = [t_controles_icones, t_todas_acesas, t_minimalista, t_plano_na_grade, t_declaradas_modelo, t_declaradas_prazo_ace, t_declaradas_arquivo]
 CASOS += CASOS5
 
 

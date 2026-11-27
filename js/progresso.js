@@ -8,8 +8,15 @@
  *
  * Fontes de uma aprovação (barra, fase e selos distinguem):
  *   importado  registro do perfil (histórico, dispensa, equivalência deferida)
+ *   declarado  "Aprovação registrada por você" (aprovacoesDeclaradas), sem registro importado do mesmo código;
+ *              também a equivalência deferida cuja origem é declarada
  *   previsto   aprovação prevista (status "previsto")
  *   pincel     marcação do pincel com tag de tipo "aprovado", sem registro
+ *
+ * Aprovações registradas por você (aprovacoesDeclaradas): cada uma vira um registro num período virtual do modelo
+ * ("Registradas por você"), sem semestre próprio; o semestre informado fica em `semestreDeclarado`. O registro
+ * importado vence a declarada; a declarada vence previsão e plano; uma reprovação do SIGA no semestre da declarada
+ * ou depois (sem semestre: o de `registradoEm`) é conflito e a declarada não conta. Nada é apagado aqui.
  */
 (function (raiz, fabrica) {
   if (typeof module === "object" && module.exports) module.exports = fabrica();
@@ -43,11 +50,94 @@
     : (e.cursada ? [{ code: e.cursada, papel: "conteudo" }] : []);
   const pendente = (e) => { const st = e.status || "a pedir"; return st === "a pedir" || st === "em análise"; };
 
-  /** Semestre real de um registro (índice de `semIdx`), ou null. Único ponto que diz "quando" um registro aconteceu. */
+  const dataValida = (v) => typeof v === "string" && /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(v);
+  /** Semestre (índice de `semIdx`) de uma data AAAA-MM-DD: janeiro a junho = /1. */
+  const semestreDaData = (d) => dataValida(d) ? Number(d.slice(0, 4)) * 2 + (Number(d.slice(5, 7)) <= 6 ? 0 : 1) : null;
+  const nomeDoSemestre = (i) => i == null ? null : `${Math.floor(i / 2)}/${(i % 2) + 1}`;
+  const NOME_DECL = "Registradas por você";
+
+  /**
+   * Semestre real de um registro (índice de `semIdx`), ou null. Único ponto que diz "quando" um registro aconteceu:
+   * o semestre do período ou, no período virtual das aprovações registradas por você, o semestre informado.
+   */
   function semestreDoRegistro(r, periodos) {
     if (!r) return null;
     const p = periodos[r.pi];
+    if (p && p.declarado) return semIdx(r.semestreDeclarado);
     return p ? p.semestre : null;
+  }
+  /** Semestre de um período do Histórico (nem declarado nem bloco de transferidas): regras de "mesmo período" (selos). */
+  function semestreDoHistorico(r, periodos) {
+    const p = r && periodos[r.pi];
+    return p && !p.declarado && r.origem !== "declarado" ? p.semestre : null;
+  }
+
+  const CODIGO = /^[A-Z]{3}[A-Z0-9]{3}$/;
+  /** Erro de formato de uma aprovação declarada (caminho do campo), ou null. */
+  function erroDeclarada(d, caminho) {
+    if (d == null || typeof d !== "object" || Array.isArray(d)) return caminho;
+    const opc = (v, ok) => v == null || ok(v);
+    const num = (v) => Number.isFinite(v) && v >= 0;
+    const campos = {
+      code: (v) => typeof v === "string" && CODIGO.test(v), registradoEm: (v) => opc(v, dataValida), semestre: (v) => opc(v, semestreValido),
+      name: (v) => opc(v, (x) => typeof x === "string"), credits: (v) => opc(v, num), horas: (v) => opc(v, num),
+      category: (v) => opc(v, (c) => [1, 2, 3, 4, 5].includes(c)),
+    };
+    const k = Object.keys(campos).find((c) => !campos[c](d[c]));
+    return k ? `${caminho}.${k}` : null;
+  }
+  /** Lista tolerante: itens válidos (um por código, vale o último) e quantos foram ignorados por formato inválido. */
+  function normalizaDeclaradas(lista) {
+    if (!Array.isArray(lista)) return { itens: [], ignoradas: lista == null ? 0 : 1 };
+    const porCodigo = new Map(); let ignoradas = 0;
+    lista.forEach((d) => {
+      if (erroDeclarada(d, "item")) { ignoradas++; return; }
+      porCodigo.delete(d.code); porCodigo.set(d.code, d);
+    });
+    return { itens: [...porCodigo.values()], ignoradas };
+  }
+
+  /**
+   * Classifica cada declarada contra os registros que não são declarados (regs de um modelo, sem as declaradas).
+   * @returns {{ ativas: Array, confirmadas: object, conflitos: object, notas: object }}
+   *   ativas       declaradas que contam (com a nota da reprovação anterior ou do curso em andamento, se houver)
+   *   confirmadas  código -> { semestre, nome, via, diverge } quando há aprovação importada (vale o SIGA)
+   *   conflitos    código -> { semestre, nome } quando o SIGA traz reprovação no semestre declarado ou depois
+   *   notas        código -> { tipo: "reprovacao-antes" | "cursando", semestre, nome }
+   */
+  function classificaDeclaradas(declaradas, regs, periodos) {
+    const ativas = [], confirmadas = {}, conflitos = {}, notas = {};
+    const sem = (r) => semestreDoRegistro(r, periodos);
+    declaradas.forEach((d) => {
+      const rs = (regs[d.code] || []).filter((r) => r.origem !== "declarado");
+      const informado = semIdx(d.semestre);
+      const limite = informado ?? semestreDaData(d.registradoEm);
+      const aprovadas = rs.filter((r) => r.status === "aprovado");
+      if (aprovadas.length) {
+        // Vale o SIGA. O bloco de transferidas é confirmação: compara-se só com `aprovadaEm`, quando houver (A8).
+        const r = aprovadas[aprovadas.length - 1];
+        const p = periodos[r.pi];
+        const doSiga = sem(r) ?? (p && anoDoBloco(p.nome) != null ? semIdx(r.aprovadaEm) : null);
+        confirmadas[d.code] = { semestre: doSiga, nome: doSiga != null ? nomeDoSemestre(doSiga) : p ? p.nome : null, via: r.via || null,
+          diverge: informado != null && doSiga != null && doSiga !== informado };
+        return;
+      }
+      const reprov = rs.filter((r) => r.status === "reprovado" && sem(r) != null);
+      const depois = limite == null ? [] : reprov.filter((r) => sem(r) >= limite);
+      if (depois.length) {
+        const s = Math.min(...depois.map(sem));
+        conflitos[d.code] = { semestre: s, nome: nomeDoSemestre(s) };
+        return;
+      }
+      if (reprov.length) {
+        const s = Math.max(...reprov.map(sem));
+        notas[d.code] = { tipo: "reprovacao-antes", semestre: s, nome: nomeDoSemestre(s) };
+      }
+      const cur = rs.find((r) => r.status === "cursando");
+      if (cur && !notas[d.code]) notas[d.code] = { tipo: "cursando", semestre: sem(cur), nome: periodos[cur.pi] ? periodos[cur.pi].nome : null };
+      ativas.push(d);
+    });
+    return { ativas, confirmadas, conflitos, notas };
   }
 
   /**
@@ -58,8 +148,9 @@
    * @param {Array} e.periodos     períodos do perfil já filtrados (removidos) e com os novos do plano
    * @param {object} e.editados    nome do período -> itens editados no navegador
    * @param {Array} e.pedidos      pedidos de equivalência
+   * @param {Array} e.declaradas   aprovações registradas por você, já normalizadas (normalizaDeclaradas)
    */
-  function montaRegistros({ grade, catalogo, periodos: base, editados = {}, pedidos = [] }) {
+  function montaRegistros({ grade, catalogo, periodos: base, editados = {}, pedidos = [], declaradas = [] }) {
     const curr = {};
     grade.forEach((c) => { if (c.code && !curr[c.code]) curr[c.code] = c; });
     const opt = {};
@@ -129,6 +220,28 @@
       return { nome: p.nome, semestre: semIdx(p.nome), nota: p.nota, tipo, itens, pi, editado, deduzido: !!p.deduzido };
     });
 
+    // Aprovações registradas por você: o período virtual só existe no modelo (não vai para o perfil, para a exportação
+    // nem para o Cronograma). A classificação usa os registros do perfil; a equivalência deferida é conferida depois.
+    declaradas.forEach((d) => conhece(d));
+    let classe = classificaDeclaradas(declaradas, regs, periodos);
+    // Sem declaradas, o período virtual não existe (o modelo fica igual ao de antes).
+    const piDecl = declaradas.length ? periodos.length : null;
+    const virtual = { nome: NOME_DECL, semestre: null, nota: null, tipo: "cursado", itens: [], pi: piDecl, editado: false, deduzido: false, declarado: true };
+    if (declaradas.length) periodos.push(virtual);
+    const registraDeclarada = (d) => {
+      const inf = info(d.code) || {};
+      const item = { code: d.code, alvo: d.code, status: "aprovado", pi: piDecl, nota: undefined, equivale: undefined,
+        name: d.name || inf.name || d.code, credits: d.credits != null ? d.credits : inf.credits || 0,
+        category: d.category != null ? d.category : inf.category || 3, horas: d.horas != null ? d.horas : inf.horas,
+        workload: inf.workload, cel: new Set(), dispensas: [], aprovadaEm: null, declarada: true,
+        semestreDeclarado: semestreValido(d.semestre) ? d.semestre : null, registradoEm: d.registradoEm || null,
+        ri: (regs[d.code] || []).length };
+      virtual.itens.push(item);
+      registra(d.code, { pi: piDecl, status: "aprovado", origem: "declarado", semestreDeclarado: item.semestreDeclarado,
+        registradoEm: item.registradoEm, horas: d.horas, via: "aprovação registrada por você", aprovadaEm: null });
+    };
+    classe.ativas.forEach(registraDeclarada);
+
     // Equivalências: deferida passa a valer como a disciplina pedida (e a cursada deixa de contar no grupo original);
     // "a pedir" / "em análise" ficam numa faixa separada até a resposta.
     const consumidas = new Set();
@@ -163,10 +276,14 @@
           return origens.find((r) => r.status === "aprovado")
             || origens.find((r) => r.status === "previsto" || emCurso(r.status));
         });
-        const pi = registros.every((r) => semestreDe(r) != null)
-          ? registros.sort(maisRecentePrimeiro)[0].pi : null;
+        const pi = registros.every((r) => r && (semestreDe(r) != null || r.origem === "declarado"))
+          ? registros.slice().sort(maisRecentePrimeiro)[0].pi : null;
         const status = registros.every((r) => r?.status === "aprovado") ? "aprovado" : "previsto";
-        registra(e.pedida, { pi, status, nota: "E", via: `equivalência deferida: ${cs.map((c) => c.code).join(" + ")}` });
+        // A1: com uma origem declarada, a pedida também é declarada (nunca importada).
+        const declarada = registros.some((r) => r?.origem === "declarado");
+        const sd = declarada && pi != null && periodos[pi]?.declarado ? registros.find((r) => r?.pi === pi)?.semestreDeclarado : undefined;
+        registra(e.pedida, { pi, status, nota: "E", via: `equivalência deferida: ${cs.map((c) => c.code).join(" + ")}`,
+          ...(declarada ? { origem: "declarado", semestreDeclarado: sd ?? null } : {}) });
         cs.forEach((c) => consumidas.add(c.code));
       } else if (pendente(e)) {
         if (cs.some((c) => dispensou[c.code] || usosDeferidos.has(c.code) || usosPendentes.get(c.code) > 1)) {
@@ -178,6 +295,17 @@
       }
     });
 
+    // Uma equivalência deferida (importada) para o código de uma declarada também a confirma: a declarada sai da conta.
+    const confirmadaDepois = classe.ativas.filter((d) => (regs[d.code] || []).some((r) => r.status === "aprovado" && r.origem !== "declarado"));
+    if (confirmadaDepois.length) {
+      const sai = new Set(confirmadaDepois.map((d) => d.code));
+      sai.forEach((code) => { regs[code] = regs[code].filter((r) => r.origem !== "declarado" || r.via !== "aprovação registrada por você"); });
+      virtual.itens = virtual.itens.filter((it) => !sai.has(it.code));
+      const outras = classificaDeclaradas(confirmadaDepois, regs, periodos);
+      classe = { ativas: classe.ativas.filter((d) => !sai.has(d.code)), confirmadas: { ...classe.confirmadas, ...outras.confirmadas },
+        conflitos: classe.conflitos, notas: classe.notas };
+    }
+
     // D-07: os alvos contam como no histórico e a origem de uma dispensa não soma créditos em grupo nenhum.
     // Duas ou mais dispensas pela mesma origem recebem aviso (CEG 01/2017, art. 46, II).
     const origensDispensa = new Set(Object.keys(dispensou));
@@ -185,7 +313,7 @@
       .filter((x) => x.alvos.length > 1);
 
     return { curr, opt, info, deps, regs, periodos, consumidas, pendEq, pendConsumo, dispensou, pedidosComConflito,
-      origensDispensa, reutilizadas };
+      origensDispensa, reutilizadas, piDecl, declaradas: classe };
   }
 
   /** Status vindo só dos registros do perfil (histórico, atual, planos e pedidos): o de maior força. */
@@ -197,18 +325,48 @@
 
   /**
    * Fonte da aprovação de um código, para fase e selos (a barra continua usando o status efetivo):
-   * "importado" (registro do perfil), "previsto", "pincel" (tag de tipo aprovado sem registro) ou null.
+   * "importado" (registro do perfil), "declarado", "previsto", "pincel" (tag de tipo aprovado sem registro) ou null.
    * @param {Array} registros     registros do código (regs[code])
    * @param {string|undefined} statusPincel  tipo da tag marcada com o pincel, se houver
    */
   function fonteDaAprovacao(registros, statusPincel) {
     const rs = registros || [];
-    if (rs.some((r) => r.status === "aprovado")) return "importado";
+    if (rs.some((r) => r.status === "aprovado" && r.origem !== "declarado")) return "importado";
+    if (rs.some((r) => r.status === "aprovado")) return "declarado";
     if (rs.some((r) => r.status === "previsto")) return "previsto";
     if (statusPincel === "aprovado") return "pincel";
     return null;
   }
 
-  return { FORCA, statusDosRegistros, fonteDaAprovacao, semestreValido, semIdx, anoDoBloco, emCurso, parseHorarios, cursadasDe, pendente, semestreDoRegistro,
+  /**
+   * O registro cumpre o requisito no período de semestre `semestre` (índice), sem contar o pincel.
+   * Transferida (D-08): vale `aprovadaEm`; sem ela, só anos posteriores ao do bloco. Declarada: vale o semestre
+   * informado; sem ele, o limite é o semestre de `registradoEm` (aprovada até essa data): o pré-requisito vale nos
+   * semestres posteriores e o co-requisito também no mesmo (A7). Sem nenhum dos dois, não cumpre em período datado.
+   */
+  function registroCumpre(registros, periodos, semestre, aceitaMesmoSemestre = false) {
+    if (semestre == null) return false;
+    return (registros || []).some((r) => {
+      const p = periodos[r.pi];
+      if (!p || FORCA[r.status] < FORCA.planejado) return false;
+      let origem = semestreDoRegistro(r, periodos);
+      if (origem == null && r.origem === "declarado" && r.status === "aprovado") {
+        const limite = semestreDaData(r.registradoEm);
+        return limite != null && (limite < semestre || (aceitaMesmoSemestre && limite === semestre));
+      }
+      if (origem == null && r.status === "aprovado") {
+        origem = semIdx(r.aprovadaEm);
+        const ano = anoDoBloco(p.nome);
+        if (origem == null) return ano != null && Math.floor(semestre / 2) > ano;
+      }
+      return origem != null && (origem < semestre || (aceitaMesmoSemestre && origem === semestre));
+    });
+  }
+  /** Declarada sem semestre cujo limite (`registradoEm`) cai neste semestre: não dá para saber se foi antes (aviso). */
+  const declaradaSemSemestreEm = (registros, periodos, semestre) => semestre != null && (registros || []).some((r) =>
+    r.origem === "declarado" && r.status === "aprovado" && semestreDoRegistro(r, periodos) == null && semestreDaData(r.registradoEm) === semestre);
+
+  return { FORCA, NOME_DECL, dataValida, semestreDaData, nomeDoSemestre, semestreDoHistorico, erroDeclarada, normalizaDeclaradas,
+    classificaDeclaradas, registroCumpre, declaradaSemSemestreEm, statusDosRegistros, fonteDaAprovacao, semestreValido, semIdx, anoDoBloco, emCurso, parseHorarios, cursadasDe, pendente, semestreDoRegistro,
     montaRegistros };
 });
