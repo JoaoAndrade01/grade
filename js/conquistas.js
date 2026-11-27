@@ -16,6 +16,8 @@
   "use strict";
 
   const FONTES = ["importado", "declarado", "previsto", "pincel"];
+  /** "falta 1 obrigatória" / "faltam 3 obrigatórias" (concordância com N variável). */
+  const faltam = (n, um, varios = um) => `${n === 1 ? "falta" : "faltam"} ${n} ${n === 1 ? um : varios}`.trimEnd();
   const rank = (f) => { const i = FONTES.indexOf(f); return i < 0 ? 99 : i; };
 
   // ---------- Fase do curso ----------
@@ -100,20 +102,20 @@
         passa: (n) => duras(n, 5).length >= 1, progresso: () => 0, falta: () => "falta uma 🔴 aprovada" },
       { id: "casca-grossa", emoji: "🛡️", titulo: "Casca grossa", grupo: "dificeis", regra: "Três aprovações em 🟠 ou 🔴",
         passa: (n) => duras(n, 4).length >= 3, progresso: () => Math.min(duras(1, 4).length, 3) / 3,
-        falta: () => `faltam ${3 - Math.min(duras(1, 4).length, 3)} em 🟠 ou 🔴` },
+        falta: () => `${faltam(3 - Math.min(duras(1, 4).length, 3), "em 🟠 ou 🔴")}` },
       { id: "calma-calabreso", emoji: "🧘", titulo: "Calma, Calabreso", grupo: "dificeis", regra: "Duas ou mais 🟠/🔴 no mesmo período do Histórico, todas aprovadas",
         fixo: true, passa: () => calma, progresso: () => 0, falta: () => "um período do Histórico com duas 🟠/🔴 aprovadas" },
       { id: "fenix", emoji: "🐦‍🔥", titulo: "Fênix", grupo: "dificeis", regra: "Aprovação numa disciplina com reprovação anterior",
         passa: (n) => (n >= 0 && c.fenix.importado) || (n >= 1 && c.fenix.declarado), progresso: () => 0, falta: () => "passar numa que já reprovou" },
       { id: "ciclo-basico", emoji: "🧱", titulo: "Ciclo básico fechado", grupo: "etapas", regra: "Todas as obrigatórias do 1º ao 4º período",
         passa: (n) => basico.every((x) => ok(x, n)), progresso: () => (basico.length - falta(basico).length) / basico.length,
-        falta: () => `faltam ${falta(basico).length} obrigatórias do 1º ao 4º` },
+        falta: () => `${faltam(falta(basico).length, "obrigatória", "obrigatórias")} do 1º ao 4º` },
       { id: "metade", emoji: "⛰️", titulo: "Metade do caminho", grupo: "etapas", regra: "50% do curso",
-        passa: (n) => pct(n) >= 0.5, progresso: () => Math.min(pct(1) / 0.5, 1), falta: () => `faltam ${Math.ceil((0.5 - pct(1)) * totalCr(c))} cr` },
+        passa: (n) => pct(n) >= 0.5, progresso: () => Math.min(pct(1) / 0.5, 1), falta: () => faltam(Math.ceil((0.5 - pct(1)) * totalCr(c)), "cr") },
       { id: "extensao", emoji: "🌍", titulo: "Extensão em dia", grupo: "etapas", regra: `${c.aceTotal} h de ACE`,
-        passa: (n) => ace(n) >= c.aceTotal, progresso: () => Math.min(ace(1) / c.aceTotal, 1), falta: () => `faltam ${c.aceTotal - ace(1)} h de ACE` },
+        passa: (n) => ace(n) >= c.aceTotal, progresso: () => Math.min(ace(1) / c.aceTotal, 1), falta: () => faltam(c.aceTotal - ace(1), "h de ACE") },
       { id: "creditos-completos", emoji: "🏁", titulo: "Créditos completos", grupo: "etapas", regra: `Os ${totalCr(c)} cr do currículo`,
-        passa: (n) => pct(n) >= 1, progresso: () => pct(1), falta: () => `faltam ${Math.ceil((1 - pct(1)) * totalCr(c))} cr`,
+        passa: (n) => pct(n) >= 1, progresso: () => pct(1), falta: () => faltam(Math.ceil((1 - pct(1)) * totalCr(c)), "cr"),
         nota: () => (ace(1) < c.aceTotal ? `falta ACE: ${c.aceTotal - ace(1)} h` : "") },
       { id: "acabou", emoji: "🎓", titulo: "Acabou! Acabou!", grupo: "etapas", regra: "Créditos, ACE, Projeto de Graduação e Estágio",
         passa: (n) => pct(n) >= 1 && ace(n) >= c.aceTotal && ok(PG, n) && ok(ESTAGIO, n), progresso: () => (pct(1) + Math.min(ace(1) / c.aceTotal, 1)) / 2,
@@ -127,7 +129,7 @@
         fixo: true, passa: () => cafe, progresso: () => 0, falta: () => "cinco aprovações num período do Histórico" },
       { id: "colecionador", emoji: "📚", titulo: "Colecionador", grupo: "extras", regra: `Todos os ${c.totais[2] || 0} cr de optativas`,
         passa: (n) => cred(2, n) >= (c.totais[2] || 0), progresso: () => Math.min(cred(2, 1) / (c.totais[2] || 1), 1),
-        falta: () => `faltam ${Math.max(0, (c.totais[2] || 0) - cred(2, 1))} cr de optativas` },
+        falta: () => faltam(Math.max(0, (c.totais[2] || 0) - cred(2, 1)), "cr de optativas") },
       { id: "notion", emoji: "🗂️", titulo: "Quer organizar o Notion e o código também não???", grupo: "extras",
         regra: "As disciplinas que faltam estão planejadas no Cronograma", fixo: true, plano: true,
         passa: () => !!c.planejamentoCompleto, progresso: () => 0, falta: () => "planejar no Cronograma as disciplinas que faltam" },
@@ -149,7 +151,7 @@
     const tetra = { id: "tetra", emoji: "🏆", titulo: "É tetra!", grupo: "extras", regra: "Quatro conquistas desbloqueadas" };
     res.splice(res.findIndex((s) => s.id === "notion"), 0, so >= 4 ? { ...tetra, estado: "obtido", declarado: false, nota: "" }
       : obtidos.length >= 4 ? { ...tetra, estado: "obtido", declarado: true, nota: "" }
-      : { ...tetra, estado: "falta", falta: `faltam ${4 - obtidos.length}`, progresso: obtidos.length / 4 });
+      : { ...tetra, estado: "falta", falta: faltam(4 - obtidos.length, "conquista", "conquistas"), progresso: obtidos.length / 4 });
     return res;
   }
   const totalCr = (c) => Object.values(c.totais).reduce((a, b) => a + b, 0);

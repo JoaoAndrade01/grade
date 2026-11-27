@@ -3441,7 +3441,9 @@ def t_declaradas_gestao(b):
     # R24: com uma declarada não exportada, carregar outro perfil pede confirmação; cancelar mantém
     pg.keyboard.press("Escape"); completo(pg, "grade"); pg.locator('.card[data-code="MAC128"]').click()
     pg.click('[data-settag="MAC128"][data-tag="aprovada"]'); pg.keyboard.press("Escape")
-    abre_registro(pg); pg.get_by_role("button", name="Gravar 1 aprovação").click(); pg.get_by_role("button", name="Fechar").click()
+    abre_registro(pg); expect(pg.locator("#reg-contagem")).to_have_text("Será gravada 1 aprovação.")       # concordância com N = 1
+    pg.get_by_role("button", name="Gravar 1 aprovação").click(); expect(pg.locator("#reg-resultado")).to_have_text("1 aprovação registrada por você.")
+    pg.get_by_role("button", name="Fechar").click()
     pg.click("#btn-importar")
     pg.set_input_files("#importar", {"name": "outro.json", "mimeType": "application/json", "buffer": json.dumps({"periodos": [], "nome": "Outra"}).encode("utf-8")})
     expect(pg.locator("#dlg-confirma")).to_be_visible()
@@ -3644,8 +3646,19 @@ def t_conquistas_estante(b):
     foto(pg, "conquistas-pincel-escuro", full=True)
     ctx.close()
 
+@caso("Configurações: remover em lote que esvazia a lista de declaradas deixa o foco no título, nunca no body")
+def t_declaradas_lote_foco(b):
+    perfil = {"periodos": [{"nome": "2025/1", "disciplinas": ["MAC118"]}], "aprovacoesDeclaradas": [{"code": "MAC118", "registradoEm": "2026-11-27"}]}
+    ctx, pg = abre(b, perfil=perfil, nome="declaradas-lote-foco", relogio=HOJE)
+    abre_config(pg)
+    pg.get_by_role("button", name="Remover as já confirmadas pelo SIGA (1)").click(); pg.locator("#dlg-confirma-ok").click()
+    expect(pg.locator(".cfg-declaradas")).to_have_count(0)
+    assert foco_em(pg, "#dlg-config-titulo"), descreve_foco(pg)
+    pg.keyboard.press("Tab"); assert foco_em(pg, "#dlg-config *"), descreve_foco(pg)     # o Tab continua dentro de Configurações
+    ctx.close()
+
 CASOS5 = [t_controles_icones, t_todas_acesas, t_minimalista, t_plano_na_grade, t_declaradas_modelo, t_declaradas_prazo_ace, t_declaradas_arquivo, t_declaradas_reimportar,
-          t_registrar_sem_perfil, t_registrar_com_perfil, t_declaradas_detalhe, t_declaradas_gestao, t_declarada_cursando, t_foco, t_motivacao, t_conquistas_estante]
+          t_registrar_sem_perfil, t_registrar_com_perfil, t_declaradas_detalhe, t_declaradas_gestao, t_declarada_cursando, t_foco, t_motivacao, t_conquistas_estante, t_declaradas_lote_foco]
 CASOS += CASOS5
 
 

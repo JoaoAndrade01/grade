@@ -1879,7 +1879,7 @@
       const base = maisDestrava(pend.filter((c) => c.semester === menor).map((c) => c.code));
       if (base && base[1].length) partes.push(`<h3>${z ? "Base que destrava tudo" : "Base do curso"}</h3><p>Passando em <b>${esc(M.info(base[0]).name)}</b>, você libera ${base[1].length} ${base[1].length === 1 ? "matéria" : "matérias"} nos próximos períodos.</p><p class="chips">${htmlLibera(base[1])}</p>`);
       const alvo = fase.pct < 0.1 ? 0.1 : 0.25;
-      partes.push(`<h3>Primeiro marco 🏁</h3><p>Faltam ${marco(alvo)} cr para ${alvo * 100}% do curso.</p>`);
+      partes.push(`<h3>Primeiro marco 🏁</h3><p>${marco(alvo) === 1 ? "Falta" : "Faltam"} ${marco(alvo)} cr para ${alvo * 100}% do curso.</p>`);
       const temPlano = M.periodos.some((p) => p.tipo === "planejado" && p.itens.length);
       const temOpt = M.periodos.some((p) => p.tipo === "planejado" && p.itens.some((it) => it.category == 2 || it.category == 4));
       const doSiga = /^siga/i.test((perfil.fonte && perfil.fonte.geradoPor) || "");
@@ -1892,10 +1892,10 @@
       const d = maisDestrava(cursando);
       if (d && d[1].length) partes.push(`<h3>O que você destrava</h3><p>Passando em <b>${esc(M.info(d[0]).name)}</b>:</p><p class="chips">${htmlLibera(d[1])}</p>`);
       const alvo = fase.pct < 0.5 ? 0.5 : 0.75;
-      partes.push(`<h3>${alvo === 0.5 ? "Metade do caminho ⛰️" : "Rumo à reta final 🏁"}</h3><p>Faltam ${marco(alvo)} cr para ${alvo * 100}%. Optativas: ${fmt(cr(2).ok)} de ${fmt(cr(2).total)} cr${z ? "; escolha pelo que te interessa" : ""}.</p>`);
+      partes.push(`<h3>${alvo === 0.5 ? "Metade do caminho ⛰️" : "Rumo à reta final 🏁"}</h3><p>${marco(alvo) === 1 ? "Falta" : "Faltam"} ${marco(alvo)} cr para ${alvo * 100}%. Optativas: ${fmt(cr(2).ok)} de ${fmt(cr(2).total)} cr${z ? "; escolha pelo que te interessa" : ""}.</p>`);
     } else {
       const falta = Math.max(0, Math.ceil(m.totalCr - feitoCr - 1e-9));
-      partes.push(`<h3>${z ? "Reta final 🏁" : "O que falta"}</h3><p>Faltam ${falta} cr${falta ? `, em umas ${Math.ceil(falta / 4)} matérias (estimativa)` : ""}.</p>`);
+      partes.push(`<h3>${z ? "Reta final 🏁" : "O que falta"}</h3><p>${falta === 1 ? "Falta" : "Faltam"} ${falta} cr${falta ? `, em ${Math.ceil(falta / 4) === 1 ? "uma matéria" : `umas ${Math.ceil(falta / 4)} matérias`} (estimativa)` : ""}.</p>`);
       const ok = (code) => fonteDe(code) === "importado" || fonteDe(code) === "declarado";
       const t5 = cr("5");
       partes.push(`<h3>Checklist da formatura</h3><ul class="checklist">${[[ok(CQ().PG), "Projeto de Graduação"], [ok(CQ().ESTAGIO), "Estágio obrigatório"],
@@ -2016,7 +2016,7 @@
     const te = window.TEMA ? window.TEMA.escolha() || "sistema" : "sistema";
     const radio = (nome, v, rot, marcado) => `<label class="opcao"><input type="radio" name="${nome}" value="${v}"${marcado ? " checked" : ""}> ${rot}</label>`;
     $("#config-corpo").innerHTML = `
-      <div class="dlg-cabeca"><h1 id="dlg-config-titulo" class="dlg-titulo">${icone("configuracoes", 20)} Configurações</h1>
+      <div class="dlg-cabeca"><h1 id="dlg-config-titulo" class="dlg-titulo" tabindex="-1">${icone("configuracoes", 20)} Configurações</h1>
         <button type="button" class="dlg-x fecha-config" aria-label="Fechar Configurações" title="Fechar (Esc)"><span aria-hidden="true">×</span></button></div>
       <p class="dlg-texto">As escolhas valem na hora e ficam salvas neste navegador. Fixe um item para ele aparecer também na barra do topo; ele continua aqui.</p>
       <section class="cfg-sec" aria-labelledby="cfg-h-perfil"><h2 id="cfg-h-perfil">Perfil e dados</h2>
@@ -2938,7 +2938,7 @@
       $(`#reg-motivo-${CSS.escape(code)}`).textContent = k ? `O SIGA traz reprovação em ${k}, no semestre ou depois deste registro. Informe um semestre posterior ou deixe em branco.` : "";
     });
     const n = registro.marcadas.size;
-    $("#reg-contagem").textContent = `Serão gravadas ${n} ${n === 1 ? "aprovação" : "aprovações"}.`;
+    $("#reg-contagem").textContent = n === 1 ? "Será gravada 1 aprovação." : `Serão gravadas ${n} aprovações.`;
     const b = $("#reg-gravar");
     b.textContent = `Gravar ${n} ${n === 1 ? "aprovação" : "aprovações"}`;
     const motivo = erro ? "Corrija o semestre da aprovação." : !n ? "Marque pelo menos uma disciplina." : "";
@@ -3629,7 +3629,12 @@
       if (t.getAttribute("aria-disabled") === "true") return anuncia($(`#${t.id}-motivo`).textContent);
       const codes = t.id === "decl-remover-sel" ? [...selDecl] : getDecl().filter((d) => M.declaradas.confirmadas[d.code]).map((d) => d.code);
       removeDeclaradas(codes, { titulo: t.id === "decl-remover-sel" ? "Remover selecionadas" : "Remover as já confirmadas pelo SIGA",
-        depois: () => { selDecl.clear(); } }).then(() => { atualizaConfig(); (document.getElementById(t.id) || $("#dlg-config h1"))?.focus(); });
+        depois: () => { selDecl.clear(); } }).then(() => {
+        atualizaConfig();
+        // A lista pode ter sumido: o foco vai ao mesmo botão, à lista ou ao título de Configurações (nunca ao body).
+        const alvo = document.getElementById(t.id) || $("#dlg-config .cfg-declaradas input") || $("#dlg-config-titulo");
+        if (alvo) alvo.focus();
+      });
     });
     // Registrar marcações
     document.addEventListener("click", (ev) => {
