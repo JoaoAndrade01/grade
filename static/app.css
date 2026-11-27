@@ -1031,3 +1031,31 @@ body:has(.paleta:not([hidden])) .detalhes {
 .chip-btn { min-height: 24px; }
 .aviso-importado .link { display: inline-flex; align-items: center; min-height: 24px; padding: 2px 4px; text-decoration: underline; }
 .check input[type="checkbox"], .check input[type="radio"] { width: 24px; height: 24px; margin: 0; flex: none; accent-color: var(--text); }
+
+/* =====================================================================
+   v2.1.0 — botões que acendem e ícones Lucide em todos os controles
+   ===================================================================== */
+/* Exibir e filtros das Optativas: um botão por opção; ligado = aceso (aria-pressed), sem caixa de marcar */
+.ctl.aceso { display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: 13px; line-height: 1.2; color: var(--text);
+  background: var(--surface); border: 1px solid var(--borda-forte); border-radius: 8px; padding: 5px 9px; min-height: 32px; cursor: pointer; }
+.ctl.aceso:hover { border-color: var(--text); }
+.ctl.aceso[aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
+.ctl.aceso[aria-disabled="true"] { opacity: .55; cursor: not-allowed; }
+.ctl.aceso:focus-visible { outline: 2px solid var(--foco); outline-offset: 2px; }
+.ctl.aceso .ico { flex: none; vertical-align: 0; }
+:root[data-aparencia="icone"] .ctl.aceso { min-width: 32px; justify-content: center; padding-inline: 8px; }
+@media (max-width: 720px) { .ctl.aceso { min-height: 40px; } :root[data-aparencia="icone"] .ctl.aceso { min-width: 40px; } }
+/* ícone de estado no cartão: Lucide, do tamanho do texto, com a cor do texto */
+.card .estado { display: inline-flex; align-items: center; vertical-align: -2px; min-width: 0; margin-right: 4px; font-weight: 400; }
+.card .estado .ico { width: 14px; height: 14px; vertical-align: 0; }
+.card .estado.e-marcacao { font-size: inherit; line-height: inherit; vertical-align: -2px; }
+.ico-estado { display: inline-flex; vertical-align: -2px; }
+.ico-estado .ico { vertical-align: 0; }
+.card .plano-flag .ico { vertical-align: -2px; }
+/* × de fechar e de remover: ícone x com alvo de pelo menos 24 px */
+.fechar, .x, .x-chip { display: inline-flex; align-items: center; justify-content: center; }
+.fechar { min-width: 32px; min-height: 32px; }
+.x, .x-chip { min-width: 24px; min-height: 24px; }
+.dlg-x .ico, .fechar .ico { vertical-align: 0; }
+.ferr-mais .ico { vertical-align: 0; }
+.mini-btn .ico, #bg-detalhes .ico, .hor .ico { vertical-align: -2px; }

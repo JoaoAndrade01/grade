@@ -61,7 +61,7 @@
     5: { nome: "Extensão / ACE", un: "h" },
   };
   const GRUPOS_OPT = { 2: "Condicionada", 4: "Humanas", 5: "ACE (extensão)" };
-  const ICONE_GRUPO = { 2: "◧", 4: "📖", 5: "🌍" };
+  const ICONE_GRUPO = { 2: "camadas", 4: "referencias", 5: "globo" };
   const FORCA = { pendente: 0, reprovado: 1, analise: 1.5, planejado: 2, cursando: 3, previsto: 4, aprovado: 5 };
   const ROTULO = {
     aprovado: "Aprovada", previsto: "Aprovação prevista", cursando: "Cursando",
@@ -128,9 +128,9 @@
   }
   /**
    * Padrão de ícones dos controles (Aparência): ícone decorativo e o texto em `.rot`. Em Só ícones e no Minimalista o
-   * `.rot` some só visualmente; o nome acessível continua e o `title` mostra o nome ao passar o mouse.
+   * `.rot` some só visualmente; o nome acessível continua e o `title` mostra o nome ao passar o mouse. Os ícones são
+   * todos da Lucide (js/icones.js): nada de emoji ou símbolo solto nos controles.
    */
-  const glifo = (g) => `<span class="ico ico-g" aria-hidden="true">${g}</span>`;
   const rotulo = (ico, txt) => `${ico}<span class="rot">${txt}</span>`;
   /** Aparência Minimalista: cartões só com o nome e o ícone de estado; ferramentas atrás do ⋯; sem detalhamento. */
   const minimalista = () => !!window.TEMA && window.TEMA.aparencia() === "minimalista";
@@ -341,7 +341,7 @@
   let seletorECI = false;            // paleta "ECI por trás" (só nesta visita): destaca os cartões com experiência
   // Destaque de requisitos na Grade: "foco" (Em foco, padrão) ou "desligado". Substitui as setas: a preferência antiga
   // `setas` migra (Ocultas → Desligado; Disciplina em foco e Todas → Em foco) e sai do objeto salvo.
-  let exibir = Object.assign({ codigo: true, notas: false, dificuldade: false, presenca: false, plano: false, destaque: "foco" }, load("exibir", {}));
+  let exibir = Object.assign({ codigo: true, notas: false, dificuldade: false, presenca: false, plano: false, situacao: true, destaque: "foco" }, load("exibir", {}));
   if (Object.prototype.hasOwnProperty.call(exibir, "setas")) {
     if (!["desligado", "foco"].includes(load("exibir", {}).destaque)) exibir.destaque = exibir.setas === "ocultas" ? "desligado" : "foco";
     delete exibir.setas; save("exibir", exibir);
@@ -757,19 +757,24 @@
    * Ícone de estado do cartão (PC-08, WCAG 1.4.1): a situação não depende só da cor. O ícone é decorativo; a
    * situação e a origem vão em texto no nome acessível (`.sr`), no primeiro toque (14h) e nos detalhes.
    */
-  const ICONE_ESTADO = { aprovado: "✓", previsto: "…", cursando: "◐", planejado: "○", reprovado: "✗", analise: "⇄" };
-  const ICONE_MARCACAO = "✎";
-  const ICONE_DECLARADA = "☑";   // aprovação registrada por você: distinta do ✓ do registro importado (PC-08)
-  function estadoHtml(ico) {
-    return ico ? `<span class="estado${ico === ICONE_MARCACAO ? " e-marcacao" : ico === ICONE_DECLARADA ? " e-declarada" : ""}" aria-hidden="true">${ico}</span>` : "";
+  // Ícones Lucide por estado; o `data-estado` é estável (os testes e o CSS apontam para ele, não para o desenho).
+  const ICONE_ESTADO = { aprovado: "circulo-check", previsto: "relogio", cursando: "carregando", planejado: "circulo-tracejado",
+    reprovado: "circulo-x", equivalencia: "equivalencias", marcacao: "lapis", declarada: "quadrado-check" };
+  const ESTADO_DO_STATUS = { aprovado: "aprovado", previsto: "previsto", cursando: "cursando", planejado: "planejado", reprovado: "reprovado", analise: "equivalencia" };
+  const ICONE_MARCACAO = "marcacao";
+  const ICONE_DECLARADA = "declarada";   // aprovação registrada por você: distinta do ícone do registro importado (PC-08)
+  /** Ícone de um estado (`data-estado`) para textos fora do cartão: legenda do detalhamento, detalhes, etiquetas. */
+  const iconeEstado = (estado, tam = 14) => `<span class="ico-estado" data-estado="${estado}" aria-hidden="true">${icone(ICONE_ESTADO[estado], tam)}</span>`;
+  function estadoHtml(estado) {
+    return estado && ICONE_ESTADO[estado] ? `<span class="estado e-${estado}" data-estado="${estado}" aria-hidden="true">${icone(ICONE_ESTADO[estado], 14)}</span>` : "";
   }
   /**
    * Nome visível e nome acessível do cartão. Com situação, o nome visível fica fora da árvore de acessibilidade e um
    * único texto oculto diz "Nome, Situação · origem" (dois elementos separados geravam "Nome , Situação").
    */
-  function nomeDoCartao(nome, ico, texto) {
-    if (!texto) return `<span class="nome">${estadoHtml(ico)}${esc(nome)}</span>`;
-    return `<span class="nome" aria-hidden="true">${estadoHtml(ico)}${esc(nome)}</span><span class="sr">${esc(nome)}, ${esc(texto)}</span>`;
+  function nomeDoCartao(nome, estado, texto) {
+    if (!texto) return `<span class="nome">${estadoHtml(estado)}${esc(nome)}</span>`;
+    return `<span class="nome" aria-hidden="true">${estadoHtml(estado)}${esc(nome)}</span><span class="sr">${esc(nome)}, ${esc(texto)}</span>`;
   }
 
   function card(o) {
@@ -788,7 +793,7 @@
     return `<button type="button" ${attrs}>
       ${nota != null ? `<span class="nota">${esc(nota)}</span>` : ""}
       ${temAviso ? `<span class="aviso" aria-label="aviso">!</span>` : ""}
-      ${nomeDoCartao(o.name, o.icone || ICONE_ESTADO[o.status], ICONE_ESTADO[o.status] && ROTULO[o.status] ? ROTULO[o.status] + (o.origem ? " · " + o.origem : "") : "")}
+      ${nomeDoCartao(o.name, o.semIcone ? "" : o.icone || ESTADO_DO_STATUS[o.status], ESTADO_DO_STATUS[o.status] && ROTULO[o.status] ? ROTULO[o.status] + (o.origem ? " · " + o.origem : "") : "")}
       ${o.sub ? `<span class="sub">${o.sub}</span>` : ""}
       <span class="meta">${o.code ? seloGuia(o.code, true) + " " : ""}${esc(o.meta)}</span>
     </button>`;
@@ -820,10 +825,11 @@
     const exp = seletorECI && window.ECI.tem(c.code);
     // Exibir → Plano: o primeiro semestre planejado e "+N" se houver outros; a lista completa vai no nome acessível e nos detalhes.
     const planos = exibir.plano ? [...new Set(periodoDe(c.code, (st) => st === "planejado"))] : [];
-    const plano = planos.length ? `<span class="plano-flag" aria-hidden="true" title="Planejada em ${esc(planos.join(", "))}">📅 ${esc(planos[0])}${planos.length > 1 ? ` <b>+${planos.length - 1}</b>` : ""}</span><span class="sr">, planejada em ${esc(planos.join(", "))}</span>` : "";
+    const plano = planos.length ? `<span class="plano-flag" aria-hidden="true" title="Planejada em ${esc(planos.join(", "))}">${icone("calendario-mais", 12)} ${esc(planos[0])}${planos.length > 1 ? ` <b>+${planos.length - 1}</b>` : ""}</span><span class="sr">, planejada em ${esc(planos.join(", "))}</span>` : "";
     const so = situacaoOrigem(c.code);
     const estado = so.origem ? `${so.rot} · ${so.origem}` : "";
-    const ico = !so.origem ? "" : so.origem === "marcação" ? ICONE_MARCACAO : so.origem === ORIGEM_DECL ? ICONE_DECLARADA : ICONE_ESTADO[statusPerfil(c.code)] || "";
+    // Exibir → Situação: liga ou desliga só o ícone; a situação continua no nome acessível e nos detalhes.
+    const ico = !so.origem || !exibir.situacao ? "" : so.origem === "marcação" ? ICONE_MARCACAO : so.origem === ORIGEM_DECL ? ICONE_DECLARADA : ESTADO_DO_STATUS[statusPerfil(c.code)] || "";
     return `<button type="button" class="card limpo${tag ? " com-tag" : ""}${s === "analise" ? " s-analise" : ""}${apagado ? " apagado" : ""}${prot ? " protegida" : ""}${exp ? " com-eci" : ""}"
       data-code="${esc(c.code)}" ${tag ? `style="--tag:${esc(tag.cor)}"` : ""} title="${exp ? "Abrir a experiência: " + esc(window.ECI.tem(c.code).titulo) : esc(tag ? tag.nome : ROTULO[s]) + (prot ? " · protegida pelo cadeado" : "")}"
       ${seletorECI && !exp ? "inert" : ""}${exp ? ` aria-describedby="dica-eci"` : ""}>
@@ -865,7 +871,7 @@
       <div class="bg-legenda"${mini ? ' aria-hidden="true"' : ""}>
         ${trechos.map(([cls, v, nome, st]) => `<span><i class="seg-${cls}"${st && cor(st) ? ` style="${cor(st)}"` : ""}></i>${nome} <b>${pc(v).toFixed(0)}%</b></span>`).join("")}
         <span class="bg-total">${fmt(ok)} de ${fmt(total)} cr${T5.total ? ` · Extensão/ACE ${fmt(T5.ok)}/${fmt(T5.total)} h${T5.aConfirmar ? ` ${textoAConfirmar(T5)}` : ""}` : ""}</span>
-        ${mini ? "" : `<button type="button" class="link" id="bg-detalhes">${progressoAberto ? "ocultar detalhes ▴" : "detalhes ▾"}</button>`}
+        ${mini ? "" : `<button type="button" class="link" id="bg-detalhes">${progressoAberto ? `ocultar detalhes ${icone("seta-cima", 14)}` : `detalhes ${icone("seta-baixo", 14)}`}</button>`}
       </div>`;
   }
 
@@ -913,21 +919,27 @@
     ${seletorECI ? `<p class="dica-eci" id="dica-eci">Escolha um cartão destacado para abrir a experiência. As outras disciplinas ficam inativas até você desligar “ECI por trás”.</p>` : ""}`;
   }
 
-  const DESTAQUE = [["desligado", "Desligado", "○"], ["foco", "Em foco", "⇢"]];
+  const DESTAQUE = [["desligado", "Desligado", "olho-fechado"], ["foco", "Em foco", "ponteiro"]];
   // A distinção não depende da cor: contorno contínuo, tracejado e a etiqueta "libera".
   const LEGENDA_DESTAQUE = `<span class="leg-destaque"><i class="l-pre"></i>pré-requisito <i class="l-co"></i>co-requisito <i class="l-libera">libera</i>o que ela libera</span>`;
-  const EXIBIR = [["codigo", "Código e créditos", "#"], ["notas", "Notas", "★"], ["dificuldade", "Dificuldade", "●"], ["presenca", "Presença", "✓"], ["plano", "Plano", "📅"]];
+  const EXIBIR = [["codigo", "Código e créditos", "hash"], ["notas", "Notas", "estrela"], ["dificuldade", "Dificuldade", "medidor"],
+    ["presenca", "Presença", "presenca"], ["plano", "Plano", "calendario-mais"], ["situacao", "Situação", "circulo-check"]];
+  /**
+   * Botão que acende (um por opção, sem caixa de marcar): ligado = aceso, com aria-pressed. Ícone + texto mostra os dois;
+   * Só ícones, só o ícone (o nome fica no `title` e no nome acessível, pelo `.rot`). O `data-*` é a chave do foco.
+   */
+  const botaoAceso = (attrs, ligado, ic, nome, dica = nome) =>
+    `<button type="button" class="ctl aceso" ${attrs} aria-pressed="${!!ligado}" title="${esc(dica)}">${rotulo(icone(ic, 16), nome)}</button>`;
   /** Opções de exibição e filtro (só no Planejador, aba Grade). */
   function renderFerramentas() {
     const niveis = M.guia ? Object.keys(M.guia.niveis) : [];
     return `<div class="ferr-grupo" role="group" aria-label="Exibir"><span class="ferr-rot ctl" aria-hidden="true">${rotulo(icone("exibir", 14), "Exibir")}</span>
-        ${EXIBIR.map(([k, n, g]) =>
-          `<label class="check ctl" title="${n}"><input type="checkbox" data-exibir="${k}" ${exibir[k] ? "checked" : ""}> ${rotulo(glifo(g), n)}</label>`).join("")}
+        ${EXIBIR.map(([k, n, ic]) => botaoAceso(`data-exibir="${k}"`, exibir[k], ic, n)).join("")}
         ${exibir.dificuldade ? escalaDificuldade() : ""}
       </div>
-      <div class="ferr-grupo" role="radiogroup" aria-label="Destaque de requisitos"><span class="ferr-rot ctl" aria-hidden="true">${rotulo(glifo("⇢"), "Destaque")}</span>
-        ${DESTAQUE.map(([v, n, g]) =>
-          `<label class="check ctl" title="Destaque: ${n}"><input type="radio" name="destaque" value="${v}" ${exibir.destaque === v ? "checked" : ""}> ${rotulo(glifo(g), n)}</label>`).join("")}
+      <div class="ferr-grupo" role="radiogroup" aria-label="Destaque de requisitos"><span class="ferr-rot ctl" aria-hidden="true">${rotulo(icone("setas", 14), "Destaque")}</span>
+        ${DESTAQUE.map(([v, n, ic]) =>
+          `<label class="check ctl" title="Destaque: ${n}"><input type="radio" name="destaque" value="${v}" ${exibir.destaque === v ? "checked" : ""}> ${rotulo(icone(ic, 16), n)}</label>`).join("")}
         ${exibir.destaque === "foco" ? LEGENDA_DESTAQUE : ""}
       </div>
       ${niveis.length ? `<div class="ferr-grupo"><span class="ferr-rot">Dificuldade</span>
@@ -938,17 +950,17 @@
   /** Editor de tags (no painel lateral). */
   function abreEditorTags() {
     const box = $("#detalhes");
-    box.innerHTML = `<header><span class="cat-pill">Tags</span><button type="button" class="fechar" aria-label="Fechar">×</button></header>
+    box.innerHTML = `<header><span class="cat-pill">Tags</span><button type="button" class="fechar" aria-label="Fechar">${icone("fechar")}</button></header>
       <h3>Tags de cor</h3>
       <p class="det-meta">Cada tag pinta as disciplinas e diz como elas entram na barra de progresso.</p>
       <ul class="lista tags-edit">${tags.map((t, k) => `<li>
         <input type="color" value="${esc(t.cor)}" data-tagcor="${k}" aria-label="Cor da tag ${esc(t.nome)}">
         <input class="campo campo-sm" value="${esc(t.nome)}" data-tagnome="${k}" aria-label="Nome da tag ${k + 1}">
         <select class="campo campo-sm" data-tagstatus="${k}" aria-label="Como a tag ${esc(t.nome)} conta no progresso">${Object.entries(CONTA_COMO).map(([v, n]) => `<option value="${v}" ${t.status === v ? "selected" : ""}>${n}</option>`).join("")}</select>
-        <button type="button" class="x" data-tagdel="${k}" title="Apagar tag" aria-label="Apagar a tag ${esc(t.nome)}">×</button>
+        <button type="button" class="x" data-tagdel="${k}" title="Apagar tag" aria-label="Apagar a tag ${esc(t.nome)}">${icone("fechar", 16)}</button>
         ${t.status !== "pendente" ? `<label class="check tag-barra"><input type="checkbox" data-tagbarra="${k}" ${t.barra ? "checked" : ""}> Usar a cor desta tag na barra</label>` : ""}</li>`).join("")}</ul>
       <p class="dica">Na barra, cada tipo (concluída, prevista, cursando, planejada) usa a cor de no máximo uma tag; sem escolha, a cor padrão.</p>
-      <div class="add"><button type="button" class="btn btn-sm" id="tag-nova">+ Nova tag</button>
+      <div class="add"><button type="button" class="btn btn-sm" id="tag-nova">${icone("mais", 16)} Nova tag</button>
       <button type="button" class="btn btn-sm btn-ghost" id="tag-padrao">Restaurar padrão</button></div>`;
     box.hidden = false;
     box.dataset.alvo = "tags";
@@ -987,7 +999,7 @@
           if (foco && st === "aprovado") return "";      // Foco: o concluído some (previstas ficam)
           visiveis++;
           return card({
-            idx: c.idx, name: c.name, cat: c.category, status: st, classe: "bloco", inerte: seletorECI,
+            idx: c.idx, name: c.name, cat: c.category, status: st, classe: "bloco", inerte: seletorECI, semIcone: !exibir.situacao,
             meta: `${fmt(feito)}${f.plan ? ` (+${fmt(f.plan)} plan.)` : ""} / ${metaDe(null, c.credits, c.category)}${c.category == 5 && aConfirmarACE ? ` · ${textoAConfirmar({ aConfirmar: aConfirmarACE })}` : ""}`,
             sub: modoClassico ? "" : nomes, fill: { ok: pc(f.ok), prev: pc(f.ok + f.prev), plan: pc(tudo) },
           });
@@ -1066,8 +1078,8 @@
       const cards = col.itens.map(({ it, bloco, decl }) => {
         if (it.status !== "reprovado" && it.category != 5) cr += it.credits;
         const subs = bloco != null ? [`<span class="etq-transferida">transferida · bloco ${bloco}</span>`]
-          : decl ? [`<span class="etq-transferida etq-declarada">${ICONE_DECLARADA} registrada por você${it.semestreDeclarado ? "" : " · sem semestre"}</span>`] : [];
-        if (it.equivale && M.curr[it.equivale]) subs.push(`≡ ${esc(it.equivale)} ${esc(M.curr[it.equivale].name)}`);
+          : decl ? [`<span class="etq-transferida etq-declarada">${iconeEstado(ICONE_DECLARADA, 12)} registrada por você${it.semestreDeclarado ? "" : " · sem semestre"}</span>`] : [];
+        if (it.equivale && M.curr[it.equivale]) subs.push(`${icone("equivalencias", 12)} ${esc(it.equivale)} ${esc(M.curr[it.equivale].name)}`);
         if (it.dispensas.length) subs.push("dispensa " + it.dispensas.map(esc).join(", "));
         // Alertas pelo tipo do registro de origem: a transferida é histórico aprovado, mesmo na coluna do atual ou de um plano.
         const tipo = bloco != null || decl ? "cursado" : p.tipo;
@@ -1142,8 +1154,11 @@
     // "Todas acesas" só tira o esmaecimento das inativas: habilitado quando há uma inativa na lista (inclusive as
     // cursadas e planejadas que "só ativas" mantém); desabilitado, a preferência fica guardada.
     const temInativa = !!M.ref && itens.some((i) => !paridadesOferta(i.code).length);
-    const filtroOpt = (k, g, txt, desab = false, dica = txt) =>
-      `<label class="check ctl${desab ? " desabilitado" : ""}" title="${esc(dica)}"><input type="checkbox" data-fcheck="${k}" ${filtros[k] ? "checked" : ""}${desab ? " disabled" : ""}> ${rotulo(glifo(g), txt)}</label>`;
+    // Filtros: botões que acendem. Indisponível, o botão fica com aria-disabled e o motivo em texto (anunciado ao clicar);
+    // a preferência salva continua e o aria-pressed a acompanha.
+    const filtroOpt = (k, ic, txt, motivo = "", dica = txt) => motivo
+      ? `<button type="button" class="ctl aceso" data-fcheck="${k}" aria-pressed="${!!filtros[k]}" aria-disabled="true" aria-describedby="fmotivo-${k}" title="${esc(dica)}">${rotulo(icone(ic, 16), txt)}</button><span class="sr" id="fmotivo-${k}">${esc(motivo)}</span>`
+      : botaoAceso(`data-fcheck="${k}"`, filtros[k], ic, txt, dica);
     const T = tot[filtros.grupo] || tot[2];
     const resumoPlan = futuros.map((p) => {
       const v = p.itens.filter((it) => it.category == filtros.grupo).reduce((a, it) => a + (filtros.grupo == 5 ? it.horas || 0 : it.credits), 0);
@@ -1155,7 +1170,7 @@
       const s = statusDe(i.code);
       const acoes = futuros.map((p) => {
         const dentro = p.itens.some((it) => it.alvo === i.code);
-        return `<button type="button" class="mini-btn${dentro ? " on" : ""}" data-plan="${esc(p.nome)}" data-pcode="${esc(i.code)}" title="${dentro ? "Remover de" : "Planejar em"} ${esc(p.nome)}">${dentro ? "✓" : "+"} ${esc(p.nome)}</button>`;
+        return `<button type="button" class="mini-btn${dentro ? " on" : ""}" data-plan="${esc(p.nome)}" data-pcode="${esc(i.code)}" title="${dentro ? "Remover de" : "Planejar em"} ${esc(p.nome)}">${icone(dentro ? "check" : "mais", 14)} ${esc(p.nome)}</button>`;
       }).join("");
       const pars = paridadesOferta(i.code);
       const selo = M.ref ? (pars.length
@@ -1169,7 +1184,7 @@
           ${alvo && !concluido(s) ? (() => {
             const e = encaixe(i.code);
             if (!e.of) return `<span class="hor sem">sem turma de referência em ${esc(alvo)}</span>`;
-            return `<span class="hor ${e.choques.length ? "choca" : "cabe"}">🕒 ${esc(e.of.join(", "))} · ${e.choques.length ? "choca com " + esc(e.choques.join(", ")) : "cabe em " + esc(alvo)}</span>`;
+            return `<span class="hor ${e.choques.length ? "choca" : "cabe"}">${icone("relogio", 13)} ${esc(e.of.join(", "))} · ${e.choques.length ? "choca com " + esc(e.choques.join(", ")) : "cabe em " + esc(alvo)}</span>`;
           })() : ""}
         </button>
         ${concluido(s) ? "" : `<div class="opt-acoes">${acoes}</div>`}
@@ -1178,15 +1193,15 @@
 
     return `<div class="optativas${M.ref && filtros.acesas ? " acesas" : ""}">
       <div class="filtros">
-        <div class="seg seg-sm" role="group" aria-label="Grupo de optativas">${Object.entries(GRUPOS_OPT).map(([k, n]) => `<button type="button" class="ctl" data-fgrupo="${k}" aria-pressed="${filtros.grupo == k}" title="${n}">${rotulo(glifo(ICONE_GRUPO[k]), n)}</button>`).join("")}</div>
+        <div class="seg seg-sm" role="group" aria-label="Grupo de optativas">${Object.entries(GRUPOS_OPT).map(([k, n]) => `<button type="button" class="ctl" data-fgrupo="${k}" aria-pressed="${filtros.grupo == k}" title="${n}">${rotulo(icone(ICONE_GRUPO[k], 16), n)}</button>`).join("")}</div>
         <input type="search" class="campo busca" id="busca-opt" aria-label="Buscar optativas por nome ou código" placeholder="Buscar por nome ou código…" value="${esc(filtros.busca)}">
-        ${M.ref ? filtroOpt("ativas", "⏻", "só ativas") : ""}
-        ${filtroOpt("liberadas", "🔓", "só liberadas")}
-        ${filtroOpt("ocultarFeitas", "◌", "ocultar cursadas")}
-        ${futuros.length ? `<label class="check ctl" title="Horários de ${esc(alvo)}">${rotulo(glifo("🕘"), "horários de")}
+        ${M.ref ? filtroOpt("ativas", "raio", "Só ativas") : ""}
+        ${filtroOpt("liberadas", "cadeado-aberto", "Só liberadas")}
+        ${filtroOpt("ocultarFeitas", "lista-x", "Ocultar cursadas")}
+        ${futuros.length ? `<label class="check ctl" title="Horários de ${esc(alvo)}">${rotulo(icone("relogio", 16), "Horários de")}
           <select class="campo campo-sm" data-falvo>${futuros.map((p) => `<option ${p.nome === alvo ? "selected" : ""}>${esc(p.nome)}</option>`).join("")}</select></label>
-          ${filtroOpt("cabe", "⊞", `só as que cabem em ${esc(alvo)}`)}` : ""}
-        ${M.ref ? filtroOpt("acesas", "☼", "todas acesas", !temInativa,
+          ${filtroOpt("cabe", "calendario-check", `Só as que cabem em ${esc(alvo)}`)}` : ""}
+        ${M.ref ? filtroOpt("acesas", "eci", "Todas acesas", temInativa ? "" : "Nenhuma optativa inativa na lista.",
           temInativa ? "Todas acesas: tira o esmaecimento das optativas inativas" : "Todas acesas: nenhuma optativa inativa na lista") : ""}
       </div>
       <div class="chips prefixos">
@@ -1250,7 +1265,7 @@
    * dois números rotulados e a nota de RA-13 (clique, toque ou teclado). Sem BOA importado, só a estimativa da Grade.
    */
   const botaoInfoLivre = () => `<button type="button" class="info-btn" id="livre-info-btn" aria-expanded="${infoLivreAberta}"
-      aria-controls="livre-info" aria-label="Como ler os números da livre escolha" title="Como ler estes números"><span aria-hidden="true">ⓘ</span></button>`;
+      aria-controls="livre-info" aria-label="Como ler os números da livre escolha" title="Como ler estes números">${icone("info", 16)}</button>`;
   function htmlInfoLivre(t) {
     const n = numerosLivreEscolha(t);
     const iso = (d) => { const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(d || ""); return m ? `${m[3]}-${m[2]}-${m[1]}` : d; };
@@ -1382,7 +1397,7 @@
         return `<div class="cur">${descr(c.code)}${infoBase ? `<br><small class="base-prazo">${esc(infoBase)}${papelEmDuvida() ? " Estimativa: o histórico do curso atual não foi confirmado." : ""}</small>` : ""}
           <div class="cur-acoes"><select class="campo campo-sm" data-eqpapel="${k}:${j}" aria-label="Papel de ${esc(c.code)} no pedido ${k + 1}"><option value="conteudo" ${c.papel !== "horas" ? "selected" : ""}>conteúdo</option><option value="horas" ${c.papel === "horas" ? "selected" : ""}>só horas</option></select>
           ${base && base.min > 5 ? `<small class="alerta" title="Res. CEG 01/2017">⚠ ${base.ano != null ? "mais de 5 anos" : fmt(Math.floor(id * 2) / 2) + " anos"}: pode exigir exame de suficiência</small>` : ""}
-          ${a.cs.length > 1 ? `<button type="button" class="x" data-eqrmc="${k}:${j}" title="Tirar do pedido" aria-label="Tirar ${esc(c.code)} do pedido ${k + 1}">×</button>` : ""}</div></div>`;
+          ${a.cs.length > 1 ? `<button type="button" class="x" data-eqrmc="${k}:${j}" title="Tirar do pedido" aria-label="Tirar ${esc(c.code)} do pedido ${k + 1}">${icone("fechar", 16)}</button>` : ""}</div></div>`;
       }).join("") + `<div class="add add-cur"><input class="campo campo-sm" list="eq-cursadas" data-eqnovo="${k}" aria-label="Juntar outra cursada ao pedido ${k + 1}" placeholder="+ cursada"><button type="button" class="mini-btn" data-eqaddc="${k}">juntar</button></div>`;
       const checks = [
         // D-01: a comparação de carga horária é orientação (a CEG 01/2017 pede conteúdo e orientação, não percentual): sem ✓/✗.
@@ -1404,7 +1419,7 @@
         <td><ul class="checks">${checks}</ul></td>
         <td><select class="campo campo-sm" data-eqstatus="${k}" aria-label="Situação do pedido ${k + 1}">${EQ_STATUS.map((x) => `<option ${x === (e.status || "a pedir") ? "selected" : ""}>${x}</option>`).join("")}</select>
           <input class="campo campo-sm" data-eqobs="${k}" aria-label="Observação do pedido ${k + 1}" value="${esc(e.obs || "")}" placeholder="processo, data, motivo…"></td>
-        <td><button type="button" class="x" data-eqdel="${k}" title="Remover pedido" aria-label="Remover o pedido ${k + 1}">×</button></td></tr>`;
+        <td><button type="button" class="x" data-eqdel="${k}" title="Remover pedido" aria-label="Remover o pedido ${k + 1}">${icone("fechar", 16)}</button></td></tr>`;
     }).join("");
 
     const cursadasOpc = neCodes.map((c) => { const u = usosDe(c); return `<option value="${esc(c)}">${esc(c)} — ${esc((boaDe(c) || M.info(c) || {}).name || "")}${u.length ? ` (${esc(u.map((x) => x.txt).join("; "))})` : ""}</option>`; }).join("");
@@ -1434,7 +1449,7 @@
         <td><input class="campo campo-sm" data-ext="${k}" data-campo="periodo" aria-label="Período da atividade ${k + 1}" value="${esc(a.periodo || "")}" placeholder="2027/1"></td>
         <td><span class="situ situ-${(a.status || "planejada").replace(/\W+/g, "-")}">${esc(a.status || "planejada")}</span>
           <select class="campo campo-sm" data-ext="${k}" data-campo="status" aria-label="Situação da atividade ${k + 1}">${EXT_STATUS.map((x) => `<option ${x === (a.status || "planejada") ? "selected" : ""}>${x}</option>`).join("")}</select></td>
-        <td><button type="button" class="x" data-extdel="${k}" title="Remover" aria-label="Remover a atividade ${k + 1}">×</button></td></tr>`).join("");
+        <td><button type="button" class="x" data-extdel="${k}" title="Remover" aria-label="Remover a atividade ${k + 1}">${icone("fechar", 16)}</button></td></tr>`).join("");
     const T5 = tot[5];
 
     return `<div class="pedidos">
@@ -1470,7 +1485,7 @@
         <div class="tabela-rolagem" role="region" tabindex="0" aria-label="Atividades de extensão e ACE (tabela)"><table class="tabela"><thead><tr><th>Atividade</th><th>Código ACE</th><th>Horas</th><th>Período</th><th>Situação</th><th></th></tr></thead>
         <tbody>${linhasExt || `<tr><td colspan="6" class="vazio">Nenhuma atividade.</td></tr>`}</tbody></table></div>
         <datalist id="ace-list">${aceOpc}</datalist>
-        <button type="button" class="btn btn-sm" id="ext-add">+ Atividade</button>
+        <button type="button" class="btn btn-sm" id="ext-add">${icone("mais", 16)} Atividade</button>
       </section>
     </div>`;
   }
@@ -1559,8 +1574,8 @@
     if (cronoSlot != null) cands = cands.filter((c) => c.cel.has(cronoSlot));
     const sug = cands.map((c) => `<li class="${c.choques.length ? "choca" : "cabe"}">
         <span>${seloGuia(c.code, true)} <b>${esc(c.code)}</b> ${esc(c.i.name)} <small>${esc(metaDe(null, valorCat(c.i), c.i.category))} · ${c.obrig ? "obrigatória" : esc(GRUPOS_OPT[c.i.category] || "")}</small><br>
-        <small>${textoPresenca(c.code) ? esc(textoPresenca(c.code)) + " · " : ""}🕒 ${esc(c.horarios.join(", "))}${c.choques.length ? ` · choca com ${esc(c.choques.join(", "))}` : " · cabe"}</small></span>
-        <button type="button" class="mini-btn" data-sugadd="${esc(c.code)}">+ ${esc(p.nome)}</button></li>`).join("");
+        <small>${textoPresenca(c.code) ? esc(textoPresenca(c.code)) + " · " : ""}${icone("relogio", 13)} ${esc(c.horarios.join(", "))}${c.choques.length ? ` · choca com ${esc(c.choques.join(", "))}` : " · cabe"}</small></span>
+        <button type="button" class="mini-btn" data-sugadd="${esc(c.code)}">${icone("mais", 14)} ${esc(p.nome)}</button></li>`).join("");
     const slotTxt = cronoSlot != null ? `${DIAS_NOME[Math.floor(cronoSlot / 100)]} ${pad(cronoSlot % 100)}h` : "";
 
     const prop = proposta && proposta.periodo === p.nome ? proposta : null;
@@ -1578,9 +1593,9 @@
         ${avisosPlan.length ? `<h4>Atenção</h4><ul class="lista-plano atencao">${avisosPlan.join("")}</ul>` : ""}
       </div>
       <div class="plano-col">
-        <h3>Sugestões para ${esc(p.nome)} ${slotTxt ? `<span class="chip chip-plan">${esc(slotTxt)} <button type="button" class="x-chip" id="slot-limpar">×</button></span>` : ""}</h3>
+        <h3>Sugestões para ${esc(p.nome)} ${slotTxt ? `<span class="chip chip-plan">${esc(slotTxt)} <button type="button" class="x-chip" id="slot-limpar" aria-label="Limpar o horário escolhido" title="Limpar o horário escolhido">${icone("fechar", 14)}</button></span>` : ""}</h3>
         <p class="dica">Só turmas ativas na referência, com requisitos cumpridos antes de ${esc(p.nome)} e que ainda fazem falta. ${cronoSel ? "" : "Clique numa célula vazia da grade para buscar por horário."}</p>
-        <button type="button" class="btn btn-sm" id="prop-gerar">✨ Sugerir combinação sem choques</button>
+        <button type="button" class="btn btn-sm" id="prop-gerar">${icone("brilho", 16)} Sugerir combinação sem choques</button>
         ${propHtml}
         <ul class="lista-sug">${sug || `<li class="vazio">Nenhuma turma${slotTxt ? " nesse horário" : ""}.</li>`}</ul>
       </div>
@@ -1596,7 +1611,7 @@
     const abas = ps.map((x) => `<button type="button" data-cperiodo="${esc(x.nome)}" aria-pressed="${x.nome === cronoPeriodo}">${esc(x.nome)}${x.tipo === "atual" ? " · atual" : ""}</button>`).join("");
     const topo = `<div class="crono-topo">
         <div class="seg seg-sm" role="group" aria-label="Período">${abas}</div>
-        <button type="button" class="btn btn-sm ctl" id="novo-periodo" title="Adicionar período" aria-label="Adicionar período">${rotulo(glifo("＋"), "Período")}</button>
+        <button type="button" class="btn btn-sm ctl" id="novo-periodo" title="Adicionar período" aria-label="Adicionar período">${rotulo(icone("mais", 16), "Período")}</button>
         <span class="espaco"></span>
         ${temEdicoes() ? `<span class="chip chip-alerta">edições não exportadas</span>` : ""}
         <button type="button" class="btn btn-sm ctl" id="exportar" title="Exportar perfil.js: baixa o perfil com as edições">${rotulo(icone("baixar", 14), "Exportar perfil.js")}</button>
@@ -1630,10 +1645,10 @@
         <button type="button" class="crono-pick" data-csel="${esc(it.code)}">
           <i class="sw"></i><span><b>${seloGuia(it.alvo, true)} ${esc(it.name)}</b><small>${esc(metaDe(it.code, it.category == 5 ? it.horas : it.credits, it.category))}${it.status !== "planejado" ? " · " + ROTULO[it.status].toLowerCase() : ""}${textoPresenca(it.alvo) ? " · " + esc(textoPresenca(it.alvo)) : ""}</small>
           <small class="${it.cel.size ? "" : "alerta"}">${it.cel.size ? `${formataHorarios(it.cel).join(", ")} · ${it.cel.size} h/sem` : "sem horário"}</small>
-          ${aviso.length ? `<small class="alerta">⚠ ${esc(aviso.join("; "))}</small>` : ""}
-          ${oferta ? `<small class="aviso-oferta">⚠ ${esc(oferta.texto)}</small>` : ""}</span>
+          ${aviso.length ? `<small class="alerta">${icone("alerta", 13)} ${esc(aviso.join("; "))}</small>` : ""}
+          ${oferta ? `<small class="aviso-oferta">${icone("alerta", 13)} ${esc(oferta.texto)}</small>` : ""}</span>
         </button>
-        <button type="button" class="x" data-cremove="${esc(it.code)}" title="Remover do período" aria-label="Remover ${esc(it.code)} do período">×</button>
+        <button type="button" class="x" data-cremove="${esc(it.code)}" title="Remover do período" aria-label="Remover ${esc(it.code)} do período">${icone("fechar", 16)}</button>
         ${(() => {
           const of = ofertaDe(it.code, p.nome);
           if (!of) return "";
@@ -1752,10 +1767,10 @@
     }).join("")
       // PC-02/03: a aprovação pelo pincel é identificada no detalhamento, com o mesmo ícone do cartão.
       + (Object.keys(marcacoes).some(aprovacaoManual)
-        ? `<p class="leg-manual"><span aria-hidden="true">${ICONE_MARCACAO}</span> Aprovação por marcação manual (pincel): simulação, não é registro importado.</p>` : "")
+        ? `<p class="leg-manual">${iconeEstado(ICONE_MARCACAO)} Aprovação por marcação manual (pincel): simulação, não é registro importado.</p>` : "")
       + (() => {
         const n = Object.keys(M.regs).filter((c) => !aprovacaoManual(c) && fonteDe(c) === "declarado").length;
-        return n ? `<p class="leg-manual leg-declarada"><span aria-hidden="true">${ICONE_DECLARADA}</span> ${n} ${n === 1 ? "aprovação registrada" : "aprovações registradas"} por você: ${n === 1 ? "conta" : "contam"} para fase e conquistas, não ${n === 1 ? "é" : "são"} registro do SIGA.</p>` : "";
+        return n ? `<p class="leg-manual leg-declarada">${iconeEstado(ICONE_DECLARADA)} ${n} ${n === 1 ? "aprovação registrada" : "aprovações registradas"} por você: ${n === 1 ? "conta" : "contam"} para fase e conquistas, não ${n === 1 ? "é" : "são"} registro do SIGA.</p>` : "";
       })();
   }
 
@@ -2041,7 +2056,7 @@
     const radio = (nome, v, rot, marcado) => `<label class="opcao"><input type="radio" name="${nome}" value="${v}"${marcado ? " checked" : ""}> ${rot}</label>`;
     $("#config-corpo").innerHTML = `
       <div class="dlg-cabeca"><h1 id="dlg-config-titulo" class="dlg-titulo" tabindex="-1">${icone("configuracoes", 20)} Configurações</h1>
-        <button type="button" class="dlg-x fecha-config" aria-label="Fechar Configurações" title="Fechar (Esc)"><span aria-hidden="true">×</span></button></div>
+        <button type="button" class="dlg-x fecha-config" aria-label="Fechar Configurações" title="Fechar (Esc)">${icone("fechar")}</button></div>
       <p class="dlg-texto">As escolhas valem na hora e ficam salvas neste navegador. Fixe um item para ele aparecer também na barra do topo; ele continua aqui.</p>
       <section class="cfg-sec" aria-labelledby="cfg-h-perfil"><h2 id="cfg-h-perfil">Perfil e dados</h2>
         ${linhaAtalho("perfil")}${linhaAtalho("importar")}${linhaAtalho("privacidade")}
@@ -2173,7 +2188,7 @@
   function abreReferencias() {
     const box = $("#detalhes");
     const ref = (M.ref && M.ref.fonte) || "Notion — Grades de ECI (Editável)";
-    box.innerHTML = `<header><span class="cat-pill">${icone("referencias", 14)} Referências</span><button type="button" class="fechar" aria-label="Fechar">×</button></header>
+    box.innerHTML = `<header><span class="cat-pill">${icone("referencias", 14)} Referências</span><button type="button" class="fechar" aria-label="Fechar">${icone("fechar")}</button></header>
       <h3>De onde vêm os dados</h3>
       <ul class="lista refs">
         <li><span><b>Horários de referência e guia dos alunos</b><br><small>${esc(ref)}${M.ref && M.ref.consultado ? `, consultado em ${esc(M.ref.consultado)}` : ""}.
@@ -2227,7 +2242,7 @@
     if (mostraLegenda) renderLegenda(vista);
     $("#ferramentas").hidden = vista !== "grade" || modoClassico;
     if (vista === "grade" && !modoClassico) $("#ferramentas").innerHTML = mini ? `
-      <button type="button" class="btn btn-icone ferr-mais" id="ferr-mais" aria-expanded="${ferrAberto}" aria-controls="ferr-painel" title="Ferramentas">${glifo("⋯")}<span class="sr">Ferramentas</span></button>
+      <button type="button" class="btn btn-icone ferr-mais" id="ferr-mais" aria-expanded="${ferrAberto}" aria-controls="ferr-painel" title="Ferramentas">${icone("reticencias")}<span class="sr">Ferramentas</span></button>
       <div class="ferr-painel" id="ferr-painel" role="group" aria-label="Ferramentas"${ferrAberto ? "" : " hidden"}>${renderFerramentas()}</div>` : renderFerramentas();
     $("#paleta").hidden = vista !== "grade";
     if (vista === "grade") $("#paleta").innerHTML = renderPaleta();
@@ -2290,7 +2305,7 @@
       const blocoOc = oc && alvo.transferida ? nomeDe(oc) : null;
       html = `
         <header><span class="cat-pill cat-${i.category}">${CATS[i.category] ? CATS[i.category].nome : ""}</span>
-          <button type="button" class="fechar" aria-label="Fechar">×</button></header>
+          <button type="button" class="fechar" aria-label="Fechar">${icone("fechar")}</button></header>
         <h3>${esc(i.name)}</h3>
         ${oc ? `<p class="det-ocorrencia s-${oc.status}"><b>${esc(alvo.declarada && !oc.semestreDeclarado ? "Sem semestre" : alvo.periodo)}</b>: ${ROTULO[oc.status]} · ${oc.origem === "declarado" ? ORIGEM_DECL : "perfil"}${oc.nota != null ? ` · nota ${esc(oc.nota)}` : ""}${blocoOc ? ` (transferida, ${esc(blocoOc)})` : ""}</p>` : ""}
         <p class="det-meta">${esc(metaDe(code, valorCat(i), i.category))}${i.workload ? ` · ${i.workload} h` : ""} · ${esc(fonte)}</p>
@@ -2328,7 +2343,7 @@
         ${ds.length ? `<h4>Libera</h4><ul class="lista">${ds.map((r) => linhaCurso(r)).join("")}</ul>` : ""}
         ${!concluido(s) && futuros.length ? `<h4>Planejar</h4><div class="chips">${futuros.map((p) => {
           const dentro = p.itens.some((it) => it.alvo === code);
-          return `<button type="button" class="mini-btn${dentro ? " on" : ""}" data-plan="${esc(p.nome)}" data-pcode="${esc(code)}">${dentro ? "✓" : "+"} ${esc(p.nome)}</button>`;
+          return `<button type="button" class="mini-btn${dentro ? " on" : ""}" data-plan="${esc(p.nome)}" data-pcode="${esc(code)}">${icone(dentro ? "check" : "mais", 14)} ${esc(p.nome)}</button>`;
         }).join("")}</div>` : ""}
         <h4>Tag</h4>${protegida(code) ? `<p class="det-meta">${icone("cadeado", 14)} Protegida pelo cadeado: desligue o cadeado na paleta para alterar.</p>` : ""}
         <div class="chips">${tags.map((t) => `<button type="button" class="chip chip-btn tag-chip${tagDe(code) === t ? " on" : ""}" style="--tag:${esc(t.cor)}" data-settag="${esc(code)}" data-tag="${esc(t.id)}"${protegida(code) ? " disabled" : ""}><i></i>${esc(t.nome)}</button>`).join("")}
@@ -2346,7 +2361,7 @@
       const v = creditosManuais[c.category] || 0;
       html = `
         <header><span class="cat-pill cat-${c.category}">${CATS[c.category] ? CATS[c.category].nome : ""}</span>
-          <button type="button" class="fechar" aria-label="Fechar">×</button></header>
+          <button type="button" class="fechar" aria-label="Fechar">${icone("fechar")}</button></header>
         <h3>${esc(c.name)}</h3>
         <p class="det-meta">${esc(metaDe(null, c.credits, c.category))} · ${c.semester}º período recomendado</p>
         ${f.nomes.some((x) => x.code) ? `<h4>Preenchido por</h4><ul class="lista">${f.nomes.filter((x) => x.code).map((x) => linhaCurso(x.code)).join("")}</ul>` : ""}
@@ -2367,7 +2382,7 @@
     const c = M.declaradas.confirmadas[code], k = M.declaradas.conflitos[code], n = M.declaradas.notas[code];
     const futuro = d.semestre && semIdx(d.semestre) > semAtual();
     const linhas = [
-      `<p class="det-meta">${ICONE_DECLARADA} Registrada por você${d.registradoEm ? ` em ${esc(d.registradoEm)}` : ""} · ${d.semestre ? `semestre ${esc(d.semestre)}` : "semestre não informado"}. Não é registro do SIGA.</p>`,
+      `<p class="det-meta">${iconeEstado(ICONE_DECLARADA)} Registrada por você${d.registradoEm ? ` em ${esc(d.registradoEm)}` : ""} · ${d.semestre ? `semestre ${esc(d.semestre)}` : "semestre não informado"}. Não é registro do SIGA.</p>`,
       futuro ? `<p class="alerta">O semestre informado (${esc(d.semestre)}) é posterior ao atual. Confira.</p>` : "",
       c && c.diverge ? `<p class="alerta" role="note">Você registrou ${esc(d.semestre)}; o SIGA traz ${esc(c.nome)}. Vale o SIGA.</p>`
         : c ? `<p class="det-meta">Confirmada pelo SIGA${c.nome ? ` em ${esc(c.nome)}` : ""}${c.via && /dispensa|equival/.test(c.via) ? " como dispensa ou equivalência" : ""}. Fica guardada, fora da conta.</p>` : "",
@@ -2473,7 +2488,7 @@
     const chaves = [];
     try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k.startsWith(STORE)) chaves.push([k.slice(STORE.length), (localStorage.getItem(k) || "").length]); } } catch (e) { /* sem acesso */ }
     const box = $("#detalhes");
-    box.innerHTML = `<header><span class="cat-pill">${icone("privacidade", 14)} Privacidade</span><button type="button" class="fechar" aria-label="Fechar">×</button></header>
+    box.innerHTML = `<header><span class="cat-pill">${icone("privacidade", 14)} Privacidade</span><button type="button" class="fechar" aria-label="Fechar">${icone("fechar")}</button></header>
       <h3>Seus dados ficam neste computador</h3>
       <ul class="lista garantias">
         <li>${icone("cadeado", 16)} <span><b>A importação não envia dados.</b> A política de segurança (CSP)
@@ -2598,7 +2613,7 @@
   function abreImportador() {
     const r = resultadoImportacao;
     const box = $("#detalhes");
-    box.innerHTML = `<header><span class="cat-pill">Importar</span><button type="button" class="fechar" aria-label="Fechar">×</button></header>
+    box.innerHTML = `<header><span class="cat-pill">Importar</span><button type="button" class="fechar" aria-label="Fechar">${icone("fechar")}</button></header>
       <h3>Importar do SIGA</h3>
       ${modoClassico ? `<p class="sugere-planejador" id="sugere-planejador">${icone("linha-do-tempo", 16)}
         <span>No <b>Planejador</b>, o que você importar aparece na linha do tempo, nas optativas e no cronograma.</span>
@@ -3260,6 +3275,11 @@
         if (pincel !== null) { consultado = null; return pinta(abrir.dataset.abrir); }
         destaca(abrir.dataset.abrir); return abrePainel(ev, () => abreDetalhes({ code: abrir.dataset.abrir }));
       }
+      const fc = t.closest("[data-fcheck]");
+      if (fc) {
+        if (fc.getAttribute("aria-disabled") === "true") return anuncia($(`#fmotivo-${fc.dataset.fcheck}`).textContent);
+        filtros[fc.dataset.fcheck] = !filtros[fc.dataset.fcheck]; save("filtros", filtros); return render();
+      }
       const fg = t.closest("[data-fgrupo]");
       if (fg) { filtros.grupo = fg.dataset.fgrupo; filtros.prefixo = ""; save("filtros", filtros); return render(); }
       const fp = t.closest("[data-fprefixo]");
@@ -3426,8 +3446,6 @@
       if (ev.target.id === "busca-opt") { filtros.busca = ev.target.value; save("filtros", filtros); render(); }
     });
     painel.addEventListener("change", (ev) => {
-      const f = ev.target.dataset.fcheck;
-      if (f) { filtros[f] = ev.target.checked; save("filtros", filtros); render(); }
       if (ev.target.matches("[data-falvo]")) { filtros.alvo = ev.target.value; save("filtros", filtros); render(); }
       const t = ev.target;
       if (t.dataset.eqpapel) {
@@ -3462,6 +3480,9 @@
         return;
       }
       if (t.id === "ferr-mais") { ferrAberto = !ferrAberto; return render(); }
+      if (t.dataset.exibir != null && !t.closest("dialog")) {   // Exibir: botões que acendem (Configurações usa caixas nativas)
+        exibir[t.dataset.exibir] = !exibir[t.dataset.exibir]; save("exibir", exibir); render(); return atualizaConfig();
+      }
       if (t.id === "bg-detalhes") { progressoAberto = !progressoAberto; save("progressoAberto", progressoAberto); return render(); }
       if (t.dataset.pincel != null) { consultado = null; pincel = t.dataset.pincel === "__detalhes" ? null : t.dataset.pincel; seletorECI = false; return render(); }
       if (t.id === "pal-eci") {

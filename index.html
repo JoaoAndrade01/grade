@@ -48,7 +48,7 @@
     <nav class="acoes" aria-label="Atalhos">
       <div id="atalhos" class="atalhos"></div>
       <!-- Foco (só no Planejador e com perfil): esconde o que já foi concluído e mostra a fase e as conquistas. -->
-      <button type="button" id="btn-foco" class="btn btn-icone btn-atalho" aria-pressed="false" title="Foco"><span class="ico ico-g" aria-hidden="true">🎯</span><span class="rot">Foco</span></button>
+      <button type="button" id="btn-foco" class="btn btn-icone btn-atalho" aria-pressed="false" title="Foco" data-icone="alvo"><span class="rot">Foco</span></button>
       <span id="btn-foco-motivo" class="sr"></span>
       <button type="button" id="btn-config" class="btn btn-icone btn-atalho" data-icone="configuracoes" title="Configurações"><span class="rot">Configurações</span></button>
       <!-- seletor de modo: Clássico (só a grade, padrão ao abrir) | Planejador (com as abas). O nome acessível vem do .rot. -->
@@ -117,7 +117,7 @@
   <!-- "A ECI por trás da Grade": experiência em tela cheia sobre a Grade (js/eci.js). -->
   <dialog id="dlg-eci" class="dlg-eci" aria-labelledby="dlg-eci-titulo">
     <div class="eci-barra">
-      <button type="button" class="btn" id="eci-voltar">← Voltar</button>
+      <button type="button" class="btn" id="eci-voltar" data-icone="voltar">Voltar</button>
       <h1 id="dlg-eci-titulo" class="dlg-titulo"></h1>
     </div>
     <div id="eci-exp" class="eci-exp"></div>

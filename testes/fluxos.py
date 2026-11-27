@@ -60,6 +60,7 @@ def abre(b, vp=D, esquema="light", perfil=None, extra=None, nome="", toque=False
 
 def foto(pg, nome, full=False): pg.wait_for_timeout(150); pg.screenshot(path=str(OUT / f"{nome}.png"), full_page=full)
 def ls(pg, k): return pg.evaluate("k => JSON.parse(localStorage.getItem(k))", CHAVE + k)
+def aceso(loc): return loc.get_attribute("aria-pressed") == "true"   # botões que acendem (Exibir, filtros)
 def alterna_modo(pg):
     """Seletor Clássico | Planejador do topo: escolhe a opção que não está marcada."""
     pg.locator("#seletor-modo label:has(input:not(:checked))").click()
@@ -1413,7 +1414,7 @@ def t_detalhamento_info(b):
     formato = lambda k: pg.evaluate("(k) => [...document.querySelector(`#progresso .cat-${k}`).children].filter((e) => !e.hidden).map((e) => e.className || e.tagName)", k)
     assert formato(3) == formato(2), (formato(3), formato(2))                        # título + número, barra, "faltam"
     btn, info = pg.locator("#progresso .cat-3 .prog-topo .info-btn"), pg.locator("#progresso .cat-3 .livre-info")
-    expect(btn).to_have_text("ⓘ"); expect(btn).to_have_attribute("aria-expanded", "false"); expect(info).to_be_hidden()
+    expect(btn.locator("svg.ico")).to_have_count(1); expect(btn).to_have_text(""); expect(btn).to_have_attribute("aria-expanded", "false"); expect(info).to_be_hidden()
     assert btn.get_attribute("aria-label") and btn.get_attribute("aria-controls") == info.get_attribute("id")
     estilo = btn.evaluate("""(e) => { const s = getComputedStyle(e), t = getComputedStyle(e.closest('.prog-topo'));
         return [s.borderTopStyle, s.borderTopWidth, s.backgroundColor, s.fontSize === t.fontSize]; }""")
@@ -1646,13 +1647,13 @@ def t_abas_legendas(b):
     assert observado == {"grade": {**com, "categorias": False}, "timeline": {**com, "categorias": True},
                          **{v: sem for v in ("optativas", "cronograma", "pedidos", "eci")}}, observado
     # Exibir → Dificuldade: a escala aparece junto ao controle, com os cinco níveis, e some ao desmarcar.
-    pg.click('[data-vista="grade"]'); pg.check('#ferramentas [data-exibir="dificuldade"]')
+    pg.click('[data-vista="grade"]'); pg.click('#ferramentas [data-exibir="dificuldade"]'); assert aceso(pg.locator('#ferramentas [data-exibir="dificuldade"]'))
     escala = pg.locator("#ferramentas .escala-dificuldade")
     expect(escala).to_be_visible()
     assert [t.split(" ", 1)[1] for t in escala.locator(".leg-niv").all_inner_texts()] == ESCALA
     assert estado_das_legendas(pg)["escala"] == ESCALA
     foto(pg, "abas-escala-dificuldade")
-    pg.uncheck('#ferramentas [data-exibir="dificuldade"]'); assert estado_das_legendas(pg)["escala"] == []
+    pg.click('#ferramentas [data-exibir="dificuldade"]'); assert estado_das_legendas(pg)["escala"] == []
     ctx.close()
     # Clássico segue a Grade; a escala aparece com Dificuldade ligada (Exibir fica em Configurações).
     ctx, pg = abre(b, perfil=PERFIL, extra={"marcacoes": {"MAC238": "aprovada"}, "progressoAberto": True, "modoClassico": True,
@@ -1976,7 +1977,7 @@ def t_destaque_migracao(b):
         salvo = ls(pg, "exibir")
         if antigo: assert "setas" not in salvo and salvo["destaque"] == novo and salvo["codigo"] is False and salvo["notas"] is True, salvo
         expect(pg.locator(f'#ferramentas input[name="destaque"][value="{novo}"]')).to_be_checked()
-        assert not pg.locator('#ferramentas [data-exibir="codigo"]').is_checked() and pg.locator('#ferramentas [data-exibir="notas"]').is_checked()
+        assert not aceso(pg.locator('#ferramentas [data-exibir="codigo"]')) and aceso(pg.locator('#ferramentas [data-exibir="notas"]'))
         pg.locator('.card[data-code="MAC128"]').hover()
         assert destaque(pg)["ativo"] == (novo == "foco"), antigo
         ctx.close()
@@ -2309,7 +2310,7 @@ def t_sync(b):
     assert pg.locator('#dlg-config input[name="destaque"][value="foco"]').is_checked()            # setas "foco" antiga → Em foco
     pg.check('#dlg-config [data-exibir="dificuldade"]'); pg.check('#dlg-config input[name="destaque"][value="desligado"]'); pg.check("#cfg-cadeado")
     pg.keyboard.press("Escape")
-    assert pg.locator('#ferramentas [data-exibir="dificuldade"]').is_checked() and pg.locator('#ferramentas input[name="destaque"][value="desligado"]').is_checked()
+    assert aceso(pg.locator('#ferramentas [data-exibir="dificuldade"]')) and pg.locator('#ferramentas input[name="destaque"][value="desligado"]').is_checked()
     assert pg.locator("#cadeado").get_attribute("aria-pressed") == "true"
     pg.click("#cadeado"); pg.check('#ferramentas input[name="destaque"][value="foco"]')
     abre_config(pg); assert not pg.locator("#cfg-cadeado").is_checked() and pg.locator('#dlg-config input[name="destaque"][value="foco"]').is_checked()
@@ -2526,8 +2527,8 @@ def descreve_foco(pg): return pg.evaluate("document.activeElement ? document.act
 @caso("B1: ícone de estado no cartão (✓ ◐ ○ … ✎), situação e origem no nome acessível; no toque a primeira ativação só consulta")
 def t_b1_estado_dos_cartoes(b):
     # PC-08 e WCAG 1.4.1: o cartão mostra um ícone de estado, não o texto; situação e origem ficam no nome acessível.
-    esperado = {"COS110": ("✓", "Aprovada · perfil"), "MAC118": ("…", "Aprovação prevista · perfil"),
-                "MAC128": ("◐", "Cursando · perfil"), "COS360": ("○", "Planejada · perfil"), "MAC238": ("✎", "Cursada · marcação")}
+    esperado = {"COS110": ("aprovado", "Aprovada · perfil"), "MAC118": ("previsto", "Aprovação prevista · perfil"),
+                "MAC128": ("cursando", "Cursando · perfil"), "COS360": ("planejado", "Planejada · perfil"), "MAC238": ("marcacao", "Cursada · marcação")}
     visivel = """(el) => { const c = el.cloneNode(true); c.querySelectorAll('.sr').forEach((x) => x.remove()); return c.textContent; }"""
     for nome, vp, toque, esquema in [("desktop", D, False, "light"), ("celular", C320, True, "dark")]:
         ctx, pg = abre(b, vp=vp, esquema=esquema, perfil=PERFIL, extra={"marcacoes": {"MAC238": "aprovada"}}, nome=f"b1-{nome}", toque=toque, modo="classico")
@@ -2537,7 +2538,7 @@ def t_b1_estado_dos_cartoes(b):
                 if vista == "timeline" and code == "MAC238": continue             # sem período: a marcação só aparece na Grade
                 cards = pg.locator(f'#painel .card[data-code="{code}"]'); card = cards.first if vista == "grade" else cards.last
                 est = card.locator(".estado")
-                assert est.inner_text() == ico and est.get_attribute("aria-hidden") == "true", (vista, code, est.inner_text())
+                assert est.get_attribute("data-estado") == ico and est.get_attribute("aria-hidden") == "true" and est.locator("svg.ico").count() == 1, (vista, code, est.get_attribute("data-estado"))
                 rotulo = texto if vista == "grade" else texto.split(" · ")[0]
                 expect(card).to_have_accessible_name(re.compile(re.escape(rotulo)))
                 vis = card.evaluate(visivel)
@@ -2557,7 +2558,7 @@ def t_b1_estado_dos_cartoes(b):
     r = consulta.bounding_box(); assert r["height"] > 0
     card.tap()
     assert ls(pg, "marcacoes") == {"MAC248": "aprovada"}, ls(pg, "marcacoes")
-    assert card.locator(".estado").inner_text() == "✎"
+    assert card.locator(".estado").get_attribute("data-estado") == "marcacao"
     expect(card).to_have_accessible_name(re.compile("Cursada · marcação"))
     ctx.close()
     # mouse e teclado continuam marcando com uma ativação
@@ -3004,13 +3005,17 @@ def t_controles_icones(b):
             w = larg_rot(c)
             assert (w > 4) if nivel == "icone-texto" else (w <= 1), (nivel, w, c)
     def confere(nivel):
-        for k, nome in (("codigo", "Código e créditos"), ("notas", "Notas"), ("dificuldade", "Dificuldade"), ("presenca", "Presença")):
-            expect(pg.get_by_role("checkbox", name=nome, exact=True)).to_have_count(1)
-            mede([pg.locator(f'#ferramentas label:has([data-exibir="{k}"])')], nivel)
+        for k, nome in (("codigo", "Código e créditos"), ("notas", "Notas"), ("dificuldade", "Dificuldade"), ("presenca", "Presença"), ("plano", "Plano"), ("situacao", "Situação")):
+            b = pg.get_by_role("button", name=nome, exact=True); expect(b).to_have_count(1)
+            assert b.get_attribute("data-exibir") == k and b.get_attribute("aria-pressed") in ("true", "false"), k
+            mede([b], nivel)
+        assert pg.locator("#ferramentas input[type=checkbox]").count() == 0     # sem caixa de marcar
         completo(pg, "optativas")
-        for nome in ("só ativas", "só liberadas", "ocultar cursadas", "todas acesas"):
-            expect(pg.get_by_role("checkbox", name=nome, exact=True)).to_have_count(1)
-            mede([pg.locator(".filtros label.ctl").filter(has=pg.get_by_role("checkbox", name=nome, exact=True))], nivel)
+        for nome in ("Só ativas", "Só liberadas", "Ocultar cursadas", "Todas acesas"):
+            b = pg.get_by_role("button", name=nome, exact=True); expect(b).to_have_count(1)
+            assert b.get_attribute("aria-pressed") in ("true", "false"), nome
+            mede([b], nivel)
+        assert pg.locator(".filtros input[type=checkbox]").count() == 0
         for nome in ("Condicionada", "Humanas", "ACE (extensão)"):
             mede([pg.get_by_role("button", name=nome, exact=True)], nivel)
         completo(pg, "cronograma"); pg.locator('[data-cperiodo="2027/1"]').click()
@@ -3027,32 +3032,38 @@ def t_controles_icones(b):
 @caso("Todas acesas: só tira o esmaecimento; habilitada com uma inativa visível, inclusive a exceção de Só ativas; preferência preservada")
 def t_todas_acesas(b):
     ctx, pg = abre(b, perfil=PERFIL, extra={"modoClassico": False, "vista": "optativas"}, nome="todas-acesas")
-    acesas = pg.get_by_role("checkbox", name="todas acesas", exact=True)
-    ativas = pg.get_by_role("checkbox", name="só ativas", exact=True)
-    expect(ativas).to_be_checked()
+    acesas = pg.get_by_role("button", name="Todas acesas", exact=True)
+    ativas = pg.get_by_role("button", name="Só ativas", exact=True)
+    expect(ativas).to_have_attribute("aria-pressed", "true")
     n = pg.locator(".opt.opt-inativa").count()
-    assert acesas.is_disabled() == (n == 0), n
-    ativas.uncheck()
+    assert (acesas.get_attribute("aria-disabled") == "true") == (n == 0), n
+    ativas.click(); expect(ativas).to_have_attribute("aria-pressed", "false")
     inativas = pg.locator(".opt.opt-inativa"); assert inativas.count() > 0
     antes = pg.locator(".opt").count()
-    expect(acesas).to_be_enabled(); acesas.focus(); pg.keyboard.press("Space")          # teclado
-    expect(acesas).to_be_checked(); assert ls(pg, "filtros")["acesas"] is True
+    expect(acesas).not_to_have_attribute("aria-disabled", "true"); acesas.focus(); pg.keyboard.press("Space")          # teclado
+    expect(acesas).to_have_attribute("aria-pressed", "true"); assert ls(pg, "filtros")["acesas"] is True
+    assert foco_em(pg, '[data-fcheck="acesas"]'), descreve_foco(pg)
     assert inativas.first.evaluate("e => getComputedStyle(e).opacity") == "1"
     assert pg.locator(".opt").count() == antes                                           # não filtra nada
     alvo = inativas.first.get_attribute("data-code")
-    acesas.uncheck(); assert float(inativas.first.evaluate("e => getComputedStyle(e).opacity")) < 1
-    acesas.check(); ativas.check()
+    pg.keyboard.press("Enter"); expect(acesas).to_have_attribute("aria-pressed", "false")   # Enter também alterna
+    assert float(inativas.first.evaluate("e => getComputedStyle(e).opacity")) < 1
+    acesas.click(); ativas.click()
     if pg.locator(".opt.opt-inativa").count() == 0:
-        expect(acesas).to_be_disabled(); expect(acesas).to_be_checked()                 # desabilitada, a preferência fica
+        # indisponível: aria-disabled, o motivo é anunciado ao acionar e a preferência fica
+        expect(acesas).to_have_attribute("aria-disabled", "true"); expect(acesas).to_have_attribute("aria-pressed", "true")
+        acesas.click(); expect(pg.locator("#anuncio")).to_contain_text("Nenhuma optativa inativa na lista")
+        assert ls(pg, "filtros")["acesas"] is True
     pg.reload(); pronto(pg, "todas-acesas"); assert ls(pg, "filtros")["acesas"] is True
+    expect(pg.get_by_role("button", name="Todas acesas", exact=True)).to_have_attribute("aria-pressed", "true")
     ctx.close()
     # a exceção de Só ativas: uma inativa planejada continua na lista e habilita o controle
     perfil = json.loads(json.dumps(PERFIL)); perfil["periodos"][4]["disciplinas"].append(alvo)
     ctx, pg = abre(b, vp=C320, perfil=perfil, extra={"modoClassico": False, "vista": "optativas"}, nome="todas-acesas-excecao", esquema="dark")
-    acesas = pg.get_by_role("checkbox", name="todas acesas", exact=True)
-    expect(pg.get_by_role("checkbox", name="só ativas", exact=True)).to_be_checked()
+    acesas = pg.get_by_role("button", name="Todas acesas", exact=True)
+    expect(pg.get_by_role("button", name="Só ativas", exact=True)).to_have_attribute("aria-pressed", "true")
     expect(pg.locator(f'.opt.opt-inativa[data-code="{alvo}"]')).to_have_count(1)
-    expect(acesas).to_be_enabled(); acesas.check()
+    expect(acesas).not_to_have_attribute("aria-disabled", "true"); acesas.click()
     assert pg.locator(f'.opt[data-code="{alvo}"]').evaluate("e => getComputedStyle(e).opacity") == "1"
     assert pg.evaluate("document.documentElement.scrollWidth - innerWidth") <= 1
     foto(pg, "todas-acesas-320-escuro")
@@ -3073,7 +3084,7 @@ def t_minimalista(b):
     expect(mais).to_have_attribute("aria-expanded", "false"); assert pg.locator("[data-exibir]").first.is_hidden()
     mais.focus(); pg.keyboard.press("Enter")
     expect(mais).to_have_attribute("aria-expanded", "true"); expect(pg.locator("#ferr-painel")).to_be_visible()
-    assert larg_rot(pg.locator('#ferr-painel label:has([data-exibir="notas"])')) > 4                    # ícone e texto no painel
+    assert larg_rot(pg.locator('#ferr-painel [data-exibir="notas"]')) > 4                    # ícone e texto no painel
     pg.keyboard.press("Tab"); assert foco_em(pg, "#ferr-painel *"), descreve_foco(pg)
     pg.keyboard.press("Space")                                                                           # liga/desliga sem fechar o painel
     expect(pg.locator("#ferr-painel")).to_be_visible(); assert foco_em(pg, "#ferr-painel *"), descreve_foco(pg)
@@ -3112,10 +3123,12 @@ def t_plano_na_grade(b):
     perfil = json.loads(json.dumps(PERFIL)); perfil["periodos"][5]["disciplinas"].append("COS360")      # COS360 em 2027/1 e 2027/2
     ctx, pg = abre(b, perfil=perfil, extra={"modoClassico": False, "vista": "grade"}, nome="plano-grade")
     assert pg.locator(".plano-flag").count() == 0                                   # desligado por padrão
-    pg.get_by_role("checkbox", name="Plano", exact=True).check(); assert ls(pg, "exibir")["plano"] is True
-    expect(pg.locator('.card[data-code="COS360"] .plano-flag')).to_have_text("📅 2027/1 +1")
-    expect(pg.locator('.card[data-code="EEL871"] .plano-flag')).to_have_text("📅 2027/1")
-    expect(pg.locator('.card[data-code="EEL873"] .plano-flag')).to_have_text("📅 2027/2")
+    pg.get_by_role("button", name="Plano", exact=True).click(); assert ls(pg, "exibir")["plano"] is True
+    expect(pg.get_by_role("button", name="Plano", exact=True)).to_have_attribute("aria-pressed", "true")
+    expect(pg.locator('.card[data-code="COS360"] .plano-flag')).to_have_text("2027/1 +1")
+    expect(pg.locator('.card[data-code="COS360"] .plano-flag svg.ico')).to_have_count(1)
+    expect(pg.locator('.card[data-code="EEL871"] .plano-flag')).to_have_text("2027/1")
+    expect(pg.locator('.card[data-code="EEL873"] .plano-flag')).to_have_text("2027/2")
     assert pg.locator('.card[data-code="COS110"] .plano-flag').count() == 0          # sem plano, sem marca
     expect(pg.get_by_role("button", name=re.compile(r"^Otimização, .*planejada em 2027.1, 2027.2$"))).to_have_count(1)
     foto(pg, "plano-na-grade")
@@ -3124,7 +3137,7 @@ def t_plano_na_grade(b):
     assert "2027/1" in hist and "2027/2" in hist and hist.count("Planejada") >= 2, hist      # a lista completa nos detalhes
     pg.keyboard.press("Escape")
     abre_config(pg); assert pg.locator('#dlg-config [data-exibir="plano"]').is_checked(); pg.keyboard.press("Escape")
-    alterna_modo(pg); expect(pg.locator('.card[data-code="COS360"] .plano-flag')).to_have_text("📅 2027/1 +1")    # Clássico
+    alterna_modo(pg); expect(pg.locator('.card[data-code="COS360"] .plano-flag')).to_have_text("2027/1 +1")    # Clássico
     ctx.close()
     ctx, pg = abre(b, vp=C320, perfil=perfil, extra={"exibir": {"plano": True}}, nome="plano-grade-320", toque=True, esquema="dark", modo="classico")
     c = pg.locator('.card[data-code="COS360"]'); c.scroll_into_view_if_needed()
@@ -3146,10 +3159,10 @@ DECL = {"periodos": [{"nome": "2025/2", "disciplinas": [{"code": "FIT112", "stat
 @caso("Declaradas no modelo: ícone ☑ com a origem no nome acessível; Linha do tempo com a coluna sem semestre; aviso de requisito; conflito; detalhamento; exportação")
 def t_declaradas_modelo(b):
     ctx, pg = abre(b, perfil=DECL, extra={"modoClassico": False, "vista": "grade", "progressoAberto": True}, nome="declaradas-modelo", relogio=HOJE)
-    expect(pg.locator('.card[data-code="MAC118"] .estado')).to_have_text("☑")
+    expect(pg.locator('.card[data-code="MAC118"] .estado')).to_have_attribute("data-estado", "declarada")
     expect(pg.get_by_role("button", name=re.compile(r"^Cálculo I, Aprovada · registrada por você"))).to_have_count(1)
-    expect(pg.locator('.card[data-code="COS110"] .estado')).to_have_text("☑")
-    assert pg.locator('.card[data-code="FIT112"] .estado').count() == 0 or pg.locator('.card[data-code="FIT112"] .estado').inner_text() != "☑"   # conflito: não conta
+    expect(pg.locator('.card[data-code="COS110"] .estado')).to_have_attribute("data-estado", "declarada")
+    assert pg.locator('.card[data-code="FIT112"] .estado').count() == 0 or pg.locator('.card[data-code="FIT112"] .estado').get_attribute("data-estado") != "declarada"   # conflito: não conta
     assert pg.evaluate("GradeInterativa.fonte('MAC118')") == "declarado" and pg.evaluate("GradeInterativa.fonte('FIT112')") is None
     assert "2 aprovações registradas por você: contam para fase e conquistas, não são registro do SIGA" in pg.locator("#progresso").inner_text()
     foto(pg, "declaradas-grade")
@@ -3187,7 +3200,7 @@ def t_declaradas_modelo(b):
     # A4: ☑ distinto do ✓, nos dois temas e a 320 px
     for esquema in ("light", "dark"):
         ctx, pg = abre(b, vp=C320, perfil=DECL, nome=f"declaradas-320-{esquema}", esquema=esquema, relogio=HOJE, toque=True, modo="classico")
-        c = pg.locator('.card[data-code="MAC118"]'); c.scroll_into_view_if_needed(); expect(c.locator(".estado")).to_have_text("☑")
+        c = pg.locator('.card[data-code="MAC118"]'); c.scroll_into_view_if_needed(); expect(c.locator(".estado")).to_have_attribute("data-estado", "declarada")
         assert pg.evaluate("document.documentElement.scrollWidth - innerWidth") <= 1
         foto(pg, f"declaradas-icone-320-{esquema}")
         ctx.close()
@@ -3220,7 +3233,7 @@ def t_declaradas_arquivo(b):
     antigo = json.loads(json.dumps(ANTIGO)); antigo["marcacoes"] = {"MAC128": "aprovada"}
     carrega(antigo, "antigo.json")
     expect(pg.locator("#titulo")).to_have_text(re.compile(r"Grade ECI — Fulano"))
-    expect(pg.locator('.card[data-code="MAC128"] .estado')).to_have_text("✎")
+    expect(pg.locator('.card[data-code="MAC128"] .estado')).to_have_attribute("data-estado", "marcacao")
     assert "aprovacoesDeclaradas" not in pg.evaluate("GradeInterativa.perfilExportado()")
     alertas = []; pg.on("dialog", lambda d: (alertas.append(d.message), d.accept()))
     ruim = {"periodos": [], "aprovacoesDeclaradas": [{"code": "MAC118", "semestre": "2025"}]}
@@ -3292,7 +3305,7 @@ def t_registrar_sem_perfil(b):
     p = ls(pg, "perfilImportado")
     assert p["nome"] == "Ana Exemplo" and p["aprovacoesDeclaradas"] == [{"code": c, "registradoEm": "2026-11-27"} for c in ("COS110", "EEL280", "MAC118")], p
     assert p["marcacoes"] == {"MAC128": "cursando"} and ls(pg, "marcacoes") == {"MAC128": "cursando"}
-    expect(pg.locator('.card[data-code="MAC118"] .estado')).to_have_text("☑")
+    expect(pg.locator('.card[data-code="MAC118"] .estado')).to_have_attribute("data-estado", "declarada")
     # o resultado não fecha com clique fora (o Desfazer continua disponível)
     pg.mouse.click(5, 5); expect(pg.locator("#dlg-registrar")).to_be_visible()
     foto(pg, "registrar-resultado")
@@ -3300,7 +3313,7 @@ def t_registrar_sem_perfil(b):
     expect(pg.locator("#reg-contagem")).to_have_text("Serão gravadas 3 aprovações.")
     assert ls(pg, "perfilImportado") is None and ls(pg, "marcacoes") == marc
     assert foco_em(pg, "#dlg-registrar *") or foco_em(pg, "#dlg-registrar-titulo"), descreve_foco(pg)
-    expect(pg.locator('.card[data-code="MAC118"] .estado')).to_have_text("✎")
+    expect(pg.locator('.card[data-code="MAC118"] .estado')).to_have_attribute("data-estado", "marcacao")
     pg.keyboard.press("Escape"); expect(pg.locator("#dlg-registrar")).to_be_hidden()   # cancelar não muda nada
     assert ls(pg, "marcacoes") == marc and ls(pg, "perfilImportado") is None
     assert foco_em(pg, "#btn-registrar"), descreve_foco(pg)
@@ -3313,7 +3326,7 @@ def t_registrar_sem_perfil(b):
     pg.reload(); pronto(pg, "registrar-sem-perfil")
     assert [d.get("semestre") for d in ls(pg, "perfilImportado")["aprovacoesDeclaradas"]] == ["2025/2"] * 3
     assert pg.evaluate("GradeInterativa.fonte('EEL280')") == "declarado"
-    expect(pg.locator('.card[data-code="EEL280"] .estado')).to_have_text("☑")
+    expect(pg.locator('.card[data-code="EEL280"] .estado')).to_have_attribute("data-estado", "declarada")
     ctx.close()
 
 @caso("Registrar marcações com perfil: grupos, semestre inválido, conflito e em curso desmarcados, barra igual, Desfazer; 320 px e axe (R04 a R06, R30, R33)")
@@ -3919,6 +3932,110 @@ def t_legenda_dificuldade(b):
     foto(pg, "legenda-icones-toque-320-escuro")
     pg.locator("#titulo").tap(); expect(nomes).to_be_hidden()
     ctx.close()
+
+@v210
+@caso("Botões que acendem: Exibir e filtros das Optativas sem caixa de marcar; Tab, Enter e Espaço; aria-pressed segue o salvo; Só ícones com nome; foco visível; axe nos dois temas; 320 px")
+def t_botoes_acesos(b):
+    ctx, pg = abre(b, perfil=PERFIL, extra={"vista": "grade"}, nome="botoes-acesos")
+    caixas = "#ferramentas input[type=checkbox], #ferramentas input[type=radio]:not([name=destaque]), .filtros input[type=checkbox]"
+    assert pg.locator(caixas).count() == 0
+    notas = pg.locator('#ferramentas [data-exibir="notas"]')
+    assert notas.evaluate("e => e.tagName") == "BUTTON" and not aceso(notas)
+    pg.locator('#ferramentas [data-exibir="codigo"]').focus(); pg.keyboard.press("Tab")        # Tab vai ao próximo botão
+    assert foco_em(pg, '[data-exibir="notas"]'), descreve_foco(pg)
+    assert pg.evaluate("document.activeElement.matches(':focus-visible')") and notas.evaluate("e => getComputedStyle(e).outlineStyle") != "none"
+    pg.keyboard.press("Enter"); expect(notas).to_have_attribute("aria-pressed", "true"); assert ls(pg, "exibir")["notas"] is True
+    assert foco_em(pg, '[data-exibir="notas"]'), descreve_foco(pg)                              # o foco fica no botão redesenhado
+    pg.keyboard.press("Space"); expect(notas).to_have_attribute("aria-pressed", "false"); assert ls(pg, "exibir")["notas"] is False
+    pg.keyboard.press("Space"); pg.reload(); pronto(pg, "botoes-acesos")
+    expect(pg.locator('#ferramentas [data-exibir="notas"]')).to_have_attribute("aria-pressed", "true")
+    for esq in ("light", "dark"):
+        pg.emulate_media(color_scheme=esq)
+        graves = axe_graves(pg, contexto="#ferramentas"); assert not graves, (esq, graves[:3])
+    # filtros das Optativas: um botão por opção, persistido
+    pg.click('[data-vista="optativas"]')
+    assert pg.locator(caixas).count() == 0 and pg.locator(".filtros [data-falvo]").count() <= 1        # Horários continua select nativo
+    lib = pg.get_by_role("button", name="Só liberadas", exact=True); expect(lib).to_have_attribute("aria-pressed", "false")
+    lib.focus(); pg.keyboard.press("Enter"); expect(lib).to_have_attribute("aria-pressed", "true")
+    pg.reload(); pronto(pg, "botoes-acesos")
+    expect(pg.get_by_role("button", name="Só liberadas", exact=True)).to_have_attribute("aria-pressed", "true"); assert ls(pg, "filtros")["liberadas"] is True
+    for esq in ("light", "dark"):
+        pg.emulate_media(color_scheme=esq)
+        graves = axe_graves(pg, contexto=".filtros"); assert not graves, (esq, graves[:3])
+    ctx.close()
+    # Só ícones: só o ícone; o nome fica no title e no nome acessível; 320 px sem rolagem lateral
+    ctx, pg = abre(b, vp=C320, perfil=PERFIL, extra={"vista": "grade", "aparencia": "icone"}, nome="botoes-acesos-icones", toque=True, esquema="dark")
+    for k, nome in (("codigo", "Código e créditos"), ("situacao", "Situação")):
+        bt = pg.get_by_role("button", name=nome, exact=True); expect(bt).to_have_count(1)
+        assert bt.get_attribute("title") == nome and larg_rot(bt) <= 1 and bt.locator("svg.ico").count() == 1, k
+        r = bt.bounding_box(); assert r["width"] >= 24 and r["height"] >= 24, (k, r)
+    assert pg.evaluate("document.documentElement.scrollWidth - innerWidth") <= 1
+    foto(pg, "botoes-acesos-icones-320-escuro")
+    pg.click('[data-vista="optativas"]')
+    expect(pg.get_by_role("button", name="Só ativas", exact=True)).to_have_attribute("title", "Só ativas")
+    assert pg.evaluate("document.documentElement.scrollWidth - innerWidth") <= 1
+    foto(pg, "filtros-icones-320-escuro")
+    ctx.close()
+
+@v210
+@caso("Situação: liga e desliga o ícone de estado nos cartões da Grade; padrão ligado; fica salva; a situação continua no nome acessível e nos detalhes; Linha do tempo não muda")
+def t_situacao(b):
+    ctx, pg = abre(b, perfil=PERFIL, extra={"vista": "grade", "marcacoes": {"MAC238": "aprovada"}}, nome="situacao")
+    sit = pg.get_by_role("button", name="Situação", exact=True); expect(sit).to_have_attribute("aria-pressed", "true")
+    assert "situacao" not in (ls(pg, "exibir") or {})                                       # padrão: ligado, sem gravar nada
+    expect(pg.locator('#painel .card[data-code="COS110"] .estado[data-estado="aprovado"]')).to_have_count(1)
+    expect(pg.locator('#painel .card[data-code="MAC238"] .estado[data-estado="marcacao"]')).to_have_count(1)
+    sit.click(); expect(sit).to_have_attribute("aria-pressed", "false"); assert ls(pg, "exibir")["situacao"] is False
+    expect(pg.locator("#painel .card .estado")).to_have_count(0)                              # cartões e blocos da Grade
+    expect(pg.locator('#painel .card[data-code="MAC128"]')).to_have_accessible_name(re.compile(r"Cursando · perfil"))
+    pg.locator('#painel .card[data-code="MAC128"]').click(); expect(pg.locator("#detalhes .det-status")).to_contain_text("Cursando")
+    pg.keyboard.press("Escape")
+    pg.reload(); pronto(pg, "situacao")
+    expect(pg.get_by_role("button", name="Situação", exact=True)).to_have_attribute("aria-pressed", "false")
+    expect(pg.locator("#painel .card .estado")).to_have_count(0)
+    abre_config(pg); assert not pg.locator('#dlg-config [data-exibir="situacao"]').is_checked()   # Configurações acompanha
+    pg.check('#dlg-config [data-exibir="situacao"]'); pg.keyboard.press("Escape")
+    expect(pg.get_by_role("button", name="Situação", exact=True)).to_have_attribute("aria-pressed", "true")
+    expect(pg.locator('#painel .card[data-code="COS110"] .estado')).to_have_count(1)
+    pg.get_by_role("button", name="Situação", exact=True).click()
+    pg.click('[data-vista="timeline"]')                                                      # vale só para a Grade
+    assert pg.locator("#painel .card .estado").count() > 0
+    ctx.close()
+
+# Caracteres de símbolo (Unicode So/Sm, fora do ASCII) em controles. Exceções declaradas (conteúdo, não controle): as
+# bolinhas da dificuldade, os emojis dos selos e os chips do cartão de fase.
+VARREDURA = r"""(excecoes) => {
+    const ruins = [];
+    document.querySelectorAll('button, [role=tab], .ctl').forEach((el) => {
+        if (!el.getClientRects().length || el.closest('.cartao-fase, .estante, .selo, #dlg-eci')) return;
+        const c = el.cloneNode(true); c.querySelectorAll('.sr, svg').forEach((x) => x.remove());
+        const txt = [...c.textContent.replace(/[\x00-\x7F]/g, '')].filter((ch) => /[\p{So}\p{Sm}]/u.test(ch) && !excecoes.includes(ch) && ch !== '️' && ch !== '‍');
+        if (txt.length) ruins.push((el.id || el.className || el.tagName) + ': ' + txt.join(''));
+    });
+    return ruins; }"""
+EXCECOES_SIMBOLOS = ["🟢", "🔵", "🟡", "🟠", "🔴"]
+
+@v210
+@caso("Ícones Lucide: nenhum emoji ou símbolo solto em botões, abas e controles (Grade, Linha do tempo, Optativas, Cronograma, Pedidos, detalhes, tags, Configurações e Minimalista)")
+def t_varredura_simbolos(b):
+    ctx, pg = abre(b, perfil=PERFIL, extra={"vista": "grade", "progressoAberto": True, "marcacoes": {"MAC238": "aprovada"},
+                                            "exibir": {"codigo": True, "notas": True, "dificuldade": True, "presenca": True, "plano": True}}, nome="varredura")
+    achados = {}
+    def confere(onde):
+        r = pg.evaluate(VARREDURA, EXCECOES_SIMBOLOS)
+        if r: achados[onde] = r[:6]
+    confere("grade")
+    pg.locator('#painel .card[data-code="COS360"]').click(); confere("detalhes"); pg.keyboard.press("Escape")
+    pg.click("#editar-tags"); confere("tags"); pg.keyboard.press("Escape")
+    for vista in ("timeline", "optativas", "cronograma", "pedidos"):
+        pg.click(f'[data-vista="{vista}"]'); confere(vista)
+    pg.click('[data-cperiodo="2027/1"]'); confere("cronograma-periodo")
+    abre_config(pg); confere("configuracoes"); pg.keyboard.press("Escape")
+    abre_config(pg); pg.check('#dlg-config input[name="aparencia"][value="minimalista"]'); pg.keyboard.press("Escape")
+    pg.click('[data-vista="grade"]'); pg.click("#ferr-mais"); confere("minimalista")
+    expect(pg.locator("#btn-foco svg.ico")).to_have_count(1)                                  # Foco com o ícone target
+    ctx.close()
+    assert not achados, achados
 
 CASOS += CASOS6
 
