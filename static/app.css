@@ -440,6 +440,8 @@ small.alerta, .alerta { color: var(--dep); }
 .guia { font-size: 13px; background: var(--surface-2); border-radius: 10px; padding: 8px 12px; }
 .guia p { margin: 6px 0; }
 .leg-niv { cursor: help; }
+/* a bolinha nunca se separa do nome na quebra de linha (a quebra fica antes do separador "·") */
+.escala-dificuldade .leg-niv, .escala-dificuldade .leg-par { white-space: nowrap; }
 .escala-dificuldade { display: inline-flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; font-size: 12px; color: var(--text); }
 /* Ícone + texto: "🟢 Trivial · 🔵 Só o básico · …"; o separador é só visual (texto alternativo vazio) */
 .escala-dificuldade:not(.so-icones) .leg-niv + .leg-niv::before { content: "·" / ""; margin-right: 6px; color: var(--muted); }
@@ -1069,3 +1071,6 @@ body:has(.paleta:not([hidden])) .detalhes {
 }
 @keyframes sobe { from { transform: translateY(24px); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { #detalhes.folha { animation: none; } }
+
+/* Optativas: espaço entre o ícone e o texto nos botões de grupo (Condicionada, Humanas, ACE) */
+.filtros .seg button.ctl { display: inline-flex; align-items: center; gap: 6px; }

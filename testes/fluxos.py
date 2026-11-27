@@ -2001,7 +2001,8 @@ ANTIGAS_TAGS = [{"id": "aprovada", "nome": "Aprovada", "cor": "#16a34a", "status
 def t_tags(b):
     ctx, pg = abre(b, nome="tags-novas", modo="classico")
     nomes = pg.locator("#paleta .pal-btn[data-pincel]").all_inner_texts()
-    assert [n.split()[0] for n in nomes] == ["Cursada", "Cursando", "Planejada", "Borracha"], nomes
+    assert [n.split()[0] for n in nomes] == ["Cursada", "Cursando", "Planejada", "Limpar"], nomes            # Clássico: "Limpar"
+    expect(pg.get_by_role("button", name="Limpar", exact=True)).to_have_attribute("title", re.compile("Limpar"))
     assert "conta como concluída" in pg.locator('[data-pincel="aprovada"]').get_attribute("title").lower() or "Concluída" in pg.locator('[data-pincel="aprovada"]').get_attribute("title")
     ctx.close()
     # navegador com o padrão antigo salvo e marcação "Aprovação esperada"
@@ -2018,7 +2019,7 @@ def t_tags(b):
     ctx.close()
     custom = [{"id": "minha", "nome": "Quero fazer", "cor": "#0891b2", "status": "planejado"}]
     ctx, pg = abre(b, extra={"tags": custom}, nome="tags-custom", modo="classico")
-    assert [n.split()[0] for n in pg.locator("#paleta .pal-btn[data-pincel]").all_inner_texts()][:2] == ["Quero", "Borracha"]
+    assert [n.split()[0] for n in pg.locator("#paleta .pal-btn[data-pincel]").all_inner_texts()][:2] == ["Quero", "Limpar"]
     ctx.close()
 
 TAG_REPROVACAO = {"id": "rep", "nome": "Reprovei", "cor": "#aa0000", "status": "reprovado"}
@@ -3922,6 +3923,11 @@ def t_legenda_dificuldade(b):
     arvore = escala.aria_snapshot()
     assert all(n in arvore for n in ESCALA) and "·" not in arvore, arvore
     ctx.close()
+    # 390 px com toque: cada nível fica numa linha só (a bolinha nunca se separa do nome; a quebra fica antes do "·")
+    ctx, pg = abre(b, vp=C, perfil=PERFIL, extra=base, nome="legenda-texto-390", toque=True)
+    alturas = pg.locator("#ferramentas .escala-dificuldade .leg-niv").evaluate_all("es => es.map((e) => [getComputedStyle(e).whiteSpace, e.getBoundingClientRect().height])")
+    assert all(w == "nowrap" for w, _ in alturas) and max(h for _, h in alturas) - min(h for _, h in alturas) < 2, alturas
+    ctx.close()
     # Só ícones: só as bolinhas; nomes no title, no .sr e na árvore de acessibilidade; foco mostra os nomes
     ctx, pg = abre(b, perfil=PERFIL, extra={**base, "aparencia": "icone"}, nome="legenda-icones")
     escala = pg.locator("#ferramentas .escala-dificuldade.so-icones"); expect(escala).to_be_visible()
@@ -3946,6 +3952,7 @@ def t_legenda_dificuldade(b):
     escala.locator(".leg-niv").nth(3).tap(); expect(nomes).to_be_visible()
     assert ls(pg, "filtroNivel") == antes and pg.locator('#ferramentas [data-nivel].on').count() == 0
     assert pg.evaluate("document.documentElement.scrollWidth - innerWidth") <= 1
+    assert escala.locator(".leg-par").evaluate_all("es => es.every((e) => e.getClientRects().length === 1)")   # bolinha e nome não se separam
     foto(pg, "legenda-icones-toque-320-escuro")
     pg.locator("#titulo").tap(); expect(nomes).to_be_hidden()
     ctx.close()
@@ -3971,6 +3978,9 @@ def t_botoes_acesos(b):
         graves = axe_graves(pg, contexto="#ferramentas"); assert not graves, (esq, graves[:3])
     # filtros das Optativas: um botão por opção, persistido
     pg.click('[data-vista="optativas"]')
+    for g in pg.locator(".filtros [data-fgrupo]").all():                                         # espaço entre o ícone e o texto
+        r = g.evaluate("e => [e.querySelector('svg').getBoundingClientRect().right, e.querySelector('.rot').getBoundingClientRect().left]")
+        assert r[1] - r[0] >= 4, r
     assert pg.locator(caixas).count() == 0 and pg.locator(".filtros [data-falvo]").count() <= 1        # Horários continua select nativo
     lib = pg.get_by_role("button", name="Só liberadas", exact=True); expect(lib).to_have_attribute("aria-pressed", "false")
     lib.focus(); pg.keyboard.press("Enter"); expect(lib).to_have_attribute("aria-pressed", "true")
@@ -4079,6 +4089,8 @@ def t_classico_so_pintar(b):
     # paleta: tags, borracha, editar tags e cadeado; sem Registrar, Detalhes e ECI por trás
     assert pg.locator("#btn-registrar, #paleta [data-pincel='__detalhes'], #pal-eci").count() == 0
     for sel in ("#editar-tags", "#cadeado", '#paleta [data-pincel=""]', '#paleta [data-pincel="aprovada"]'): expect(pg.locator(sel)).to_be_visible()
+    expect(pg.locator('#paleta [data-pincel=""]')).to_have_accessible_name("Limpar")                          # no Clássico, "Limpar"
+    assert "Limpar" in pg.locator('#paleta [data-pincel=""]').get_attribute("title") and pg.locator("#paleta").get_by_text("Borracha").count() == 0
     # Tab: nenhum controle oculto recebe foco
     vistos = set()
     for _ in range(12):

@@ -915,7 +915,8 @@
       ${modoClassico ? "" : `<button type="button" class="pal-btn pal-eci${seletorECI ? " on" : ""}" id="pal-eci" aria-pressed="${seletorECI}"
         title="Destaca as disciplinas com experiência de A ECI por trás da Grade">${icone("eci")} <span>ECI por trás</span></button>`}
       ${tags.map((t) => botao(t.id, `${esc(t.nome)}${conta[t.id] ? ` <small>${conta[t.id]}</small>` : ""}`, t.cor, `title="${esc(CONTA_COMO[t.status] || "")}"`)).join("")}
-      ${botao("", `${icone("borracha")} Borracha`, null, 'title="Tirar a tag"')}
+      ${modoClassico ? botao("", `${icone("borracha")} Limpar`, null, 'title="Limpar: tira a tag da disciplina"')
+        : botao("", `${icone("borracha")} Borracha`, null, 'title="Tirar a tag"')}
       ${modoClassico ? "" : botaoRegistrar("pal-btn pal-registrar", "btn-registrar")}
       <button type="button" class="pal-btn pal-icone" id="editar-tags" title="Editar tags" aria-label="Editar tags">${icone("tags")}</button>
       <button type="button" class="pal-btn pal-icone pal-cadeado" id="cadeado" aria-pressed="${cadeado}" aria-label="Proteger disciplinas cursadas"
@@ -1792,7 +1793,7 @@
         `<span class="leg-niv" role="listitem" title="${esc(n.texto)}"><span aria-hidden="true">${n.emoji}</span> ${esc(n.nome)}</span>`).join("")}</span>`;
     }
     return `<span class="escala-dificuldade so-icones" role="list" aria-label="Escala de dificuldade" tabindex="0" title="Toque ou foque para ver os nomes">${ns.map((n) =>
-      `<span class="leg-niv" role="listitem" title="${esc(n.nome)}"><span aria-hidden="true">${n.emoji}</span><span class="sr"> ${esc(n.nome)}</span></span>`).join("")}<span class="leg-nomes" aria-hidden="true">${ns.map((n) => `${n.emoji} ${esc(n.nome)}`).join(" · ")}</span></span>`;
+      `<span class="leg-niv" role="listitem" title="${esc(n.nome)}"><span aria-hidden="true">${n.emoji}</span><span class="sr"> ${esc(n.nome)}</span></span>`).join("")}<span class="leg-nomes" aria-hidden="true">${ns.map((n) => `<span class="leg-par">${n.emoji} ${esc(n.nome)}</span>`).join(" · ")}</span></span>`;
   }
 
   /**
