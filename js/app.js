@@ -26,6 +26,8 @@
  *    aparencia        "icone" (Só ícones) | "minimalista" (sem a chave = Ícone + texto); lida, migrada (da chave
  *                     antiga seletorIcones) e aplicada por js/tema.js
  *    cadeado          protege as cursadas contra alterações manuais
+ *    foco             modo Foco do Planejador (true/false); tom: "zoeira" (padrão) | "discreto" nas mensagens do Foco
+ *    perfilId         identidade local opaca do perfil (nunca dado do aluno); selosAvisados: { id, vistos } conquistas já anunciadas
  *    vista, filtros, exibir, filtroNivel, cronoPeriodo, progressoAberto   preferências de tela
  *
  *  FLUXO
@@ -347,6 +349,12 @@
   if (!["desligado", "foco"].includes(exibir.destaque)) exibir.destaque = "foco";
   let filtroNivel = load("filtroNivel", [], (v) => listaDe(v, numero));   // níveis de dificuldade em destaque (vazio = todos)
   let progressoAberto = load("progressoAberto", false);
+  // Foco (Planejador): ficam Grade, Linha do tempo e Cronograma; o concluído some e aparecem a fase e as conquistas.
+  let foco = load("foco", false, (v) => typeof v === "boolean");
+  let tom = load("tom", "zoeira", (v) => v === "zoeira" || v === "discreto");
+  const VISTAS_FOCO = ["grade", "timeline", "cronograma"];
+  const NOMES_VISTA = { optativas: "Optativas", pedidos: "Equivalências e Extensão / ACE", eci: "A ECI por trás da Grade" };
+  const focoAtivo = () => foco && !modoClassico && !!perfil;
   let infoLivreAberta = false;      // explicação dos números da livre escolha (ⓘ do detalhamento), só nesta visita
   // Modo clássico (padrão ao abrir): só a grade inteira numa tela e a paleta para pintar.
   // Desligado = modo Planejador, com as abas (linha do tempo, optativas, cronograma, pedidos).
@@ -960,7 +968,8 @@
     let html = "";
     for (let s = 1; s <= n; s++) {
       const cs = M.grade.filter((c) => c.semester === s);
-      let feitos = 0;
+      let feitos = 0, visiveis = 0;
+      const foco = focoAtivo();
       const cards = cs.map((c) => {
         if (!c.code) {
           const f = fill[c.idx] || { ok: 0, prev: 0, plan: 0, nomes: [] };
@@ -970,6 +979,8 @@
           const nomes = f.nomes.slice(0, 4).map((x) => `<span class="mini s-${x.s}">${esc(x.name)}</span>`).join("")
             + (f.nomes.length > 4 ? `<span class="mini">+${f.nomes.length - 4}</span>` : "");
           const pc = (v) => (v / c.credits) * 100;
+          if (foco && st === "aprovado") return "";      // Foco: o concluído some (previstas ficam)
+          visiveis++;
           return card({
             idx: c.idx, name: c.name, cat: c.category, status: st, classe: "bloco", inerte: seletorECI,
             meta: `${fmt(feito)}${f.plan ? ` (+${fmt(f.plan)} plan.)` : ""} / ${metaDe(null, c.credits, c.category)}${c.category == 5 && aConfirmarACE ? ` · ${textoAConfirmar({ aConfirmar: aConfirmarACE })}` : ""}`,
@@ -977,8 +988,11 @@
           });
         }
         if (concluido(statusDe(c.code))) feitos++;
+        if (foco && statusDe(c.code) === "aprovado") return "";
+        visiveis++;
         return cardLimpo(c);
       }).join("");
+      if (foco && !visiveis) continue;   // Foco: período da grade todo concluído
       const chip = perfil ? `<span class="chip ${feitos === cs.length ? "chip-ok" : ""}">${feitos}/${cs.length}</span>` : "";
       html += coluna(`${s}º período`, chip, cards, perfil && feitos === cs.length ? "col-completa" : "");
     }
@@ -1031,11 +1045,18 @@
   function renderTimeline() {
     if (!M.periodos.length) return semPerfil("A linha do tempo mostra as disciplinas no período em que você cursou (ou planeja cursar).");
     let html = "";
-    colunasTimeline().forEach((col) => {
+    colunasTimeline().forEach((colOriginal) => {
+      let col = colOriginal;
       const p = col.p || col;
       // Bloco de transferidas sem nenhum item (todas foram ao semestre original): some da tela, fica no modelo (D-03, D-08).
       if (col.p && col.p.semestre == null && anoDoBloco(col.p.nome) != null && !col.itens.length) return;
       if (col.p && col.p.declarado && !col.itens.length) return;
+      // Foco: some o concluído (inclusive transferidas aprovadas, dispensas e declaradas) e a reprovação já superada;
+      // períodos passados sem nada elegível somem, inclusive o bloco; o período atual sempre aparece.
+      if (focoAtivo()) {
+        col = { ...col, itens: col.itens.filter(({ it }) => it.status !== "aprovado" && !(it.status === "reprovado" && concluido(statusDe(it.alvo)))) };
+        if ((!col.p || col.p.tipo === "cursado") && !col.itens.length) return;
+      }
       let cr = 0, temOferta = false;
       const cards = col.itens.map(({ it, bloco, decl }) => {
         if (it.status !== "reprovado" && it.category != 5) cr += it.credits;
@@ -1778,6 +1799,155 @@
     renderAtalhos();
   }
 
+  // ---------- Foco: fase do curso, previsão de formatura e conquistas (regras em js/conquistas.js) ----------
+  const CQ = () => window.CONQUISTAS;
+  const TOTAIS_CR = () => { const t = {}; ["1", "2", "3", "4"].forEach((k) => { t[k] = M.grade.filter((c) => String(c.category) === k).reduce((a, c) => a + c.credits, 0); }); return t; };
+  /** Contexto explícito para js/conquistas.js: fonte de cada aprovação, créditos e horas por fonte, Histórico e plano. */
+  function contextoConquistas() {
+    const codigos = [...new Set([...Object.keys(M.regs), ...Object.keys(marcacoes)])].filter((c) => !M.consumidas.has(c) && !M.origensDispensa.has(c));
+    const creditos = {}, ace = {};
+    codigos.forEach((code) => {
+      const i = M.info(code), f = fonteDe(code); if (!i || !f) return;
+      if (i.category == 5) return;
+      const k = String(i.category); creditos[k] = creditos[k] || {}; creditos[k][f] = (creditos[k][f] || 0) + valorCat(i);
+    });
+    resumoExtensao().confirmadas.forEach((a) => {
+      const f = a.code && M.regs[a.code] ? fonteDe(a.code) || "importado" : a.code && Object.hasOwn(marcacoes, a.code) ? fonteDe(a.code) : "importado";
+      if (f) ace[f] = (ace[f] || 0) + a.horas;
+    });
+    const historico = M.periodos.filter((p) => p.tipo === "cursado" && p.semestre != null && !p.declarado)
+      .map((p) => ({ nome: p.nome, itens: p.itens.map((it) => ({ code: it.alvo, status: it.status })) }));
+    const semDe = (r) => semestreDoRegistro(r);
+    const fenixImportado = Object.keys(M.regs).some((code) => {
+      const rs = M.regs[code].filter((r) => r.origem !== "declarado");
+      return rs.some((a) => a.status === "aprovado" && semDe(a) != null && rs.some((r) => r.status === "reprovado" && semDe(r) != null && semDe(r) < semDe(a)));
+    });
+    const fenixDeclarado = Object.entries(M.declaradas.notas).some(([code, n]) => n.tipo === "reprovacao-antes" && fonteDe(code) === "declarado");
+    const cob = coberturaDoPlano();
+    return { fonte: fonteDe, codigos, nivel: (code) => { const g = guiaDe(code); return g ? g.nivel : null; }, deps: M.deps, grade: M.grade,
+      creditos, totais: TOTAIS_CR(), ace, aceTotal: M.grade.filter((c) => c.category == 5).reduce((a, c) => a + c.credits, 0) || 405,
+      historico, fenix: { importado: fenixImportado, declarado: fenixDeclarado }, planejamentoCompleto: cob.disciplinasPlanejadas,
+      nomeDe: (code) => (M.info(code) || {}).name || code, semestres: historico.filter((p) => p.itens.length).length, cobertura: cob };
+  }
+  /** O que falta e o que o Cronograma cobre (cada disciplina uma vez, pelo status efetivo). */
+  function coberturaDoPlano() {
+    const t = totais();
+    const grupos = {};
+    Object.keys(CATS).forEach((k) => {
+      const T = t[k]; if (!T.total) return;
+      const falta = k === "5" ? Math.max(0, T.total - T.ok) : Math.max(0, T.total - T.ok - T.prev);
+      grupos[k] = { nome: CATS[k].nome, un: CATS[k].un, falta, planejado: T.plan };
+    });
+    const obrig = M.grade.filter((c) => c.code && c.category === 1 && !concluido(statusDe(c.code)));
+    const semPlano = obrig.filter((c) => !emCurso(statusDe(c.code))).map((c) => c.name);
+    // Último período com algo necessário: item não reprovado de uma disciplina que ainda não foi concluída.
+    let ultimo = null, semData = false;
+    M.periodos.filter((p) => p.tipo === "atual" || p.tipo === "planejado").forEach((p) => {
+      if (!p.itens.some((it) => it.status !== "reprovado" && !concluido(statusDe(it.alvo)))) return;
+      if (p.semestre == null) semData = true; else ultimo = ultimo == null ? p.semestre : Math.max(ultimo, p.semestre);
+    });
+    const disciplinasPlanejadas = !semPlano.length && Object.entries(grupos).every(([k, g]) => k === "5" || g.falta <= g.planejado);
+    return { grupos, semPlano, ultimo, semData, disciplinasPlanejadas, t };
+  }
+  function calculaMotivacao() {
+    const c = contextoConquistas();
+    const pctImportado = CQ().percentual(c.creditos, c.totais, 0), pctComDeclaradas = CQ().percentual(c.creditos, c.totais, 1);
+    const fase = CQ().faseDoCurso({ pctImportado, pctComDeclaradas, semestres: c.semestres });
+    const selos = CQ().avaliaSelos(c);
+    const previsao = CQ().previsaoFormatura({ perfil: !!perfil, temAtual: M.periodos.some((p) => p.tipo === "atual"), grupos: c.cobertura.grupos,
+      obrigatoriasSemPlano: c.cobertura.semPlano, ultimoSemestre: c.cobertura.ultimo, semDataNecessaria: c.cobertura.semData,
+      nomeDoSemestre: window.PROGRESSO.nomeDoSemestre });
+    return { fase, selos, proximo: CQ().proximoMarco(selos), previsao, semestres: c.semestres, pctImportado, pctComDeclaradas, totalCr: Object.values(c.totais).reduce((a, b) => a + b, 0) };
+  }
+  const pctTela = (p) => { const v = Math.floor(p * 1000) / 10; return `${Number.isInteger(v) ? v : v.toFixed(1)}%`; };
+  const FASES = { calouro: ["🌱", "Calouro"], meio: ["🏋️", "Meio do curso"], veterano: ["🎓", "Veterano"] };
+  /** Disciplina que mais destrava entre as candidatas: [código, liberadas]. */
+  function maisDestrava(codes) {
+    return codes.map((c) => [c, (M.deps[c] || []).filter((d) => !concluido(statusDe(d)))]).sort((a, b) => b[1].length - a[1].length)[0] || null;
+  }
+  const htmlLibera = (lib) => lib.slice(0, 2).map((d) => `<span class="chip">🔓 ${esc((M.info(d) || {}).name || d)}</span>`).join("") + (lib.length > 2 ? `<span class="chip">+${lib.length - 2}</span>` : "");
+  function htmlCartaoFase(m) {
+    const z = tom === "zoeira";
+    const { fase } = m, [emoji, nome] = FASES[fase.fase];
+    const T = totais(), cr = (k) => T[k] ? T[k] : { ok: 0, total: 0, plan: 0, cur: 0 };
+    const feitoCr = fase.pct * m.totalCr;
+    const marco = (alvo) => Math.max(0, Math.ceil(alvo * m.totalCr - feitoCr - 1e-9));
+    const partes = [];
+    if (fase.fase === "calouro") {
+      const pend = M.grade.filter((c) => c.code && c.category === 1 && !concluido(statusDe(c.code)));
+      const menor = Math.min(...pend.map((c) => c.semester));
+      const base = maisDestrava(pend.filter((c) => c.semester === menor).map((c) => c.code));
+      if (base && base[1].length) partes.push(`<h3>${z ? "Base que destrava tudo" : "Base do curso"}</h3><p>Passando em <b>${esc(M.info(base[0]).name)}</b>, você libera ${base[1].length} ${base[1].length === 1 ? "matéria" : "matérias"} nos próximos períodos.</p><p class="chips">${htmlLibera(base[1])}</p>`);
+      const alvo = fase.pct < 0.1 ? 0.1 : 0.25;
+      partes.push(`<h3>Primeiro marco 🏁</h3><p>Faltam ${marco(alvo)} cr para ${alvo * 100}% do curso.</p>`);
+      const temPlano = M.periodos.some((p) => p.tipo === "planejado" && p.itens.length);
+      const temOpt = M.periodos.some((p) => p.tipo === "planejado" && p.itens.some((it) => it.category == 2 || it.category == 4));
+      const doSiga = /^siga/i.test((perfil.fonte && perfil.fonte.geradoPor) || "");
+      partes.push(`<h3>Primeiros passos</h3><ul class="checklist">${[[doSiga, "Importar o histórico"], [temPlano, "Planejar o próximo período"], [temOpt, "Dar uma olhada nas optativas"]]
+        .map(([v, t]) => `<li>${v ? "☑" : "☐"} ${t}<span class="sr">${v ? ": feito" : ": a fazer"}</span></li>`).join("")}</ul>`);
+    } else if (fase.fase === "meio") {
+      const cursando = Object.keys(M.regs).filter((c) => statusDe(c) === "cursando" && !M.consumidas.has(c));
+      const ganho = cursando.reduce((a, c) => { const i = M.info(c); return a + (i && i.category != 5 ? valorCat(i) : 0); }, 0) / m.totalCr;
+      if (ganho > 0) partes.push(`<h3>${z ? "Bora, academia 💪" : "Andamento do período"}</h3><p>Passando em tudo, você avança +${pctTela(ganho)}: ${pctTela(fase.pct)} → ${pctTela(Math.min(1, fase.pct + ganho))} no fim do período (estimativa).</p>`);
+      const d = maisDestrava(cursando);
+      if (d && d[1].length) partes.push(`<h3>O que você destrava</h3><p>Passando em <b>${esc(M.info(d[0]).name)}</b>:</p><p class="chips">${htmlLibera(d[1])}</p>`);
+      const alvo = fase.pct < 0.5 ? 0.5 : 0.75;
+      partes.push(`<h3>${alvo === 0.5 ? "Metade do caminho ⛰️" : "Rumo à reta final 🏁"}</h3><p>Faltam ${marco(alvo)} cr para ${alvo * 100}%. Optativas: ${fmt(cr(2).ok)} de ${fmt(cr(2).total)} cr${z ? "; escolha pelo que te interessa" : ""}.</p>`);
+    } else {
+      const falta = Math.max(0, Math.ceil(m.totalCr - feitoCr - 1e-9));
+      partes.push(`<h3>${z ? "Reta final 🏁" : "O que falta"}</h3><p>Faltam ${falta} cr${falta ? `, em umas ${Math.ceil(falta / 4)} matérias (estimativa)` : ""}.</p>`);
+      const ok = (code) => fonteDe(code) === "importado" || fonteDe(code) === "declarado";
+      const t5 = cr("5");
+      partes.push(`<h3>Checklist da formatura</h3><ul class="checklist">${[[ok(CQ().PG), "Projeto de Graduação"], [ok(CQ().ESTAGIO), "Estágio obrigatório"],
+        [t5.ok >= t5.total, `Extensão/ACE: ${fmt(t5.ok)} de ${fmt(t5.total)} h`], [cr(4).ok >= cr(4).total, `Humanas: ${fmt(cr(4).ok)} de ${fmt(cr(4).total)} cr`],
+        [cr(2).ok >= cr(2).total, `Optativas: ${fmt(cr(2).ok)} de ${fmt(cr(2).total)} cr`]]
+        .map(([v, t]) => `<li>${v ? "☑" : "☐"} ${t}<span class="sr">${v ? ": cumprido" : ": falta"}</span></li>`).join("")}</ul>`);
+    }
+    partes.push(`<h3>Previsão de formatura</h3><p class="previsao">${esc(m.previsao.texto)}${m.previsao.estado === "previsao" ? " 🎓" : ""}</p>`);
+    return `<article class="cartao-fase fase-${fase.fase}" aria-labelledby="fase-titulo">
+      <h2 id="fase-titulo">${emoji} ${nome}${fase.declarado ? ` <span class="marca-declarado">· declarado</span><span class="sr"> (inclui aprovações registradas por você)</span>` : ""}</h2>
+      <p class="fase-pct">${pctTela(fase.pct)} do curso registrado${fase.declarado || m.pctComDeclaradas !== m.pctImportado ? ", com aprovações registradas por você" : ""}.</p>
+      ${partes.join("")}</article>`;
+  }
+  let avisoSelos = "";   // conquistas novas ainda não anunciadas
+  /** Identidade local opaca do perfil: chave dos avisos de conquistas (nunca nome, matrícula ou código do aluno). */
+  function idDoPerfil() {
+    let id = load("perfilId", null, (v) => typeof v === "string" && /^[a-z0-9]{8,}$/.test(v));
+    if (!id && perfil) { id = Array.from({ length: 16 }, () => "abcdefghijklmnopqrstuvwxyz0123456789"[Math.floor(Math.random() * 36)]).join(""); save("perfilId", id); }
+    return id;
+  }
+  function htmlEstante(m) {
+    const obtidos = m.selos.filter((s) => s.estado === "obtido");
+    const id = idDoPerfil();
+    const salvo = load("selosAvisados", null, (v) => objeto(v) && typeof v.id === "string" && Array.isArray(v.vistos));
+    const vistos = new Set(salvo && salvo.id === id ? salvo.vistos : []);
+    const novos = obtidos.filter((s) => !vistos.has(s.id));
+    if (novos.length && id) {
+      save("selosAvisados", { id, vistos: [...vistos, ...novos.map((s) => s.id)] });
+      const lista = novos.map((s) => `${s.emoji} ${s.titulo}`).join(", ");
+      // O aviso sai depois do desenho; se uma ação já vai anunciar algo (ex.: ligar o Foco), ele entra junto.
+      avisoSelos = novos.length === 1 ? `${tom === "zoeira" ? "Receba! " : ""}Nova conquista: ${lista}.` : `${novos.length} novas conquistas: ${lista}.`;
+      setTimeout(() => { if (avisoSelos) { anuncia(avisoSelos); avisoSelos = ""; } }, 0);
+    }
+    const novo = new Set(novos.map((s) => s.id));
+    const prox = m.proximo;
+    const item = (s) => `<li class="selo s-${s.estado}${novo.has(s.id) ? " novo" : ""}">
+      <span class="selo-emoji" aria-hidden="true">${s.emoji}</span>
+      <span class="selo-texto"><b>${esc(s.titulo)}</b>${s.estado === "obtido" && s.declarado ? ` <span class="marca-declarado">· declarado</span>` : ""}
+        <small>${s.estado === "obtido" ? esc(s.regra) + (s.nota ? ` · ${esc(s.nota)}` : "")
+          : s.estado === "quase" ? `quase lá (${esc(s.origem)}) · ${esc(s.falta)}` : esc(s.regra) + " · " + esc(s.falta)}</small></span>
+      <span class="sr">${s.estado === "obtido" ? "obtida" : s.estado === "quase" ? "quase lá" : "ainda não"}</span></li>`;
+    const grupos = Object.entries(CQ().GRUPOS).map(([g, t]) => `<h3>${t}</h3><ul class="estante-lista">${m.selos.filter((s) => s.grupo === g).map(item).join("")}</ul>`).join("");
+    return `<section class="estante" aria-labelledby="estante-titulo">
+      <h2 id="estante-titulo">Conquistas</h2>
+      <p class="estante-resumo">${obtidos.length} ${obtidos.length === 1 ? "conquista" : "conquistas"}${obtidos.length ? ` <span aria-hidden="true">${obtidos.map((s) => s.emoji).join(" ")}</span>` : ""}${prox ? ` · próxima: ${prox.emoji} ${esc(prox.titulo)} (${esc(prox.falta)})` : ""}</p>
+      <details class="estante-todas"><summary>Ver todas as conquistas</summary>${grupos}</details></section>`;
+  }
+  function renderMotivacao() {
+    const m = calculaMotivacao();
+    $("#motivacao").innerHTML = htmlCartaoFase(m) + htmlEstante(m);
+  }
+
   // ---------- Barra de atalhos e Configurações ----------
   const temaAtual = () => (window.TEMA ? window.TEMA.atual() : "claro");
   function infoAtalho(id) {
@@ -1796,7 +1966,31 @@
     privacidade: () => abrePrivacidade(), referencias: () => abreReferencias(), tags: () => abreEditorTags(),
   };
   /** Atalhos visíveis: os fixados e, sem perfil válido, "Criar perfil" e "Importar do SIGA". */
+  /** 🎯: aria-pressed; sem perfil ou no Clássico, aria-disabled com o motivo em texto (a preferência fica guardada). */
+  function renderBotaoFoco() {
+    const b = $("#btn-foco");
+    const motivo = !perfil ? "Importe ou crie um perfil para usar o Foco." : modoClassico ? "Disponível no Planejador." : "";
+    b.setAttribute("aria-pressed", String(focoAtivo()));
+    if (motivo) { b.setAttribute("aria-disabled", "true"); b.setAttribute("aria-describedby", "btn-foco-motivo"); }
+    else { b.removeAttribute("aria-disabled"); b.removeAttribute("aria-describedby"); }
+    b.title = motivo ? `Foco: ${motivo}` : focoAtivo() ? "Foco ligado: clique para desligar" : "Foco: esconde o que já foi concluído";
+    $("#btn-foco-motivo").textContent = motivo;
+  }
+  function alternaFoco() {
+    const b = $("#btn-foco");
+    if (b.getAttribute("aria-disabled") === "true") return anuncia($("#btn-foco-motivo").textContent);
+    foco = !foco; save("foco", foco);
+    let msg = foco ? "Foco ligado: o que já foi concluído fica escondido." : "Foco desligado.";
+    if (foco && !VISTAS_FOCO.includes(vistaAtual)) {
+      msg = `Foco ligado. A aba ${NOMES_VISTA[vistaAtual] || vistaAtual} fica escondida; você está na Linha do tempo.`;
+      vistaAtual = "timeline"; save("vista", vistaAtual); fechaDetalhes();
+    }
+    render();
+    $("#btn-foco").focus();
+    anuncia(avisoSelos ? `${msg} ${avisoSelos}` : msg); avisoSelos = "";
+  }
   function renderAtalhos() {
+    renderBotaoFoco();
     $("#seletor-modo").hidden = ocultarSeletor;
     const vis = ATALHOS.filter((id) => atalhos.includes(id) || (!perfil && (id === "perfil" || id === "importar")));
     const box = $("#atalhos");
@@ -1837,6 +2031,9 @@
         <fieldset class="opcoes"><legend>Aparência</legend>
           ${radio("aparencia", "icone-texto", "Ícone + texto", ap === "icone-texto")}${radio("aparencia", "icone", "Só ícones", ap === "icone")}${radio("aparencia", "minimalista", "Minimalista", ap === "minimalista")}
           <p class="dica">Vale para a barra do topo, o seletor de modo, as abas e os controles. Só ícones mantém o nome ao passar o mouse e no leitor de tela.</p>
+        </fieldset>
+        <fieldset class="opcoes"><legend>Tom das mensagens do Foco</legend>
+          ${radio("tom", "zoeira", "Zoeira", tom === "zoeira")}${radio("tom", "discreto", "Discreto", tom === "discreto")}
         </fieldset>
         <fieldset class="opcoes"><legend>Tema</legend>
           ${radio("tema", "sistema", "Igual ao sistema", te === "sistema")}${radio("tema", "claro", "Claro", te === "claro")}${radio("tema", "escuro", "Escuro", te === "escuro")}
@@ -1934,7 +2131,7 @@
     if (!confirm("Apagar tudo o que foi salvo neste navegador (marcações manuais, edições de planejamento" + (temImportado ? ", perfil importado" : "")
       + (nd ? `, ${textoDeclaradas(nd)}` : "") + ")?" + (nd ? " Use Exportar perfil.js antes, se quiser guardar uma cópia." : ""))) return;
     marcacoes = {}; creditosManuais = {}; plano = { periodos: {}, novos: [] }; proposta = null; cronoSlot = null;
-    ["manual", "marcacoes", "creditos", "plano", "perfilImportado"].forEach((k) => save(k, null));
+    ["manual", "marcacoes", "creditos", "plano", "perfilImportado", "perfilId", "selosAvisados"].forEach((k) => save(k, null));
     avisosPerfil.delete("perfil importado");
     if (perfilImportado) { perfilImportado = null; perfil = perfilArquivo || perfilLocalAntigo(); }
     if (temImportado) { save("perfil", null); perfil = null; }
@@ -1974,9 +2171,13 @@
     document.body.classList.toggle("classico", modoClassico);
     $("#modo-classico").checked = modoClassico; $("#modo-planejador").checked = !modoClassico;
     if (modoClassico) { if (pincel === null) pincel = (tags[0] || {}).id || ""; }
+    const emFoco = focoAtivo();
+    document.body.classList.toggle("em-foco", emFoco);
+    if (emFoco && !VISTAS_FOCO.includes(vistaAtual)) vistaAtual = "timeline";
     const vista = modoClassico ? "grade" : vistaAtual;
     renderCabecalho();
     document.querySelectorAll(".abas [data-vista]").forEach((b) => {
+      b.hidden = emFoco && !VISTAS_FOCO.includes(b.dataset.vista);
       const on = b.dataset.vista === vista;
       b.setAttribute("aria-selected", String(on)); b.tabIndex = on ? 0 : -1;
     });
@@ -1996,6 +2197,9 @@
     const mostraLegenda = vista === "timeline" || (modoClassico && exibir.dificuldade && !!M.guia && !mini);
     $("#legenda").hidden = !mostraLegenda;
     if (detalhado) renderProgresso();
+    const comMotivacao = emFoco && (vista === "grade" || vista === "timeline");
+    $("#motivacao").hidden = !comMotivacao;
+    if (comMotivacao) renderMotivacao();
     if (mostraLegenda) renderLegenda(vista);
     $("#ferramentas").hidden = vista !== "grade" || modoClassico;
     if (vista === "grade" && !modoClassico) $("#ferramentas").innerHTML = mini ? `
@@ -3254,6 +3458,7 @@
       if (t.id === "btn-referencias") return abrePainel(ev, abreReferencias);
       if (t.id === "btn-tags") return abrePainel(ev, abreEditorTags);
       if (t.id === "btn-limpar") return limpaDados();
+      if (t.id === "btn-foco") return alternaFoco();
       if (t.dataset.fixar) {
         const id = t.dataset.fixar;
         atalhos = atalhos.includes(id) ? atalhos.filter((x) => x !== id) : ATALHOS.filter((x) => x === id || atalhos.includes(x));
@@ -3282,6 +3487,7 @@
           + "Os planos, pedidos e a extensão guardados nele também saem" + (declaradasNoNavegador() ? `, e as ${textoDeclaradas(declaradasNoNavegador())} também` : "")
           + ". Use \"Baixar perfil.js\" antes, se quiser guardar uma cópia.")) return;
         perfilImportado = null; save("perfilImportado", null); perfil = perfilArquivo || perfilLocalAntigo();
+        save("perfilId", null); save("selosAvisados", null);   // substituição: os avisos de conquistas recomeçam
         avisosPerfil.delete("perfil importado");
         montaModelo(); return render();
       }
@@ -3300,6 +3506,7 @@
       }
       if (t.name === "aparencia" && window.TEMA) { window.TEMA.defineAparencia(t.value); ferrAberto = false; render(); atualizaConfig(); }
       if (t.name === "tema" && window.TEMA) window.TEMA.define(t.value === "sistema" ? null : t.value);
+      if (t.name === "tom") { tom = t.value; save("tom", tom); render(); atualizaConfig(); }
     });
 
     $("#detalhes").addEventListener("keydown", (ev) => {
@@ -3513,7 +3720,7 @@
     }));
     // Abas: setas, Home e End movem e ativam a aba (foco móvel: só a aba ativa entra na ordem de Tab).
     $(".abas").addEventListener("keydown", (ev) => {
-      const abas = [...document.querySelectorAll(".abas [role=tab]")];
+      const abas = [...document.querySelectorAll(".abas [role=tab]:not([hidden])")];
       const i = abas.indexOf(document.activeElement); if (i < 0) return;
       const j = { ArrowRight: (i + 1) % abas.length, ArrowLeft: (i + abas.length - 1) % abas.length, Home: 0, End: abas.length - 1 }[ev.key];
       if (j == null) return;
@@ -3529,15 +3736,19 @@
       const m = txt.match(/^\s*window\.PERFIL\s*=\s*/m);
       const obj = JSON.parse((m ? txt.slice(m.index + m[0].length) : txt).replace(/;\s*$/, ""));
       const nd = temEdicoes() ? declaradasNoNavegador() : 0;
+      const substitui = () => { save("perfilId", null); save("selosAvisados", null); };   // outro perfil: avisos recomeçam
       if (nd && !(await confirma({ titulo: "Trocar de perfil", ok: "Usar o arquivo",
         texto: `${textoDeclaradas(nd)} ainda não ${nd === 1 ? "foi exportada" : "foram exportadas"}. O arquivo substitui o perfil salvo e ${nd === 1 ? "ela sai" : "elas saem"}. Use Exportar perfil.js antes, se quiser guardar uma cópia.` }))) return;
-      usaPerfilImportado(obj);
+      const idAntes = load("perfilId", null);
+      substitui();
+      try { usaPerfilImportado(obj); } catch (e) { save("perfilId", idAntes); throw e; }
     }).catch((e) => alert("Não consegui ler o perfil: " + e.message + "\n(O conteúdo precisa ser JSON válido, com chaves entre aspas.)"));
     input.value = "";
   }
 
   // Ganchos para testes e para quem quiser depurar no console do navegador.
   window.GradeInterativa = { carregaPdfJs, linhasPDF, perfilExportado: () => perfilExportado(), totais: () => totais(), fonte: (c) => fonteDe(c),
+    motivacao: () => JSON.parse(JSON.stringify(calculaMotivacao())),
     declaradas: () => JSON.parse(JSON.stringify({ ativas: M.declaradas.ativas, confirmadas: M.declaradas.confirmadas, conflitos: M.declaradas.conflitos, notas: M.declaradas.notas })),
     avisoOferta: (c, p) => avisoOferta(c, p), avisos: (c, nome) => { const p = M.periodos.find((x) => x.nome === nome); return p ? avisos(c, p.semestre) : null; } };
 

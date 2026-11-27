@@ -20,7 +20,7 @@
     Ordem de carga (ver docs/ARQUITETURA.md):
       1. Dados do curso (públicos, versionados): currículo, catálogo de optativas, horários e guia.
       2. eci.js: setas de requisitos e experiências didáticas.
-      3. progresso.js: cálculo do progresso sem DOM (também roda no Node, nos testes).
+      3. progresso.js e conquistas.js: cálculo do progresso, da fase e dos selos sem DOM (também rodam no Node, nos testes).
       4. app.js: modelo + telas. Só por file:// tenta carregar perfil/perfil.js (opcional, fora do git).
     siga.js e pdf.js são carregados ao ler PDFs, na importação ou nas experiências didáticas.
   -->
@@ -31,6 +31,7 @@
   <script src="js/guia.js" defer></script>
   <script src="js/eci.js" defer></script>
   <script src="js/progresso.js" defer></script>
+  <script src="js/conquistas.js" defer></script>
   <script src="js/app.js" defer></script>
 </head>
 <body class="classico">
@@ -46,6 +47,9 @@
          a engrenagem (sempre) e o seletor Clássico | Planejador (pode ser ocultado em Configurações). -->
     <nav class="acoes" aria-label="Atalhos">
       <div id="atalhos" class="atalhos"></div>
+      <!-- Foco (só no Planejador e com perfil): esconde o que já foi concluído e mostra a fase e as conquistas. -->
+      <button type="button" id="btn-foco" class="btn btn-icone btn-atalho" aria-pressed="false" title="Foco"><span class="ico ico-g" aria-hidden="true">🎯</span><span class="rot">Foco</span></button>
+      <span id="btn-foco-motivo" class="sr"></span>
       <button type="button" id="btn-config" class="btn btn-icone btn-atalho" data-icone="configuracoes" title="Configurações"><span class="rot">Configurações</span></button>
       <!-- seletor de modo: Clássico (só a grade, padrão ao abrir) | Planejador (com as abas). O nome acessível vem do .rot. -->
       <div class="seletor-modo" id="seletor-modo" role="radiogroup" aria-label="Modo">
@@ -71,6 +75,8 @@
   <!-- Camada 2: detalhes por grupo e legenda de situações (linha do tempo, ou "detalhes ▾") -->
   <section id="progresso" class="progresso" aria-label="Progresso por grupo" hidden></section>
   <div id="legenda" class="legenda" hidden></div>
+  <!-- Modo Foco: cartão da fase do curso, previsão de formatura e estante de conquistas -->
+  <section id="motivacao" class="motivacao" aria-label="Fase do curso e conquistas" hidden></section>
   <!-- Página inicial: pincel de tags, exibição e filtros -->
   <div id="ferramentas" class="ferramentas" hidden></div>
   <main class="principal"><div id="painel" class="painel"></div></main>

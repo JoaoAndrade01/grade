@@ -644,6 +644,31 @@ dialog.dlg:modal { overscroll-behavior: contain; }
 .dlg .rotulo { display: block; margin-top: 14px; font-weight: 600; font-size: 13px; }
 .dlg .campo { margin-top: 6px; }
 .dlg .dica { margin: 4px 0 0; }
+/* Foco: cartão da fase, previsão e estante de conquistas */
+#btn-foco[aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
+#btn-foco[aria-disabled="true"] { opacity: .5; cursor: not-allowed; }
+.motivacao { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 12px; padding: 8px 24px 0; }
+.motivacao[hidden] { display: none; }
+.cartao-fase, .estante { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; }
+.motivacao h2 { margin: 0 0 4px; font-size: 16px; }
+.motivacao h3 { margin: 10px 0 2px; font-size: 13px; }
+.motivacao p { margin: 2px 0; font-size: 13px; }
+.motivacao .chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.fase-pct, .estante-resumo { color: var(--muted); }
+.marca-declarado { font-size: 12px; font-weight: 600; color: var(--muted); }
+.checklist { list-style: none; margin: 2px 0; padding: 0; font-size: 13px; }
+.estante-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.selo { display: flex; gap: 8px; align-items: flex-start; padding: 4px 6px; border-radius: 8px; }
+.selo-emoji { font-size: 20px; line-height: 1.2; }
+.selo-texto small { display: block; color: var(--muted); }
+.selo.s-falta .selo-emoji, .selo.s-quase .selo-emoji { filter: grayscale(1); opacity: .6; }
+.selo.s-obtido { background: var(--surface-2); }
+.selo.novo { animation: selo-novo 1.2s ease-out 2; }
+@keyframes selo-novo { 50% { transform: scale(1.04); box-shadow: 0 0 0 3px var(--dep); } }
+@media (prefers-reduced-motion: reduce) { .selo.novo { animation: none; outline: 2px solid var(--dep); } }
+.estante-todas summary { cursor: pointer; min-height: 32px; display: flex; align-items: center; font-weight: 600; font-size: 13px; }
+@media (max-width: 640px) { .motivacao { padding-left: 12px; padding-right: 12px; } }
+
 /* Registrar marcações */
 .dlg-registrar { width: min(520px, calc(100vw - 24px)); overflow-y: auto; }
 .reg-h { margin: 14px 0 4px; font-size: 14px; }

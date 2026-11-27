@@ -3454,8 +3454,198 @@ def t_declaradas_gestao(b):
     assert "aprovações registradas por você também" in msgs[-1], msgs[-1]
     ctx.close()
 
+@caso("Declarada com a disciplina em curso no BOA: o detalhe diz que o BOA mostra a disciplina em curso")
+def t_declarada_cursando(b):
+    perfil = {"periodos": [{"nome": "2026/2", "atual": True, "disciplinas": ["MAC128"]}], "aprovacoesDeclaradas": [{"code": "MAC128", "registradoEm": "2026-11-27"}]}
+    ctx, pg = abre(b, perfil=perfil, extra={"modoClassico": False, "vista": "grade"}, nome="declarada-cursando", relogio=HOJE)
+    pg.locator('.card[data-code="MAC128"]').click()
+    expect(pg.locator("#detalhes .det-declarada")).to_contain_text("O BOA mostra a disciplina em curso em 2026/2.")
+    assert pg.evaluate("GradeInterativa.fonte('MAC128')") == "declarado"
+    ctx.close()
+
+def colunas(pg): return pg.locator("#painel .coluna h2").all_inner_texts()
+@caso("Foco: só no Planejador e com perfil; aba escondida vai à Linha do tempo com anúncio; some o concluído; atual sempre; totais e plano intactos; desligar mantém a aba e o foco")
+def t_foco(b):
+    ctx, pg = abre(b, extra={"modoClassico": False}, nome="foco-sem-perfil", relogio=HOJE)
+    f = pg.locator("#btn-foco")
+    expect(f).to_have_attribute("aria-disabled", "true"); expect(pg.locator("#btn-foco-motivo")).to_have_text("Importe ou crie um perfil para usar o Foco.")
+    f.click(force=True); expect(pg.locator("#anuncio")).to_contain_text("Importe ou crie um perfil"); assert ls(pg, "foco") is None
+    ctx.close()
+    ctx, pg = abre(b, perfil=PERFIL, nome="foco", relogio=HOJE)
+    f = pg.locator("#btn-foco")
+    expect(f).to_have_attribute("aria-disabled", "true"); expect(pg.locator("#btn-foco-motivo")).to_have_text("Disponível no Planejador.")   # Clássico
+    assert "Disponível no Planejador" in f.get_attribute("title")
+    completo(pg, "optativas")
+    expect(f).not_to_have_attribute("aria-disabled", "true"); expect(f).to_have_attribute("aria-pressed", "false")
+    barra = pg.locator("#barra-geral").inner_text() if pg.locator("#barra-geral").is_visible() else None
+    totais = pg.evaluate("JSON.stringify(GradeInterativa.totais())"); exportado = pg.evaluate("JSON.stringify(GradeInterativa.perfilExportado())")
+    f.focus(); pg.keyboard.press("Enter")                                                # teclado
+    expect(f).to_have_attribute("aria-pressed", "true"); assert ls(pg, "foco") is True
+    expect(pg.locator('.abas [data-vista="timeline"]')).to_have_attribute("aria-selected", "true")
+    expect(pg.locator("#anuncio")).to_contain_text("A aba Optativas fica escondida; você está na Linha do tempo")
+    assert foco_em(pg, "#btn-foco"), descreve_foco(pg)
+    for v in ("optativas", "pedidos", "eci"): expect(pg.locator(f'.abas [data-vista="{v}"]')).to_be_hidden()
+    for v in ("grade", "timeline", "cronograma"): expect(pg.locator(f'.abas [data-vista="{v}"]')).to_be_visible()
+    # Linha do tempo: os períodos passados todos concluídos somem (2025/1 só tinha a reprovação já superada); atual e planos ficam
+    assert colunas(pg) == ["2026/2", "2027/1", "2027/2", "A alocar"], colunas(pg)
+    assert pg.locator("#painel .card.s-aprovado").count() == 0
+    expect(pg.locator('#painel .col-atual .card[data-code="MAC118"]')).to_have_count(1)     # prevista fica
+    expect(pg.locator("#motivacao .cartao-fase")).to_be_visible(); expect(pg.locator("#motivacao .estante")).to_be_visible()
+    foto(pg, "foco-linha-do-tempo")
+    # Grade: some o concluído, a prevista fica; os totais e o plano não mudam
+    pg.locator('.abas [data-vista="grade"]').click()
+    assert pg.locator('#painel .card[data-code="COS110"]').count() == 0 and pg.locator('#painel .card[data-code="MAC118"]').count() == 1
+    assert pg.evaluate("JSON.stringify(GradeInterativa.totais())") == totais and pg.evaluate("JSON.stringify(GradeInterativa.perfilExportado())") == exportado
+    if barra: assert pg.locator("#barra-geral").inner_text() == barra
+    pg.locator('.abas [data-vista="timeline"]').focus(); pg.keyboard.press("ArrowRight")     # setas pulam as abas escondidas
+    expect(pg.locator('.abas [data-vista="cronograma"]')).to_have_attribute("aria-selected", "true")
+    pg.locator('.abas [data-vista="grade"]').click()
+    # desligar: fica na aba atual e o foco continua no 🎯
+    f.click(); expect(f).to_have_attribute("aria-pressed", "false")
+    expect(pg.locator('.abas [data-vista="grade"]')).to_have_attribute("aria-selected", "true"); assert foco_em(pg, "#btn-foco")
+    expect(pg.locator('#painel .card[data-code="COS110"]')).to_have_count(1); expect(pg.locator(".abas [data-vista=optativas]")).to_be_visible()
+    # Clássico guarda a preferência; ao voltar ao Planejador, o Foco volta
+    f.click(); alterna_modo(pg)
+    expect(f).to_have_attribute("aria-disabled", "true"); expect(f).to_have_attribute("aria-pressed", "false")
+    assert ls(pg, "foco") is True and pg.locator("#motivacao").is_hidden()
+    alterna_modo(pg); expect(f).to_have_attribute("aria-pressed", "true")
+    pg.reload(); pronto(pg, "foco"); expect(pg.locator("#btn-foco")).to_have_attribute("aria-pressed", "true")
+    # sem perfil: desabilitado com orientação; o planejamento fica intacto
+    pg.once("dialog", lambda d: d.accept()); pg.locator("#descartar-importado").click()
+    expect(pg.locator("#btn-foco")).to_have_attribute("aria-disabled", "true"); assert pg.locator("#motivacao").is_hidden()
+    ctx.close()
+    ctx, pg = abre(b, vp=C320, perfil=PERFIL, extra={"modoClassico": False, "vista": "timeline", "foco": True}, nome="foco-320", relogio=HOJE, toque=True, esquema="dark")
+    expect(pg.locator("#btn-foco")).to_have_attribute("aria-pressed", "true")
+    assert pg.evaluate("document.documentElement.scrollWidth - innerWidth") <= 1
+    bb = pg.locator("#btn-foco").bounding_box(); assert bb["width"] >= 44 and bb["height"] >= 44, bb
+    foto(pg, "foco-320-escuro", full=True)
+    ctx.close()
+
+def motivacao(pg): return pg.evaluate("GradeInterativa.motivacao()")
+def obrigatorias(pg): return pg.evaluate("window.courses[1].filter((c) => c.code && (c.category || 1) === 1).map((c) => [c.code, c.credits, c.semester])")
+@caso("Motivação: fase calouro, meio (P5) e veterano; marca declarado (R27); reingresso; sem Histórico; cartões por fase; tom zoeira e discreto; previsão de formatura (C4)")
+def t_motivacao(b):
+    base = {"modoClassico": False, "vista": "grade", "foco": True}
+    # calouro: um semestre e menos de 25%
+    cal = {"periodos": [{"nome": "2025/2", "disciplinas": ["COS110", "COS111"]}, {"nome": "2026/2", "atual": True, "disciplinas": ["MAC118"]}]}
+    ctx, pg = abre(b, perfil=cal, extra=base, nome="motivacao-calouro", relogio=HOJE)
+    m = motivacao(pg); assert (m["fase"]["fase"], m["fase"]["declarado"], m["semestres"]) == ("calouro", False, 1), m["fase"]
+    card = pg.locator("#motivacao .cartao-fase")
+    expect(card.locator("h2")).to_have_text("🌱 Calouro")
+    for t in ("Base que destrava tudo", "Primeiro marco", "Faltam", "Primeiros passos", "Planejar o próximo período"): expect(card).to_contain_text(t)
+    abre_config(pg); pg.check('#dlg-config input[name="tom"][value="discreto"]'); pg.keyboard.press("Escape")
+    assert ls(pg, "tom") == "discreto"; expect(card).to_contain_text("Base do curso"); expect(card).not_to_contain_text("Base que destrava tudo")
+    foto(pg, "motivacao-calouro-discreto")
+    ctx.close()
+    # P5: menos de 25% com três semestres do Histórico = meio do curso
+    p5 = {"periodos": [{"nome": n, "disciplinas": [c]} for n, c in (("2024/1", "COS110"), ("2024/2", "COS111"), ("2025/1", "EEL280"))]}
+    ctx, pg = abre(b, perfil=p5, extra=base, nome="motivacao-p5", relogio=HOJE)
+    m = motivacao(pg); assert m["fase"]["fase"] == "meio" and m["pctComDeclaradas"] < 0.25 and m["semestres"] == 3, m
+    expect(pg.locator("#motivacao .cartao-fase h2")).to_have_text("🏋️ Meio do curso")
+    expect(pg.locator("#motivacao .cartao-fase")).to_contain_text("Metade do caminho")
+    obr = obrigatorias(pg)
+    ctx.close()
+    # R27 (b): ~40 cr importados e ~20 declarados, um semestre: "Meio do curso · declarado"; (a) 60 + 50: sem marca
+    def escolhe(alvo, pular=()):
+        out, soma = [], 0
+        for code, cr, _ in obr:
+            if code in pular or soma >= alvo: continue
+            out.append(code); soma += cr
+        return out, soma
+    imp, si = escolhe(40); dec, sd = escolhe(20, set(imp))
+    assert si < 56.5 <= si + sd, (si, sd)
+    r27 = {"periodos": [{"nome": "2025/2", "disciplinas": imp}], "aprovacoesDeclaradas": [{"code": c, "registradoEm": "2026-11-27"} for c in dec]}
+    ctx, pg = abre(b, perfil=r27, extra=base, nome="motivacao-r27", relogio=HOJE)
+    m = motivacao(pg); assert (m["fase"]["fase"], m["fase"]["declarado"]) == ("meio", True), m["fase"]
+    expect(pg.locator("#motivacao .cartao-fase h2")).to_contain_text("Meio do curso · declarado")
+    ctx.close()
+    imp, si = escolhe(60); dec, sd = escolhe(50, set(imp))
+    r27a = {"periodos": [{"nome": "2025/2", "disciplinas": imp}], "aprovacoesDeclaradas": [{"code": c, "registradoEm": "2026-11-27"} for c in dec]}
+    ctx, pg = abre(b, perfil=r27a, extra=base, nome="motivacao-r27a", relogio=HOJE)
+    m = motivacao(pg); assert (m["fase"]["fase"], m["fase"]["declarado"]) == ("meio", False), m["fase"]
+    ctx.close()
+    # reingresso: muitas transferidas no bloco e um semestre no curso atual: não é calouro
+    trans, st = escolhe(70)
+    rei = {"periodos": [{"nome": "2025 (transferidas)", "disciplinas": trans}, {"nome": "2025/2", "disciplinas": [c for c, _, _ in obr if c not in trans][:1]}]}
+    ctx, pg = abre(b, perfil=rei, extra=base, nome="motivacao-reingresso", relogio=HOJE)
+    m = motivacao(pg); assert m["fase"]["fase"] == "meio" and m["semestres"] == 1, (m["fase"], m["semestres"])
+    ctx.close()
+    # sem Histórico: só declaradas, pelo percentual
+    sh = {"periodos": [], "aprovacoesDeclaradas": [{"code": "COS110", "registradoEm": "2026-11-27"}]}
+    ctx, pg = abre(b, perfil=sh, extra=base, nome="motivacao-sem-historico", relogio=HOJE)
+    m = motivacao(pg); assert (m["fase"]["fase"], m["semestres"]) == ("calouro", 0)
+    assert m["previsao"]["estado"] == "indisponivel" and "Sem período atual" in m["previsao"]["texto"]
+    expect(pg.locator("#motivacao .previsao")).to_contain_text("Sem período atual")
+    ctx.close()
+    # veterano com o plano cobrindo tudo: previsão; sem o plano de ACE: a pendência concreta só de horas
+    feitas = [c for c, _, _ in obr if c not in ("EEWX00", "EEWU00")]
+    vet = {"periodos": [{"nome": "2025/1", "disciplinas": feitas + [{"code": "XYZ201", "name": "Optativa fictícia", "credits": 30, "category": 2}]},
+                        {"nome": "2026/2", "atual": True, "disciplinas": ["EEWX00", {"code": "XYZ202", "name": "Optativa fictícia II", "credits": 10, "category": 2}]},
+                        {"nome": "2027/1", "planejado": True, "disciplinas": ["EEWU00", {"code": "XYZ301", "name": "Livre fictícia", "credits": 8, "category": 3},
+                                                                         {"code": "XYZ401", "name": "Humanas fictícia", "credits": 4, "category": 4}]}],
+           "extensao": [{"nome": "Projeto de extensão fictício", "horas": 405, "periodo": "2027/1", "status": "planejada"}]}
+    ctx, pg = abre(b, perfil=vet, extra=base, nome="motivacao-veterano", relogio=HOJE)
+    m = motivacao(pg); assert m["fase"]["fase"] == "veterano", m["fase"]
+    assert (m["previsao"]["estado"], m["previsao"].get("semestre")) == ("previsao", "2027/1"), m["previsao"]
+    card = pg.locator("#motivacao .cartao-fase")
+    for t in ("🎓 Veterano", "Reta final", "Checklist da formatura", "Projeto de Graduação", "Extensão/ACE: 0 de 405 h", "No seu plano, você forma em 2027/1 (estimativa)"):
+        expect(card).to_contain_text(t)
+    foto(pg, "motivacao-veterano")
+    ctx.close()
+    vet2 = json.loads(json.dumps(vet)); vet2["extensao"] = []
+    ctx, pg = abre(b, perfil=vet2, extra=base, nome="motivacao-veterano-sem-ace", relogio=HOJE)
+    m = motivacao(pg); assert m["previsao"]["estado"] == "pendente" and "405 h de Extensão / ACE" in m["previsao"]["texto"], m["previsao"]
+    assert next(s for s in m["selos"] if s["id"] == "notion")["estado"] == "obtido"      # o selo do Notion não depende de ACE
+    vet3 = json.loads(json.dumps(vet2)); vet3["periodos"][2]["disciplinas"] = vet3["periodos"][2]["disciplinas"][1:]     # tira o Estágio do plano
+    ctx.close()
+    ctx, pg = abre(b, perfil=vet3, extra=base, nome="motivacao-veterano-sem-estagio", relogio=HOJE)
+    m = motivacao(pg)
+    assert next(s for s in m["selos"] if s["id"] == "notion")["estado"] == "falta" and "Estágio" in m["previsao"]["texto"], m["previsao"]
+    ctx.close()
+
+@caso("Conquistas na estante do Foco: declarado, quase lá, próximo marco; avisos uma vez por perfil (recarga e atualização mantêm; substituição recomeça); movimento reduzido")
+def t_conquistas_estante(b):
+    perfil = {"periodos": [{"nome": "2025/1", "disciplinas": ["MAC118", "MAC128", "MAC238"]}, {"nome": "2026/2", "atual": True, "disciplinas": ["COS231"]}],
+              "aprovacoesDeclaradas": [{"code": "MAC248", "registradoEm": "2026-11-27"}]}
+    ctx, pg = abre(b, perfil=perfil, extra={"modoClassico": False, "vista": "grade", "foco": True}, nome="conquistas", relogio=HOJE)
+    est = pg.locator("#motivacao .estante")
+    expect(pg.locator("#anuncio")).to_contain_text("Rei dos Cálculos")                       # aviso da conquista nova
+    pg.locator(".estante-todas summary").click()
+    rei = est.locator(".selo", has_text="Rei dos Cálculos")
+    expect(rei).to_contain_text("· declarado"); expect(rei).to_have_class(re.compile(r"s-obtido"))
+    expect(est.locator(".estante-resumo")).to_contain_text("próxima:")
+    assert ls(pg, "selosAvisados")["vistos"] and ls(pg, "perfilId") and "MAC" not in ls(pg, "perfilId")
+    foto(pg, "conquistas-estante", full=True)
+    pg.evaluate("document.querySelector('#anuncio').textContent = ''")
+    pg.reload(); pronto(pg, "conquistas"); pg.wait_for_timeout(200)
+    assert "Rei dos Cálculos" not in pg.locator("#anuncio").inner_text()                     # recarga: não repete
+    vistos, ident = ls(pg, "selosAvisados"), ls(pg, "perfilId")
+    pg.click("#btn-perfil"); pg.fill("#perfil-nome", "Ana"); pg.click("#perfil-salvar")      # atualização do mesmo perfil
+    expect(pg.locator("#titulo")).to_contain_text("Ana")
+    assert ls(pg, "perfilId") == ident and ls(pg, "selosAvisados") == vistos
+    # substituição: outro arquivo recomeça a lista
+    pg.click("#btn-importar")
+    pg.set_input_files("#importar", {"name": "outro.json", "mimeType": "application/json", "buffer": json.dumps({"periodos": [{"nome": "2025/1", "disciplinas": ["COS110"]}]}).encode("utf-8")})
+    pg.wait_for_function("(id) => JSON.parse(localStorage.getItem('gradeECI.v2.perfilId') || 'null') !== id", arg=ident)
+    completo(pg, "grade"); pg.keyboard.press("Escape")
+    expect(pg.locator("#anuncio")).to_contain_text("Hello, world")
+    ctx.close()
+    # R29 na tela: só o pincel na última disciplina = quase lá (simulação ✎), sem selo; movimento reduzido
+    p2 = {"periodos": [{"nome": "2025/1", "disciplinas": ["MAC118", "MAC128", "MAC238"]}, {"nome": "2026/2", "atual": True, "disciplinas": []}]}
+    ctx, pg = abre(b, perfil=p2, extra={"modoClassico": False, "vista": "grade", "foco": True, "marcacoes": {"MAC248": "aprovada"}}, nome="conquistas-pincel", relogio=HOJE, esquema="dark")
+    pg.emulate_media(reduced_motion="reduce")
+    pg.locator(".estante-todas summary").click()
+    rei = pg.locator("#motivacao .selo", has_text="Rei dos Cálculos")
+    expect(rei).to_contain_text("quase lá (simulação ✎)"); expect(rei).to_have_class(re.compile(r"s-quase"))
+    novo = pg.locator("#motivacao .selo.novo").first
+    if novo.count(): assert novo.evaluate("e => getComputedStyle(e).animationName") == "none"
+    assert pg.evaluate("document.documentElement.scrollWidth - innerWidth") <= 1
+    vs = axe_graves(pg, contexto="#motivacao"); assert not vs, vs
+    foto(pg, "conquistas-pincel-escuro", full=True)
+    ctx.close()
+
 CASOS5 = [t_controles_icones, t_todas_acesas, t_minimalista, t_plano_na_grade, t_declaradas_modelo, t_declaradas_prazo_ace, t_declaradas_arquivo, t_declaradas_reimportar,
-          t_registrar_sem_perfil, t_registrar_com_perfil, t_declaradas_detalhe, t_declaradas_gestao]
+          t_registrar_sem_perfil, t_registrar_com_perfil, t_declaradas_detalhe, t_declaradas_gestao, t_declarada_cursando, t_foco, t_motivacao, t_conquistas_estante]
 CASOS += CASOS5
 
 
