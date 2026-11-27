@@ -78,7 +78,8 @@ período passado, atual e futuro; pedido deferido, a pedir e em análise com ori
 do período exibido em todas as permutações de duas e três origens); invariância: o mesmo resultado (status, fontes,
 datas, prazo, período, pendentes, cobertura, previsão e selos) em 24 embaralhamentos de pedidos, origens, itens e ordem
 dos períodos, declaradas, ACE e edições do plano, com pedidos encadeados, ciclo, plano no passado, registros repetidos da
-mesma origem, dois blocos de transferidos e itens que convergem para o mesmo código; ficam de fora, por limitação
+mesma origem, dois blocos de transferidos, itens que convergem para o mesmo código e disciplina fora do catálogo repetida
+com créditos diferentes, com a ACE (grupo 5) na cobertura; ficam de fora, por limitação
 conhecida de PC-14, a cadeia com a equivalência do meio confirmada pelo SIGA e o pedido que usa a própria pedida).
 
 **Lacunas conhecidas** (também marcadas na matriz): os casos 11a–11d (resultado dos filtros e do guia nas
