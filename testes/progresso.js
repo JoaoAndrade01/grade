@@ -261,6 +261,83 @@ caso("B4: equivalência importada aprovada confirma também a declarada que esta
   assert.ok(m.declaradas.confirmadas.XYZ201);
 });
 
+// ---------- Pedida de equivalência: tabela de combinações de origens (regra única, independente da ordem)
+const TIPOS = {
+  importada:     { code: "XYZ601", periodo: "2025/1" },
+  transfComData: { code: "XYZ602", bloco: { code: "XYZ602", aprovadaEm: "2023/2" } },
+  transfSemData: { code: "XYZ603", bloco: { code: "XYZ603" } },
+  declDatada:    { code: "XYZ604", decl: { code: "XYZ604", semestre: "2026/1", registradoEm: "2026-07-01" } },
+  declSemData:   { code: "XYZ605", decl: { code: "XYZ605", registradoEm: "2024-11-27" } },
+  prevista:      { code: "XYZ606", atual: { code: "XYZ606", status: "previsto" } },
+  emCurso:       { code: "XYZ607", atual: { code: "XYZ607" } },
+};
+const SEMS = ["2023/2", "2024/1", "2024/2", "2025/1", "2025/2", "2026/1", "2026/2", "2027/1"];
+function modeloDeOrigens(tipos, ordemPedido) {
+  const periodos = [
+    { nome: "2024 (transferidas)", disciplinas: tipos.filter((t) => TIPOS[t].bloco).map((t) => TIPOS[t].bloco) },
+    { nome: "2025/1", disciplinas: tipos.filter((t) => TIPOS[t].periodo).map((t) => TIPOS[t].code) },
+    { nome: "2026/2", atual: true, disciplinas: tipos.filter((t) => TIPOS[t].atual).map((t) => TIPOS[t].atual) },
+  ];
+  const declaradas = tipos.filter((t) => TIPOS[t].decl).map((t) => TIPOS[t].decl);
+  const pedidos = ordemPedido ? [{ status: "deferido", pedida: "XYZ699", cursadas: ordemPedido.map((t) => TIPOS[t].code) }] : [];
+  return P.montaRegistros({ grade: [], catalogo: [], periodos, declaradas, pedidos });
+}
+/** O que a pedida diz (status, fonte, data e requisito em cada semestre), para comparar entre as ordens. */
+function resumoPedida(m) {
+  const rs = m.regs.XYZ699;
+  return { status: P.statusDosRegistros(rs), fonte: P.fonteDaAprovacao(rs), semestre: P.semestreDoRegistro(rs[0], m.periodos),
+    efetivo: rs[0].semestreEfetivo ?? null,
+    pre: SEMS.map((n) => P.registroCumpre(rs, m.periodos, sem(n))), co: SEMS.map((n) => P.registroCumpre(rs, m.periodos, sem(n), true)),
+    aviso: SEMS.map((n) => P.declaradaSemSemestreEm(rs, m.periodos, sem(n))) };
+}
+caso("Pedida de equivalência: todos os pares de tipos de origem, nas duas ordens, com o requisito = todas as origens cumprem", () => {
+  const nomes = Object.keys(TIPOS);
+  const falhas = [];
+  for (let i = 0; i < nomes.length; i++) for (let j = i + 1; j < nomes.length; j++) {
+    const par = [nomes[i], nomes[j]];
+    const so = modeloDeOrigens(par, null);                                // origens sozinhas: o oráculo de cada uma
+    const um = (t, n, co) => P.registroCumpre(so.regs[TIPOS[t].code], so.periodos, sem(n), co);
+    const limite = (t, n) => P.declaradaSemSemestreEm(so.regs[TIPOS[t].code], so.periodos, sem(n));
+    const esperado = {
+      status: par.some((t) => TIPOS[t].atual) ? "previsto" : "aprovado",
+      pre: SEMS.map((n) => par.every((t) => um(t, n, false))), co: SEMS.map((n) => par.every((t) => um(t, n, true))),
+      aviso: SEMS.map((n) => par.some((t) => limite(t, n)) && par.every((t) => limite(t, n) || um(t, n, false))),
+    };
+    const a = resumoPedida(modeloDeOrigens(par, par)), b = resumoPedida(modeloDeOrigens(par, par.slice().reverse()));
+    if (JSON.stringify(a) !== JSON.stringify(b)) falhas.push(`${par}: a ordem muda o resultado ${JSON.stringify(a)} × ${JSON.stringify(b)}`);
+    for (const k of ["status", "pre", "co", "aviso"]) if (JSON.stringify(a[k]) !== JSON.stringify(esperado[k])) falhas.push(`${par} ${k}: ${JSON.stringify(a[k])} ≠ ${JSON.stringify(esperado[k])}`);
+    if (par.includes("declDatada") || par.includes("declSemData")) {
+      const f = par.some((t) => TIPOS[t].atual) ? "previsto" : "declarado";
+      if (a.fonte !== f) falhas.push(`${par} fonte: ${a.fonte} ≠ ${f}`);
+    }
+  }
+  assert.deepEqual(falhas, []);
+});
+
+caso("Pedida de equivalência: os casos das reconferências, nas duas ordens", () => {
+  const nos = (decl, periodos, cursadas) => [cursadas, cursadas.slice().reverse()].map((c) => P.montaRegistros({ grade: [], catalogo: [],
+    periodos, declaradas: decl, pedidos: [{ status: "deferido", pedida: "XYZ201", cursadas: c }] }));
+  const pre = (m, n, co = false) => P.registroCumpre(m.regs.XYZ201, m.periodos, sem(n), co);
+  // B3 original: duas declaradas datadas (2024/1 e 2026/1): vale 2026/1
+  for (const m of nos([{ code: "XYZ101", semestre: "2024/1", registradoEm: "2026-11-27" }, { code: "XYZ102", semestre: "2026/1", registradoEm: "2026-11-27" }], [], ["XYZ101", "XYZ102"])) {
+    assert.equal(P.semestreDoRegistro(m.regs.XYZ201[0], m.periodos), sem("2026/1")); assert.ok(!pre(m, "2025/1") && pre(m, "2026/2"));
+  }
+  // B3 misto: datada 2026/1 e sem semestre registrada em 2024-11-27: vale 2026/1
+  for (const m of nos([{ code: "XYZ101", semestre: "2026/1", registradoEm: "2026-07-01" }, { code: "XYZ102", registradoEm: "2024-11-27" }], [], ["XYZ101", "XYZ102"])) {
+    assert.equal(P.semestreDoRegistro(m.regs.XYZ201[0], m.periodos), sem("2026/1")); assert.ok(!pre(m, "2025/1") && !pre(m, "2024/2", true));
+  }
+  // B3 transferida + declarada sem semestre: transferida aprovada em 2023/2 e limite 2024/2: co-requisito e aviso em 2024/2, pré em 2025/1
+  for (const m of nos([{ code: "XYZ102", registradoEm: "2024-11-27" }], [{ nome: "2024 (transferidas)", disciplinas: [{ code: "XYZ101", aprovadaEm: "2023/2" }] }], ["XYZ101", "XYZ102"])) {
+    assert.ok(pre(m, "2024/2", true) && !pre(m, "2024/2") && pre(m, "2025/1"));
+    assert.ok(P.declaradaSemSemestreEm(m.regs.XYZ201, m.periodos, sem("2024/2")));
+  }
+  // B2 declarada + prevista no atual (2026/2): prevista, com data efetiva 2026/2, nas duas ordens
+  for (const m of nos([{ code: "XYZ101", semestre: "2025/1", registradoEm: "2026-11-27" }], [{ nome: "2026/2", atual: true, disciplinas: [{ code: "XYZ102", status: "previsto" }] }], ["XYZ101", "XYZ102"])) {
+    assert.equal(P.statusDosRegistros(m.regs.XYZ201), "previsto"); assert.equal(P.fonteDaAprovacao(m.regs.XYZ201), "previsto");
+    assert.equal(m.regs.XYZ201[0].semestreEfetivo, sem("2026/2"));
+  }
+});
+
 // ---------- Fase, conquistas e previsão (js/conquistas.js)
 const C = require(path.join(RAIZ, "js", "conquistas.js"));
 const GUIA = {}; vm.runInNewContext(fs.readFileSync(path.join(RAIZ, "js", "guia.js"), "utf8"), { window: GUIA });

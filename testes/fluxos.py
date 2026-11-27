@@ -3767,14 +3767,15 @@ def t_perfil_troca_declaradas(b):
     assert "aprovacoesDeclaradas" not in (ls(pg, "plano") or {}) and pg.evaluate("GradeInterativa.declaradas().ativas") == []
     ctx.close()
 
-@caso("Previsão com equivalência prevista: a pedida entra no plano no semestre da origem, como a prevista direta (sem contar como cumprida)")
+@caso("Previsão com equivalência prevista: a pedida entra no plano no semestre efetivo, como a prevista direta, também com uma origem registrada por você, nas duas ordens")
 def t_previsao_equivalencia_prevista(b):
     ctx, pg = abre(b, perfil={"periodos": []}, nome="previsao-eq-obr", relogio=HOJE); obr = [c for c, _, _ in obrigatorias(pg)]; ctx.close()
     pedida, outra = obr[:2]
     feitas = obr[2:] + [{"code": "XYZ201", "credits": 40, "category": 2}, {"code": "XYZ301", "credits": 8, "category": 3}, {"code": "XYZ401", "credits": 4, "category": 4}]
-    def resumo(atual, equivalencias, nome):
+    def resumo(atual, equivalencias, nome, declaradas=None):
         perfil = {"periodos": [{"nome": "2025/1", "disciplinas": feitas}, {"nome": "2026/2", "atual": True, "disciplinas": atual}],
-                  "equivalencias": equivalencias, "extensao": [{"nome": "Projeto fictício", "horas": 405, "periodo": "2025/1", "status": "validada"}]}
+                  "equivalencias": equivalencias, "extensao": [{"nome": "Projeto fictício", "horas": 405, "periodo": "2025/1", "status": "validada"}],
+                  **({"aprovacoesDeclaradas": declaradas} if declaradas else {})}
         ctx, pg = abre(b, perfil=perfil, extra={"modoClassico": False, "vista": "grade", "foco": True}, nome=f"previsao-eq-{nome}", relogio=HOJE)
         m = motivacao(pg); r = (m["previsao"]["estado"], m["previsao"].get("semestre"), next(s for s in m["selos"] if s["id"] == "notion")["estado"],
                                  pg.evaluate("(c) => GradeInterativa.fonte(c)", pedida))
@@ -3784,6 +3785,13 @@ def t_previsao_equivalencia_prevista(b):
     por_eq = resumo([{"code": "XYZ202", "credits": 4, "category": 3, "status": "previsto"}, outra],
                     [{"status": "deferido", "pedida": pedida, "cursadas": ["XYZ202"]}], "equivalencia")
     assert por_eq == ("previsao", "2026/2", "obtido", "previsto"), por_eq          # prevista, não cumprida; o plano cobre
+    # uma origem registrada por você e outra prevista no atual: o mesmo resultado nas duas ordens
+    for sem_decl in ("2026/2", "2026/1"):                                        # no mesmo semestre da prevista (empate) e antes
+        decl = [{"code": "XYZ203", "name": "Origem fictícia", "credits": 2, "category": 3, "semestre": sem_decl, "registradoEm": "2026-11-27"}]
+        for ordem in (["XYZ203", "XYZ202"], ["XYZ202", "XYZ203"]):
+            r = resumo([{"code": "XYZ202", "credits": 4, "category": 3, "status": "previsto"}, outra],
+                       [{"status": "deferido", "pedida": pedida, "cursadas": ordem}], f"declarada-{sem_decl.replace('/', '-')}-{ordem[0]}", decl)
+            assert r == ("previsao", "2026/2", "obtido", "previsto"), (sem_decl, ordem, r)
 
 CASOS5 = [t_controles_icones, t_todas_acesas, t_minimalista, t_plano_na_grade, t_declaradas_modelo, t_declaradas_prazo_ace, t_declaradas_arquivo, t_declaradas_reimportar,
           t_registrar_sem_perfil, t_registrar_com_perfil, t_declaradas_detalhe, t_declaradas_gestao, t_declarada_cursando, t_foco, t_motivacao, t_conquistas_estante, t_declaradas_lote_foco, t_foco_ajustes, t_ace_origem, t_previsao_cobertura, t_perfil_troca_declaradas, t_previsao_equivalencia_prevista]

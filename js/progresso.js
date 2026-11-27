@@ -62,6 +62,7 @@
    */
   function semestreDoRegistro(r, periodos) {
     if (!r) return null;
+    if (r.origens) return r.exata ? r.semestreEfetivo : null;   // pedida de equivalência: ver pedidaDaEquivalencia
     const p = periodos[r.pi];
     if (p && p.declarado) return semIdx(r.semestreDeclarado);
     return p ? p.semestre : null;
@@ -70,6 +71,53 @@
   function semestreDoHistorico(r, periodos) {
     const p = r && periodos[r.pi];
     return p && !p.declarado && r.origem !== "declarado" ? p.semestre : null;
+  }
+
+  /**
+   * Tempo de uma origem: o semestre que ela conhece, exato ou só como limite.
+   *   importada, prevista ou em curso -> semestre do período (exato)
+   *   transferida (bloco)             -> aprovadaEm (exato); sem ela, o ano do bloco (D-08: limite no fim do ano)
+   *   declarada com semestre          -> semestre informado (exato)
+   *   declarada sem semestre          -> limite do semestre de registradoEm (A7)
+   *   sem nada disso                  -> null (a pedida fica sem data)
+   */
+  function tempoDaOrigem(r, periodos) {
+    if (!r) return null;
+    const s = semestreDoRegistro(r, periodos);
+    if (s != null) return { r, v: s, exata: true };
+    if (r.origens) return r.semestreEfetivo == null ? null : { r, v: r.semestreEfetivo, exata: false };
+    if (r.origem === "declarado") { const l = semestreDaData(r.registradoEm); return l == null ? null : { r, v: l, exata: false }; }
+    const p = periodos[r.pi], ano = p ? anoDoBloco(p.nome) : null;
+    if (ano == null) return null;
+    const a = semIdx(r.aprovadaEm);
+    return a != null ? { r, v: a, exata: true } : { r, v: ano * 2 + 1, exata: false };
+  }
+
+  /**
+   * REGRA ÚNICA da pedida de uma equivalência deferida, a partir do CONJUNTO de origens (a ordem não muda nada):
+   * - status: aprovada se todas as origens estão aprovadas; senão, prevista (alguma prevista ou em curso, as outras
+   *   cumpridas). Origem ausente também deixa a pedida prevista.
+   * - fonte: a mais fraca. Declarada se alguma origem for declarada (A1); prevista se a pedida ficou prevista.
+   * - data efetiva: a mais tardia entre as origens, pelo tempo de cada uma (tempoDaOrigem). No empate, a exata vence o
+   *   limite. Se alguma origem não tem data, a pedida também não tem.
+   * - requisito: a pedida cumpre num semestre quando TODAS as origens cumprem (registroCumpre), o que é o mesmo que
+   *   comparar com a mais tardia e respeita o critério de cada uma (D-08 para o bloco, A7 para a declarada sem semestre).
+   * - previsão e selos: a pedida não cumprida entra no plano no semestre efetivo; a fonte segue fonteDaAprovacao.
+   * @returns registro da pedida: { pi, status, origens, semestreEfetivo, exata, origem?, semestreDeclarado?, registradoEm? }
+   */
+  function pedidaDaEquivalencia(origens, periodos) {
+    const status = origens.every((r) => r && r.status === "aprovado") ? "aprovado" : "previsto";
+    const declarada = origens.some((r) => r && r.origem === "declarado");
+    const tempos = origens.map((r) => tempoDaOrigem(r, periodos));
+    const det = tempos.every(Boolean)
+      ? tempos.reduce((a, b) => (b.v > a.v || (b.v === a.v && !a.exata && b.exata) ? b : a)) : null;
+    return {
+      pi: det ? det.r.pi : null, status, origens: origens.slice(),
+      semestreEfetivo: det ? det.v : null, exata: !!det && det.exata,
+      ...(declarada ? { origem: "declarado",
+        semestreDeclarado: det && det.exata && det.r.origem === "declarado" ? det.r.semestreDeclarado || null : null,
+        registradoEm: det && !det.exata && det.r.origem === "declarado" ? det.r.registradoEm || null : null } : {}),
+    };
   }
 
   const CODIGO = /^[A-Z]{3}[A-Z0-9]{3}$/;
@@ -276,29 +324,7 @@
           return origens.find((r) => r.status === "aprovado")
             || origens.find((r) => r.status === "previsto" || emCurso(r.status));
         });
-        const status = registros.every((r) => r?.status === "aprovado") ? "aprovado" : "previsto";
-        // A1: com uma origem declarada, a pedida também é declarada (nunca importada).
-        const declarada = registros.some((r) => r?.origem === "declarado");
-        // A data é a da origem que a determina (a mais recente), pelo próprio registro: as declaradas dividem o mesmo
-        // período virtual. Uma declarada sem semestre leva o limite de registradoEm (e A7) para a pedida.
-        // Vale a origem mais tardia: o semestre datado contra o limite de registradoEm das declaradas sem semestre.
-        // No empate, a datada (é exata); quando o limite é o mais tardio, a pedida leva o limite (e A7).
-        const tempos = registros.map((r) => {
-          if (!r) return null;
-          const s = semestreDe(r);
-          if (s != null) return { r, v: s, limite: false };
-          const l = r.origem === "declarado" ? semestreDaData(r.registradoEm) : null;
-          return l == null ? null : { r, v: l, limite: true };
-        });
-        let pi = null, data = {};
-        if (tempos.every(Boolean)) {
-          const det = tempos.reduce((a, b) => (b.v > a.v || (b.v === a.v && a.limite && !b.limite) ? b : a));
-          pi = det.r.pi;
-          if (det.limite) data = { semestreDeclarado: null, registradoEm: det.r.registradoEm };
-          else if (det.r.origem === "declarado") data = { semestreDeclarado: det.r.semestreDeclarado, registradoEm: det.r.registradoEm || null };
-        }
-        registra(e.pedida, { pi, status, nota: "E", via: `equivalência deferida: ${cs.map((c) => c.code).join(" + ")}`,
-          ...(declarada ? { origem: "declarado", semestreDeclarado: null, ...data } : {}) });
+        registra(e.pedida, { ...pedidaDaEquivalencia(registros, periodos), nota: "E", via: `equivalência deferida: ${cs.map((c) => c.code).join(" + ")}` });
         cs.forEach((c) => consumidas.add(c.code));
       } else if (pendente(e)) {
         if (cs.some((c) => dispensou[c.code] || usosDeferidos.has(c.code) || usosPendentes.get(c.code) > 1)) {
@@ -365,27 +391,35 @@
    */
   function registroCumpre(registros, periodos, semestre, aceitaMesmoSemestre = false) {
     if (semestre == null) return false;
-    return (registros || []).some((r) => {
-      const p = periodos[r.pi];
-      if (!p || FORCA[r.status] < FORCA.planejado) return false;
-      let origem = semestreDoRegistro(r, periodos);
-      if (origem == null && r.origem === "declarado" && r.status === "aprovado") {
-        const limite = semestreDaData(r.registradoEm);
-        return limite != null && (limite < semestre || (aceitaMesmoSemestre && limite === semestre));
-      }
-      if (origem == null && r.status === "aprovado") {
-        origem = semIdx(r.aprovadaEm);
-        const ano = anoDoBloco(p.nome);
-        if (origem == null) return ano != null && Math.floor(semestre / 2) > ano;
-      }
-      return origem != null && (origem < semestre || (aceitaMesmoSemestre && origem === semestre));
-    });
+    return (registros || []).some((r) => cumpreUm(r, periodos, semestre, aceitaMesmoSemestre));
   }
-  /** Declarada sem semestre cujo limite (`registradoEm`) cai neste semestre: não dá para saber se foi antes (aviso). */
-  const declaradaSemSemestreEm = (registros, periodos, semestre) => semestre != null && (registros || []).some((r) =>
-    r.origem === "declarado" && r.status === "aprovado" && semestreDoRegistro(r, periodos) == null && semestreDaData(r.registradoEm) === semestre);
+  function cumpreUm(r, periodos, semestre, aceitaMesmoSemestre) {
+    if (!r || FORCA[r.status] < FORCA.planejado) return false;
+    // Pedida de equivalência: cumpre quando todas as origens cumprem (regra única de pedidaDaEquivalencia).
+    if (r.origens) return r.origens.length > 0 && r.origens.every((o) => cumpreUm(o, periodos, semestre, aceitaMesmoSemestre));
+    const p = periodos[r.pi];
+    if (!p) return false;
+    let origem = semestreDoRegistro(r, periodos);
+    if (origem == null && r.origem === "declarado" && r.status === "aprovado") {
+      const limite = semestreDaData(r.registradoEm);
+      return limite != null && (limite < semestre || (aceitaMesmoSemestre && limite === semestre));
+    }
+    if (origem == null && r.status === "aprovado") {
+      origem = semIdx(r.aprovadaEm);
+      const ano = anoDoBloco(p.nome);
+      if (origem == null) return ano != null && Math.floor(semestre / 2) > ano;
+    }
+    return origem != null && (origem < semestre || (aceitaMesmoSemestre && origem === semestre));
+  }
+  /** Declarada sem semestre cujo limite (`registradoEm`) cai neste semestre: não dá para saber se foi antes (aviso).
+   *  Numa pedida, vale quando a incerteza vem dessa origem e as outras já cumprem. */
+  const limiteEm = (o, periodos, semestre) => !!o && !o.origens && o.origem === "declarado" && o.status === "aprovado"
+    && semestreDoRegistro(o, periodos) == null && semestreDaData(o.registradoEm) === semestre;
+  const declaradaSemSemestreEm = (registros, periodos, semestre) => semestre != null && (registros || []).some((r) => (r.origens
+    ? r.origens.some((o) => limiteEm(o, periodos, semestre)) && r.origens.every((o) => limiteEm(o, periodos, semestre) || cumpreUm(o, periodos, semestre, false))
+    : limiteEm(r, periodos, semestre)));
 
-  return { FORCA, NOME_DECL, dataValida, semestreDaData, nomeDoSemestre, semestreDoHistorico, erroDeclarada, normalizaDeclaradas,
+  return { FORCA, NOME_DECL, tempoDaOrigem, pedidaDaEquivalencia, dataValida, semestreDaData, nomeDoSemestre, semestreDoHistorico, erroDeclarada, normalizaDeclaradas,
     classificaDeclaradas, registroCumpre, declaradaSemSemestreEm, statusDosRegistros, fonteDaAprovacao, semestreValido, semIdx, anoDoBloco, emCurso, parseHorarios, cursadasDe, pendente, semestreDoRegistro,
     montaRegistros };
 });
