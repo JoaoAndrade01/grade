@@ -1868,7 +1868,34 @@
       <section class="cfg-sec" aria-labelledby="cfg-h-ref"><h2 id="cfg-h-ref">Referências</h2>
         ${linhaAtalho("referencias")}
       </section>
+      ${htmlSobre()}
       <div class="dlg-acoes"><button type="submit" value="" class="btn btn-escuro">Fechar</button></div>`;
+  }
+  /** Seção "Sobre" de Configurações (texto aprovado pela manutenção em 2026-11-26; D-09). */
+  function htmlSobre() {
+    const link = (url, txt) => `<a href="${url}" target="_blank" rel="noopener noreferrer">${txt} ${icone("externo", 13)}<span class="sr"> (abre em outra aba)</span></a>`;
+    return `<section class="cfg-sec cfg-sobre" id="cfg-sobre" aria-labelledby="cfg-h-sobre"><h2 id="cfg-h-sobre">Sobre</h2>
+        <p>A Grade ECI é feita por alunos de Engenharia de Computação e Informação da UFRJ, para alunos do curso. Sugestões e correções são bem-vindas pelas issues.</p>
+        <p><b>Seus dados ficam neste navegador.</b> Os PDFs do SIGA e o perfil são lidos no seu dispositivo. Nada é enviado a um servidor. O arquivo que você exporta é uma cópia sua; guarde-o em local privado.</p>
+        <p><b>Dois modos.</b></p>
+        <ul>
+          <li><b>Clássico:</b> a grade do curso numa tela, para pintar o que você já fez.</li>
+          <li><b>Planejador:</b> linha do tempo, optativas, cronograma, pedidos de equivalência e extensão.</li>
+        </ul>
+        <p><b>A Grade orienta, não confirma.</b> Ela não é um serviço da UFRJ nem da coordenação. Créditos, requisitos e prazos são estimativas. A confirmação fica com o SIGA, o BOA e a coordenação do curso.</p>
+        <p><b>Limites conhecidos.</b></p>
+        <ul>
+          <li>Os horários de referência são mantidos por alunos e mudam a cada semestre. Confira no SIGA.</li>
+          <li>Para quem reingressou, a data que vale para o prazo de 5 anos ainda está em consulta.</li>
+          <li>O limite de 25% de créditos por equivalência e os prazos de pedido não são avisados.</li>
+          <li>Marcações feitas com o pincel são simulações suas, não registros.</li>
+        </ul>
+        <p><b>Links.</b></p>
+        <ul>
+          <li>Código e documentação: ${link("https://github.com/JoaoAndrade01/grade", "repositório no GitHub")}</li>
+          <li>Achou um erro? ${link("https://github.com/JoaoAndrade01/grade/issues/new/choose", "Crie uma nova issue")}. Use só dados fictícios: a issue é pública.</li>
+        </ul>
+      </section>`;
   }
   /** Redesenha Configurações aberta (após uma mudança) e devolve o foco ao mesmo controle. */
   function atualizaConfig() {
@@ -3171,22 +3198,19 @@
   // Rodapé: data da conferência do currículo com o SIGA (campo `consultado` de js/database.js).
   const conferido = (window.curriculoSIGA || {})[1];
   if (conferido && conferido.consultado) $("#curriculo-conferido").textContent = `Currículo conferido no SIGA em ${conferido.consultado}`;
-  // A faixa de aviso é fixa: o painel de detalhes começa abaixo dela.
-  const faixa = $("#faixa-aviso");
-  if (faixa && "ResizeObserver" in window) new ResizeObserver(() => document.documentElement.style.setProperty("--faixa-h", faixa.offsetHeight + "px")).observe(faixa);
   // A paleta também é fixa: a rolagem por foco reserva o espaço dela (scroll-padding) e o painel de detalhes fica acima dela.
   const paletaEl = $("#paleta");
-  // Nem todo navegador respeita scroll-padding na rolagem por foco (o Firefox não): confere e corrige o que ficou sob a faixa ou a paleta.
+  // Nem todo navegador respeita scroll-padding na rolagem por foco (o Firefox não): confere e corrige o que ficou sob a paleta.
   document.addEventListener("focusin", (ev) => {
     const el = ev.target;
-    if (!(el instanceof HTMLElement) || el.closest(".paleta, .faixa-aviso, #detalhes, dialog")) return;
+    if (!(el instanceof HTMLElement) || el.closest(".paleta, #detalhes, dialog")) return;
     // Só o foco de teclado: rolar a página no foco por clique (o WebKit foca o contêiner) faz o clique se perder.
     if (el === painelRef || !el.matches(":focus-visible")) return;
     requestAnimationFrame(() => {
       if (!el.isConnected || document.activeElement !== el) return;
       const alvo = el.matches(".seletor-modo input") ? el.closest("label") : el;
       const r = alvo.getBoundingClientRect();
-      const topo = faixa ? faixa.getBoundingClientRect().bottom + 8 : 0;
+      const topo = 0;
       const base = paletaEl && !paletaEl.hidden && paletaEl.offsetHeight ? paletaEl.getBoundingClientRect().top - 8 : innerHeight;
       if (r.height > base - topo) return;
       if (r.top < topo) window.scrollBy({ top: r.top - topo, behavior: "instant" });

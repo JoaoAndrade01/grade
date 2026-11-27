@@ -208,7 +208,7 @@ code { background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
 
 /* ---------- Detalhes ---------- */
 .detalhes {
-  position: fixed; top: calc(var(--faixa-h, 0px) + 12px); right: 12px; bottom: 12px; width: min(340px, calc(100vw - 24px));
+  position: fixed; top: 12px; right: 12px; bottom: 12px; width: min(340px, calc(100vw - 24px));
   background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px;
   box-shadow: 0 12px 40px rgb(0 0 0 / .18); overflow-y: auto; z-index: 10;
   animation: entra .18s ease-out;
@@ -879,10 +879,11 @@ dialog.dlg-eci:modal { overscroll-behavior: contain; }
   .opcao { min-height: 44px; }
 }
 
-/* ---------- Faixa de aviso e notas de estimativa (D-06) ---------- */
-.faixa-aviso { position: sticky; top: 0; z-index: 25; margin: 0; padding: 4px 24px; font-size: 12px; line-height: 16px;
-  text-align: center; color: var(--text); background: var(--surface-2); border-bottom: 1px solid var(--border); }
-@media (max-width: 640px) { .faixa-aviso { padding: 4px 12px; } }
+/* ---------- Aviso no rodapé (D-06, D-09), seção Sobre e notas de estimativa ---------- */
+.rodape .rodape-aviso { color: var(--text); }
+.cfg-sobre p, .cfg-sobre ul { margin: 6px 0; font-size: 14px; line-height: 1.45; }
+.cfg-sobre ul { padding-left: 20px; }
+.cfg-sobre a { color: var(--text); }
 .nota-estimativa { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
 .rodape p { margin: 0 0 4px; }
 body:has(.paleta:not([hidden])) .rodape { padding-bottom: 84px; }
@@ -896,11 +897,11 @@ body:has(.paleta:not([hidden])) .rodape { padding-bottom: 84px; }
   background: var(--surface); color: var(--text); border: 1px solid var(--border); box-shadow: 0 10px 30px rgb(0 0 0 / .18); }
 .paleta .consulta .btn { margin-left: 4px; min-height: 32px; }
 
-/* ---------- foco e rolagem com a faixa e a paleta fixas ---------- */
+/* ---------- foco e rolagem com a paleta fixa ---------- */
 .principal { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 .painel:focus { outline: none; }
 /* Só a margem de baixo é CSS: scroll-padding-top fazia o Chromium rolar 10 px ao recarregar a página (restauração de rolagem).
-   A margem de cima, sob a faixa, é corrigida pelo script (focusin em js/app.js), que também cobre o Firefox. */
+   O script (focusin em js/app.js) confere a margem de cima e a de baixo, o que também cobre o Firefox. */
 html { scroll-padding-bottom: calc(var(--paleta-h, 0px) + 20px); }
 
 /* ---------- células da grade de horários operáveis por teclado ---------- */
@@ -910,7 +911,7 @@ html { scroll-padding-bottom: calc(var(--paleta-h, 0px) + 20px); }
 /* ---------- o painel de detalhes fica acima da paleta fixa ---------- */
 body:has(.paleta:not([hidden])) .detalhes {
   bottom: calc(var(--paleta-h, 0px) + 16px);
-  max-height: calc(100vh - var(--paleta-h, 0px) - var(--faixa-h, 0px) - 28px);
+  max-height: calc(100vh - var(--paleta-h, 0px) - 28px);
 }
 
 /* ---------- Pedidos sem rolagem horizontal do documento ---------- */

@@ -1131,21 +1131,18 @@ def nota_ra20(pg):
     return f"Horários de referência mantidos por alunos (Notion, consultado em {iso[8:]}/{iso[5:7]}/{iso[:4]}). Podem mudar; confira no SIGA antes da inscrição."
 
 def confere_faixa(pg, onde):
-    faixa = pg.locator("#faixa-aviso")
-    expect(faixa).to_be_visible()
-    assert faixa.inner_text().strip() == FAIXA, (onde, faixa.inner_text())
-    assert faixa.get_attribute("role") == "note" and faixa.get_attribute("aria-label")
-    caixa = faixa.bounding_box()
-    assert caixa["y"] <= 1, (onde, caixa)                                         # no topo
-    for seletor in (".topo", "#painel"):                                           # sem cobrir o conteúdo em repouso
-        alvo = pg.locator(seletor).bounding_box()
-        assert alvo is None or alvo["y"] >= caixa["y"] + caixa["height"] - 1, (onde, seletor, alvo, caixa, pg.evaluate(
-            "() => ({ scrollY: window.scrollY, readyState: document.readyState, faixa: document.getElementById('faixa-aviso').offsetHeight })"))
-    # vem antes do primeiro controle na ordem de leitura e de foco
-    assert pg.evaluate("() => { const f = document.getElementById('faixa-aviso'); const c = document.querySelector('button, a, input, select');"
-                       " return !!(f.compareDocumentPosition(c) & Node.DOCUMENT_POSITION_FOLLOWING); }"), onde
+    """D-09: o aviso de que a Grade não é oficial é uma linha mínima no rodapé; o topo não tem mais a faixa."""
+    assert pg.locator("#faixa-aviso").count() == 0, onde
+    aviso = pg.locator("footer.rodape #aviso-rodape")
+    assert aviso.inner_text().strip() == FAIXA, (onde, aviso.inner_text())
+    assert aviso.get_attribute("role") == "note", onde
+    aviso.scroll_into_view_if_needed(); expect(aviso).to_be_visible()
+    assert pg.evaluate("() => { const a = document.getElementById('aviso-rodape'), t = document.querySelector('.topo');"
+                       " return a.getBoundingClientRect().top >= t.getBoundingClientRect().bottom; }"), onde        # fora do topo
+    assert pg.evaluate("() => parseFloat(getComputedStyle(document.getElementById('aviso-rodape')).fontSize)") <= 13, onde   # linha mínima
+    pg.evaluate("window.scrollTo(0, 0)")
 
-@caso("RF-08 (08a, 08b): faixa de aviso no clássico, após recarregar, após trocar de modo e nas seis abas; sem e com perfil; desktop e celular")
+@caso("RF-08 (08a, 08b) · D-09: aviso no rodapé, no clássico, após recarregar, após trocar de modo e nas seis abas; sem e com perfil; desktop e celular")
 def t_rf08_faixa(b):
     for rotulo, vp, toque in (("desktop", D, False), ("celular", C, True)):
         for com_perfil in (False, True):
@@ -1153,16 +1150,51 @@ def t_rf08_faixa(b):
             nome = f"{rotulo}/{'perfil' if com_perfil else 'sem perfil'}"
             confere_faixa(pg, nome + "/classico")
             pg.reload(); pg.wait_for_load_state("load"); confere_faixa(pg, nome + "/recarga")
-            alterna_modo(pg); confere_faixa(pg, nome + "/completo")
+            alterna_modo(pg); confere_faixa(pg, nome + "/planejador")
             for vista in ("grade", "timeline", "optativas", "cronograma", "pedidos", "eci"):
                 pg.click(f'[data-vista="{vista}"]'); confere_faixa(pg, f"{nome}/{vista}")
                 if vista == "eci" and pg.locator("#dlg-eci[open]").count(): pg.keyboard.press("Escape")
             alterna_modo(pg); confere_faixa(pg, nome + "/de volta ao classico")
-            pg.evaluate("window.scrollBy(0, 600)"); pg.wait_for_timeout(150)      # mouse.wheel não existe no WebKit móvel
-            assert pg.locator("#faixa-aviso").bounding_box()["y"] <= 1                  # continua no topo ao rolar
-            if rotulo == "desktop" and com_perfil: foto(pg, "rf08-faixa-desktop")
-            if rotulo == "celular" and com_perfil: foto(pg, "rf08-faixa-celular")
+            if com_perfil:
+                pg.locator("#aviso-rodape").scroll_into_view_if_needed()
+                foto(pg, f"rf08-aviso-rodape-{rotulo}")
             ctx.close()
+
+SOBRE = [
+    "A Grade ECI é feita por alunos de Engenharia de Computação e Informação da UFRJ, para alunos do curso. Sugestões e correções são bem-vindas pelas issues.",
+    "Seus dados ficam neste navegador. Os PDFs do SIGA e o perfil são lidos no seu dispositivo. Nada é enviado a um servidor. O arquivo que você exporta é uma cópia sua; guarde-o em local privado.",
+    "Clássico: a grade do curso numa tela, para pintar o que você já fez.",
+    "Planejador: linha do tempo, optativas, cronograma, pedidos de equivalência e extensão.",
+    "A Grade orienta, não confirma. Ela não é um serviço da UFRJ nem da coordenação. Créditos, requisitos e prazos são estimativas. A confirmação fica com o SIGA, o BOA e a coordenação do curso.",
+    "Os horários de referência são mantidos por alunos e mudam a cada semestre. Confira no SIGA.",
+    "Para quem reingressou, a data que vale para o prazo de 5 anos ainda está em consulta.",
+    "O limite de 25% de créditos por equivalência e os prazos de pedido não são avisados.",
+    "Marcações feitas com o pincel são simulações suas, não registros.",
+    "Use só dados fictícios: a issue é pública.",
+]
+@caso("D-09: seção Sobre em Configurações com o texto aprovado e os links do repositório e de relato; teclado")
+def t_sobre(b):
+    for vp, toque in ((D, False), (C, True)):
+        ctx, pg = abre(b, vp=vp, toque=toque, nome=f"sobre-{vp['width']}")
+        pg.click("#btn-config")
+        sec = pg.locator("#dlg-config #cfg-sobre")
+        expect(sec.locator("h2")).to_have_text("Sobre")
+        texto = " ".join(sec.inner_text().split())
+        faltam = [t for t in SOBRE if t not in texto]
+        assert not faltam, (faltam, texto)
+        assert "Grêmio" not in texto
+        hrefs = sec.locator("a").evaluate_all("(as) => as.map((a) => [a.getAttribute('href'), a.target, a.rel])")
+        assert hrefs == [["https://github.com/JoaoAndrade01/grade", "_blank", "noopener noreferrer"],
+                         ["https://github.com/JoaoAndrade01/grade/issues/new/choose", "_blank", "noopener noreferrer"]], hrefs
+        link = sec.locator("a").last
+        for _ in range(80):                                     # alcançável por Tab dentro da janela
+            if pg.evaluate("document.activeElement.closest('#cfg-sobre a') !== null && document.activeElement.href.endsWith('/choose')"): break
+            pg.keyboard.press("Tab")
+        if b.browser_type.name != "webkit":                    # PUB-09: no WebKit do ambiente de teste o Tab não alcança links
+            assert pg.evaluate("document.activeElement.href || ''").endswith("/issues/new/choose")
+        link.scroll_into_view_if_needed(); foto(pg, f"sobre-configuracoes-{vp['width']}")
+        pg.keyboard.press("Escape")
+        ctx.close()
 
 @caso("RF-08 (08c, 08d): nota de RA-13 junto dos dois números e nota de RA-09 junto da idade")
 def t_rf08_notas_credito(b):
@@ -2051,7 +2083,7 @@ CASOS = [
     t_cr04_reingresso, t_cr04_ordem_dos_arquivos, t_cr04_escolha_sem_datas, t_pc05_datas_ausentes, t_cr04_troca_recalcula_planos, t_cr04_ace_duas_ocorrencias, t_cr04_controles, t_pc05_perfil_antigo_duvida, t_cr04_papel, t_cr04_fronteira,
     t_cr02_pedidos, t_cr02_duas_dispensas, t_cr02_dispensa_unica, t_cr02_alvo_fora_do_catalogo,
     t_d02_dois_numeros, t_pedidos_sem_total_e_sem_check, t_d02_ausente_e_vazia, t_d02_outros_grupos, t_d02_importacao,
-    t_rf08_faixa, t_rf08_notas_credito, t_rf08_periodo_atual, t_rf08_deduzido_regras, t_rf08_oferta, t_rf08_rodape, t_rf08_ace,
+    t_rf08_faixa, t_sobre, t_rf08_notas_credito, t_rf08_periodo_atual, t_rf08_deduzido_regras, t_rf08_oferta, t_rf08_rodape, t_rf08_ace,
     t_pc02_manual_credito, t_pc03_manual_requisito,
     t_d01_carga, t_d01_conteudo,
     t_regressao, t_a11y,
@@ -2235,7 +2267,7 @@ def t_b2_foco_filtros(b):
 PONTO_OCULTO = """() => {
   const el = document.activeElement;
   if (!el || el === document.body) return null;     // o fim da ordem de Tab passa pelo documento (WebKit): não é cartão encoberto
-  if (el.closest('.paleta, .faixa-aviso, #detalhes, dialog')) return null;
+  if (el.closest('.paleta, #detalhes, dialog')) return null;
   const alvo = el.matches('.seletor-modo input') ? el.closest('label') : el;    // o rádio do seletor fica oculto; o rótulo mostra o foco
   const r = alvo.getBoundingClientRect();
   if (!r.width || !r.height) return 'sem caixa: ' + el.outerHTML.slice(0, 70);

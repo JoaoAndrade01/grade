@@ -66,7 +66,7 @@ Disciplinas, por Pull Request revisado por uma pessoa.
 | H7 | 02k–02o, 03i, 06h–06m | [RF-03](#rf-03--análise-de-um-pedido-de-equivalência-ra-07-ra-09-ra-11-ra-12-ra-21), [RF-06](#rf-06--importação-do-siga-ra-05-ra-06-ra-17-ra-19-ra-21) |
 | H8 | 01c–01f, 06m (01g na versão seguinte) | [RF-01](#rf-01--progresso-por-grupo-ra-01-ra-05-ra-06-ra-16), [RF-06](#rf-06--importação-do-siga-ra-05-ra-06-ra-17-ra-19-ra-21) |
 | H9 | 11a–11d | [RF-11](#rf-11--optativas-guia-e-oferta-h9) |
-| H10 | 08a–08l, 14g | [RF-08](#rf-08--aviso-de-que-a-grade-não-é-oficial-versão-e-relato-d-06), [RF-14](#rf-14--marcação-manual-aparência-tags-e-referências-h1-h3-h10) |
+| H10 | 08a–08m, 14g | [RF-08](#rf-08--aviso-de-que-a-grade-não-é-oficial-versão-e-relato-d-06), [RF-14](#rf-14--marcação-manual-aparência-tags-e-referências-h1-h3-h10) |
 | H11 | 06f–06g, 12a–12e, RNF-01 | [RF-06](#rf-06--importação-do-siga-ra-05-ra-06-ra-17-ra-19-ra-21), [RF-12](#rf-12--perfil-e-dados-locais-h11) |
 | H12 | 13a–13c | [RF-13](#rf-13--a-eci-por-trás-da-grade-h12) |
 | H13 | P13: seguir o `CONTRIBUTING.md` e propor uma experiência fictícia | [CONTRIBUTING.md](../CONTRIBUTING.md) |
@@ -343,14 +343,14 @@ pares; MAC248 e MAC238 são do ciclo básico; EEWX00 sem referência.
 O texto da faixa e das notas está em [REGRAS-ACADEMICAS.md](REGRAS-ACADEMICAS.md#textos-de-aviso). Os casos
 verificam presença e local; a clareza do texto exige revisão humana.
 
-**"Alcançável" (08b)** quer dizer: a faixa é texto estático, na ordem de leitura e na árvore de acessibilidade,
+**"Alcançável" (08b)** quer dizer: o aviso do rodapé é texto estático, na ordem de leitura e na árvore de acessibilidade,
 fora do caminho dos controles; e os controles interativos da tela são percorridos por Tab com foco visível e
 sem sobreposição. A passada com leitor de tela real está no backlog ([MANUTENCAO.md](MANUTENCAO.md)).
 
 | Caso | Situação | Ação | Resultado esperado |
 | --- | --- | --- | --- |
-| 08a · faixa, clássico | Sem perfil e com P1; modo clássico (só a Grade); desktop e celular | Abrir a Grade, recarregar e trocar para o modo completo e voltar | Faixa visível na Grade, depois da recarga e após cada troca de modo |
-| 08b · faixa, completo | Sem perfil e com P1; modo completo; desktop e celular | Percorrer as seis abas: Grade, Linha do tempo, Optativas, Cronograma, Equivalências e Extensão / ACE, A ECI por trás da Grade | Faixa visível em todas, sem cobrir conteúdo, com texto na ordem de leitura e na árvore de acessibilidade. Tab percorre os controles com foco visível |
+| 08a · aviso, clássico · D-09 | Sem perfil e com P1; modo clássico (só a Grade); desktop e celular | Abrir a Grade, recarregar e trocar para o Planejador e voltar | O aviso "Feita por alunos de ECI. Não substitui o SIGA, o BOA nem a coordenação." aparece numa linha do rodapé, depois da recarga e após cada troca de modo. O topo não tem faixa |
+| 08b · aviso, Planejador · D-09 | Sem perfil e com P1; modo Planejador; desktop e celular | Percorrer as seis abas: Grade, Linha do tempo, Optativas, Cronograma, Equivalências e Extensão / ACE, A ECI por trás da Grade | O aviso está no rodapé em todas, com texto na ordem de leitura e na árvore de acessibilidade. Tab percorre os controles com foco visível |
 | 08c · RA-13 | P5 | Abrir o progresso e Pedidos | Nota de estimativa junto dos dois números de livre escolha de 05a |
 | 08d · RA-09 | Cursada com idade calculada (03a ou 03b) | Abrir o pedido e a tabela de livre escolha | Nota de estimativa junto da idade. A nota permanece enquanto a regra de reingresso (RA-21) não tiver sido implementada e testada; retirá-la depois é decisão registrada em [DECISOES.md](DECISOES.md) |
 | 08e · RA-19 | Perfil importado com período atual deduzido | Abrir a linha do tempo e a prévia de importação | Nota de estimativa no período atual. A nota volta ao reimportar os mesmos PDFs enquanto o semestre real deduzido for mantido |
@@ -360,6 +360,7 @@ sem sobreposição. A passada com leitor de tela real está no backlog ([MANUTEN
 | 08h · RA-20 | MAC238 planejada em 2027/1, sem horários no perfil | Abrir o Cronograma e adotar a referência | Antes, o item está sem horário e a referência traz ter e qui 10–12, a fonte, a data e a nota. Depois, os horários ficam gravados como iguais à referência |
 | 08i · versão e currículo | Modo clássico e modo completo | Ler o rodapé | Exibe `v2.0.0` e a data `consultado` de `js/database.js`. A data representa o recorte de conferência descrito nas [regras acadêmicas](REGRAS-ACADEMICAS.md#fontes) |
 | 08j · relato, rodapé | Cada modo | Seguir com Tab e Enter o link de relato | O destino é a criação de Issue no fork da Grade, sem dados da pessoa na URL. Com o modelo disponível na branch padrão, a tela pede esperado, observado e passos e orienta a não anexar PDFs, capturas identificáveis nem perfil |
+| 08m · Sobre · D-09 | Sem perfil; desktop e celular | Abrir Configurações e ler a seção Sobre | Texto aprovado: quem faz, dados só no navegador, os modos Clássico e Planejador, "a Grade orienta, não confirma", limites conhecidos, link do repositório e link de relato com escolha de modelo (`/issues/new/choose`) |
 | 08k · relato, importação | Perfil salvo | Importar um PDF fictício inválido | A mensagem oferece o mesmo link, não inclui dados do arquivo e preserva o perfil salvo |
 
 ### RF-09 · Procedimentos de estágio, equivalência e ACE (planejado)

@@ -20,6 +20,7 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
 | [D-06](#d-06--faixa-e-notas-de-estimativa) | Faixa e notas de estimativa |
 | [D-07](#d-07--origem-de-dispensa-não-soma-créditos) | Origem de dispensa não soma |
 | [D-08](#d-08--transferida-e-requisitos) | Transferida e requisitos |
+| [D-09](#d-09--aviso-no-rodapé-seção-sobre-e-modos-clássico-e-planejador) | Aviso no rodapé, Sobre e modos |
 | [PC-01](#pc-01--identidade-de-uma-ocorrência-de-extensão) | Identidade de ocorrência de extensão |
 | [PC-02 e PC-03](#pc-02-e-pc-03--tag-aprovada-do-pincel) | Tag "aprovada" do pincel |
 | [PC-04](#pc-04--número-do-boa-na-livre-escolha) | Número do BOA |
@@ -93,7 +94,8 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
 
 ### D-06 · Faixa e notas de estimativa
 
-- **Estado:** aceita.
+- **Estado:** aceita. A faixa do topo foi substituída por uma linha no rodapé
+  ([D-09](#d-09--aviso-no-rodapé-seção-sobre-e-modos-clássico-e-planejador)); as notas continuam.
 - **Contexto:** a Grade parece uma fonte confiável, e o risco central é um número errado numa interface
   confiável. A condição 3 pede honestidade sobre o alcance.
 - **Decisão:** uma faixa curta, fixa e discreta no topo e uma nota junto de cada cálculo marcado como
@@ -123,6 +125,19 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
   O prazo de 5 anos segue D-03 (ano do bloco).
 - **Consequências:** casos 02k a 02o. Uma transferida sem semestre original pode gerar aviso num período do ano do
   bloco, mesmo que tenha sido aprovada antes; o aviso orienta, não confirma.
+
+### D-09 · Aviso no rodapé, seção Sobre e modos Clássico e Planejador
+
+- **Estado:** aceita em 2026-11-26. Substitui a faixa do topo de D-06.
+- **Contexto:** a faixa fixa no topo ocupava a primeira linha de todas as telas. O interruptor de modo não tinha
+  texto, e o nome "Completo" não dizia para que servia o modo.
+- **Decisão:** o texto "Feita por alunos de ECI. Não substitui o SIGA, o BOA nem a coordenação." fica numa linha
+  mínima no rodapé, em todas as telas e nos dois modos. Configurações ganha a seção **Sobre**, com o texto
+  aprovado pela manutenção: quem faz, dados só no navegador, os dois modos, "a Grade orienta, não confirma",
+  limites conhecidos e links. O topo tem um seletor visível "Clássico | Planejador"; "Completo" passa a se
+  chamar "Planejador". Configurações oferece "Mostrar só ícones no seletor", com o nome acessível mantido. Não
+  há aviso de primeira visita: no modo clássico, "Importar do SIGA" sugere trocar para o Planejador.
+- **Consequências:** casos 08a, 08b e 08m. As notas de estimativa de D-06 não mudam.
 
 ## Produto e importação
 
