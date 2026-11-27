@@ -5,7 +5,7 @@
 Cada decisão é um registro curto, no formato de [Nygard](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions):
 **estado**, **contexto**, **decisão** e **consequências**. Os casos de teste citados estão em
 [REQUISITOS.md](REQUISITOS.md); as regras, em [REGRAS-ACADEMICAS.md](REGRAS-ACADEMICAS.md). Todas as decisões
-abaixo são de 2026-11-26 e estão **aceitas**, salvo indicação. Uma decisão substituída aponta para o registro
+abaixo são de 2026-11-26 e estão **aceitas**, salvo indicação (as de 2026-11-27 dizem a data). Uma decisão substituída aponta para o registro
 novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, sem reescrever o antigo.
 
 ## Índice
@@ -28,6 +28,12 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
 | [PC-06](#pc-06--fronteira-de-5-anos-com-só-o-ano) | Fronteira de 5 anos |
 | [PC-07](#pc-07--ace-no-reingresso-30-h-confirmadas-e-30-h-a-confirmar) | ACE no reingresso |
 | [PC-08](#pc-08--ícone-de-estado-no-cartão-e-legendas-por-aba) | Ícone de estado e legendas por aba |
+| [PC-09](#pc-09--aparência-em-três-níveis-e-ícones-nos-controles) | Aparência em três níveis |
+| [PC-10](#pc-10--destaque-de-requisitos-no-lugar-das-setas-da-grade) | Destaque no lugar das setas |
+| [PC-11](#pc-11--modo-foco-no-planejador) | Modo Foco |
+| [PC-12](#pc-12--fase-do-curso-e-previsão-de-formatura) | Fase do curso e previsão de formatura |
+| [PC-13](#pc-13--conquistas) | Conquistas |
+| [PC-14](#pc-14--registrar-marcações-aprovações-registradas-por-você) | Registrar marcações |
 | [PUB-01](#pub-01--retirada-da-página-legada) | Página legada |
 | [PUB-02](#pub-02--valor-e-condições-para-publicar) | Valor e condições para publicar |
 | [PUB-03](#pub-03--ordem-de-publicação) | Ordem de publicação |
@@ -139,6 +145,8 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
   chamar "Planejador". Configurações oferece "Mostrar só ícones no seletor", com o nome acessível mantido. Não
   há aviso de primeira visita: no modo clássico, "Importar do SIGA" sugere trocar para o Planejador.
 - **Consequências:** casos 08a, 08b e 08m. As notas de estimativa de D-06 não mudam.
+- **Atualização (2026-11-27):** "Mostrar só ícones no seletor" virou o nível Só ícones da Aparência
+  ([PC-09](#pc-09--aparência-em-três-níveis-e-ícones-nos-controles)).
 
 ## Produto e importação
 
@@ -162,6 +170,10 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
 - **Consequências:** casos 01b e 02j.
 - **Atualização (2026-11-27):** ver [PC-08](#pc-08--ícone-de-estado-no-cartão-e-legendas-por-aba). A identificação
   continua no detalhe; a linha da legenda passou ao detalhamento do progresso, e o cartão marcado mostra o ícone ✎.
+- **Atualização (2026-11-27):** o pincel continua simulação e não dá selo nem conta para a fase. Para que uma
+  marcação passe a contar, a pessoa usa "Registrar marcações"
+  ([PC-14](#pc-14--registrar-marcações-aprovações-registradas-por-você)). A aprovação registrada por você tem
+  ícone próprio (☑) e a origem "registrada por você", distinta do pincel (✎) e do registro importado (✓).
 
 ### PC-04 · Número do BOA na livre escolha
 
@@ -171,6 +183,8 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
   tratado como estimativa, nunca como total do BOA. Sem a seção, aparece "BOA: indisponível"; seção presente e
   vazia vale 0.
 - **Consequências:** casos 05a a 05h.
+- **Atualização (2026-11-27):** o número aparece no detalhamento do progresso, com este rótulo, fora da Aparência
+  Minimalista; no Minimalista não há detalhamento ([PC-09](#pc-09--aparência-em-três-níveis-e-ícones-nos-controles)).
 
 ### PC-05 · Qual é o histórico do curso atual
 
@@ -220,6 +234,127 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
   legenda. A aprovação pelo pincel é identificada no detalhamento do progresso. A soma da lista do BOA mantém o
   rótulo de [PC-04](#pc-04--número-do-boa-na-livre-escolha).
 - **Consequências:** casos 14b, 14i e 14p.
+- **Atualização (2026-11-27):** a aprovação registrada por você ganha o ícone ☑, distinto do ✓ do registro
+  importado, com a origem "registrada por você" no nome acessível, no primeiro toque e nos detalhes. O detalhamento
+  tem uma linha irmã da marcação manual: "☑ N aprovações registradas por você: contam para fase e conquistas, não
+  são registro do SIGA." No Minimalista, o cartão mostra só o nome e o ícone de estado, sem detalhamento.
+
+### PC-09 · Aparência em três níveis e ícones nos controles
+
+- **Estado:** aceita em 2026-11-27. Atualiza [D-09](#d-09--aviso-no-rodapé-seção-sobre-e-modos-clássico-e-planejador)
+  e o caso 14n.
+- **Contexto:** a aparência das abas ("Ícone e texto", "Somente texto", "Somente ícone") e a opção de só ícones do
+  seletor eram duas preferências para a mesma ideia. Os controles da Grade, de Optativas e do Cronograma só tinham
+  texto, e quem quer uma tela limpa não tinha um nível próprio.
+- **Decisão:** uma preferência, Aparência, com três níveis: **Ícone + texto** (padrão), **Só ícones** e
+  **Minimalista**. Ela vale para a barra do topo, o seletor de modo, as abas e os controles de Exibir, Destaque,
+  filtros de Optativas, + Período, Exportar perfil.js e Excluir período. Em Só ícones, o texto some só da tela e fica no
+  nome acessível e no `title`. No Minimalista, os cartões da Grade mostram o nome e o ícone de estado; as ferramentas
+  ficam atrás de um botão ⋯, num painel com ícone e texto (Esc fecha e devolve o foco); a barra diz os números no nome
+  acessível e os mostra com foco ou toque; o detalhamento do progresso fica fora. Migração ao abrir: "Mostrar só
+  ícones no seletor" ligada vira Só ícones; desligada vira Ícone + texto; "Somente ícone" continua Só ícones; "Somente
+  texto" vira Ícone + texto. A chave antiga só sai depois que a nova é gravada. Em Optativas, "todas acesas" só tira o
+  esmaecimento das inativas; fica habilitada quando há uma inativa na lista e guarda a preferência. Exibir → Plano
+  mostra no cartão o primeiro semestre planejado e "+N", com a lista completa no nome acessível e nos detalhes.
+- **Consequências:** casos 14n, 14q a 14u e 14p.
+
+### PC-10 · Destaque de requisitos no lugar das setas da Grade
+
+- **Estado:** aceita em 2026-11-27. Atualiza os casos 14d e 14l.
+- **Contexto:** as setas da Grade cruzavam cartões, pediam vãos maiores entre colunas e eram difíceis de seguir no
+  celular. "Todas" desenhava dezenas de curvas.
+- **Decisão:** Exibir → Destaque tem dois modos: **Em foco** (padrão) e **Desligado**. Em foco, ao passar o mouse,
+  focar pelo teclado ou tocar uma disciplina, o pré-requisito acende com contorno contínuo, o co-requisito com
+  contorno tracejado e o que ela libera ganha a etiqueta "libera" em texto, dentro do cartão e sem cobrir o nome; o
+  resto esmaece sem baixar o contraste do texto. O mouse limpa o destaque ao sair, o teclado acompanha o foco e, com
+  os detalhes abertos, o destaque fica na disciplina consultada. O primeiro toque continua só consultando. Desligado
+  não destaca na Grade. A preferência antiga migra: Ocultas vira Desligado; Disciplina em foco e Todas viram Em
+  foco. As setas didáticas de "A ECI por trás da Grade" continuam.
+- **Consequências:** casos 14d, 14h, 14l e 14u. A distinção não depende da cor (contorno contínuo, tracejado e a
+  palavra "libera").
+
+### PC-11 · Modo Foco no Planejador
+
+- **Estado:** aceita em 2026-11-27.
+- **Contexto:** quem já cursou boa parte do curso vê uma tela cheia de disciplinas concluídas e perde o que falta.
+- **Decisão:** o botão 🎯 Foco, na barra do topo, liga e desliga um modo do Planejador em que ficam Grade, Linha do
+  tempo e Cronograma. Ligado numa aba escondida, o app vai para a Linha do tempo e anuncia a aba escondida. Somem as
+  aprovadas (inclusive transferidas, dispensas e registradas por você) e as reprovações já superadas; previstas,
+  cursando, planejadas e pendentes ficam. Na Linha do tempo, os períodos passados sem nada elegível somem, inclusive o
+  bloco de transferidas; coluna mista mostra só os elegíveis; o período atual sempre aparece. Sem perfil, o botão
+  fica desabilitado com "Importe ou crie um perfil"; no Clássico, com "Disponível no Planejador", e a preferência volta
+  com o Planejador. Desligar mantém a aba atual e o foco no 🎯 (`aria-pressed`). Totais e planejamento nunca mudam.
+- **Consequências:** casos 20a a 20e. O cartão da fase e a estante de conquistas aparecem no Foco
+  ([PC-12](#pc-12--fase-do-curso-e-previsão-de-formatura), [PC-13](#pc-13--conquistas)).
+
+### PC-12 · Fase do curso e previsão de formatura
+
+- **Estado:** aceita em 2026-11-27. Substitui [PUB-04](#pub-04--previsão-de-formatura-montada-pela-pessoa).
+- **Contexto:** a mensagem certa para quem começa não é a mesma de quem está terminando. A previsão de formatura
+  montada só pela pessoa deixava de usar o que o plano já diz.
+- **Decisão:** a fase usa o percentual registrado (aprovações importadas mais as registradas por você) sobre o total
+  de créditos do curso, com cada grupo limitado ao seu total. **Calouro:** menos de 25% e até dois semestres reais do
+  Histórico do curso atual com matéria cursada, sem o bloco de transferidas, o período em curso e o semestre declarado.
+  **Veterano:** 75% ou mais. O resto é **meio de curso**, inclusive 25% exatos e menos de 25% com mais de dois
+  semestres. Sem Histórico, só o percentual. A precisão é a do cálculo; só a tela arredonda. Quando a fase muda sem as
+  declaradas, o cartão mostra "· declarado". Os cartões trazem, por fase, o que a base destrava, marcos, avanço do
+  período e a reta final (Projeto de Graduação, Estágio, ACE, Humanas e Optativas). O tom é **zoeira** por padrão, com a
+  opção **discreto**; projeções aparecem como estimativa. A previsão de formatura só dá um semestre quando o Cronograma
+  cobre créditos por grupo, obrigatórias (inclusive Projeto de Graduação e Estágio) e ACE em horas, contando cada
+  disciplina uma vez; senão mostra a pendência concreta ("Planeje os NN cr que faltam", ou só as horas) ou explica por
+  que não dá (sem perfil, sem período atual, período sem semestre). Tudo cumprido mostra a conclusão.
+- **Consequências:** casos 19a a 19e e 20f a 20h.
+
+### PC-13 · Conquistas
+
+- **Estado:** aceita em 2026-11-27.
+- **Contexto:** marcos pequenos ajudam a manter o ritmo, mas não podem parecer confirmação oficial nem premiar uma
+  simulação.
+- **Decisão:** a estante de conquistas aparece no Foco, junto ao cartão da fase, com os selos obtidos, o próximo
+  marco e o que falta. São 24 selos em quatro grupos (linhas de matérias, matérias difíceis, etapas e extras); o emoji
+  é o ícone, a dificuldade é a do guia. Dá selo o registrado: aprovação no Histórico, equivalência deferida e dispensa.
+  A aprovação registrada por você também dá selo, com "· declarado". Prevista e pincel mostram só "quase lá (prevista)"
+  ou "quase lá (simulação ✎)". As regras de mesmo período (Calma, Calabreso; Tá pago; Movido a café) exigem um período
+  do Histórico; o semestre declarado não conta. Com o total de créditos e ACE pendente, "Créditos completos" mostra as
+  horas que faltam; "Acabou! Acabou!" só sai com créditos, ACE, Projeto de Graduação e Estágio. O selo do Notion depende
+  só de as disciplinas que faltam estarem no Cronograma (ACE não entra) e some se uma sair do plano. A estante recalcula
+  sempre do perfil atual. Só a lista de avisos já exibidos fica no navegador, por perfil, com uma identidade local
+  opaca, nunca um dado do aluno: recarga e atualização do mesmo perfil preservam a lista; substituição ou limpeza
+  recomeçam. A animação do selo novo respeita `prefers-reduced-motion`.
+- **Consequências:** casos 20i a 20l. Chaves `perfilId` e `selosAvisados` em [PRIVACIDADE.md](PRIVACIDADE.md).
+
+### PC-14 · Registrar marcações: aprovações registradas por você
+
+- **Estado:** aceita em 2026-11-27. Atualiza [PC-02 e PC-03](#pc-02-e-pc-03--tag-aprovada-do-pincel) e
+  [PC-08](#pc-08--ícone-de-estado-no-cartão-e-legendas-por-aba).
+- **Contexto:** quem não tem o Histórico em mãos marcava aprovações com o pincel, que é simulação e não conta para
+  fase e conquistas. Faltava um jeito de montar o perfil sem importar, sem confundir o declarado com o oficial.
+- **Decisão:**
+  - **Armazenamento:** o perfil ganha a lista opcional `aprovacoesDeclaradas` (`code`, `registradoEm`, `semestre`
+    opcional), fora de `periodos`, porque a reimportação refaz os períodos cursados. Um item por código (vale o
+    último). O importador (JS e Python) copia o campo do perfil anterior. No navegador, a lista fica no plano até
+    exportar; um item inválido é ignorado com aviso, sem derrubar o plano. No arquivo, um item inválido recusa o perfil
+    com o campo apontado. Não há número de versão: perfil antigo lê lista vazia.
+  - **Fluxo:** "Registrar marcações" (paleta e Configurações) mostra quantas serão gravadas e separa as já aprovadas, as
+    já registradas, as não reconhecidas e as em curso no BOA (desmarcadas). Um campo de semestre opcional vale para o
+    lote; o ajuste individual fica no detalhe. Sem perfil, o fluxo cria um. Gravar tira as marcações convertidas do
+    pincel e grava as declaradas antes. O resultado fica no diálogo com Desfazer e fecha só por Fechar ou Esc. A linha
+    que conflitaria com uma reprovação importada fica desmarcada com o motivo. Controles indisponíveis usam
+    `aria-disabled` com o motivo em texto.
+  - **Contagem e SIGA:** o registro importado vence a declarada, que fica guardada fora da conta, com remoção em lote
+    opcional; semestre diferente é divergência informativa ("Vale o SIGA"). A declarada vence previsão e plano. Uma
+    reprovação do SIGA no semestre declarado ou depois é conflito e a declarada não conta; sem semestre, o limite é o
+    semestre de `registradoEm`. A equivalência deferida com origem declarada também é declarada. O bloco de
+    transferidas confirma; o semestre declarado só é comparado com `aprovadaEm`.
+  - **Semestre ausente:** requisito pelo limite de `registradoEm` (pré-requisito depois dele; co-requisito também nele),
+    com aviso no próprio semestre; o prazo de cinco anos fica "Data de aprovação não confirmada", sem idade e sem data
+    inventada. D-03 e D-08 não são reabertas.
+  - **Fase e selos:** a declarada conta, com a marca "declarado"; o semestre declarado não conta como semestre cursado
+    para a fase de calouro nem para os selos de mesmo período.
+  - **Origem visível:** ícone ☑ e o texto "registrada por você", "não é registro do SIGA", no cartão, no nome acessível,
+    no detalhe, no detalhamento e na Linha do tempo (coluna "Registradas por você · sem semestre").
+- **Consequências:** RF-21 (casos R01 a R37) e RF-12. Campo em [PERFIL.md](PERFIL.md); regras em
+  [REGRAS-ACADEMICAS.md](REGRAS-ACADEMICAS.md); cópia no importador em [IMPORTADOR.md](IMPORTADOR.md).
 
 ## Publicação e processo
 
@@ -269,6 +404,8 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
 - **Decisão:** a Grade não calcula uma data de formatura. A pessoa monta a previsão com o planejamento. A
   previsão calculada (RF-19) é o primeiro item de produto depois da publicação, com casos próprios.
 - **Consequências:** os textos públicos dizem "você monta uma previsão de formatura ao planejar os períodos".
+- **Atualização (2026-11-27):** substituída por [PC-12](#pc-12--fase-do-curso-e-previsão-de-formatura). A previsão
+  calculada só aparece quando o plano cobre tudo o que falta, marcada como estimativa.
 
 ### PUB-05 · Os requisitos descrevem a v2.0.0
 
