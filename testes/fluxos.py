@@ -751,6 +751,35 @@ def t_timeline_ocorrencia(b):
             texto, ordem = v
             assert texto.startswith(periodo) and esperado[periodo] in texto and ordem, (nome, periodo, via, v)
 
+@caso("Linha do tempo: aprovação transferida e reprovação do mesmo código no mesmo semestre abrem cada uma os próprios detalhes")
+def t_timeline_ocorrencia_mesma_coluna(b):
+    # MAC128 reprovada em 2020/2 no histórico atual e aprovada no curso anterior em 2020/2 (bloco de 2025, aprovadaEm).
+    perfil = {"periodos": [
+        {"nome": "2020/2", "disciplinas": [{"code": "MAC128", "status": "reprovado", "nota": 3}]},
+        {"nome": "2025 (transferidas)", "disciplinas": [{"code": "MAC128", "nota": 7, "aprovadaEm": "2020/2"}]},
+        {"nome": "2026/2", "atual": True, "disciplinas": [{"code": "MAC238", "status": "cursando"}]}]}
+    esperado = {"reprovada": "2020/2: Reprovada · perfil · nota 3", "transferida": "2020/2: Aprovada · perfil · nota 7 (transferida, 2025 (transferidas))"}
+    def detalhe(pg):
+        det = pg.locator("#detalhes .det-ocorrencia"); expect(det).to_be_visible()
+        t = det.inner_text(); pg.keyboard.press("Escape"); return t
+    observado = {}
+    for nome, vp, toque in (("desktop", D, False), ("celular", C, True)):
+        ctx, pg = abre(b, vp=vp, perfil=perfil, extra={"modoClassico": False, "vista": "timeline"}, nome=f"timeline-mesma-coluna-{nome}", toque=toque, relogio=RELOGIO)
+        cards = cartao_na_coluna(pg, "2020/2", "MAC128")
+        assert cards.count() == 2, cards.count()
+        for rotulo, card in (("reprovada", pg.locator('#painel .coluna:has(> header h2:text-is("2020/2")) .card[data-code="MAC128"]:not(.transferida)')),
+                             ("transferida", pg.locator('#painel .coluna:has(> header h2:text-is("2020/2")) .card.transferida[data-code="MAC128"]'))):
+            card.scroll_into_view_if_needed()
+            if toque: card.tap()
+            else: card.click()
+            observado[nome, rotulo, "clique"] = detalhe(pg)
+            if not toque:
+                card.focus(); pg.keyboard.press("Enter")
+                observado[nome, rotulo, "enter"] = detalhe(pg)
+        ctx.close()
+    erros = {k: v for k, v in observado.items() if v != esperado[k[1]]}
+    assert not erros and len(observado) == 6, observado
+
 @caso("Cartões: nome acessível sem espaço antes da vírgula, na Grade e na Linha do tempo")
 def t_nome_sem_espaco(b):
     ctx, pg = abre(b, perfil=PERFIL, nome="nome-sem-espaco")
@@ -2344,7 +2373,7 @@ CASOS3 = [t_fecha_durante_leitura, t_previa_confirmacao, t_previa_download, t_fo
 CASOS = [
     t_descartar_salvo, t_tema, t_tema_abas, t_sem_perfil, t_seletor_modo, t_importar_sugere_planejador, t_criar_perfil, t_perfil_conflito,
     t_compat, t_siga, t_siga_sem_boa, t_excluir, t_periodo_janela, t_config_fechar, t_oferta, t_mac,
-    t_cr01_pre, t_cr01_co, t_cr01_sugestoes, t_cr01_proposta, t_cr01_equivalencia, t_cr05_transferida_requisito, t_timeline_detalhes_e_clique, t_timeline_transferidas, t_timeline_bloco_vazio, t_timeline_ocorrencia, t_nome_sem_espaco, t_timeline_transferida_origem, t_eci_timeline, t_cr01_manual,
+    t_cr01_pre, t_cr01_co, t_cr01_sugestoes, t_cr01_proposta, t_cr01_equivalencia, t_cr05_transferida_requisito, t_timeline_detalhes_e_clique, t_timeline_transferidas, t_timeline_bloco_vazio, t_timeline_ocorrencia, t_timeline_ocorrencia_mesma_coluna, t_nome_sem_espaco, t_timeline_transferida_origem, t_eci_timeline, t_cr01_manual,
     t_cr03_historico, t_cr03_lista,
     t_cr04_reingresso, t_cr04_ordem_dos_arquivos, t_cr04_escolha_sem_datas, t_pc05_datas_ausentes, t_cr04_troca_recalcula_planos, t_cr04_ace_duas_ocorrencias, t_cr04_controles, t_pc05_perfil_antigo_duvida, t_cr04_papel, t_cr04_fronteira,
     t_cr02_pedidos, t_cr02_duas_dispensas, t_cr02_dispensa_unica, t_cr02_alvo_fora_do_catalogo,

@@ -428,6 +428,7 @@
           category: it.category != null ? it.category : inf.category || 3,
           horas: it.horas != null ? it.horas : inf.horas,
           workload: inf.workload, cel: parseHorarios(it.horarios), dispensas: [], aprovadaEm: it.aprovadaEm || null,
+          ri: (regs[alvo] || []).length,   // posição do registro deste item em regs[alvo]: identifica a ocorrência
         };
         registra(alvo, { pi, status, nota: it.nota, horas: alvo === it.code ? it.horas : undefined,
           via: it.equivale ? `equivalência: ${it.code} ${item.name}` : null, aprovadaEm: it.aprovadaEm || null });
@@ -872,6 +873,7 @@
       `class="card s-${esc(o.status)} cat-${esc(o.cat)}${temAviso ? " tem-aviso" : ""}${o.classe ? " " + o.classe : ""}"`,
       o.code ? `data-code="${esc(o.code)}"` : "",
       o.periodo ? `data-periodo="${esc(o.periodo)}"` : "",
+      o.ri != null ? `data-reg="${o.ri}"` : "",
       o.idx != null ? `data-idx="${o.idx}"` : "",
       o.inerte ? "inert" : "",
       o.fill ? `style="--ok:${o.fill.ok}%;--prev:${o.fill.prev}%;--plan:${o.fill.plan}%"` : "",
@@ -1133,7 +1135,7 @@
         const oferta = tipo === "planejado" && it.status !== "reprovado" ? avisoOferta(it.alvo, p.nome) : null;
         if (oferta) { temOferta = true; aviso.push(oferta.texto); subs.push(`<span class="aviso-oferta">${esc(oferta.curto)}</span>`); }
         return card({
-          code: it.alvo, name: it.name, cat: it.category, status: it.status, nota: it.nota, origem: "perfil", periodo: col.nome,
+          code: it.alvo, name: it.name, cat: it.category, status: it.status, nota: it.nota, origem: "perfil", periodo: col.nome, ri: it.ri,
           meta: metaDe(it.code, it.category == 5 ? it.horas : it.credits, it.category), sub: subs.join("<br>"), aviso,
           ...(bloco != null ? { classe: "transferida", titulo: `transferida do curso anterior (bloco ${bloco})` } : {}),
         });
@@ -2099,7 +2101,8 @@
       const futuros = periodosFuturos();
       // Cartão da Linha do tempo: primeiro o semestre, a situação e a origem dessa ocorrência; depois, o resumo.
       const regs = M.regs[code] || [];
-      const oc = alvo.periodo ? regs.find((r) => M.periodos[r.pi]?.nome === alvo.periodo) || regs.find((r) => r.aprovadaEm === alvo.periodo) : null;
+      const oc = !alvo.periodo ? null : alvo.reg != null && regs[alvo.reg] ? regs[alvo.reg]
+        : regs.find((r) => M.periodos[r.pi]?.nome === alvo.periodo) || regs.find((r) => r.aprovadaEm === alvo.periodo);
       const blocoOc = oc && M.periodos[oc.pi]?.nome !== alvo.periodo ? M.periodos[oc.pi]?.nome : null;
       html = `
         <header><span class="cat-pill cat-${i.category}">${CATS[i.category] ? CATS[i.category].nome : ""}</span>
@@ -2144,6 +2147,7 @@
         ${Object.prototype.hasOwnProperty.call(marcacoes, code) && !protegida(code) ? `<button type="button" class="btn btn-ghost" data-reset="${esc(code)}">Voltar ao que o perfil diz</button>` : ""}`;
       box.dataset.alvo = "c:" + code;
       box.dataset.periodo = oc ? alvo.periodo : "";
+      box.dataset.reg = oc && alvo.reg != null ? String(alvo.reg) : "";
     } else if (alvo.idx != null) {
       const c = M.grade[+alvo.idx];
       const f = preenchimentoBlocos()[c.idx] || { nomes: [] };
@@ -2195,7 +2199,7 @@
     if (box.dataset.alvo === "privacidade") return abrePrivacidade();
     if (box.dataset.alvo === "referencias") return abreReferencias();
     const t = box.dataset.alvo.slice(0, 1), v = box.dataset.alvo.slice(2);
-    abreDetalhes(t === "c" ? { code: v, periodo: box.dataset.periodo || null } : { idx: v });
+    abreDetalhes(t === "c" ? { code: v, periodo: box.dataset.periodo || null, reg: box.dataset.reg ? +box.dataset.reg : null } : { idx: v });
   }
 
   /** Cadeado ligado: aprovadas pelo perfil ou marcadas como Cursada (tag que conta como concluída) não mudam. */
@@ -2939,7 +2943,7 @@
       }
       destaca(el.dataset.code);
       if (el.dataset.code) defineFoco(el.dataset.code);
-      abrePainel(ev, () => abreDetalhes(el.dataset.code ? { code: el.dataset.code, periodo: el.dataset.periodo || null } : { idx: el.dataset.idx }));
+      abrePainel(ev, () => abreDetalhes(el.dataset.code ? { code: el.dataset.code, periodo: el.dataset.periodo || null, reg: el.dataset.reg != null ? +el.dataset.reg : null } : { idx: el.dataset.idx }));
     });
 
     // Horários: mouse e toque (mousedown, com arrasto) e teclado (Espaço/Enter, que chegam como clique sem detalhe).
