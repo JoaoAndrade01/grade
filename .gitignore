@@ -5,3 +5,7 @@ perfil/perfil.js
 perfil/*.json
 Engenharia de Computação*
 Claude outputs/
+
+# Cache do Python (os .pyc guardam caminhos locais)
+__pycache__/
+*.pyc
