@@ -1850,7 +1850,7 @@
     const radio = (nome, v, rot, marcado) => `<label class="opcao"><input type="radio" name="${nome}" value="${v}"${marcado ? " checked" : ""}> ${rot}</label>`;
     $("#config-corpo").innerHTML = `
       <div class="dlg-cabeca"><h1 id="dlg-config-titulo" class="dlg-titulo">${icone("configuracoes", 20)} Configurações</h1>
-        <button type="submit" value="" class="dlg-x" aria-label="Fechar Configurações" title="Fechar (Esc)"><span aria-hidden="true">×</span></button></div>
+        <button type="button" class="dlg-x fecha-config" aria-label="Fechar Configurações" title="Fechar (Esc)"><span aria-hidden="true">×</span></button></div>
       <p class="dlg-texto">As escolhas valem na hora e ficam salvas neste navegador. Fixe um item para ele aparecer também na barra do topo; ele continua aqui.</p>
       <section class="cfg-sec" aria-labelledby="cfg-h-perfil"><h2 id="cfg-h-perfil">Perfil e dados</h2>
         ${linhaAtalho("perfil")}${linhaAtalho("importar")}${linhaAtalho("privacidade")}
@@ -1886,7 +1886,7 @@
         ${linhaAtalho("referencias")}
       </section>
       ${htmlSobre()}
-      <div class="dlg-acoes"><button type="submit" value="" class="btn btn-escuro">Fechar</button></div>`;
+      <div class="dlg-acoes"><button type="button" class="btn btn-escuro fecha-config">Fechar</button></div>`;
   }
   /** Seção "Sobre" de Configurações (texto aprovado pela manutenção em 2026-11-26; D-09). */
   function htmlSobre() {
@@ -2579,11 +2579,11 @@
     });
   }
   /** Fecha o diálogo modal com clique (ou toque) no fundo, fora da janela; começar o gesto dentro não conta. */
-  function fechaAoClicarFora(d) {
+  function fechaAoClicarFora(d, fecha = () => d.close()) {
     const fora = (ev) => { const r = d.getBoundingClientRect(); return ev.clientX < r.left || ev.clientX > r.right || ev.clientY < r.top || ev.clientY > r.bottom; };
     let comecouFora = false;
     d.addEventListener("pointerdown", (ev) => { comecouFora = ev.target === d && fora(ev); });
-    d.addEventListener("click", (ev) => { if (comecouFora && ev.target === d && fora(ev)) d.close(); comecouFora = false; });
+    d.addEventListener("click", (ev) => { if (comecouFora && ev.target === d && fora(ev)) fecha(); comecouFora = false; });
   }
 
   // ---------- Novo período planejado (janela central, como "Excluir período") ----------
@@ -2613,9 +2613,24 @@
 
   // ---------- Configurações (aparência e tema) ----------
   let abriuConfig = null;   // botão que abriu Configurações: recebe o foco de volta ao fechar
-  function abreConfiguracoes() {
+  /**
+   * Sem outro destino (foco no documento ou preso no diálogo fechado), o foco volta ao botão que abriu Configurações;
+   * um atalho acionado dentro da janela já levou o foco ao próprio destino e não é desfeito.
+   */
+  function devolveFocoConfig() {
+    const d = $("#dlg-config"), a = document.activeElement, semDestino = !a || a === document.body || d.contains(a);
+    if (!d.open && semDestino && abriuConfig && abriuConfig.isConnected && abriuConfig !== document.body) abriuConfig.focus();
+  }
+  /** Fecha Configurações (X, Fechar, Esc e clique fora) e devolve o foco na hora. */
+  function fechaConfig() {
     const d = $("#dlg-config");
-    abriuConfig = document.activeElement;
+    if (d.open) d.close();
+    devolveFocoConfig();
+  }
+  function abreConfiguracoes(botao) {
+    const d = $("#dlg-config");
+    // No WebKit o clique não foca o botão: guarda quem abriu pelo próprio evento, não pelo foco.
+    abriuConfig = botao || document.activeElement;
     renderConfig();
     d.showModal();
     d.querySelector(".cfg-abrir").focus();
@@ -2972,6 +2987,7 @@
     // Barra geral, ferramentas da página inicial e aviso de perfil importado
     document.addEventListener("click", (ev) => {
       const t = ev.target.closest("button"); if (!t) return;
+      if (t.classList.contains("fecha-config")) return fechaConfig();
       if (t.closest("#livre-info-btn")) {
         infoLivreAberta = !infoLivreAberta;
         $("#livre-info").hidden = !infoLivreAberta; $("#livre-info-btn").setAttribute("aria-expanded", String(infoLivreAberta));
@@ -2995,7 +3011,7 @@
         cadeado = !cadeado; save("cadeado", cadeado); render(); $("#cadeado").focus(); atualizaConfig();
         return anuncia(cadeado ? "Cadeado ligado: as cursadas estão protegidas." : "Cadeado desligado: as cursadas podem ser alteradas.");
       }
-      if (t.id === "btn-config") return abreConfiguracoes();
+      if (t.id === "btn-config") return abreConfiguracoes(t);
       if (t.id === "btn-tema") return window.TEMA && window.TEMA.alterna();
       if (t.id === "btn-referencias") return abrePainel(ev, abreReferencias);
       if (t.id === "btn-tags") return abrePainel(ev, abreEditorTags);
@@ -3165,15 +3181,17 @@
     $("#dlg-config").addEventListener("close", () => {
       if ($("#dlg-config").open) return;   // o evento chega depois: se a pessoa já reabriu, não apaga o conteúdo novo
       $("#config-corpo").innerHTML = "";
-      // Nem todo navegador devolve o foco ao fechar um <dialog>; sem outro destino, volta ao botão que abriu.
-      if ((!document.activeElement || document.activeElement === document.body) && abriuConfig && abriuConfig.isConnected) abriuConfig.focus();
+      devolveFocoConfig();                 // reserva: fechamentos que não passaram por fechaConfig
     });
-    ["#dlg-config", "#dlg-periodo", "#dlg-confirma"].forEach((s) => fechaAoClicarFora($(s)));
+    // Esc: fecha pelo mesmo caminho (o foco volta na hora, sem esperar o evento close, que no WebKit chega depois).
+    $("#dlg-config").addEventListener("cancel", (ev) => { ev.preventDefault(); fechaConfig(); });
+    fechaAoClicarFora($("#dlg-config"), fechaConfig);
+    ["#dlg-periodo", "#dlg-confirma"].forEach((s) => fechaAoClicarFora($(s)));
     $("#periodo-cancelar").addEventListener("click", () => $("#dlg-periodo").close());
     $("#form-periodo").addEventListener("submit", criaPeriodo);
     $("#dlg-periodo").addEventListener("close", () => {
-      const b = $("#novo-periodo");
-      if ((!document.activeElement || document.activeElement === document.body) && b) b.focus();
+      const b = $("#novo-periodo"), a = document.activeElement;
+      if ((!a || a === document.body || $("#dlg-periodo").contains(a)) && b) b.focus();
     });
     // Tema: o atalho sol/lua mostra a ação disponível; Configurações acompanha a escolha.
     if (window.TEMA) window.TEMA.aoMudar(() => { renderAtalhos(); atualizaConfig(); });
