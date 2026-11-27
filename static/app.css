@@ -1092,3 +1092,14 @@ body:has(.paleta:not([hidden])) .detalhes {
 .seletor-trilha .modo-op { font-size: 13px; min-height: 32px; }
 .seletor-trilha .modo-op .ico { flex: none; vertical-align: 0; }
 @media (max-width: 720px) { .seletor-trilha { flex-wrap: wrap; } }
+
+/* Aba Conquistas: filtro Todas | Obtidas | Faltam (a mesma chave do seletor de modo, com botões aria-pressed) */
+.estante-cabeca { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; }
+.estante-cabeca h2 { margin: 0; }
+.seletor-filtro-cq { flex-wrap: wrap; max-width: 100%; }
+.seletor-filtro-cq .modo-op { font: inherit; font-size: 13px; min-height: 32px; border: 0; background: transparent; }
+.seletor-filtro-cq .modo-op[aria-pressed="true"] { background: var(--text); color: var(--bg); font-weight: 600; }
+.seletor-filtro-cq .modo-op:focus-visible { outline: 2px solid var(--foco); outline-offset: 2px; }
+.estante[data-filtro="obtidas"] .selo:not(.s-obtido), .estante[data-filtro="faltam"] .selo.s-obtido { display: none; }
+.cq-vazio { display: none; margin: 4px 0 0; font-size: 12px; color: var(--muted); }
+.estante[data-filtro="obtidas"] .cq-vazio-obtidas, .estante[data-filtro="faltam"] .cq-vazio-faltam { display: block; }

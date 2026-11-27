@@ -500,6 +500,10 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
   importar. O anúncio de selo novo sai mesmo com a aba fechada e o selo aparece como novo ao abrir a aba. Se a aba some
   com ela selecionada, a Grade volta, há anúncio e o foco fica no controle que causou a mudança.
 - **Consequências:** casos 20m a 20p. Chave `conquistasFora` em [PRIVACIDADE.md](PRIVACIDADE.md).
+- **Atualização (v2.1.0):** dentro de cada grupo, as conquistas aparecem em ordem: obtidas, depois as que faltam por
+  progresso decrescente e, por último, as zeradas (empate na ordem da tabela). O cabeçalho ganha o filtro Todas | Obtidas ·
+  N | Faltam · M, na mesma chave do seletor de modo; ele só esconde cartões, sem recalcular, e um grupo sem cartão visível
+  mostra uma linha curta. A escolha fica salva (chave `filtroConquistas`). As regras dos selos não mudam.
 
 ## Publicação e processo
 

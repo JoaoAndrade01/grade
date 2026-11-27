@@ -4713,6 +4713,47 @@ def t_foco_reprovacoes_passadas(b):
     ctx.close()
 
 @v210
+@caso("Conquistas: em cada grupo, obtidas, depois por progresso e as zeradas por último; filtro Todas | Obtidas | Faltam só por CSS, salvo, com linha curta no grupo vazio e contadores intactos; teclado; 320 px")
+def t_conquistas_ordem_filtro(b):
+    ctx, pg = abre(b, perfil=PERFIL, extra={"vista": "conquistas", "foco": True}, nome="conquistas-filtro", relogio=HOJE)
+    est = pg.locator("#painel .estante")
+    # ordem dentro de cada grupo: obtido (100) → progresso decrescente → zeradas
+    for g in pg.locator("#painel .cq-grupo").all():
+        chaves = g.locator(".selo").evaluate_all("""es => es.map((e) => [e.classList.contains('s-obtido') ? 0 : 1,
+            parseFloat(e.querySelector('.selo-barra i').style.width) || 0])""")
+        esperado = sorted(chaves, key=lambda c: (c[0], 0 if c[0] == 0 else (0 if c[1] > 0 else 1), -c[1]))
+        assert chaves == esperado, chaves
+    grupo = pg.get_by_role("group", name="Mostrar"); expect(grupo).to_be_visible()
+    assert grupo.evaluate("e => e.classList.contains('seletor-modo')")
+    n = pg.locator("#painel .selo.s-obtido").count(); total = pg.locator("#painel .selo").count()
+    textos = [" ".join(t.split()) for t in grupo.get_by_role("button").all_inner_texts()]
+    assert textos == ["Todas", f"Obtidas · {n}", f"Faltam · {total - n}"], textos
+    expect(grupo.get_by_role("button", name="Todas", exact=True)).to_have_attribute("aria-pressed", "true")
+    contadores = pg.locator("#painel .cq-grupo h3").all_text_contents()
+    obtidas = grupo.locator('[data-filtro-cq="obtidas"]'); obtidas.focus(); pg.keyboard.press("Enter")   # teclado
+    expect(obtidas).to_have_attribute("aria-pressed", "true"); expect(est).to_have_attribute("data-filtro", "obtidas")
+    assert foco_em(pg, '[data-filtro-cq="obtidas"]'), descreve_foco(pg)
+    visiveis = pg.locator("#painel .selo").evaluate_all("es => es.filter((e) => e.getClientRects().length).map((e) => e.classList.contains('s-obtido'))")
+    assert all(visiveis) and len(visiveis) == n, visiveis
+    for g in pg.locator("#painel .cq-grupo").all():
+        if g.locator(".selo.s-obtido").count() == 0: expect(g.locator(".cq-vazio-obtidas")).to_be_visible()
+    assert pg.locator("#painel .cq-grupo h3").all_text_contents() == contadores                     # "N de M" não muda
+    assert ls(pg, "filtroConquistas") == "obtidas"
+    pg.reload(); pronto(pg, "conquistas-filtro")
+    expect(pg.locator("#painel .estante")).to_have_attribute("data-filtro", "obtidas")
+    faltam = pg.locator('[data-filtro-cq="faltam"]'); faltam.click()
+    visiveis = pg.locator("#painel .selo").evaluate_all("es => es.filter((e) => e.getClientRects().length).map((e) => e.classList.contains('s-obtido'))")
+    assert not any(visiveis) and len(visiveis) == total - n, visiveis
+    pg.locator('[data-filtro-cq="todas"]').click(); assert ls(pg, "filtroConquistas") is None
+    assert pg.locator("#painel .selo").evaluate_all("es => es.filter((e) => e.getClientRects().length).length") == total
+    ctx.close()
+    ctx, pg = abre(b, vp=C320, perfil=PERFIL, extra={"vista": "conquistas", "foco": True, "filtroConquistas": "faltam"}, nome="conquistas-filtro-320", relogio=HOJE, toque=True, esquema="dark")
+    expect(pg.locator('[data-filtro-cq="faltam"]')).to_have_attribute("aria-pressed", "true")
+    assert pg.evaluate("document.documentElement.scrollWidth - innerWidth") <= 1
+    foto(pg, "conquistas-filtro-320-escuro", full=True)
+    ctx.close()
+
+@v210
 @caso("Aviso do perfil salvo: aparece uma vez por perfil, com OK, entendi; fica fechado ao recarregar; volta com outro perfil carregado; Baixar e Descartar ficam em Configurações → Perfil e dados")
 def t_aviso_perfil_salvo(b):
     ctx, pg = abre(b, perfil=PERFIL, extra={"vista": "grade"}, nome="aviso-perfil")

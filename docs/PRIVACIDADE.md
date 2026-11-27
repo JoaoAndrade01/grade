@@ -58,6 +58,7 @@ lugar, e não controla o que o GitHub registra quando você visita o site hosped
 | `vista`, `exibir`, `filtros`, `filtroNivel`, `cronoPeriodo`, `progressoAberto` | Preferências de tela (em `exibir`: código, notas, dificuldade, presença, plano, situação e o modo da Trilha, na chave `destaque`) |
 | `foco`, `tom` | Modo Foco ligado ou desligado e o tom das mensagens do Foco (zoeira ou discreto) |
 | `conquistasFora` | Configurações → Conquistas: mostrar a aba Conquistas também fora do Foco. Sem a chave, só no Foco |
+| `filtroConquistas` | Filtro da aba Conquistas: "obtidas" ou "faltam". Sem a chave, "todas" |
 | `avisoImportadoVisto` | O aviso do perfil salvo já foi fechado ("OK, entendi") para este perfil. Guarda só a identidade local opaca (`perfilId`), nunca um dado do aluno; outro perfil importado ou carregado, Limpar ou Descartar trazem o aviso de volta |
 | `perfilId`, `selosAvisados` | Identidade local aleatória do perfil e a lista de conquistas já anunciadas para ela. Não usa nome, matrícula nem outro dado do aluno; carregar outro perfil, Limpar ou Descartar recomeçam a lista. As conquistas em si não são guardadas: são recalculadas do perfil |
 

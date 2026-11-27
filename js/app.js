@@ -359,6 +359,9 @@
   const NOMES_VISTA = { optativas: "Optativas", pedidos: "Equivalências e Extensão / ACE", eci: "A ECI por trás da Grade", conquistas: "Conquistas" };
   // Aba Conquistas (Planejador): com o Foco ligado e, se Configurações → Conquistas permitir, também fora do Foco.
   let conquistasFora = load("conquistasFora", false, (v) => typeof v === "boolean");
+  // Filtro da estante (Todas | Obtidas | Faltam): só esconde cartões por CSS; padrão "todas".
+  const FILTROS_CQ = ["todas", "obtidas", "faltam"];
+  let filtroCq = load("filtroConquistas", "todas", (v) => FILTROS_CQ.includes(v));
   const focoAtivo = () => foco && !modoClassico && !!perfil;
   const abaConquistas = () => !modoClassico && (focoAtivo() || conquistasFora);
   let infoLivreAberta = false;      // explicação dos números da livre escolha (ⓘ do detalhamento), só nesta visita
@@ -2014,12 +2017,21 @@
           : esc(x.regra) + (x.falta && x.falta !== `falta ${x.regra}` ? " · " + esc(x.falta) : "")}</small></span>
       <span class="selo-barra" aria-hidden="true"><i style="width:${pc(x)}%"></i></span>
       <span class="sr">${x.estado === "obtido" ? "obtida" : `${x.estado === "quase" ? "quase lá" : "ainda não"}, ${pc(x)}%`}</span></li>`;
+    // Dentro de cada grupo: as obtidas, depois as que faltam por progresso decrescente ("quase" conta pelo progresso
+    // dele) e por último as zeradas; o empate mantém a ordem da tabela (ordenação estável).
+    const ordem = (x) => (x.estado === "obtido" ? [0, 0] : pc(x) > 0 ? [1, -pc(x)] : [2, 0]);
+    const ordena = (lista) => lista.map((x, i) => [x, i]).sort(([a, i], [b, j]) => {
+      const oa = ordem(a), ob = ordem(b); return oa[0] - ob[0] || oa[1] - ob[1] || i - j; }).map(([x]) => x);
     const grupos = Object.entries(CQ().GRUPOS).map(([g, t]) => {
-      const sel = m.selos.filter((x) => x.grupo === g), n = sel.filter((x) => x.estado === "obtido").length;
-      return `<section class="cq-grupo" aria-labelledby="cq-g-${g}"><h3 id="cq-g-${g}">${t} · ${n} de ${sel.length}</h3><ul class="estante-lista">${sel.map(item).join("")}</ul></section>`;
+      const sel = ordena(m.selos.filter((x) => x.grupo === g)), n = sel.filter((x) => x.estado === "obtido").length;
+      return `<section class="cq-grupo" aria-labelledby="cq-g-${g}"><h3 id="cq-g-${g}">${t} · ${n} de ${sel.length}</h3><ul class="estante-lista">${sel.map(item).join("")}</ul>
+        ${n ? "" : `<p class="cq-vazio cq-vazio-obtidas">Nenhuma ainda neste grupo</p>`}${n === sel.length ? `<p class="cq-vazio cq-vazio-faltam">Todas obtidas</p>` : ""}</section>`;
     }).join("");
-    return `<section class="estante" aria-labelledby="estante-titulo">
-      <h2 id="estante-titulo">Conquistas</h2>
+    const rotFiltro = { todas: "Todas", obtidas: `Obtidas · ${obtidos.length}`, faltam: `Faltam · ${m.selos.length - obtidos.length}` };
+    return `<section class="estante" aria-labelledby="estante-titulo" data-filtro="${filtroCq}">
+      <div class="estante-cabeca"><h2 id="estante-titulo">Conquistas</h2>
+        <div class="seletor-modo seletor-filtro-cq" role="group" aria-label="Mostrar">${FILTROS_CQ.map((f) =>
+          `<button type="button" class="modo-op" data-filtro-cq="${f}" aria-pressed="${filtroCq === f}">${rotFiltro[f]}</button>`).join("")}</div></div>
       <p class="estante-resumo">${obtidos.length} ${obtidos.length === 1 ? "conquista" : "conquistas"}${obtidos.length ? ` <span aria-hidden="true">${obtidos.map((x) => x.emoji).join(" ")}</span>` : ""}${prox ? ` · próxima: ${prox.emoji} ${esc(prox.titulo)} (${esc(prox.falta)})` : ""}</p>
       ${grupos}</section>`;
   }
@@ -3667,6 +3679,12 @@
         return;
       }
       if (t.id === "ferr-mais") { ferrAberto = !ferrAberto; return render(); }
+      if (t.dataset.filtroCq && FILTROS_CQ.includes(t.dataset.filtroCq)) {   // filtro da estante: só CSS, sem recalcular
+        filtroCq = t.dataset.filtroCq; save("filtroConquistas", filtroCq === "todas" ? null : filtroCq);
+        const est = t.closest(".estante"); if (est) est.dataset.filtro = filtroCq;
+        document.querySelectorAll("[data-filtro-cq]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.filtroCq === filtroCq)));
+        return;
+      }
       if (t.dataset.exibir != null && !t.closest("dialog")) {   // Exibir: botões que acendem (Configurações usa caixas nativas)
         exibir[t.dataset.exibir] = !exibir[t.dataset.exibir]; save("exibir", exibir); render(); return atualizaConfig();
       }

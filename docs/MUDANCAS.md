@@ -35,6 +35,8 @@ como notas. Os perfis e as preferências salvos na v2.0.0 continuam valendo.
   avanço do período, próximo marco, o que destrava e previsão de formatura) e as conquistas em cartões por grupo, com o
   progresso de cada uma. O cartão da fase e a estante saíram da Grade e da Linha do tempo. Em Configurações →
   Conquistas, dá para mostrar a aba também fora do Foco.
+- **Conquistas em ordem e com filtro.** Em cada grupo, primeiro as obtidas, depois as mais perto de sair e por último
+  as zeradas. O filtro Todas | Obtidas | Faltam, no cabeçalho da aba, fica salvo neste navegador.
 - **Foco mais limpo.** No Foco, a Linha do tempo esconde também as reprovações de períodos passados; a disciplina
   continua pendente na Grade, para planejar.
 
@@ -60,7 +62,7 @@ como notas. Os perfis e as preferências salvos na v2.0.0 continuam valendo.
 ### Para quem contribui
 
 O helper `abre()` dos testes ganhou `modo=` (padrão Planejador; os cenários do Clássico pedem `modo="classico"`). O kit
-de interface passa a 155 cenários por `file://` e 156 por HTTP ([testes/README.md](../testes/README.md)). As decisões
+de interface passa a 156 cenários por `file://` e 157 por HTTP ([testes/README.md](../testes/README.md)). As decisões
 novas são PC-15 a PC-19 ([DECISOES.md](DECISOES.md)).
 
 ---
