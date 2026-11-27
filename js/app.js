@@ -1262,13 +1262,20 @@
         : `BOA: <b>indisponível</b> <small>(${esc(n.motivo)})</small>`}</li>
     </ul>${notaHtml(NOTA_RA13)}`;
   }
-  /** Detalhamento: os dois números numa linha curta; o botão ⓘ mostra os rótulos completos e a nota (clique, toque ou teclado). */
-  function htmlLivreCurta(t) {
+  /**
+   * Detalhamento: o cartão "Livre escolha" tem o mesmo formato dos outros; o ⓘ pequeno ao lado do título mostra os
+   * dois números rotulados e a nota de RA-13 (clique, toque ou teclado). Sem BOA importado, só a estimativa da Grade.
+   */
+  const botaoInfoLivre = () => `<button type="button" class="info-btn" id="livre-info-btn" aria-expanded="${infoLivreAberta}"
+      aria-controls="livre-info" aria-label="Como ler os números da livre escolha" title="Como ler estes números"><span aria-hidden="true">ⓘ</span></button>`;
+  function htmlInfoLivre(t) {
     const n = numerosLivreEscolha(t);
-    return `<p class="livre-curta">Livre escolha: Grade <b>${fmt(n.grade)} cr</b> · ${n.presente ? `BOA <b>${fmt(n.soma)} cr</b>` : "BOA indisponível"}
-        <button type="button" class="info-btn" id="livre-info-btn" aria-expanded="${infoLivreAberta}" aria-controls="livre-info"
-          aria-label="Como ler os números da livre escolha" title="Como ler estes números"><span aria-hidden="true">ⓘ</span></button></p>
-      <div class="livre-info" id="livre-info"${infoLivreAberta ? "" : " hidden"}>${htmlNumerosLivre(t)}</div>`;
+    const iso = (d) => { const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(d || ""); return m ? `${m[3]}-${m[2]}-${m[1]}` : d; };
+    const boa = !M.boa ? "" : n.presente
+      ? `<li>BOA, soma das não explicitadas: <b>${fmt(n.soma)} cr</b>${n.emissao ? ` <small>(BOA de ${esc(iso(n.emissao))})</small>` : ""}</li>`
+      : `<li>BOA: <b>indisponível</b> <small>(${esc(n.motivo)})</small></li>`;
+    return `<div class="livre-info" id="livre-info"${infoLivreAberta ? "" : " hidden"}>
+        <ul class="livre-numeros"><li>Grade: <b>${fmt(n.grade)} cr</b> <small>(estimativa)</small></li>${boa}</ul>${M.boa ? notaHtml(NOTA_RA13) : ""}</div>`;
   }
   // Notas de estimativa de D-06 (textos em docs/REGRAS-ACADEMICAS.md#textos-de-aviso). A data de RA-20 vem de `consultado`.
   const dataBR = (iso) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ""); return m ? `${m[3]}/${m[2]}/${m[1]}` : String(iso || ""); };
@@ -1749,10 +1756,10 @@
       const pAnal = Math.min(100 - pOk - pPrev - pPlan, p(T.anal));
       const falta = Math.max(0, T.total - T.ok - T.prev);
       return `<div class="prog cat-${k}">
-        <div class="prog-topo"><span>${c.nome}</span><b>${fmt(T.ok)}${T.prev ? `<i> +${fmt(T.prev)}</i>` : ""} / ${fmt(T.total)} ${c.un}</b></div>
+        <div class="prog-topo"><span>${c.nome}${k === "3" ? botaoInfoLivre() : ""}</span><b>${fmt(T.ok)}${T.prev ? `<i> +${fmt(T.prev)}</i>` : ""} / ${fmt(T.total)} ${c.un}</b></div>
         <div class="barra"><span class="b-ok" style="width:${pOk}%"></span><span class="b-prev" style="width:${pPrev}%"></span><span class="b-plan" style="width:${pPlan}%"></span><span class="b-anal" style="width:${pAnal}%"></span></div>
         <small>${falta ? `faltam ${fmt(falta)} ${c.un}${T.plan ? ` · ${fmt(Math.min(T.plan, falta))} planejados` : ""}${T.anal ? ` · ${fmt(T.anal)} em análise` : ""}` : "completo ✓"}${T.aConfirmar ? ` · ${textoAConfirmar(T)} (possível duplicidade)` : ""}</small>
-        ${k === "3" ? htmlLivreCurta(t) : ""}
+        ${k === "3" ? htmlInfoLivre(t) : ""}
       </div>`;
     }).join("");
   }

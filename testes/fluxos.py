@@ -1041,8 +1041,11 @@ def numeros_livre(pg):
     if pg.locator("#progresso").is_hidden(): pg.click("#bg-detalhes")
     abre_info_livre(pg)
     progresso = pg.locator("#progresso .cat-3 .livre-numeros li").all_inner_texts()
-    assert pedidos == progresso, (pedidos, progresso)
+    # O ⓘ mostra os mesmos números de Pedidos, com rótulos curtos; sem BOA importado, só a estimativa da Grade.
     assert len(pedidos) == 2, pedidos
+    numero = lambda t: (re.search(r"(Grade|BOA, soma das não explicitadas|BOA): ([\d.]+ cr|indisponível)", t) or [None])[0]
+    esperado = [numero(pedidos[0])] + ([] if "nenhum BOA importado" in pedidos[1] else [numero(pedidos[1])])
+    assert [numero(t) for t in progresso] == esperado and None not in esperado, (pedidos, progresso)
     assert not re.search(r"total do boa", " ".join(pedidos), re.I), pedidos
     return pedidos
 
@@ -1204,31 +1207,49 @@ def t_sobre(b):
         ctx.close()
 
 ESTADOS = ["Aprovada", "Aprovação prevista", "Cursando", "Planejada", "Equivalência pedida", "Reprovada", "Pendente"]
-@caso("Detalhamento: livre escolha numa linha curta com ⓘ (mouse, teclado e toque); sem a legenda de estados")
+@caso("Detalhamento: ⓘ pequeno no título da livre escolha (mouse, teclado e toque); cartão no formato dos outros; sem a legenda de estados")
 def t_detalhamento_info(b):
     ctx, pg = abre(b, perfil=p5(), nome="detalhamento-info")
     completo(pg, "grade"); pg.click("#bg-detalhes")
-    curta = pg.locator("#progresso .cat-3 .livre-curta"); expect(curta).to_be_visible()
-    assert re.search(r"Grade \d+ cr · BOA \d+ cr", curta.inner_text()), curta.inner_text()
-    btn, info = curta.locator(".info-btn"), pg.locator("#progresso .cat-3 .livre-info")
-    expect(btn).to_have_attribute("aria-expanded", "false"); expect(info).to_be_hidden()
+    assert pg.locator("#progresso .livre-curta").count() == 0                         # sem a linha extra
+    formato = lambda k: pg.evaluate("(k) => [...document.querySelector(`#progresso .cat-${k}`).children].filter((e) => !e.hidden).map((e) => e.className || e.tagName)", k)
+    assert formato(3) == formato(2), (formato(3), formato(2))                        # título + número, barra, "faltam"
+    btn, info = pg.locator("#progresso .cat-3 .prog-topo .info-btn"), pg.locator("#progresso .cat-3 .livre-info")
+    expect(btn).to_have_text("ⓘ"); expect(btn).to_have_attribute("aria-expanded", "false"); expect(info).to_be_hidden()
     assert btn.get_attribute("aria-label") and btn.get_attribute("aria-controls") == info.get_attribute("id")
+    estilo = btn.evaluate("""(e) => { const s = getComputedStyle(e), t = getComputedStyle(e.closest('.prog-topo'));
+        return [s.borderTopStyle, s.borderTopWidth, s.backgroundColor, s.fontSize === t.fontSize]; }""")
+    assert estilo[0] == "none" or estilo[1] == "0px", estilo                         # sem círculo nem borda
+    assert estilo[2] in ("rgba(0, 0, 0, 0)", "transparent") and estilo[3], estilo     # sem fundo; ícone do tamanho do texto
+    r = btn.bounding_box(); assert r["width"] >= 23.99 and r["height"] >= 23.99, r     # alvo mínimo pela caixa, não pelo ícone
+    titulo = pg.locator("#progresso .cat-3 .prog-topo").bounding_box()["height"]
+    assert abs(titulo - pg.locator("#progresso .cat-2 .prog-topo").bounding_box()["height"]) < 1, titulo   # a linha do título não cresce
     btn.click(); expect(info).to_be_visible(); expect(btn).to_have_attribute("aria-expanded", "true")
-    expect(info).to_contain_text("BOA, soma das não explicitadas"); expect(info).to_contain_text(NOTA_RA13)
+    textos = info.locator("li").all_inner_texts()
+    assert textos == ["Grade: 2 cr (estimativa)", "BOA, soma das não explicitadas: 6 cr (BOA de 2026-11-20)"], textos
+    assert info.locator(".nota-estimativa").inner_text() == NOTA_RA13
     pg.click("#bg-detalhes"); pg.click("#bg-detalhes")                                  # redesenho mantém a escolha
     expect(pg.locator("#progresso .cat-3 .livre-info")).to_be_visible()
     pg.locator("#progresso .cat-3 .info-btn").click(); expect(pg.locator("#progresso .cat-3 .livre-info")).to_be_hidden()
     pg.locator("#progresso .cat-3 .info-btn").focus(); pg.keyboard.press("Enter")       # teclado
+    assert pg.evaluate("getComputedStyle(document.activeElement).outlineStyle") != "none"
     expect(pg.locator("#progresso .cat-3 .livre-info")).to_be_visible()
     pg.keyboard.press("Space"); expect(pg.locator("#progresso .cat-3 .livre-info")).to_be_hidden()
     legenda = pg.locator("#legenda").inner_text() if pg.locator("#legenda").is_visible() else ""
     assert pg.locator("#legenda .leg").count() == 0 and not any(e in legenda for e in ESTADOS), legenda
     pg.locator("#progresso .cat-3 .info-btn").click(); foto(pg, "detalhamento-info")
     ctx.close()
+    # sem BOA importado: o ⓘ só explica a estimativa da Grade
+    ctx, pg = abre(b, perfil=p5(boa=None), nome="detalhamento-info-sem-boa")
+    completo(pg, "grade"); pg.click("#bg-detalhes"); pg.locator("#progresso .cat-3 .info-btn").click()
+    info = pg.locator("#progresso .cat-3 .livre-info")
+    assert info.locator("li").all_inner_texts() == ["Grade: 2 cr (estimativa)"] and "BOA" not in info.inner_text(), info.inner_text()
+    ctx.close()
     ctx, pg = abre(b, vp=C, perfil=p5(), toque=True, nome="detalhamento-info-toque")
     completo(pg, "grade"); pg.locator("#bg-detalhes").tap()
     pg.locator("#progresso .cat-3 .info-btn").tap(); expect(pg.locator("#progresso .cat-3 .livre-info")).to_be_visible()
-    r = pg.locator("#progresso .cat-3 .info-btn").bounding_box(); assert r["width"] >= 24 and r["height"] >= 24, r
+    r = pg.locator("#progresso .cat-3 .info-btn").bounding_box(); assert r["width"] >= 43.99 and r["height"] >= 43.99, r
+    foto(pg, "detalhamento-info-celular")
     ctx.close()
 
 @caso("RF-08 (08c, 08d): nota de RA-13 junto dos dois números e nota de RA-09 junto da idade")

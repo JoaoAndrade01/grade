@@ -29,8 +29,8 @@ continua mostrando a versão anterior.
   "Planejador". Há a opção "Mostrar só ícones no seletor". No modo Clássico, "Importar do SIGA" sugere o Planejador.
 - **Aviso no rodapé** (D-09). "Feita por alunos de ECI. Não substitui o SIGA, o BOA nem a coordenação." sai do topo e
   fica numa linha do rodapé.
-- **Detalhamento mais curto.** A livre escolha vira uma linha com ⓘ, que mostra a explicação por clique, toque ou
-  teclado. Sai a legenda de estados; o cartão já diz a situação em texto.
+- **Detalhamento mais curto.** O cartão "Livre escolha" fica no formato dos outros, com um ⓘ pequeno ao lado do título
+  que mostra os números da Grade e do BOA e a nota, por clique, toque ou teclado. Sai a legenda de estados; o cartão já diz a situação em texto.
 
 ### Correções técnicas
 
