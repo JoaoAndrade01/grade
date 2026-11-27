@@ -701,11 +701,6 @@ dialog.dlg:modal { overscroll-behavior: contain; }
 .periodo-sugerido .campo { max-width: 160px; }
 #siga-usar:disabled { opacity: .5; cursor: not-allowed; }
 
-/* importador no modo clássico: sugestão de trocar para o Planejador */
-.sugere-planejador { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: 6px 0 10px; padding: 8px 10px;
-  font-size: 13px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); }
-.sugere-planejador span { flex: 1 1 180px; }
-
 /* cronograma: excluir período */
 .btn-perigo-ghost { color: var(--perigo); border-color: color-mix(in srgb, var(--perigo) 45%, var(--border)); box-shadow: none; background: transparent; }
 .btn-perigo-ghost:hover { border-color: var(--perigo); }

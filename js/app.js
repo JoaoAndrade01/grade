@@ -795,7 +795,7 @@
       ${temAviso ? `<span class="aviso" aria-label="aviso">!</span>` : ""}
       ${nomeDoCartao(o.name, o.semIcone ? "" : o.icone || ESTADO_DO_STATUS[o.status], ESTADO_DO_STATUS[o.status] && ROTULO[o.status] ? ROTULO[o.status] + (o.origem ? " · " + o.origem : "") : "")}
       ${o.sub ? `<span class="sub">${o.sub}</span>` : ""}
-      <span class="meta">${o.code ? seloGuia(o.code, true) + " " : ""}${esc(o.meta)}</span>
+      ${o.semMeta ? "" : `<span class="meta">${o.code ? seloGuia(o.code, true) + " " : ""}${esc(o.meta)}</span>`}
     </button>`;
   }
 
@@ -809,27 +809,29 @@
 
   /**
    * Cartão da página inicial (estilo clássico): só o nome em destaque, pintado com a cor da tag.
-   * Extras (código/créditos, nota, dificuldade, presença) aparecem conforme o menu "Exibir".
+   * Extras (código/créditos, nota, dificuldade, presença, plano e o ícone de estado) aparecem conforme o menu "Exibir",
+   * só no Planejador. O Clássico é só para pintar: cartão com cor e nome, e a preferência salva não muda.
    */
   function cardLimpo(c) {
     const tag = tagDe(c.code), s = statusDe(c.code);
     const g = guiaDe(c.code);
-    const apagado = filtroNivel.length && !(g && filtroNivel.includes(g.nivel));
-    const nota = exibir.notas ? notaDe(c.code) : null;
+    const ver = modoClassico ? {} : exibir;
+    const apagado = !modoClassico && filtroNivel.length && !(g && filtroNivel.includes(g.nivel));
+    const nota = ver.notas ? notaDe(c.code) : null;
     const extras = [
-      exibir.codigo ? esc(metaDe(c.code, c.credits, c.category)) : "",
-      exibir.dificuldade && g && g.nivel ? seloGuia(c.code, true) : "",
-      exibir.presenca && g && g.presenca ? esc(PRESENCA[g.presenca]) : "",
+      ver.codigo ? esc(metaDe(c.code, c.credits, c.category)) : "",
+      ver.dificuldade && g && g.nivel ? seloGuia(c.code, true) : "",
+      ver.presenca && g && g.presenca ? esc(PRESENCA[g.presenca]) : "",
     ].filter(Boolean).join(" · ");
     const prot = protegida(c.code);
     const exp = seletorECI && window.ECI.tem(c.code);
     // Exibir → Plano: o primeiro semestre planejado e "+N" se houver outros; a lista completa vai no nome acessível e nos detalhes.
-    const planos = exibir.plano ? [...new Set(periodoDe(c.code, (st) => st === "planejado"))] : [];
+    const planos = ver.plano ? [...new Set(periodoDe(c.code, (st) => st === "planejado"))] : [];
     const plano = planos.length ? `<span class="plano-flag" aria-hidden="true" title="Planejada em ${esc(planos.join(", "))}">${icone("calendario-mais", 12)} ${esc(planos[0])}${planos.length > 1 ? ` <b>+${planos.length - 1}</b>` : ""}</span><span class="sr">, planejada em ${esc(planos.join(", "))}</span>` : "";
     const so = situacaoOrigem(c.code);
     const estado = so.origem ? `${so.rot} · ${so.origem}` : "";
     // Exibir → Situação: liga ou desliga só o ícone; a situação continua no nome acessível e nos detalhes.
-    const ico = !so.origem || !exibir.situacao ? "" : so.origem === "marcação" ? ICONE_MARCACAO : so.origem === ORIGEM_DECL ? ICONE_DECLARADA : ESTADO_DO_STATUS[statusPerfil(c.code)] || "";
+    const ico = !so.origem || !ver.situacao ? "" : so.origem === "marcação" ? ICONE_MARCACAO : so.origem === ORIGEM_DECL ? ICONE_DECLARADA : ESTADO_DO_STATUS[statusPerfil(c.code)] || "";
     return `<button type="button" class="card limpo${tag ? " com-tag" : ""}${s === "analise" ? " s-analise" : ""}${apagado ? " apagado" : ""}${prot ? " protegida" : ""}${exp ? " com-eci" : ""}"
       data-code="${esc(c.code)}" ${tag ? `style="--tag:${esc(tag.cor)}"` : ""} title="${exp ? "Abrir a experiência: " + esc(window.ECI.tem(c.code).titulo) : esc(tag ? tag.nome : ROTULO[s]) + (prot ? " · protegida pelo cadeado" : "")}"
       ${seletorECI && !exp ? "inert" : ""}${exp ? ` aria-describedby="dica-eci"` : ""}>
@@ -903,7 +905,7 @@
       const so = situacaoOrigem(consultado), i = M.info(consultado);
       return `<p class="consulta" id="consulta" role="status">${esc(consultado)} · ${esc(i ? i.name : "")}: ${esc(so.rot)} · ${so.origem ? esc(so.origem) : "sem marcação"}.
         ${jaTem ? `Toque de novo para tirar a tag ${esc(pinc.nome)}.` : `Toque de novo para marcar como ${esc(pinc.nome)}.`}
-        <button type="button" class="btn btn-sm" id="consulta-detalhes">Detalhes</button></p>`;
+        ${modoClassico ? "" : `<button type="button" class="btn btn-sm" id="consulta-detalhes">Detalhes</button>`}</p>`;
     })() : "";
     return `${consulta}<div class="pal-trilho" role="toolbar" aria-label="Paleta: escolha a tag e clique nas disciplinas">
       ${modoClassico ? "" : botao("__detalhes", `${icone("detalhes")} Detalhes`, null, 'title="Clique abre os detalhes da disciplina"')}
@@ -911,7 +913,7 @@
         title="Destaca as disciplinas com experiência de A ECI por trás da Grade">${icone("eci")} <span>ECI por trás</span></button>`}
       ${tags.map((t) => botao(t.id, `${esc(t.nome)}${conta[t.id] ? ` <small>${conta[t.id]}</small>` : ""}`, t.cor, `title="${esc(CONTA_COMO[t.status] || "")}"`)).join("")}
       ${botao("", `${icone("borracha")} Borracha`, null, 'title="Tirar a tag"')}
-      ${botaoRegistrar("pal-btn pal-registrar", "btn-registrar")}
+      ${modoClassico ? "" : botaoRegistrar("pal-btn pal-registrar", "btn-registrar")}
       <button type="button" class="pal-btn pal-icone" id="editar-tags" title="Editar tags" aria-label="Editar tags">${icone("tags")}</button>
       <button type="button" class="pal-btn pal-icone pal-cadeado" id="cadeado" aria-pressed="${cadeado}" aria-label="Proteger disciplinas cursadas"
         title="${cadeado ? "Cursadas protegidas: clique para liberar alterações" : "Proteger as cursadas contra alterações"}">${icone(cadeado ? "cadeado" : "cadeado-aberto")}</button>
@@ -999,9 +1001,9 @@
           if (foco && st === "aprovado") return "";      // Foco: o concluído some (previstas ficam)
           visiveis++;
           return card({
-            idx: c.idx, name: c.name, cat: c.category, status: st, classe: "bloco", inerte: seletorECI, semIcone: !exibir.situacao,
+            idx: c.idx, name: c.name, cat: c.category, status: st, classe: "bloco", inerte: seletorECI, semIcone: modoClassico || !exibir.situacao, semMeta: modoClassico,
             meta: `${fmt(feito)}${f.plan ? ` (+${fmt(f.plan)} plan.)` : ""} / ${metaDe(null, c.credits, c.category)}${c.category == 5 && aConfirmarACE ? ` · ${textoAConfirmar({ aConfirmar: aConfirmarACE })}` : ""}`,
-            sub: modoClassico ? "" : nomes, fill: { ok: pc(f.ok), prev: pc(f.ok + f.prev), plan: pc(tudo) },
+            sub: modoClassico ? "" : nomes, fill: modoClassico ? null : { ok: pc(f.ok), prev: pc(f.ok + f.prev), plan: pc(tudo) },
           });
         }
         if (concluido(statusDe(c.code))) feitos++;
@@ -1010,8 +1012,9 @@
         return cardLimpo(c);
       }).join("");
       if (foco && !visiveis) continue;   // Foco: período da grade todo concluído
-      const chip = perfil ? `<span class="chip ${feitos === cs.length ? "chip-ok" : ""}">${feitos}/${cs.length}</span>` : "";
-      html += coluna(`${s}º período`, chip, cards, perfil && feitos === cs.length ? "col-completa" : "");
+      const comChip = perfil && !modoClassico;   // Clássico: só cor e nome, sem a contagem do período
+      const chip = comChip ? `<span class="chip ${feitos === cs.length ? "chip-ok" : ""}">${feitos}/${cs.length}</span>` : "";
+      html += coluna(`${s}º período`, chip, cards, comChip && feitos === cs.length ? "col-completa" : "");
     }
     return html;
   }
@@ -1791,13 +1794,11 @@
   }
 
   /**
-   * Faixa de legenda abaixo do progresso. Linha do tempo: os grupos (categorias). Clássico, com Dificuldade ligada: a
-   * escala, porque ali o Exibir fica em Configurações. Sem legenda de estados: o cartão tem o ícone e o nome acessível.
+   * Faixa de legenda abaixo do progresso, só na Linha do tempo: os grupos (categorias). Sem legenda de estados: o cartão
+   * tem o ícone e o nome acessível. No Clássico não há legenda (o Exibir não vale lá).
    */
-  function renderLegenda(vista) {
-    $("#legenda").innerHTML = vista === "timeline"
-      ? Object.keys(CATS).map((k) => `<span class="leg-cat cat-${k}"><i></i>${CATS[k].nome}</span>`).join("")
-      : escalaDificuldade();
+  function renderLegenda() {
+    $("#legenda").innerHTML = Object.keys(CATS).map((k) => `<span class="leg-cat cat-${k}"><i></i>${CATS[k].nome}</span>`).join("");
   }
 
   function renderAvisoPerfil() {
@@ -2005,10 +2006,10 @@
     privacidade: () => abrePrivacidade(), referencias: () => abreReferencias(), tags: () => abreEditorTags(),
   };
   /** Atalhos visíveis: os fixados e, sem perfil válido, "Criar perfil" e "Importar do SIGA". */
-  /** 🎯: aria-pressed; sem perfil ou no Clássico, aria-disabled com o motivo em texto (a preferência fica guardada). */
+  /** Foco: aria-pressed; sem perfil, aria-disabled com o motivo em texto. No Clássico, oculto (a preferência fica guardada). */
   function renderBotaoFoco() {
     const b = $("#btn-foco");
-    const motivo = !perfil ? "Importe ou crie um perfil para usar o Foco." : modoClassico ? "Disponível no Planejador." : "";
+    const motivo = !perfil ? "Importe ou crie um perfil para usar o Foco." : "";
     b.setAttribute("aria-pressed", String(focoAtivo()));
     if (motivo) { b.setAttribute("aria-disabled", "true"); b.setAttribute("aria-describedby", "btn-foco-motivo"); }
     else { b.removeAttribute("aria-disabled"); b.removeAttribute("aria-describedby"); }
@@ -2030,15 +2031,19 @@
   }
   function renderAtalhos() {
     renderBotaoFoco();
-    $("#seletor-modo").hidden = ocultarSeletor;
-    const vis = ATALHOS.filter((id) => atalhos.includes(id) || (!perfil && (id === "perfil" || id === "importar")));
+    // Clássico (só pintar): no topo, só o seletor de modo e o tema. Os dois aparecem mesmo com o seletor oculto ou o
+    // atalho do tema desfixado em Configurações, e essas preferências continuam salvas para o Planejador.
+    $("#seletor-modo").hidden = ocultarSeletor && !modoClassico;
+    $("#btn-config").hidden = modoClassico;
+    $("#btn-foco").hidden = modoClassico;
+    const vis = modoClassico ? ["tema"] : ATALHOS.filter((id) => atalhos.includes(id) || (!perfil && (id === "perfil" || id === "importar")));
     const box = $("#atalhos");
-    const chave = `${vis.join(",")}|${!!perfil}|${temaAtual()}`;
+    const chave = `${modoClassico ? "classico" : "planejador"}|${vis.join(",")}|${!!perfil}|${temaAtual()}`;
     if (box.dataset.chave === chave) return;
     const foco = document.activeElement && box.contains(document.activeElement) ? document.activeElement.id : null;
     box.dataset.chave = chave;
     box.innerHTML = vis.map((id) => {
-      const a = infoAtalho(id), primario = !perfil && !atalhos.includes(id);
+      const a = infoAtalho(id), primario = !modoClassico && !perfil && !atalhos.includes(id);
       return `<button type="button" id="${a.btn}" class="btn btn-icone btn-atalho${primario ? " btn-primario-topo" : ""}" title="${esc(a.aria || a.rot)}"${a.aria ? ` aria-label="${esc(a.aria)}"` : ""}>${icone(a.ic)}<span class="rot">${esc(a.rot)}</span></button>`;
     }).join("");
     if (foco && document.getElementById(foco)) document.getElementById(foco).focus();
@@ -2224,8 +2229,8 @@
     if (modoClassico) { painelRef.removeAttribute("role"); painelRef.removeAttribute("aria-labelledby"); }
     else { painelRef.setAttribute("role", "tabpanel"); painelRef.setAttribute("aria-labelledby", `aba-${vista}`); }
     document.body.classList.toggle("pintando", pincel !== null);
-    // Barra e Detalhes do progresso só na Grade (e no Clássico) e na Linha do tempo; sem perfil, ocultos.
-    const comProgresso = !!perfil && (vista === "grade" || vista === "timeline");
+    // Barra e Detalhes do progresso só na Grade e na Linha do tempo do Planejador; sem perfil ou no Clássico, ocultos.
+    const comProgresso = !!perfil && !modoClassico && (vista === "grade" || vista === "timeline");
     $("#barra-geral").hidden = !comProgresso;
     if (comProgresso) renderBarraGeral();
     const mini = minimalista();
@@ -2233,13 +2238,13 @@
     // O Minimalista não tem o detalhamento do progresso (nem a soma da lista do BOA, PC-04): volta ao sair dele.
     const detalhado = comProgresso && progressoAberto && !mini;
     $("#progresso").hidden = !detalhado;
-    const mostraLegenda = vista === "timeline" || (modoClassico && exibir.dificuldade && !!M.guia && !mini);
+    const mostraLegenda = vista === "timeline";   // a escala de dificuldade fica junto a Exibir → Dificuldade (Planejador)
     $("#legenda").hidden = !mostraLegenda;
     if (detalhado) renderProgresso();
     const comMotivacao = emFoco && (vista === "grade" || vista === "timeline");
     $("#motivacao").hidden = !comMotivacao;
     if (comMotivacao) renderMotivacao();
-    if (mostraLegenda) renderLegenda(vista);
+    if (mostraLegenda) renderLegenda();
     $("#ferramentas").hidden = vista !== "grade" || modoClassico;
     if (vista === "grade" && !modoClassico) $("#ferramentas").innerHTML = mini ? `
       <button type="button" class="btn btn-icone ferr-mais" id="ferr-mais" aria-expanded="${ferrAberto}" aria-controls="ferr-painel" title="Ferramentas">${icone("reticencias")}<span class="sr">Ferramentas</span></button>
@@ -2248,7 +2253,7 @@
     if (vista === "grade") $("#paleta").innerHTML = renderPaleta();
     const imp = $("#aviso-importado");
     renderAvisoPerfil();
-    imp.hidden = !perfilImportado;
+    imp.hidden = !perfilImportado || modoClassico;   // o Clássico é só para pintar: perfil e arquivos ficam no Planejador
     const doSiga = /^siga/i.test((perfilImportado && perfilImportado.fonte && perfilImportado.fonte.geradoPor) || "");
     if (perfilImportado) imp.innerHTML = `${doSiga ? "Usando o perfil importado do SIGA" : "Usando o perfil salvo"}${perfilImportado.fonte && perfilImportado.fonte.boaEmissao ? ` (BOA de ${esc(perfilImportado.fonte.boaEmissao)})` : ""}, guardado neste navegador.
       <button type="button" class="link" id="baixar-importado">Baixar perfil.js</button> ·
@@ -2460,8 +2465,8 @@
   }
   /** Clique com o pincel: aplica a tag; clicar de novo com a mesma tag tira a tag. */
   function pinta(code) {
-    if (protegida(code)) {   // o clique continua mostrando os detalhes e o destaque
-      destaca(code); abreDetalhes({ code });
+    if (protegida(code)) {   // Planejador: o clique continua mostrando os detalhes e o destaque; Clássico: só o anúncio
+      if (!modoClassico) { destaca(code); abreDetalhes({ code }); }
       anuncia(`${code} está protegida pelo cadeado. Desligue o cadeado na paleta para alterar.`);
       return;
     }
@@ -2615,9 +2620,6 @@
     const box = $("#detalhes");
     box.innerHTML = `<header><span class="cat-pill">Importar</span><button type="button" class="fechar" aria-label="Fechar">${icone("fechar")}</button></header>
       <h3>Importar do SIGA</h3>
-      ${modoClassico ? `<p class="sugere-planejador" id="sugere-planejador">${icone("linha-do-tempo", 16)}
-        <span>No <b>Planejador</b>, o que você importar aparece na linha do tempo, nas optativas e no cronograma.</span>
-        <button type="button" class="btn btn-sm" id="ir-planejador">Trocar para o Planejador</button></p>` : ""}
       <ol class="passos">
         <li>No SIGA, baixe em PDF o <b>Histórico</b> (e o do curso anterior, se você mudou de curso) e o <b>BOA</b> (Boletim de Orientação Acadêmica).</li>
         <li>Escolha os PDFs abaixo (pode selecionar todos de uma vez).</li>
@@ -3570,12 +3572,6 @@
         return removeDeclaradas([code]).then((ok) => { if (ok) { reabreDetalhes(); focaPainel(); } else t.isConnected && t.focus(); });
       }
       if (t.classList.contains("fechar")) return fechaDetalhes();
-      if (t.closest("#ir-planejador")) {   // troca de modo sem fechar o importador nem perder os PDFs escolhidos
-        consultado = null; seletorECI = false; pincel = null;
-        modoClassico = false; save("modoClassico", false); render();
-        $("#sugere-planejador").remove(); $("#siga-pdfs").focus();
-        return anuncia("Modo Planejador ligado. O importador continua aberto.");
-      }
       // editor de tags
       if (t.dataset.tagdel != null) {
         const k = +t.dataset.tagdel, id = tags[k].id;

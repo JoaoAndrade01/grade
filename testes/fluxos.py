@@ -118,7 +118,7 @@ def t_tema_abas(b):
     ctx.close()
 
 # ------------------------------------------------------------------ primeira visita
-@caso("Primeira visita sem perfil: grade clássica, Planejador acessível, sem nome nem progresso, aba 'Grade ECI'")
+@caso("Primeira visita sem perfil: grade clássica só com o seletor e o tema no topo; Planejador com Criar perfil e Importar; sem nome nem progresso, aba 'Grade ECI'")
 def t_sem_perfil(b):
     ctx, pg = abre(b, nome="sem-perfil", atalhos=False, modo="classico")
     assert pg.locator("#modo-classico").is_checked()
@@ -127,14 +127,19 @@ def t_sem_perfil(b):
     assert pg.locator("#titulo").inner_text().strip() == "Grade ECI"
     assert pg.locator("#barra-geral").is_hidden() and pg.locator("#progresso").is_hidden()
     assert pg.locator(".col-topo .chip").count() == 0
-    assert pg.locator("#btn-importar .rot").is_visible() and pg.locator("#btn-perfil .rot").is_visible()
-    expect(pg.get_by_role("button", name="Criar perfil", exact=True)).to_be_visible()
-    assert pg.locator("#btn-config").is_visible() and pg.locator("#seletor-modo").is_visible()
-    assert pg.locator("#btn-tema, #btn-privacidade, #btn-referencias, #btn-tags").count() == 0     # atalhos começam desafixados
+    # Clássico (só pintar): no topo, só o seletor de modo e o tema
+    expect(pg.locator("#seletor-modo")).to_be_visible(); expect(pg.locator("#btn-tema")).to_be_visible()
+    expect(pg.locator("#btn-config")).to_be_hidden(); expect(pg.locator("#btn-foco")).to_be_hidden()
+    assert pg.locator("#btn-importar, #btn-perfil, #btn-privacidade, #btn-referencias, #btn-tags").count() == 0
+    expect(pg.get_by_role("button", name="Criar perfil", exact=True)).to_have_count(0)
     logo = pg.locator(".logo").evaluate("i => [i.naturalWidth, i.naturalHeight, i.getBoundingClientRect().width, i.getBoundingClientRect().height, i.alt]")
     assert logo[0] == 200 and abs(logo[2] - logo[3]) < 0.5 and logo[4], logo
     pg.locator("#modo-classico").focus(); pg.keyboard.press("ArrowRight")     # rádios: a seta escolhe o Planejador
     assert not pg.locator("#modo-classico").is_checked() and pg.locator(".abas").is_visible()
+    # Planejador: sem perfil, "Importar do SIGA" e "Criar perfil" aparecem; os outros atalhos começam desafixados
+    assert pg.locator("#btn-importar .rot").is_visible() and pg.locator("#btn-perfil .rot").is_visible()
+    expect(pg.get_by_role("button", name="Criar perfil", exact=True)).to_be_visible(); expect(pg.locator("#btn-config")).to_be_visible()
+    assert pg.locator("#btn-tema, #btn-privacidade, #btn-referencias, #btn-tags").count() == 0
     pg.click('[data-vista="timeline"]'); assert "Criar perfil" in pg.locator(".sem-perfil").inner_text()
     foto(pg, "11-sem-perfil-modo-completo-linha-do-tempo")
     ctx.close()
@@ -166,17 +171,14 @@ def t_seletor_modo(b):
     foto(pg, "seletor-modo-so-icones")
     ctx.close()
 
-@caso("Importar do SIGA no Clássico sugere o Planejador; o botão troca o modo sem fechar o importador; no Planejador, sem sugestão")
+@caso("Importar fica no Planejador: o Clássico não tem Importar nem a sugestão de trocar de modo; no Planejador, o importador abre sem sugestão")
 def t_importar_sugere_planejador(b):
     ctx, pg = abre(b, nome="importar-sugere", modo="classico")
-    pg.click("#btn-importar")
-    sug = pg.locator("#sugere-planejador"); expect(sug).to_be_visible(); expect(sug).to_contain_text("Planejador")
-    pg.click("#ir-planejador")
-    expect(pg.locator("#modo-planejador")).to_be_checked(); expect(pg.locator(".abas")).to_be_visible()
-    expect(pg.locator("#detalhes")).to_be_visible(); assert pg.locator("#sugere-planejador").count() == 0
-    assert pg.evaluate("document.activeElement.id") == "siga-pdfs" and ls(pg, "modoClassico") is False
-    pg.keyboard.press("Escape"); pg.click("#btn-importar")
-    expect(pg.locator("#siga-pdfs")).to_be_visible(); assert pg.locator("#sugere-planejador").count() == 0
+    assert pg.locator("#btn-importar, #sugere-planejador, #ir-planejador").count() == 0
+    alterna_modo(pg); pg.click("#btn-importar")
+    expect(pg.locator("#siga-pdfs")).to_be_visible(); assert pg.locator("#sugere-planejador, #ir-planejador").count() == 0
+    pg.keyboard.press("Escape"); alterna_modo(pg)                                   # voltar ao Clássico fecha o painel
+    expect(pg.locator("#detalhes")).to_be_hidden(); assert pg.locator("#btn-importar").count() == 0
     ctx.close()
 
 # ------------------------------------------------------------------ criar perfil
@@ -185,6 +187,7 @@ def t_criar_perfil(b):
     ctx, pg = abre(b, nome="criar-perfil", modo="classico")
     pg.locator('.card[data-code="COS110"]').click()           # pinta com a tag padrão (Aprovada)
     assert ls(pg, "marcacoes") == {"COS110": "aprovada"}
+    assert pg.locator("#btn-perfil").count() == 0; alterna_modo(pg)   # criar perfil é no Planejador
     # Para verificar retorno de foco, abra pelo teclado: clique não foca botão em todo motor.
     abertura = pg.locator("#btn-perfil")
     abertura.press("Enter")
@@ -209,7 +212,7 @@ def t_criar_perfil(b):
     assert pg.locator("#titulo").inner_text().strip() == "Grade ECI — Beatriz", pg.locator("#titulo").inner_text()
     assert pg.title() == "Grade ECI"
     p = ls(pg, "perfilImportado"); assert p["nome"] == "Beatriz" and p["periodos"][0] == {"nome": "2026/2", "atual": True, "disciplinas": []}, p
-    foto(pg, "14-perfil-criado-com-nome-classico")
+    foto(pg, "14-perfil-criado-com-nome")
     ctx.close()
 
 @caso("Criar/editar perfil: semestre que já existe é sinalizado e nada muda")
@@ -1655,10 +1658,11 @@ def t_abas_legendas(b):
     foto(pg, "abas-escala-dificuldade")
     pg.click('#ferramentas [data-exibir="dificuldade"]'); assert estado_das_legendas(pg)["escala"] == []
     ctx.close()
-    # Clássico segue a Grade; a escala aparece com Dificuldade ligada (Exibir fica em Configurações).
+    # Clássico (só pintar): sem barra, detalhamento nem legenda, mesmo com Dificuldade ligada (a preferência fica salva).
     ctx, pg = abre(b, perfil=PERFIL, extra={"marcacoes": {"MAC238": "aprovada"}, "progressoAberto": True, "modoClassico": True,
                                            "exibir": {"codigo": True, "dificuldade": True}}, nome="abas-legendas-classico")
-    assert estado_das_legendas(pg) == {**com, "categorias": False, "escala": ESCALA}, estado_das_legendas(pg)
+    assert estado_das_legendas(pg) == sem, estado_das_legendas(pg)
+    assert ls(pg, "exibir")["dificuldade"] is True and ls(pg, "progressoAberto") is True
     ctx.close()
     # Sem perfil: sem barra nem detalhamento, em qualquer aba.
     ctx, pg = abre(b, nome="abas-legendas-sem-perfil", extra={"modoClassico": False})
@@ -1951,6 +1955,7 @@ def t_destaque(b):
     assert pg.locator("#modo-classico").is_checked()
     pg.locator('.card[data-code="MAC248"]').tap()
     expect(pg.locator("#consulta")).to_be_visible(); assert "MAC248" not in (ls(pg, "marcacoes") or {})
+    assert pg.locator("#consulta-detalhes").count() == 0                     # Clássico: consulta só com o texto
     d = destaque(pg); assert d["self"] == ["MAC248"] and d["pre"] == ["MAC128"] and d["ativo"], d
     foto(pg, "destaque-toque-320-escuro")
     pg.locator('.card[data-code="MAC248"]').tap(); assert "MAC248" in ls(pg, "marcacoes")
@@ -2286,19 +2291,29 @@ def t_atalhos(b):
     assert not [e for e in eventos if "[atalhos]" in e and "EXTERNA" in e]
     ctx.close()
 
-@caso("Primeira visita: modo clássico com seletor visível; ocultar o seletor preserva o modo; trocar de modo em Configurações com o seletor oculto")
+@caso("Modo: primeira visita no Clássico com seletor e tema; ocultar o seletor vale no Planejador; no Clássico o seletor e o tema ficam sempre visíveis e a preferência continua salva")
 def t_modo(b):
     ctx, pg = abre(b, nome="modo", atalhos=False, modo="classico")
-    assert pg.locator("#modo-classico").is_checked() and pg.locator("#seletor-modo").is_visible()
-    abre_config(pg); assert pg.locator('#dlg-config input[name="modo"][value="classico"]').is_checked() and pg.locator("#cfg-seletor").is_checked()
+    assert pg.locator("#modo-classico").is_checked() and pg.locator("#seletor-modo").is_visible() and pg.locator("#btn-tema").is_visible()
+    alterna_modo(pg)
+    abre_config(pg); assert pg.locator('#dlg-config input[name="modo"][value="completo"]').is_checked() and pg.locator("#cfg-seletor").is_checked()
     pg.uncheck("#cfg-seletor")
-    assert ls(pg, "ocultarSeletor") is True and pg.locator("#seletor-modo").is_hidden() and pg.locator('#dlg-config input[name="modo"][value="classico"]').is_checked()
-    pg.check('#dlg-config input[name="modo"][value="completo"]'); pg.keyboard.press("Escape")
+    assert ls(pg, "ocultarSeletor") is True and pg.locator("#seletor-modo").is_hidden()
+    pg.keyboard.press("Escape")
     assert pg.locator(".abas").is_visible() and pg.locator("#seletor-modo").is_hidden() and ls(pg, "modoClassico") is False
     foto(pg, "55-seletor-oculto-modo-completo")
     pg.reload(); assert pg.locator(".abas").is_visible() and pg.locator("#seletor-modo").is_hidden()
-    abre_config(pg); pg.check('#dlg-config input[name="modo"][value="classico"]'); pg.check("#cfg-seletor"); pg.keyboard.press("Escape")
-    assert pg.locator("#seletor-modo").is_visible() and pg.locator("#modo-classico").is_checked()
+    # trocar para o Clássico em Configurações com o seletor oculto: no Clássico ele aparece, e a chave continua
+    abre_config(pg); pg.check('#dlg-config input[name="modo"][value="classico"]'); pg.keyboard.press("Escape")
+    expect(pg.locator("#seletor-modo")).to_be_visible(); expect(pg.locator("#btn-tema")).to_be_visible()
+    assert pg.locator("#modo-classico").is_checked() and ls(pg, "ocultarSeletor") is True and ls(pg, "atalhos") in (None, [])
+    pg.reload(); pronto(pg, "modo")
+    expect(pg.locator("#seletor-modo")).to_be_visible(); assert ls(pg, "ocultarSeletor") is True
+    pg.locator("#modo-classico").focus(); pg.keyboard.press("ArrowRight")                     # operável pelo teclado
+    expect(pg.locator(".abas")).to_be_visible(); expect(pg.locator("#seletor-modo")).to_be_hidden()   # de volta ao Planejador, vale a preferência
+    assert pg.locator("#btn-tema").count() == 0                                                # o tema não estava fixado
+    abre_config(pg); pg.check("#cfg-seletor"); pg.keyboard.press("Escape")
+    assert pg.locator("#seletor-modo").is_visible() and ls(pg, "ocultarSeletor") is False
     ctx.close()
 
 @caso("Configurações sincroniza Grade → Exibir, destaque e o cadeado da paleta, nos dois sentidos; preferências antigas preservadas")
@@ -2531,7 +2546,7 @@ def t_b1_estado_dos_cartoes(b):
                 "MAC128": ("cursando", "Cursando · perfil"), "COS360": ("planejado", "Planejada · perfil"), "MAC238": ("marcacao", "Cursada · marcação")}
     visivel = """(el) => { const c = el.cloneNode(true); c.querySelectorAll('.sr').forEach((x) => x.remove()); return c.textContent; }"""
     for nome, vp, toque, esquema in [("desktop", D, False, "light"), ("celular", C320, True, "dark")]:
-        ctx, pg = abre(b, vp=vp, esquema=esquema, perfil=PERFIL, extra={"marcacoes": {"MAC238": "aprovada"}}, nome=f"b1-{nome}", toque=toque, modo="classico")
+        ctx, pg = abre(b, vp=vp, esquema=esquema, perfil=PERFIL, extra={"marcacoes": {"MAC238": "aprovada"}, "vista": "grade"}, nome=f"b1-{nome}", toque=toque)
         for vista in ("grade", "timeline"):
             if vista == "timeline": completo(pg, "timeline")
             for code, (ico, texto) in esperado.items():
@@ -2558,8 +2573,8 @@ def t_b1_estado_dos_cartoes(b):
     r = consulta.bounding_box(); assert r["height"] > 0
     card.tap()
     assert ls(pg, "marcacoes") == {"MAC248": "aprovada"}, ls(pg, "marcacoes")
-    assert card.locator(".estado").get_attribute("data-estado") == "marcacao"
-    expect(card).to_have_accessible_name(re.compile("Cursada · marcação"))
+    assert card.locator(".estado").count() == 0 and card.locator(".meta").count() == 0       # Clássico: só cor e nome
+    expect(card).to_have_accessible_name(re.compile("Cursada · marcação"))                   # a situação continua no nome acessível
     ctx.close()
     # mouse e teclado continuam marcando com uma ativação
     ctx, pg = abre(b, nome="b1-mouse", atalhos=False, modo="classico")
@@ -2891,8 +2906,8 @@ def t_b8_alvos(b):
         assert not axe_graves(pg, ["target-size"]), (nome, "cronograma", axe_graves(pg, ["target-size"]))
         pg.click('[data-vista="optativas"]')
         assert not axe_graves(pg, ["target-size"]), (nome, "optativas", axe_graves(pg, ["target-size"]))
-        alterna_modo(pg)          # clássico: aviso do perfil salvo
-        mede(pg, ["#baixar-importado", "#descartar-importado"], f"aviso-{nome}")
+        pg.click('[data-vista="grade"]')          # aviso do perfil salvo (só no Planejador)
+        mede(pg, ["#baixar-importado", "#descartar-importado", "#ferramentas .ctl.aceso"], f"aviso-{nome}")
         assert not axe_graves(pg, ["target-size"]), (nome, "aviso", axe_graves(pg, ["target-size"]))
         if toque:
             for s in ("#btn-importar", "#btn-perfil", "#seletor-modo label", ".pal-btn"):
@@ -2978,7 +2993,7 @@ def t_axe_recorte(b):
                 if nome == "grade-completa":
                     pg.locator('.card[data-code="COS242"]').click()          # detalhes da disciplina
                     for v in axe_graves(pg): achados.append((esq, rotulo, "detalhes-COS242", v["id"], v["nos"][:2]))
-                if nome == "grade-classica":
+                    pg.keyboard.press("Escape")
                     pg.click("#btn-config")
                     for v in axe_graves(pg): achados.append((esq, rotulo, "configuracoes", v["id"], v["nos"][:2]))
                     pg.keyboard.press("Escape"); pg.click("#btn-importar")
@@ -3108,11 +3123,13 @@ def t_minimalista(b):
     # toque, 320 px e tema escuro; Clássico também fica minimalista
     ctx, pg = abre(b, vp=C320, perfil=PERFIL, extra={"aparencia": "minimalista"}, nome="minimalista-toque", toque=True, esquema="dark", modo="classico")
     assert pg.locator("#modo-classico").is_checked()
-    assert visiveis("#painel .card .meta") == 0 and pg.locator(".bg-legenda").is_hidden()
+    assert visiveis("#painel .card .meta") == 0 and pg.locator("#barra-geral").is_hidden()        # Clássico: sem barra
+    completo(pg, "grade")
+    assert pg.locator(".bg-legenda").is_hidden()
     pg.locator("#barra-geral .bg-barra").tap(); expect(pg.locator(".bg-legenda")).to_be_visible()
     assert pg.evaluate("document.documentElement.scrollWidth - innerWidth") <= 1
     foto(pg, "minimalista-320-escuro")
-    completo(pg, "grade"); pg.get_by_role("button", name="Ferramentas", exact=True).tap()
+    pg.get_by_role("button", name="Ferramentas", exact=True).tap()
     expect(pg.locator("#ferr-painel")).to_be_visible()
     r = pg.locator("#ferr-painel").bounding_box(); assert r["x"] >= 0 and r["x"] + r["width"] <= 320 + 0.5, r
     foto(pg, "minimalista-320-painel")
@@ -3137,9 +3154,9 @@ def t_plano_na_grade(b):
     assert "2027/1" in hist and "2027/2" in hist and hist.count("Planejada") >= 2, hist      # a lista completa nos detalhes
     pg.keyboard.press("Escape")
     abre_config(pg); assert pg.locator('#dlg-config [data-exibir="plano"]').is_checked(); pg.keyboard.press("Escape")
-    alterna_modo(pg); expect(pg.locator('.card[data-code="COS360"] .plano-flag')).to_have_text("2027/1 +1")    # Clássico
+    alterna_modo(pg); expect(pg.locator(".plano-flag")).to_have_count(0); assert ls(pg, "exibir")["plano"] is True    # Clássico: só cor e nome
     ctx.close()
-    ctx, pg = abre(b, vp=C320, perfil=perfil, extra={"exibir": {"plano": True}}, nome="plano-grade-320", toque=True, esquema="dark", modo="classico")
+    ctx, pg = abre(b, vp=C320, perfil=perfil, extra={"exibir": {"plano": True}, "vista": "grade"}, nome="plano-grade-320", toque=True, esquema="dark")
     c = pg.locator('.card[data-code="COS360"]'); c.scroll_into_view_if_needed()
     expect(c.locator(".plano-flag")).to_be_visible()
     r, f = c.bounding_box(), c.locator(".plano-flag").bounding_box()
@@ -3199,7 +3216,7 @@ def t_declaradas_modelo(b):
     ctx.close()
     # A4: ☑ distinto do ✓, nos dois temas e a 320 px
     for esquema in ("light", "dark"):
-        ctx, pg = abre(b, vp=C320, perfil=DECL, nome=f"declaradas-320-{esquema}", esquema=esquema, relogio=HOJE, toque=True, modo="classico")
+        ctx, pg = abre(b, vp=C320, perfil=DECL, extra={"vista": "grade"}, nome=f"declaradas-320-{esquema}", esquema=esquema, relogio=HOJE, toque=True)
         c = pg.locator('.card[data-code="MAC118"]'); c.scroll_into_view_if_needed(); expect(c.locator(".estado")).to_have_attribute("data-estado", "declarada")
         assert pg.evaluate("document.documentElement.scrollWidth - innerWidth") <= 1
         foto(pg, f"declaradas-icone-320-{esquema}")
@@ -3373,7 +3390,7 @@ def t_registrar_com_perfil(b):
     prog = pg.locator("#progresso").inner_text()
     assert "3 aprovações registradas por você" in prog, prog
     ctx.close()
-    ctx, pg = abre(b, vp=C320, perfil=perfil, extra={"marcacoes": marc}, nome="registrar-320", relogio=HOJE, toque=True, esquema="dark", modo="classico")
+    ctx, pg = abre(b, vp=C320, perfil=perfil, extra={"marcacoes": marc, "vista": "grade"}, nome="registrar-320", relogio=HOJE, toque=True, esquema="dark")
     pg.locator("#btn-registrar").tap(); expect(pg.locator("#dlg-registrar")).to_be_visible()
     assert pg.evaluate("document.documentElement.scrollWidth - innerWidth") <= 1
     r = pg.locator("#dlg-registrar").bounding_box(); assert r["x"] >= 0 and r["x"] + r["width"] <= 320.5, r
@@ -3493,8 +3510,7 @@ def t_foco(b):
     ctx.close()
     ctx, pg = abre(b, perfil=PERFIL, nome="foco", relogio=HOJE, modo="classico")
     f = pg.locator("#btn-foco")
-    expect(f).to_have_attribute("aria-disabled", "true"); expect(pg.locator("#btn-foco-motivo")).to_have_text("Disponível no Planejador.")   # Clássico
-    assert "Disponível no Planejador" in f.get_attribute("title")
+    expect(f).to_be_hidden()                                                             # Clássico: só o seletor e o tema no topo
     completo(pg, "optativas")
     expect(f).not_to_have_attribute("aria-disabled", "true"); expect(f).to_have_attribute("aria-pressed", "false")
     barra = pg.locator("#barra-geral").inner_text() if pg.locator("#barra-geral").is_visible() else None
@@ -3526,7 +3542,7 @@ def t_foco(b):
     expect(pg.locator('#painel .card[data-code="COS110"]')).to_have_count(1); expect(pg.locator(".abas [data-vista=optativas]")).to_be_visible()
     # Clássico guarda a preferência; ao voltar ao Planejador, o Foco volta
     f.click(); alterna_modo(pg)
-    expect(f).to_have_attribute("aria-disabled", "true"); expect(f).to_have_attribute("aria-pressed", "false")
+    expect(f).to_be_hidden(); expect(f).to_have_attribute("aria-pressed", "false")
     assert ls(pg, "foco") is True and pg.locator("#motivacao").is_hidden()
     alterna_modo(pg); expect(f).to_have_attribute("aria-pressed", "true")
     pg.reload(); pronto(pg, "foco"); expect(pg.locator("#btn-foco")).to_have_attribute("aria-pressed", "true")
@@ -4036,6 +4052,67 @@ def t_varredura_simbolos(b):
     expect(pg.locator("#btn-foco svg.ico")).to_have_count(1)                                  # Foco com o ícone target
     ctx.close()
     assert not achados, achados
+
+TOPO_PLANEJADOR = "#btn-config, #btn-foco, #btn-importar, #btn-perfil, #btn-privacidade, #btn-referencias, #btn-tags"
+
+@v210
+@caso("Clássico só para pintar: topo só com seletor e tema; sem barra, Detalhes, Registrar, aviso, legenda e extras no cartão; pintar, limpar e cadeado; tema salvo; Exibir intacto; 320 px nos dois temas")
+def t_classico_so_pintar(b):
+    exibir = {"codigo": True, "notas": True, "dificuldade": True, "presenca": True, "plano": True, "situacao": True, "destaque": "foco"}
+    extra = {"exibir": exibir, "progressoAberto": True, "marcacoes": {"MAC238": "aprovada"}, "ocultarSeletor": True}
+    ctx, pg = abre(b, perfil=PERFIL, extra=extra, nome="classico-pintar", modo="classico")
+    # topo: só o seletor (mesmo com ocultarSeletor) e o tema (mesmo desafixado, aqui fixado com os outros atalhos)
+    expect(pg.locator("#seletor-modo")).to_be_visible(); expect(pg.locator("#btn-tema")).to_be_visible()
+    assert pg.locator("#atalhos button").count() == 1
+    for sel in TOPO_PLANEJADOR.split(", "): expect(pg.locator(sel)).to_be_hidden()      # ocultos ou fora do DOM
+    arvore = pg.locator(".topo").aria_snapshot()
+    assert "Configurações" not in arvore and "Foco" not in arvore and "Importar" not in arvore, arvore
+    # nada de barra, detalhamento, legenda, ferramentas nem aviso do perfil salvo
+    for sel in ("#barra-geral", "#progresso", "#legenda", "#ferramentas", "#aviso-importado", "#motivacao"):
+        expect(pg.locator(sel)).to_be_hidden()
+    # cartões só com cor e nome; blocos sem a barra de preenchimento; sem contagem do período
+    for sel in (".meta", ".nota", ".plano-flag", ".estado", ".sub"):
+        assert pg.locator(f"#painel .card {sel}").count() == 0, sel
+    assert pg.locator("#painel .col-topo .chip").count() == 0 and pg.locator("#painel .card.bloco[style]").count() == 0
+    expect(pg.locator('#painel .card[data-code="MAC128"]')).to_have_accessible_name(re.compile(r"Cursando · perfil"))   # leitor de tela
+    # paleta: tags, borracha, editar tags e cadeado; sem Registrar, Detalhes e ECI por trás
+    assert pg.locator("#btn-registrar, #paleta [data-pincel='__detalhes'], #pal-eci").count() == 0
+    for sel in ("#editar-tags", "#cadeado", '#paleta [data-pincel=""]', '#paleta [data-pincel="aprovada"]'): expect(pg.locator(sel)).to_be_visible()
+    # Tab: nenhum controle oculto recebe foco
+    vistos = set()
+    for _ in range(12):
+        pg.keyboard.press("Tab"); vistos.add(pg.evaluate("document.activeElement.id || document.activeElement.className"))
+    assert not ({"btn-config", "btn-foco", "btn-importar", "btn-perfil"} & vistos), vistos
+    # pintar e limpar
+    pg.locator('#painel .card[data-code="MAC248"]').click(); assert ls(pg, "marcacoes").get("MAC248") == "aprovada"   # pendente no perfil
+    pg.click('#paleta [data-pincel=""]'); pg.locator('#painel .card[data-code="MAC248"]').click(); assert ls(pg, "marcacoes").get("MAC248") == ""
+    expect(pg.locator("#detalhes")).to_be_hidden()
+    # cadeado: a protegida só anuncia, sem abrir Detalhes
+    pg.click("#cadeado"); pg.click('#paleta [data-pincel="cursando"]'); pg.locator('#painel .card[data-code="COS110"]').click()
+    expect(pg.locator("#anuncio")).to_contain_text("protegida pelo cadeado"); expect(pg.locator("#detalhes")).to_be_hidden()
+    assert "COS110" not in ls(pg, "marcacoes")
+    # Editar tags continua (faz parte da paleta)
+    pg.click("#editar-tags"); expect(pg.locator("#detalhes")).to_contain_text("Tags de cor"); pg.keyboard.press("Escape")
+    # tema alterna e fica salvo
+    pg.click("#btn-tema"); expect(pg.locator("html")).to_have_attribute("data-tema", "escuro"); assert ls(pg, "tema") == "escuro"
+    # o Clássico não muda as preferências do Planejador
+    assert ls(pg, "exibir") == exibir and ls(pg, "ocultarSeletor") is True and ls(pg, "progressoAberto") is True
+    pg.reload(); pronto(pg, "classico-pintar")
+    expect(pg.locator("html")).to_have_attribute("data-tema", "escuro"); expect(pg.locator("#seletor-modo")).to_be_visible()
+    # alternar o modo com os atalhos fixados: a barra acompanha nos dois sentidos
+    alterna_modo(pg)
+    expect(pg.locator("#btn-config")).to_be_visible(); expect(pg.locator("#btn-importar")).to_be_visible(); expect(pg.locator("#seletor-modo")).to_be_hidden()
+    pg.locator("#modo-classico").evaluate("e => e.click()")                                   # seletor oculto no Planejador: troca direta
+    expect(pg.locator("#btn-config")).to_be_hidden(); assert pg.locator("#atalhos button").count() == 1
+    alterna_modo(pg); expect(pg.locator("#btn-tags")).to_be_visible()
+    ctx.close()
+    # 320 px, nos dois temas: sem rolagem lateral
+    for esq in ("light", "dark"):
+        ctx, pg = abre(b, vp=C320, perfil=PERFIL, extra={"exibir": exibir}, nome=f"classico-320-{esq}", toque=True, esquema=esq, modo="classico")
+        assert pg.locator("#painel .card .meta, #painel .card .estado").count() == 0
+        assert pg.evaluate("document.documentElement.scrollWidth - innerWidth") <= 1
+        foto(pg, f"classico-so-pintar-320-{esq}")
+        ctx.close()
 
 CASOS += CASOS6
 
