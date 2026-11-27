@@ -117,14 +117,13 @@ Itens para depois da publicação. A ordem é a de prioridade dentro de cada gru
 
 | # | Item | Critério de pronto |
 | --- | --- | --- |
-| 1 | **Previsão de formatura calculada**, o primeiro item de produto | Ver [RF-19](REQUISITOS.md#rf-19--previsão-de-formatura-calculada-h4--planejado) |
-| 2 | Aviso de dado desatualizado, logo depois da previsão | Ver [RF-18](REQUISITOS.md#rf-18--aviso-de-dado-desatualizado-h14--planejado) |
-| 3 | Marcar atividades de extensão como distintas; a implementação está pronta numa branch de trabalho | Ver o caso 01g em [RF-01](REQUISITOS.md#rf-01--progresso-por-grupo-ra-01-ra-05-ra-06-ra-16); revisão e integração na versão seguinte |
-| 4 | Melhorias de optativas e perfil: filtro "só liberadas" com elegibilidade por semestre planejado; data de consulta do guia no detalhe; prévia antes de aplicar um perfil pronto | Casos próprios em RF-11 e RF-12, vermelho → verde |
-| 5 | Automação com o Notion, combinada com os autores | Ver [RF-15](REQUISITOS.md#rf-15--sincronização-dos-dados-do-notion-h16--planejado), RNF-11 e RNF-13 |
-| 6 | Atualização do currículo a partir do SIGA | Ver [RF-16](REQUISITOS.md#rf-16--atualização-do-currículo-a-partir-do-siga-h14--planejado) |
-| 7 | Novas experiências de "A ECI por trás da Grade", nesta ordem: diagrama vivo da arquitetura (EEL873), depois COS231 (choques de horário) | Ver [RF-13](REQUISITOS.md#rf-13--a-eci-por-trás-da-grade-h12) |
-| 8 | Procedimentos de estágio, equivalência e ACE | Ver [RF-09](REQUISITOS.md#rf-09--procedimentos-de-estágio-equivalência-e-ace-planejado) |
+| 1 | **Aviso de dado desatualizado**, o primeiro item de produto (a previsão de formatura já está em [RF-19](REQUISITOS.md#rf-19--previsão-de-formatura-calculada-h4)) | Ver [RF-18](REQUISITOS.md#rf-18--aviso-de-dado-desatualizado-h14--planejado) |
+| 2 | Marcar atividades de extensão como distintas; a implementação está pronta numa branch de trabalho | Ver o caso 01g em [RF-01](REQUISITOS.md#rf-01--progresso-por-grupo-ra-01-ra-05-ra-06-ra-16); revisão e integração na versão seguinte |
+| 3 | Melhorias de optativas e perfil: filtro "só liberadas" com elegibilidade por semestre planejado; data de consulta do guia no detalhe; prévia antes de aplicar um perfil pronto | Casos próprios em RF-11 e RF-12, vermelho → verde |
+| 4 | Automação com o Notion, combinada com os autores | Ver [RF-15](REQUISITOS.md#rf-15--sincronização-dos-dados-do-notion-h16--planejado), RNF-11 e RNF-13 |
+| 5 | Atualização do currículo a partir do SIGA | Ver [RF-16](REQUISITOS.md#rf-16--atualização-do-currículo-a-partir-do-siga-h14--planejado) |
+| 6 | Novas experiências de "A ECI por trás da Grade", nesta ordem: diagrama vivo da arquitetura (EEL873), depois COS231 (choques de horário) | Ver [RF-13](REQUISITOS.md#rf-13--a-eci-por-trás-da-grade-h12) |
+| 7 | Procedimentos de estágio, equivalência e ACE | Ver [RF-09](REQUISITOS.md#rf-09--procedimentos-de-estágio-equivalência-e-ace-planejado) |
 
 **Fora, de propósito:** análise de uso (analytics), por causa da condição 1 de privacidade.
 

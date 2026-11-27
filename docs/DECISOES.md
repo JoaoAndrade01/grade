@@ -82,6 +82,9 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
   histórico antigo serve só para mostrar a origem.
 - **Consequências:** casos 03i, 06h e 06i. A nota de estimativa de RA-09 fica até a regra estar implementada
   e testada.
+- **Atualização (2026-11-27):** vale também quando uma equivalência deferida usa uma transferida como origem, direta ou
+  por outra equivalência: o prazo da pedida segue o ano do bloco; a data original continua só para requisitos (D-08).
+  Ver a regra da pedida em [PC-14](#pc-14--registrar-marcações-aprovações-registradas-por-você).
 
 ### D-04 · Limite de 25% não modelado
 
@@ -354,15 +357,20 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
     só é comparado com `aprovadaEm`. Carregar outro perfil pergunta antes quando alguma declarada deste navegador não
     está no arquivo; descartar o perfil salvo tira também as declaradas do plano.
   - **Regra da pedida de uma equivalência deferida**, a partir do conjunto de origens, sem depender da ordem:
-    - *status:* aprovada se todas as origens estão aprovadas; senão, prevista (alguma prevista ou em curso, as outras
-      cumpridas).
+    - *status:* aprovada se todas as origens estão aprovadas; prevista se as que faltam estão previstas ou em curso;
+      pendente se alguma origem está ausente ou reprovada (sem fonte, sem plano e sem selo).
     - *fonte:* a mais fraca: declarada se alguma origem for declarada; prevista se a pedida ficou prevista.
     - *data efetiva:* a mais tardia entre as origens. Cada origem contribui com o semestre que conhece: importada,
       prevista ou em curso, o semestre do período; transferida, `aprovadaEm` ou, sem ela, o ano do bloco (D-08);
       declarada com semestre, o semestre informado; declarada sem semestre, o limite de `registradoEm` (A7). No empate, o
       semestre conhecido vence o limite. Sem data em alguma origem, a pedida fica sem data.
     - *requisito:* a pedida cumpre num semestre quando todas as origens cumprem, cada uma pelo próprio critério.
-    - *previsão e selos:* a pedida ainda não cumprida entra no plano na data efetiva; a fonte decide o selo e a fase.
+    - *prazo de cinco anos:* outra data, a de D-03: a transferida conta pelo ano do bloco, nunca por `aprovadaEm`; a
+      declarada sem semestre fica sem data; a pedida usa a origem mais tardia.
+    - *previsão e selos:* a pedida prevista entra no plano na data efetiva só quando as origens que faltam estão previstas
+      ou em curso no período atual ou num futuro; num período passado não cobre nada. A fonte decide o selo e a fase.
+    - *período exibido:* o da origem que dá a data. No empate, período real do Histórico ou do plano, depois o bloco de
+      transferidas, a pedida e a declarada; persistindo, a origem de menor código.
   - **Semestre ausente:** requisito pelo limite de `registradoEm` (pré-requisito depois dele; co-requisito também nele),
     com aviso no próprio semestre; o prazo de cinco anos fica "Data de aprovação não confirmada", sem idade e sem data
     inventada. D-03 e D-08 não são reabertas.
