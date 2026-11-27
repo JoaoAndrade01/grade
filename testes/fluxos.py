@@ -3370,8 +3370,92 @@ def t_registrar_com_perfil(b):
     pg.keyboard.press("Escape")
     ctx.close()
 
+@caso("Declarada no detalhe: editar o semestre (validado; em branco = desconhecido) e remover com confirmação; foco no título (R25)")
+def t_declaradas_detalhe(b):
+    perfil = {"periodos": [], "aprovacoesDeclaradas": [{"code": "MAC128", "registradoEm": "2026-11-20"}]}
+    ctx, pg = abre(b, perfil=perfil, extra={"modoClassico": False, "vista": "grade"}, nome="declaradas-detalhe", relogio=HOJE)
+    pg.locator('.card[data-code="MAC128"]').click(); expect(pg.locator("#detalhes")).to_be_visible()
+    pg.fill("#decl-semestre", "2030/1"); pg.get_by_role("button", name="Salvar semestre").click()
+    expect(pg.locator("#decl-semestre-msg")).to_contain_text("posterior ao atual")
+    pg.fill("#decl-semestre", "2025/1"); pg.keyboard.press("Enter")
+    expect(pg.locator("#detalhes .det-declarada")).to_contain_text("semestre 2025/1")
+    assert ls(pg, "plano")["aprovacoesDeclaradas"] == [{"code": "MAC128", "registradoEm": "2026-11-20", "semestre": "2025/1"}]
+    assert foco_em(pg, "#detalhes h3"), descreve_foco(pg)
+    pg.fill("#decl-semestre", ""); pg.get_by_role("button", name="Salvar semestre").click()
+    expect(pg.locator("#detalhes .det-declarada")).to_contain_text("semestre não informado")
+    assert ls(pg, "plano")["aprovacoesDeclaradas"] == [{"code": "MAC128", "registradoEm": "2026-11-20"}]
+    pg.get_by_role("button", name="Remover registro").click()
+    expect(pg.locator("#dlg-confirma")).to_be_visible(); expect(pg.locator("#dlg-confirma-texto")).to_contain_text("A marcação do pincel não volta")
+    pg.locator("#dlg-confirma-ok").click()
+    expect(pg.locator("#detalhes .det-declarada")).to_have_count(0)
+    assert foco_em(pg, "#detalhes h3"), descreve_foco(pg)
+    expect(pg.locator("#anuncio")).to_contain_text("Registro de MAC128 removido")
+    assert pg.evaluate("GradeInterativa.fonte('MAC128')") is None and "MAC128" not in (ls(pg, "marcacoes") or {})
+    pg.keyboard.press("Escape")
+    expect(pg.locator('.card[data-code="MAC128"] .estado')).to_have_count(0)            # pendente, sem ✎
+    ctx.close()
+
+@caso("Declaradas em Configurações e nos dados do navegador: remover em lote, limpar, descartar e carregar outro perfil avisam; exportar e recarregar preserva (R17, R23, R24, R26)")
+def t_declaradas_gestao(b):
+    perfil = {"periodos": [{"nome": "2025/1", "disciplinas": ["MAC118"]}, {"nome": "2027/1", "planejado": True, "disciplinas": ["MAC238"]}],
+              "aprovacoesDeclaradas": [{"code": "MAC118", "registradoEm": "2026-11-27"}, {"code": "COS110", "registradoEm": "2026-11-27"}, {"code": "EEL280", "registradoEm": "2026-11-27", "semestre": "2025/2"}]}
+    ctx, pg = abre(b, perfil=perfil, extra={"modoClassico": False, "vista": "grade"}, nome="declaradas-gestao", relogio=HOJE)
+    totais = pg.evaluate("JSON.stringify(GradeInterativa.totais())"); barra = pg.locator("#barra-geral").inner_text()
+    abre_config(pg)
+    expect(pg.locator(".cfg-declaradas legend")).to_have_text("Aprovações registradas por você (3)")
+    expect(pg.locator("#decl-remover-sel")).to_have_attribute("aria-disabled", "true")
+    pg.get_by_role("button", name="Remover as já confirmadas pelo SIGA (1)").click()          # R26
+    expect(pg.locator("#dlg-confirma-texto")).to_contain_text("MAC118"); pg.locator("#dlg-confirma-ok").click()
+    expect(pg.locator(".cfg-declaradas legend")).to_have_text("Aprovações registradas por você (2)")
+    assert [d["code"] for d in ls(pg, "plano")["aprovacoesDeclaradas"]] == ["COS110", "EEL280"]
+    assert pg.evaluate("JSON.stringify(GradeInterativa.totais())") == totais              # a contagem não muda
+    pg.locator('[data-decl-sel="COS110"]').check()
+    expect(pg.get_by_role("button", name="Remover selecionadas (1)")).to_be_visible()
+    pg.get_by_role("button", name="Remover selecionadas (1)").click(); pg.locator("#dlg-confirma button[value='']").click()   # cancelar
+    assert len(ls(pg, "plano")["aprovacoesDeclaradas"]) == 2
+    foto(pg, "declaradas-configuracoes")
+    pg.keyboard.press("Escape")
+    assert pg.locator("#barra-geral").inner_text() == barra
+    # R17: exportar, limpar e carregar devolvem tudo igual
+    completo(pg, "cronograma")
+    with pg.expect_download() as dl: pg.locator("#exportar").click()
+    txt = pathlib.Path(dl.value.path()).read_text(encoding="utf-8")
+    antes = pg.evaluate("GradeInterativa.perfilExportado()")
+    msgs = []
+    def responde(d, aceita):
+        msgs.append(d.message); (d.accept() if aceita else d.dismiss())
+    pg.once("dialog", lambda d: responde(d, False))                                          # R23: cancelar não apaga
+    abre_config(pg); pg.locator("#btn-limpar").click()
+    assert "2 aprovações registradas por você" in msgs[-1], msgs
+    assert len(ls(pg, "plano")["aprovacoesDeclaradas"]) == 2
+    pg.once("dialog", lambda d: responde(d, True)); pg.locator("#btn-limpar").click()
+    pg.wait_for_function("() => !localStorage.getItem('gradeECI.v2.perfilImportado')")
+    assert ls(pg, "plano") is None and ls(pg, "perfilImportado") is None
+    pg.keyboard.press("Escape"); pg.click("#btn-importar")
+    pg.set_input_files("#importar", {"name": "perfil.js", "mimeType": "application/javascript", "buffer": txt.encode("utf-8")})
+    pg.wait_for_function("() => GradeInterativa.perfilExportado().aprovacoesDeclaradas")
+    depois = pg.evaluate("GradeInterativa.perfilExportado()")
+    for k in ("aprovacoesDeclaradas", "periodos", "tags", "equivalencias", "extensao"):
+        assert depois.get(k) == antes.get(k), (k, antes.get(k), depois.get(k))
+    assert (depois.get("marcacoes") or {}) == (antes.get("marcacoes") or {})
+    # R24: com uma declarada não exportada, carregar outro perfil pede confirmação; cancelar mantém
+    pg.keyboard.press("Escape"); completo(pg, "grade"); pg.locator('.card[data-code="MAC128"]').click()
+    pg.click('[data-settag="MAC128"][data-tag="aprovada"]'); pg.keyboard.press("Escape")
+    abre_registro(pg); pg.get_by_role("button", name="Gravar 1 aprovação").click(); pg.get_by_role("button", name="Fechar").click()
+    pg.click("#btn-importar")
+    pg.set_input_files("#importar", {"name": "outro.json", "mimeType": "application/json", "buffer": json.dumps({"periodos": [], "nome": "Outra"}).encode("utf-8")})
+    expect(pg.locator("#dlg-confirma")).to_be_visible()
+    expect(pg.locator("#dlg-confirma-texto")).to_contain_text("aprovações registradas por você ainda não foram exportadas")
+    pg.locator("#dlg-confirma button[value='']").click()
+    assert any(d["code"] == "MAC128" for d in ls(pg, "plano")["aprovacoesDeclaradas"])
+    assert ls(pg, "perfilImportado").get("nome") != "Outra"
+    # Descartar perfil salvo também avisa
+    pg.once("dialog", lambda d: responde(d, False)); pg.keyboard.press("Escape"); pg.locator("#descartar-importado").click()
+    assert "aprovações registradas por você também" in msgs[-1], msgs[-1]
+    ctx.close()
+
 CASOS5 = [t_controles_icones, t_todas_acesas, t_minimalista, t_plano_na_grade, t_declaradas_modelo, t_declaradas_prazo_ace, t_declaradas_arquivo, t_declaradas_reimportar,
-          t_registrar_sem_perfil, t_registrar_com_perfil]
+          t_registrar_sem_perfil, t_registrar_com_perfil, t_declaradas_detalhe, t_declaradas_gestao]
 CASOS += CASOS5
 
 

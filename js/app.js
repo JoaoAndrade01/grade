@@ -1829,6 +1829,7 @@
         ${linhaAtalho("perfil")}${linhaAtalho("importar")}${linhaAtalho("privacidade")}
         <div class="cfg-linha">${botaoRegistrar("btn btn-sm cfg-abrir", "cfg-registrar")}
           <span class="dica">Grava as marcações aprovadas do pincel como aprovações registradas por você.</span></div>
+        ${htmlListaDeclaradas()}
         <div class="cfg-linha"><button type="button" class="btn btn-sm btn-perigo-ghost" id="btn-limpar">${icone("limpar", 16)} Limpar dados salvos</button>
           <span class="dica">Apaga marcações, planos e o perfil salvo neste navegador.</span></div>
       </section>
@@ -1862,6 +1863,21 @@
       </section>
       ${htmlSobre()}
       <div class="dlg-acoes"><button type="button" class="btn btn-escuro fecha-config">Fechar</button></div>`;
+  }
+  let selDecl = new Set();   // seleção da lista de Configurações (só nesta visita)
+  /** Configurações → Perfil e dados: as aprovações registradas por você, com remoção em lote. */
+  function htmlListaDeclaradas() {
+    const decl = getDecl();
+    if (!decl.length) return "";
+    selDecl = new Set([...selDecl].filter((c) => decl.some((d) => d.code === c)));
+    const conf = decl.filter((d) => M.declaradas.confirmadas[d.code]).map((d) => d.code);
+    const bot = (id, txt, n, motivo) => `<button type="button" class="btn btn-sm btn-perigo-ghost" id="${id}"${n ? "" : ` aria-disabled="true" aria-describedby="${id}-motivo"`}>${txt} (${n})</button>${n ? "" : `<span id="${id}-motivo" class="sr">${motivo}</span>`}`;
+    return `<fieldset class="opcoes cfg-declaradas"><legend>Aprovações registradas por você (${decl.length})</legend>
+      <p class="dica">Não são registro do SIGA. As confirmadas pelo SIGA ficam guardadas, fora da conta.</p>
+      <ul class="lista">${decl.map((d) => `<li><label class="opcao"><input type="checkbox" data-decl-sel="${esc(d.code)}"${selDecl.has(d.code) ? " checked" : ""}>
+        ${esc(d.code)} · ${esc((M.info(d.code) || {}).name || d.code)} · ${d.semestre ? esc(d.semestre) : "sem semestre"}${M.declaradas.confirmadas[d.code] ? " · confirmada pelo SIGA" : M.declaradas.conflitos[d.code] ? " · em conflito com o SIGA" : ""}</label></li>`).join("")}</ul>
+      <div class="cfg-linha">${bot("decl-remover-sel", "Remover selecionadas", selDecl.size, "Marque pelo menos uma.")}
+        ${bot("decl-remover-conf", "Remover as já confirmadas pelo SIGA", conf.length, "Nenhuma confirmada pelo SIGA.")}</div></fieldset>`;
   }
   /** Seção "Sobre" de Configurações (texto aprovado pela manutenção em 2026-11-26; D-09). */
   function htmlSobre() {
@@ -1899,6 +1915,7 @@
       else if (a.dataset.fixar) sel = `[data-fixar="${a.dataset.fixar}"]`;
       else if (a.dataset.abrirAtalho) sel = `[data-abrir-atalho="${a.dataset.abrirAtalho}"]`;
       else if (a.dataset.exibir) sel = `[data-exibir="${a.dataset.exibir}"]`;
+      else if (a.dataset.declSel) sel = `[data-decl-sel="${a.dataset.declSel}"]`;
       else if (a.name) sel = `input[name="${a.name}"][value="${a.value}"]`;
     }
     renderConfig();
@@ -1913,7 +1930,9 @@
   }
   function limpaDados() {
     const temImportado = !perfilArquivo && perfilLocalAntigo();
-    if (!confirm("Apagar tudo o que foi salvo neste navegador (marcações manuais, edições de planejamento" + (temImportado ? ", perfil importado" : "") + ")?")) return;
+    const nd = declaradasNoNavegador();
+    if (!confirm("Apagar tudo o que foi salvo neste navegador (marcações manuais, edições de planejamento" + (temImportado ? ", perfil importado" : "")
+      + (nd ? `, ${textoDeclaradas(nd)}` : "") + ")?" + (nd ? " Use Exportar perfil.js antes, se quiser guardar uma cópia." : ""))) return;
     marcacoes = {}; creditosManuais = {}; plano = { periodos: {}, novos: [] }; proposta = null; cronoSlot = null;
     ["manual", "marcacoes", "creditos", "plano", "perfilImportado"].forEach((k) => save(k, null));
     avisosPerfil.delete("perfil importado");
@@ -2092,6 +2111,7 @@
       box.dataset.reg = oc && alvo.reg != null ? String(alvo.reg) : "";
       box.dataset.status = oc && alvo.status ? alvo.status : "";
       box.dataset.transferida = oc && alvo.transferida ? "1" : "";
+      box.dataset.declarada = oc && alvo.declarada ? "1" : "";
     } else if (alvo.idx != null) {
       const c = M.grade[+alvo.idx];
       const f = preenchimentoBlocos()[c.idx] || { nomes: [] };
@@ -2127,7 +2147,14 @@
       n && n.tipo === "reprovacao-antes" ? `<p class="det-meta">O SIGA traz reprovação em ${esc(n.nome)}. Sua aprovação registrada ainda não aparece no Histórico.</p>` : "",
       n && n.tipo === "cursando" ? `<p class="det-meta">O BOA mostra a disciplina em curso${n.nome ? ` em ${esc(n.nome)}` : ""}.</p>` : "",
     ];
-    return `<section class="det-declarada" aria-label="Aprovação registrada por você"><h4>Aprovação registrada por você</h4>${linhas.join("")}</section>`;
+    return `<section class="det-declarada" aria-label="Aprovação registrada por você"><h4>Aprovação registrada por você</h4>${linhas.join("")}
+      <label class="rotulo" for="decl-semestre">Semestre da aprovação <span class="opcional">opcional</span></label>
+      <input id="decl-semestre" class="campo campo-sm" maxlength="6" autocomplete="off" inputmode="numeric" placeholder="ex.: 2025/1" value="${esc(d.semestre || "")}"
+        data-decl-code="${esc(code)}" aria-describedby="decl-semestre-dica decl-semestre-msg">
+      <p id="decl-semestre-dica" class="dica">Em branco, o semestre fica desconhecido. A data do registro não muda.</p>
+      <p id="decl-semestre-msg" class="msg-campo" aria-live="polite"></p>
+      <div class="add"><button type="button" class="btn btn-sm" data-decl-salvar="${esc(code)}">Salvar semestre</button>
+        <button type="button" class="btn btn-sm btn-perigo-ghost" data-decl-remover="${esc(code)}">Remover registro</button></div></section>`;
   }
 
   // Foco do painel de detalhes: entra no título quando aberto pelo teclado e volta ao disparador ao fechar.
@@ -2162,7 +2189,7 @@
     if (box.dataset.alvo === "referencias") return abreReferencias();
     const t = box.dataset.alvo.slice(0, 1), v = box.dataset.alvo.slice(2);
     abreDetalhes(t === "c" ? { code: v, periodo: box.dataset.periodo || null, reg: box.dataset.reg ? +box.dataset.reg : null,
-      status: box.dataset.status || null, transferida: box.dataset.transferida === "1" } : { idx: v });
+      status: box.dataset.status || null, transferida: box.dataset.transferida === "1", declarada: box.dataset.declarada === "1" } : { idx: v });
   }
 
   /** Cadeado ligado: aprovadas pelo perfil ou marcadas como Cursada (tag que conta como concluída) não mudam. */
@@ -2759,6 +2786,36 @@
     if (alvo) alvo.focus();
   }
 
+  /** Edita o semestre de uma declarada (em branco = desconhecido); `registradoEm` não muda. */
+  function salvaSemestreDeclarada(code) {
+    const v = ($("#decl-semestre").value || "").trim();
+    const erro = erroSemestreRegistro(v);
+    if (erro) { mensagemCampo("#decl-semestre", erro); return $("#decl-semestre").focus(); }
+    setLista("aprovacoesDeclaradas", getDecl().map((d) => {
+      if (d.code !== code) return d;
+      const novo = { ...d }; if (v) novo.semestre = v; else delete novo.semestre; return novo;
+    }));
+    reabreDetalhes(); focaPainel();
+    anuncia(v ? `Semestre de ${code} salvo: ${v}.` : `Semestre de ${code} removido: fica desconhecido.`);
+  }
+  /** Remove declaradas (com confirmação e o número). A marcação do pincel não é recriada. */
+  async function removeDeclaradas(codes, { titulo, depois } = {}) {
+    if (!codes.length) return false;
+    const n = codes.length;
+    const ok = await confirma({ titulo: titulo || "Remover registro",
+      texto: `${n === 1 ? `A aprovação registrada por você de ${codes[0]} sai` : `${n} aprovações registradas por você saem`} do perfil. A marcação do pincel não volta.`,
+      ok: n === 1 ? "Remover registro" : `Remover ${n}` });
+    if (!ok) return false;
+    const sai = new Set(codes);
+    setLista("aprovacoesDeclaradas", getDecl().filter((d) => !sai.has(d.code)));
+    if (depois) depois();
+    anuncia(n === 1 ? `Registro de ${codes[0]} removido.` : `${n} registros removidos.`);
+    return true;
+  }
+  /** Declaradas que saem ao limpar os dados do navegador ou trocar de perfil (as do perfil/perfil.js ficam no arquivo). */
+  const declaradasNoNavegador = () => (perfilImportado || plano.aprovacoesDeclaradas ? getDecl().length : 0);
+  const textoDeclaradas = (n) => `${n} ${n === 1 ? "aprovação registrada" : "aprovações registradas"} por você`;
+
   // ---------- Diálogo de confirmação (substitui o confirm() nas ações destrutivas novas) ----------
   function confirma({ titulo, texto, ok = "Confirmar" }) {
     const d = $("#dlg-confirma");
@@ -3222,7 +3279,8 @@
         if (!confirm(`${perfilArquivo ? "Voltar a usar o perfil/perfil.js" : "Ficar sem perfil"} e descartar o perfil salvo neste navegador?
 
 `
-          + "Os planos, pedidos e a extensão guardados nele também saem. Use \"Baixar perfil.js\" antes, se quiser guardar uma cópia.")) return;
+          + "Os planos, pedidos e a extensão guardados nele também saem" + (declaradasNoNavegador() ? `, e as ${textoDeclaradas(declaradasNoNavegador())} também` : "")
+          + ". Use \"Baixar perfil.js\" antes, se quiser guardar uma cópia.")) return;
         perfilImportado = null; save("perfilImportado", null); perfil = perfilArquivo || perfilLocalAntigo();
         avisosPerfil.delete("perfil importado");
         montaModelo(); return render();
@@ -3230,6 +3288,7 @@
     });
     document.addEventListener("change", (ev) => {
       const t = ev.target;
+      if (t.dataset.declSel) { if (t.checked) selDecl.add(t.dataset.declSel); else selDecl.delete(t.dataset.declSel); return atualizaConfig(); }
       if (t.name === "modo-topo") return defineModo(t.value === "classico");
       if (t.name === "modo") { defineModo(t.value === "classico"); return atualizaConfig(); }
       if (t.id === "cfg-seletor") { ocultarSeletor = !t.checked; save("ocultarSeletor", ocultarSeletor); renderAtalhos(); return atualizaConfig(); }
@@ -3243,8 +3302,16 @@
       if (t.name === "tema" && window.TEMA) window.TEMA.define(t.value === "sistema" ? null : t.value);
     });
 
+    $("#detalhes").addEventListener("keydown", (ev) => {
+      if (ev.key === "Enter" && ev.target.id === "decl-semestre") { ev.preventDefault(); salvaSemestreDeclarada(ev.target.dataset.declCode); }
+    });
     $("#detalhes").addEventListener("click", (ev) => {
       const t = ev.target.closest("button"); if (!t) return;
+      if (t.dataset.declSalvar) return salvaSemestreDeclarada(t.dataset.declSalvar);
+      if (t.dataset.declRemover) {
+        const code = t.dataset.declRemover;
+        return removeDeclaradas([code]).then((ok) => { if (ok) { reabreDetalhes(); focaPainel(); } else t.isConnected && t.focus(); });
+      }
       if (t.classList.contains("fechar")) return fechaDetalhes();
       if (t.closest("#ir-planejador")) {   // troca de modo sem fechar o importador nem perder os PDFs escolhidos
         consultado = null; seletorECI = false; pincel = null;
@@ -3349,6 +3416,14 @@
       const nota = $("#siga-nota-ra19"); if (nota) nota.hidden = !(r.deduzido && r.atualEscolhido.trim() === r.deduzido);
     }
 
+    // Configurações → remoção em lote das declaradas
+    document.addEventListener("click", (ev) => {
+      const t = ev.target.closest && ev.target.closest("#decl-remover-sel, #decl-remover-conf"); if (!t) return;
+      if (t.getAttribute("aria-disabled") === "true") return anuncia($(`#${t.id}-motivo`).textContent);
+      const codes = t.id === "decl-remover-sel" ? [...selDecl] : getDecl().filter((d) => M.declaradas.confirmadas[d.code]).map((d) => d.code);
+      removeDeclaradas(codes, { titulo: t.id === "decl-remover-sel" ? "Remover selecionadas" : "Remover as já confirmadas pelo SIGA",
+        depois: () => { selDecl.clear(); } }).then(() => { atualizaConfig(); (document.getElementById(t.id) || $("#dlg-config h1"))?.focus(); });
+    });
     // Registrar marcações
     document.addEventListener("click", (ev) => {
       const b = ev.target.closest && ev.target.closest("[data-registrar]"); if (!b) return;
@@ -3450,9 +3525,12 @@
   /** "Ou carregar um perfil pronto": aceita perfil.js (window.PERFIL = {...}) ou JSON puro. */
   function importaArquivoPerfil(input) {
     const f = input.files[0]; if (!f) return;
-    f.text().then((txt) => {
+    f.text().then(async (txt) => {
       const m = txt.match(/^\s*window\.PERFIL\s*=\s*/m);
       const obj = JSON.parse((m ? txt.slice(m.index + m[0].length) : txt).replace(/;\s*$/, ""));
+      const nd = temEdicoes() ? declaradasNoNavegador() : 0;
+      if (nd && !(await confirma({ titulo: "Trocar de perfil", ok: "Usar o arquivo",
+        texto: `${textoDeclaradas(nd)} ainda não ${nd === 1 ? "foi exportada" : "foram exportadas"}. O arquivo substitui o perfil salvo e ${nd === 1 ? "ela sai" : "elas saem"}. Use Exportar perfil.js antes, se quiser guardar uma cópia.` }))) return;
       usaPerfilImportado(obj);
     }).catch((e) => alert("Não consegui ler o perfil: " + e.message + "\n(O conteúdo precisa ser JSON válido, com chaves entre aspas.)"));
     input.value = "";
