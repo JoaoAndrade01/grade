@@ -2677,8 +2677,11 @@
     Object.keys(M.curr).filter((c) => M.info(c).coreq.includes(code)).forEach((d) => { marca(d, "hl-dep"); marca(d, "hl-coreq"); });
     marca(code, "hl-self");
     painel.classList.toggle("destacando", naGrade);
+    // Na Grade, o que ela libera ganha a etiqueta "libera" em texto, dentro do cartão e abaixo do nome.
+    if (naGrade) painel.querySelectorAll(".card.hl-dep").forEach((el) => el.insertAdjacentHTML("beforeend", '<span class="etq-libera" aria-hidden="true">libera</span>'));
   }
   function limpaDestaque() {
+    document.querySelectorAll(".etq-libera").forEach((el) => el.remove());
     document.querySelectorAll(".hl-req,.hl-coreq,.hl-dep,.hl-self").forEach((el) => el.classList.remove("hl-req", "hl-coreq", "hl-dep", "hl-self"));
     $("#painel").classList.remove("destacando");
   }

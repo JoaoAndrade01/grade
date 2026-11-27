@@ -1885,6 +1885,16 @@ def t_aviso_pdf(b):
 def destaque(pg):
     return pg.evaluate("""() => { const q = (c) => [...document.querySelectorAll(`#painel .card.${c}[data-code]`)].map((e) => e.dataset.code).sort();
         return { self: q('hl-self'), pre: q('hl-req'), co: q('hl-coreq'), libera: q('hl-dep'), ativo: document.querySelector('#painel').classList.contains('destacando') }; }""")
+def libera_sobrepoe(pg):
+    """Cartões com a etiqueta "libera" cujo retângulo cruza o do nome (ou o do código): deve ser vazio."""
+    return pg.evaluate("""() => { const cruza = (a, b) => a.left < b.right - 0.5 && b.left < a.right - 0.5 && a.top < b.bottom - 0.5 && b.top < a.bottom - 0.5;
+        const ruins = [], n = document.querySelectorAll('#painel .card.hl-dep').length;
+        document.querySelectorAll('#painel .card.hl-dep').forEach((c) => { const e = c.querySelector('.etq-libera');
+          if (!e) { ruins.push(c.dataset.code + ': sem etiqueta'); return; }
+          const r = e.getBoundingClientRect(), k = c.getBoundingClientRect();
+          if (r.left < k.left - 0.5 || r.right > k.right + 0.5 || r.bottom > k.bottom + 0.5) ruins.push(c.dataset.code + ': fora do cartão');
+          c.querySelectorAll('.nome, .meta').forEach((t) => { if (cruza(r, t.getBoundingClientRect())) ruins.push(c.dataset.code + ': cobre ' + t.className); }); });
+        return { n, ruins }; }""")
 def esmaecido(pg, code):
     """Esmaecido: fundo neutro e texto atenuado (o contraste do texto continua acima de 4,5:1; o axe confere)."""
     pg.evaluate("Promise.all(document.getAnimations().map((a) => a.finished.catch(() => 0)))")     # transição terminada
@@ -1903,7 +1913,7 @@ def t_destaque(b):
     d = destaque(pg)
     assert d == {"self": ["MAC128"], "pre": ["MAC118"], "co": [], "libera": ["FIM230", "MAC238", "MAC248"], "ativo": True}, d
     assert contorno(pg, "MAC118") == "solid"
-    assert pg.locator('.card[data-code="MAC238"]').evaluate("e => getComputedStyle(e, '::after').content") == '"libera"'
+    assert pg.locator('.card[data-code="MAC238"] .etq-libera').inner_text() == "libera" and not libera_sobrepoe(pg)["ruins"]
     assert esmaecido(pg, "COS110") and not esmaecido(pg, "MAC118")                 # o resto esmaece
     assert "libera" in pg.locator(".leg-destaque").inner_text()                   # legenda explica sem depender da cor
     foto(pg, "destaque-em-foco")
@@ -1915,6 +1925,8 @@ def t_destaque(b):
     pg.locator('.card[data-code="COS231"]').focus()
     d = destaque(pg); assert d["self"] == ["COS231"] and len(d["co"]) == 1 and d["pre"], d
     assert contorno(pg, d["co"][0]) == "dashed" and contorno(pg, d["pre"][0]) == "solid"
+    s = libera_sobrepoe(pg); assert s["n"] >= 2 and not s["ruins"], s                  # EEL418 e COS242: a etiqueta não cobre o nome
+    foto(pg, "destaque-libera-cos231")
     pg.locator("#btn-config").focus()                                             # o foco sai da Grade: o destaque some
     assert destaque(pg)["self"] == []
     pg.locator('.card[data-code="COS231"]').click(); expect(pg.locator("#detalhes")).to_be_visible()
@@ -1939,6 +1951,18 @@ def t_destaque(b):
     pg.locator('.card[data-code="MAC248"]').tap(); assert "MAC248" in ls(pg, "marcacoes")
     assert pg.evaluate("document.documentElement.scrollWidth - innerWidth") <= 1
     ctx.close()
+    # Planejador com pincel escolhido: o primeiro toque só consulta e acende o destaque; a etiqueta não cobre o nome
+    for esquema in ("dark", "light"):
+        ctx, pg = abre(b, vp=C320, perfil=PERFIL, extra={"modoClassico": False, "vista": "grade"}, nome=f"destaque-pincel-{esquema}", toque=True, esquema=esquema)
+        pg.locator('#paleta [data-pincel="cursando"]').tap()
+        expect(pg.locator('#paleta [data-pincel="cursando"]')).to_have_attribute("aria-pressed", "true")
+        pg.locator('.card[data-code="COS231"]').tap()
+        expect(pg.locator("#consulta")).to_be_visible(); assert "COS231" not in (ls(pg, "marcacoes") or {})   # não marcou
+        d = destaque(pg); assert d["self"] == ["COS231"] and d["ativo"] and "EEL418" in d["libera"], d
+        s = libera_sobrepoe(pg); assert s["n"] >= 2 and not s["ruins"], (esquema, s)
+        pg.locator('.card[data-code="EEL418"]').scroll_into_view_if_needed(); foto(pg, f"destaque-pincel-320-{esquema}")
+        pg.locator('.card[data-code="COS231"]').tap(); assert ls(pg, "marcacoes").get("COS231") == "cursando"   # o segundo toque marca
+        ctx.close()
 
 @caso("Destaque: Ocultas migra para Desligado; Disciplina em foco e Todas para Em foco; a chave antiga sai; outras preferências ficam")
 def t_destaque_migracao(b):

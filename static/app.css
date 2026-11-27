@@ -208,9 +208,9 @@ code { background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
   background: var(--surface); border-color: var(--border); box-shadow: none; filter: saturate(.15); }
 .painel.destacando .card:not(.hl-req, .hl-coreq, .hl-dep, .hl-self) :is(.nome, .meta, .nota, .sub) { color: var(--muted); }
 .painel.destacando .card.hl-self { outline-width: 3px; }
-.painel.destacando .card.hl-dep::after {
-  content: "libera"; position: absolute; left: 4px; top: 3px; padding: 0 4px; border-radius: 5px; font-size: 10px; font-weight: 700;
-  line-height: 1.4; background: var(--dep); color: #111; }
+/* a etiqueta entra no fluxo do cartão, depois do nome e do código: nunca cobre o texto */
+.card .etq-libera { order: 9; align-self: center; flex: none; margin-top: 2px; padding: 0 5px; border-radius: 5px; font-size: 10px;
+  font-weight: 700; line-height: 1.5; background: var(--dep); color: #111; }
 .leg-destaque { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: 12px; color: var(--muted); }
 .leg-destaque i { display: inline-block; font-style: normal; }
 .leg-destaque .l-pre, .leg-destaque .l-co { width: 18px; height: 12px; border-radius: 3px; border: 2.5px solid var(--req); }
