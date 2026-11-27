@@ -48,7 +48,7 @@ coordenação.
 | --- | --- | --- | --- | --- |
 | RA-01 | Totais para formar: 226 cr e, à parte, 405 h de ACE | [SIGA] | Usa esses totais de referência; ACE em horas, separada dos créditos | Confere |
 | RA-02 | Créditos, semestre, carga horária e requisitos diretos de cada componente | [SIGA] | Dados de `js/database.js`. Alternativas de requisito e equações não são modeladas: quem tem uma alternativa reconhecida pode receber aviso indevido | Confere no recorte |
-| RA-03 | Pré-requisito antes do período da disciplina | [SIGA], marca P | Compara o **semestre**, não a posição na lista. Aceita aprovado, previsto, cursando e planejado (simulação local). Período sem data não conta como anterior. A tag "aprovada" vale e é identificada como marcação manual | Confere |
+| RA-03 | Pré-requisito antes do período da disciplina | [SIGA], marca P | Compara o **semestre**, não a posição na lista. Aceita aprovado, previsto, cursando e planejado (simulação local). Período sem data não conta como anterior. A transferida vale pelo semestre original; sem ele, só depois do ano do bloco (D-08). A tag "aprovada" vale e é identificada como marcação manual | Confere |
 | RA-04 | Co-requisito pode estar no mesmo período | [SIGA], marca C (só `EEL418` com `COS231`) | Aceita o mesmo semestre; avisa se o co-requisito vem depois | Confere |
 | RA-05 | Reprovação não conta crédito | [PR1] | Soma 0 crédito. Uma tag pode mudar o status efetivo, como simulação | Confere |
 | RA-06 | Dispensa conta os créditos da dispensada, fora do coeficiente | [CEG] arts. 53, 55 e 56 | O grau "T" do histórico é convenção lida pelo importador | Confere |
@@ -113,7 +113,7 @@ Cada invariante aponta para a regra e para os casos de [REQUISITOS.md](REQUISITO
 | INV-09 | Um pedido pode ter várias cursadas; o conteúdo exige ao menos uma marcada como conteúdo | RA-07, RA-12 | 03h, 03j |
 | INV-10 | A carga horária é orientação, nunca verificação | RA-11 | 03d a 03g |
 | INV-11 | O prazo de 5 anos só gera alerta. Sem ano nem semestre, a data não é confirmada. Com só o ano, verificar o intervalo de idade e emitir alerta de precisão insuficiente quando ele cruzar a fronteira | RA-09 | 03a a 03c, 06i |
-| INV-12 | No reingresso, a base do prazo é o ano do bloco do histórico atual; a data original é informação | RA-21 | 03i, 06h |
+| INV-12 | No reingresso, a base do prazo é o ano do bloco do histórico atual; a data original não rege o prazo, mas rege pré e co-requisitos (D-08) | RA-21, RA-03 | 03i, 06h, 02k–02o |
 | INV-13 | O histórico atual é o de data mais recente; em dúvida, a Grade pergunta; a escolha explícita vence; a ordem dos arquivos não muda o resultado | RA-21 | 06h, 06j, 06k, 06l |
 | INV-14 | A livre escolha mostra dois números rotulados (Grade e soma da seção do BOA), nunca um "total do BOA"; seção ausente é diferente de seção vazia | RA-13 | 05a a 05h |
 | INV-15 | Aplicar PC-01: períodos conhecidos diferentes identificam ocorrências distintas; registros de mesma identificação que podem ser a mesma ocorrência confirmam só o maior valor e mostram o resto "a confirmar". A distinção explícita de 01g fica para a versão seguinte | RA-16 | 01c a 01f, 06m |

@@ -156,7 +156,9 @@ Créditos transferidos vêm no Histórico do curso atual, num bloco **só com o 
 esse bloco como um período chamado `"AAAA (transferidas)"` (ou o marcador `AAAA/0` do SIGA, que **não** é semestre
 real). O prazo de 5 anos de uma disciplina desse bloco conta a partir do **ano** do bloco, com precisão de ano
 ([D-03](DECISOES.md#d-03--reingresso-e-prazo-de-5-anos), [PC-06](DECISOES.md#pc-06--fronteira-de-5-anos-com-só-o-ano)).
-O bloco não vale como semestre de precedência.
+Para pré e co-requisitos, a disciplina do bloco vale pelo semestre original (`aprovadaEm`), quando ele existe; sem ele,
+conta só em períodos de anos posteriores ao do bloco ([D-08](DECISOES.md#d-08--transferida-e-requisitos)). Na Linha do
+tempo, ela aparece no semestre original, com a etiqueta "transferida", ou no bloco, sem ele.
 
 ### Disciplinas
 
@@ -169,7 +171,7 @@ Cada disciplina pode ser só o código (`"COS110"`) ou um objeto:
 | `nota` | Grau final (número ou texto, como `T` de dispensa) |
 | `name`, `credits`, `category` | Só para disciplinas fora do currículo/catálogo. `category`: 1 obrigatória, 2 condicionada, 3 livre escolha, 4 Humanas, 5 ACE |
 | `horas` | Para ACE (categoria 5) |
-| `aprovadaEm` | Opcional, texto `AAAA/N`. **Só informação**: o semestre original da aprovação quando o registro do curso atual veio de um bloco de transferidos. Não rege o prazo nem a precedência |
+| `aprovadaEm` | Opcional, texto `AAAA/N`. O semestre original da aprovação quando o registro do curso atual veio de um bloco de transferidos. Rege a precedência de pré e co-requisitos ([D-08](DECISOES.md#d-08--transferida-e-requisitos)) e o semestre em que a disciplina aparece na Linha do tempo. **Não** rege o prazo de 5 anos, que conta pelo ano do bloco ([D-03](DECISOES.md#d-03--reingresso-e-prazo-de-5-anos)) |
 | `equivale` | Código do currículo que esta disciplina substitui (ex.: `EEL470` → `"COS231"`) |
 | `dispensa` | Lista dos alvos dispensados por ela. Cada item é **um código** (alvo no currículo ou no catálogo) **ou um objeto** `{code, name, credits, category}` (alvo **fora** do catálogo, para que nome, créditos e grupo sobrevivam à exportação) |
 | `horarios` | Lista como `["ter 10-12", "qui 10-12"]` (aba Cronograma) |

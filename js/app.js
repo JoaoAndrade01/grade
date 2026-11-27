@@ -1241,7 +1241,7 @@
   // ---------- Vista: Equivalências & Extensão ----------
   const semAtual = () => { const d = new Date(); return d.getFullYear() * 2 + (d.getMonth() < 6 ? 0 : 1); };
   // Base do prazo de 5 anos (CR-04): semestre real, ou só o ano de um bloco de transferidos (`anoDoBloco`).
-  // Com só o ano, a idade fica entre `min` e `max`; `aprovadaEm` (data original) só informa o prazo (D-03).
+  // Com só o ano, a idade fica entre `min` e `max`; `aprovadaEm` (data original) não conta para o prazo (D-03), só para requisitos (D-08).
   // Perfis antigos podem trazer historicoAtual "duvida"; os gerados agora nunca gravam esse valor (PC-05).
   const papelEmDuvida = () => !!(perfil && perfil.fonte && perfil.fonte.historicoAtual === "duvida");
   function baseDoPrazo(code) {
@@ -1309,7 +1309,7 @@
   function textoBase(b) {
     if (!b) return "";
     return (b.ano != null ? `Base do prazo: só o ano ${b.ano} (bloco de transferidos).` : "")
-      + (b.aprovadaEm ? ` Aprovação original em ${b.aprovadaEm}, só informação.` : "");
+      + (b.aprovadaEm ? ` Aprovação original em ${b.aprovadaEm}: não conta para o prazo.` : "");
   }
   const boaDe = (c) => ((M.boa && M.boa.naoExplicitadas) || []).find((d) => d.code === c) || null;
   const chDe = (c) => { const b = boaDe(c); if (b && b.ch) return b.ch; const i = M.info(c); return i ? (i.workload || 0) : 0; };

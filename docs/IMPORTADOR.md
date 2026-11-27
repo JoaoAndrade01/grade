@@ -72,8 +72,8 @@ Pontos de atenção:
   do navegador.
 - As **extrações** de texto do pdf.js (navegador) e do pypdf (terminal) podem diferir em linhas isoladas. O teste de
   paridade compara os dois nos conjuntos fictícios; ele não prova igualdade para qualquer PDF.
-- Com dois históricos, a data original de uma disciplina transferida vira informação (`aprovadaEm`); o prazo usa o ano
-  do bloco do histórico atual ([PERFIL.md](PERFIL.md)).
+- Com dois históricos, a data original de uma disciplina transferida vira `aprovadaEm`: rege pré e co-requisitos e a
+  posição na Linha do tempo (D-08); o prazo de 5 anos usa o ano do bloco do histórico atual ([PERFIL.md](PERFIL.md)).
 
 ## Passo a passo das regras
 
