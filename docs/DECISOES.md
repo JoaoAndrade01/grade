@@ -454,8 +454,8 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
     Exceções, por serem conteúdo: as bolinhas da dificuldade, os emojis dos selos e os chips do cartão da fase.
   - **Situação** (Exibir, padrão ligado): liga e desliga o ícone de estado nos cartões da Grade; a situação continua no
     nome acessível e nos detalhes.
-  - **Legenda da dificuldade:** em Ícone + texto, uma linha com cada bolinha junto do nome; em Só ícones, só as cinco
-    bolinhas, com os nomes no `title` e no nome acessível. Tocar na legenda não muda o filtro.
+  - **Dificuldade numa fileira só:** os botões do filtro por nível são a legenda. Em Ícone + texto, bolinha e nome; em Só
+    ícones, só a bolinha, com o nome no `title` e no nome acessível. O filtro continua igual e a legenda separada sai.
 - **Consequências:** casos 14i, 14r, 14s, 14w, 14x e 14y.
 
 ### PC-17 · Trilha dos requisitos ao segurar

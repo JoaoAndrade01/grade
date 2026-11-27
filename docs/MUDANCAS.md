@@ -21,8 +21,9 @@ como notas. Os perfis e as preferências salvos na v2.0.0 continuam valendo.
   bolinhas coloridas da dificuldade e os emojis das conquistas.
 - **Situação.** A nova opção Exibir → Situação liga ou desliga o ícone de estado nos cartões da Grade. Começa ligada. A
   situação continua no leitor de tela e nos detalhes.
-- **Legenda da dificuldade.** Em Ícone + texto, uma linha com cada bolinha junto do nome. Em Só ícones, só as cinco
-  bolinhas, com o nome ao passar o mouse e no leitor de tela.
+- **Dificuldade numa fileira só.** Os botões que filtram por nível passaram a ser a própria legenda: em Ícone + texto,
+  cada um mostra a bolinha e o nome ("🟢 Trivial", "🔵 Só o básico"…); em Só ícones, só a bolinha, com o nome ao passar
+  o mouse e no leitor de tela. A legenda separada saiu.
 - **Trilha dos requisitos ao segurar.** Exibir → Destaque virou **Trilha**, com três modos numa chave igual ao seletor
   de modo: **Ao segurar** (novo padrão), **Ao passar o mouse** (o antigo "Em foco") e **Desligado**. Ao segurar, clique e
   segure, toque e segure ou segure a barra de espaço numa disciplina; soltar apaga. Segurar não pinta nem abre os

@@ -944,15 +944,17 @@
     const niveis = M.guia ? Object.keys(M.guia.niveis) : [];
     return `<div class="ferr-grupo" role="group" aria-label="Exibir"><span class="ferr-rot ctl" aria-hidden="true">${rotulo(icone("exibir", 14), "Exibir")}</span>
         ${EXIBIR.map(([k, n, ic]) => botaoAceso(`data-exibir="${k}"`, exibir[k], ic, n)).join("")}
-        ${exibir.dificuldade ? escalaDificuldade() : ""}
       </div>
       <div class="ferr-grupo"><span class="ferr-rot ctl" aria-hidden="true">${rotulo(icone("setas", 14), "Trilha")}</span>
         <div class="seletor-modo seletor-trilha" role="radiogroup" aria-label="Trilha dos requisitos">${TRILHA.map(([v, n, ic]) =>
           `<label class="modo-op ctl" title="Trilha: ${n}"><input type="radio" name="trilha" value="${v}"${exibir.destaque === v ? " checked" : ""}>${icone(ic)}<span class="rot">${n}</span></label>`).join("")}</div>
         ${exibir.destaque !== "desligado" ? LEGENDA_DESTAQUE : ""}
       </div>
-      ${niveis.length ? `<div class="ferr-grupo"><span class="ferr-rot">Dificuldade</span>
-        ${niveis.map((k) => `<button type="button" class="chip chip-btn${filtroNivel.includes(+k) ? " on" : ""}" data-nivel="${k}" title="${esc(M.guia.niveis[k].nome)}">${M.guia.niveis[k].emoji}</button>`).join("")}
+      ${niveis.length ? `<div class="ferr-grupo filtro-nivel" role="group" aria-label="Dificuldade"><span class="ferr-rot" aria-hidden="true">Dificuldade</span>
+        ${niveis.map((k) => {   // o filtro por nível é também a legenda: bolinha e nome (Só ícones: só a bolinha; nome no title)
+          const n = M.guia.niveis[k];
+          return `<button type="button" class="ctl aceso nivel" data-nivel="${k}" aria-pressed="${filtroNivel.includes(+k)}" title="${esc(n.nome)}"><span class="nivel-emoji" aria-hidden="true">${n.emoji}</span><span class="rot">${esc(n.nome)}</span></button>`;
+        }).join("")}
       </div>` : ""}`;
   }
 
@@ -1784,21 +1786,7 @@
       })();
   }
 
-  /**
-   * Escala de dificuldade do guia (Exibir → Dificuldade). Ícone + texto: uma linha só, cada bolinha junto do nome
-   * ("🟢 Trivial · 🔵 Só o básico · …"). Só ícones: só as cinco bolinhas, sem linha de nomes na tela em nenhum momento;
-   * o nome fica no `title` e no nome acessível (`.sr`).
-   */
-  function escalaDificuldade() {
-    if (!M.guia) return "";
-    const ns = Object.values(M.guia.niveis);
-    if (!window.TEMA || window.TEMA.aparencia() !== "icone") {
-      return `<span class="escala-dificuldade" role="list" aria-label="Escala de dificuldade">${ns.map((n) =>
-        `<span class="leg-niv" role="listitem" title="${esc(n.texto)}"><span aria-hidden="true">${n.emoji}</span> ${esc(n.nome)}</span>`).join("")}</span>`;
-    }
-    return `<span class="escala-dificuldade so-icones" role="list" aria-label="Escala de dificuldade">${ns.map((n) =>
-      `<span class="leg-niv" role="listitem" title="${esc(n.nome)}"><span aria-hidden="true">${n.emoji}</span><span class="sr"> ${esc(n.nome)}</span></span>`).join("")}</span>`;
-  }
+
 
   /**
    * Faixa de legenda abaixo do progresso, só na Linha do tempo: os grupos (categorias). Sem legenda de estados: o cartão

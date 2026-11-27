@@ -1651,14 +1651,10 @@ def t_abas_legendas(b):
     sem = {"barra": False, "detalhes": False, "progresso": False, "categorias": False, "escala": [], "manual": False, "manualFora": False}
     assert observado == {"grade": {**com, "categorias": False}, "timeline": {**com, "categorias": True},
                          **{v: sem for v in ("optativas", "cronograma", "pedidos", "eci")}}, observado
-    # Exibir → Dificuldade: a escala aparece junto ao controle, com os cinco níveis, e some ao desmarcar.
+    # Dificuldade: o filtro por nível é a legenda (bolinha e nome), numa fileira só; não há legenda separada
     pg.click('[data-vista="grade"]'); pg.click('#ferramentas [data-exibir="dificuldade"]'); assert aceso(pg.locator('#ferramentas [data-exibir="dificuldade"]'))
-    escala = pg.locator("#ferramentas .escala-dificuldade")
-    expect(escala).to_be_visible()
-    assert [t.split(" ", 1)[1] for t in escala.locator(".leg-niv").all_inner_texts()] == ESCALA
-    assert estado_das_legendas(pg)["escala"] == ESCALA
-    foto(pg, "abas-escala-dificuldade")
-    pg.click('#ferramentas [data-exibir="dificuldade"]'); assert estado_das_legendas(pg)["escala"] == []
+    assert pg.locator("#ferramentas .filtro-nivel .rot").all_inner_texts() == ESCALA and estado_das_legendas(pg)["escala"] == []
+    foto(pg, "abas-dificuldade-filtro-legenda")
     ctx.close()
     # Clássico (só pintar): sem barra, detalhamento nem legenda, mesmo com Dificuldade ligada (a preferência fica salva).
     ctx, pg = abre(b, perfil=PERFIL, extra={"marcacoes": {"MAC238": "aprovada"}, "progressoAberto": True, "modoClassico": True,
@@ -3917,47 +3913,45 @@ CASOS6 = []
 def v210(f): CASOS6.append(f); return f
 
 @v210
-@caso("Legenda da dificuldade: Ícone + texto numa linha só, cada bolinha com o nome; Só ícones só com as cinco bolinhas, sem linha de nomes no foco nem no toque, nome no title e no leitor de tela")
+@caso("Dificuldade numa fileira só: os botões do filtro por nível são a legenda (bolinha e nome em Ícone + texto; só a bolinha em Só ícones, nome no title e no leitor de tela); filtro e aria-pressed como antes; sem legenda separada")
 def t_legenda_dificuldade(b):
     base = {"vista": "grade", "exibir": {"codigo": True, "dificuldade": True}}
-    # Ícone + texto: "🟢 Trivial · 🔵 Só o básico · …"; o separador é só visual
-    ctx, pg = abre(b, perfil=PERFIL, extra=base, nome="legenda-texto")
-    escala = pg.locator("#ferramentas .escala-dificuldade"); expect(escala).to_be_visible()
-    assert escala.get_attribute("role") == "list" and escala.get_attribute("tabindex") is None
-    assert [t.split(" ", 1)[1] for t in escala.locator(".leg-niv").all_inner_texts()] == ESCALA
-    assert escala.locator(".leg-niv").count() == 5 and escala.locator(".leg-nomes, .leg-par").count() == 0   # sem fileira extra
-    seps = escala.locator(".leg-niv").evaluate_all("es => es.map((e) => getComputedStyle(e, '::before').content)")
-    assert "·" not in seps[0] and all("·" in s for s in seps[1:]), seps
-    arvore = escala.aria_snapshot()
-    assert all(n in arvore for n in ESCALA) and "·" not in arvore, arvore
+    ctx, pg = abre(b, perfil=PERFIL, extra=base, nome="dificuldade-texto")
+    grupo = pg.get_by_role("group", name="Dificuldade"); expect(grupo).to_be_visible()
+    assert pg.locator(".escala-dificuldade, .leg-niv").count() == 0                                   # a legenda separada saiu
+    bts = pg.locator("#ferramentas .filtro-nivel [data-nivel]")
+    assert bts.count() == 5 and pg.locator("#ferramentas [data-nivel]").count() == 5                     # uma fileira só
+    textos = [" ".join(t.split()) for t in bts.all_inner_texts()]
+    assert textos == ["🟢 Trivial", "🔵 Só o básico", "🟡 Matéria de verdade", "🟠 Difícil", "🔴 Morte instantânea"], textos
+    for k, nome in enumerate(ESCALA):
+        bt = grupo.get_by_role("button", name=nome, exact=True); expect(bt).to_have_count(1)
+        assert bt.get_attribute("title") == nome and bt.get_attribute("aria-pressed") == "false", nome
+    # o filtro continua: Enter e Espaço alternam, aria-pressed acompanha, o foco fica e a preferência é salva
+    dificil = grupo.get_by_role("button", name="Difícil", exact=True); dificil.focus(); pg.keyboard.press("Enter")
+    expect(dificil).to_have_attribute("aria-pressed", "true"); assert ls(pg, "filtroNivel") == [4]
+    assert foco_em(pg, '[data-nivel="4"]'), descreve_foco(pg)
+    assert pg.locator("#painel .card.apagado").count() > 0                                               # as outras disciplinas esmaecem
+    pg.reload(); pronto(pg, "dificuldade-texto"); expect(pg.locator('#ferramentas [data-nivel="4"]')).to_have_attribute("aria-pressed", "true")
+    pg.locator('#ferramentas [data-nivel="4"]').focus(); pg.keyboard.press("Space")
+    expect(pg.locator('#ferramentas [data-nivel="4"]')).to_have_attribute("aria-pressed", "false"); assert ls(pg, "filtroNivel") == []
     ctx.close()
-    # 390 px com toque: cada nível fica numa linha só (a bolinha nunca se separa do nome; a quebra fica antes do "·")
-    ctx, pg = abre(b, vp=C, perfil=PERFIL, extra=base, nome="legenda-texto-390", toque=True)
-    alturas = pg.locator("#ferramentas .escala-dificuldade .leg-niv").evaluate_all("es => es.map((e) => [getComputedStyle(e).whiteSpace, e.getBoundingClientRect().height])")
-    assert all(w == "nowrap" for w, _ in alturas) and max(h for _, h in alturas) - min(h for _, h in alturas) < 2, alturas
-    ctx.close()
-    # Só ícones: só as cinco bolinhas; nomes no title, no .sr e na árvore de acessibilidade; nada de nomes na tela
-    ctx, pg = abre(b, perfil=PERFIL, extra={**base, "aparencia": "icone"}, nome="legenda-icones")
-    escala = pg.locator("#ferramentas .escala-dificuldade.so-icones"); expect(escala).to_be_visible()
-    assert escala.locator(".leg-niv").count() == 5 and escala.locator(".leg-nomes, .leg-par").count() == 0
-    assert escala.get_attribute("tabindex") is None                                                  # não é mais um contêiner que revela
-    assert escala.locator(".leg-niv").evaluate_all("es => es.map((e) => e.title)") == ESCALA
-    assert all(w <= 1 for w in escala.locator(".leg-niv .sr").evaluate_all("es => es.map((e) => e.getBoundingClientRect().width)"))
-    arvore = escala.aria_snapshot()
-    assert all(n in arvore for n in ESCALA), arvore
-    visivel = r"e => { const c = e.cloneNode(true); c.querySelectorAll('.sr').forEach((x) => x.remove()); return c.textContent.replace(/\s+/g, ''); }"
-    assert escala.evaluate(visivel) == "🟢🔵🟡🟠🔴", escala.evaluate(visivel)
-    escala.locator(".leg-niv").first.hover(); assert escala.evaluate(visivel) == "🟢🔵🟡🟠🔴"
-    ctx.close()
-    # toque a 320 px: tocar não mostra nomes nem muda o filtro de dificuldade
-    ctx, pg = abre(b, vp=C320, perfil=PERFIL, extra={**base, "aparencia": "icone"}, nome="legenda-toque", toque=True, esquema="dark")
-    escala = pg.locator("#ferramentas .escala-dificuldade.so-icones")
-    antes = ls(pg, "filtroNivel")
-    escala.locator(".leg-niv").nth(3).tap()
-    assert escala.evaluate(visivel) == "🟢🔵🟡🟠🔴"
-    assert ls(pg, "filtroNivel") == antes and pg.locator('#ferramentas [data-nivel].on').count() == 0
+    # 390 px com toque: cada botão numa linha só (a bolinha nunca se separa do nome)
+    ctx, pg = abre(b, vp=C, perfil=PERFIL, extra=base, nome="dificuldade-390", toque=True)
+    alturas = pg.locator("#ferramentas .filtro-nivel [data-nivel]").evaluate_all("es => es.map((e) => e.getBoundingClientRect().height)")
+    assert max(alturas) - min(alturas) < 2, alturas
     assert pg.evaluate("document.documentElement.scrollWidth - innerWidth") <= 1
-    foto(pg, "legenda-icones-toque-320-escuro")
+    ctx.close()
+    # Só ícones: só a bolinha; nome no title e no nome acessível; tocar filtra como antes
+    ctx, pg = abre(b, vp=C320, perfil=PERFIL, extra={**base, "aparencia": "icone"}, nome="dificuldade-icones", toque=True, esquema="dark")
+    grupo = pg.get_by_role("group", name="Dificuldade")
+    visivel = r"e => { const c = e.cloneNode(true); c.querySelectorAll('.rot').forEach((x) => x.remove()); return c.textContent.replace(/\s+/g, ''); }"
+    for nome in ESCALA:
+        bt = grupo.get_by_role("button", name=nome, exact=True); expect(bt).to_have_count(1)
+        assert bt.get_attribute("title") == nome and larg_rot(bt) <= 1, nome
+    assert pg.locator("#ferramentas .filtro-nivel").evaluate(visivel) == "Dificuldade🟢🔵🟡🟠🔴"
+    grupo.get_by_role("button", name="Trivial", exact=True).tap(); assert ls(pg, "filtroNivel") == [1]
+    assert pg.evaluate("document.documentElement.scrollWidth - innerWidth") <= 1
+    foto(pg, "dificuldade-icones-320-escuro")
     ctx.close()
 
 @v210
