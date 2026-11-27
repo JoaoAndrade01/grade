@@ -52,10 +52,12 @@ lugar, e não controla o que o GitHub registra quando você visita o site hosped
 | --- | --- |
 | `perfilImportado` | Perfil importado do SIGA, criado ou carregado de um arquivo |
 | `tags`, `marcacoes`, `creditos` | Tags de cor, o que foi pintado e créditos manuais |
-| `plano` | Edições de planejamento, pedidos e extensão ainda não exportados (inclui períodos excluídos) |
-| `tema`, `aparencia` | Tema escolhido e formato das abas e da barra (só existem depois de uma escolha) |
-| `atalhos`, `ocultarSeletor`, `seletorIcones`, `modoClassico`, `cadeado` | Atalhos fixados na barra, seletor de modo (visível, só ícones), modo e cadeado da paleta |
-| `vista`, `exibir`, `filtros`, `filtroNivel`, `cronoPeriodo`, `progressoAberto` | Preferências de tela |
+| `plano` | Edições de planejamento, pedidos, extensão e aprovações registradas por você ainda não exportadas (inclui períodos excluídos) |
+| `tema`, `aparencia` | Tema escolhido e Aparência (Só ícones ou Minimalista; sem a chave, Ícone + texto). Só existem depois de uma escolha. A chave antiga `seletorIcones` é convertida em `aparencia` e apagada |
+| `atalhos`, `ocultarSeletor`, `modoClassico`, `cadeado` | Atalhos fixados na barra, seletor de modo visível ou oculto, modo e cadeado da paleta |
+| `vista`, `exibir`, `filtros`, `filtroNivel`, `cronoPeriodo`, `progressoAberto` | Preferências de tela (em `exibir`: código, notas, dificuldade, presença, plano e destaque) |
+| `foco`, `tom` | Modo Foco ligado ou desligado e o tom das mensagens do Foco (zoeira ou discreto) |
+| `perfilId`, `selosAvisados` | Identidade local aleatória do perfil e a lista de conquistas já anunciadas para ela. Não usa nome, matrícula nem outro dado do aluno; carregar outro perfil, Limpar ou Descartar recomeçam a lista. As conquistas em si não são guardadas: são recalculadas do perfil |
 
 ## Como conferir você mesmo
 

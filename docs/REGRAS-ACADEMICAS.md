@@ -68,6 +68,10 @@ coordenação.
 | RA-20 | Horários de referência e aviso de oferta por semestre par ou ímpar | [NOTION], não oficial | Aviso só para ECI e obrigatórias fora do ciclo básico. Sem promessa de vaga | Heurística local, estimativa |
 | RA-21 | Reingresso: para o prazo de 5 anos vale o ano do bloco do histórico do curso atual | Decisão local ([DECISOES.md](DECISOES.md)); [CASO]. A relação com o [CEG] art. 47 **está pendente de interpretação** pela coordenação | O ano do bloco de transferidos do histórico atual rege o prazo; a data original (`aprovadaEm`) não conta para o prazo, mas rege pré e co-requisitos e a posição na Linha do tempo (D-08). Em dúvida sobre qual é o histórico atual, a Grade pergunta | Regra local, interpretação normativa pendente |
 
+| RA-22 | Aprovação registrada por você (declarada) | Nenhuma: é informação da pessoa, não registro do SIGA ([PC-14](DECISOES.md#pc-14--registrar-marcações-aprovações-registradas-por-você)) | Conta como aprovada, com a origem "registrada por você" (☑). O registro importado vence: a declarada fica guardada fora da conta, e semestre diferente é divergência informativa. Reprovação do SIGA no semestre declarado ou depois (sem semestre, o de `registradoEm`) é conflito e a declarada não conta. Sem semestre, requisito pelo limite de `registradoEm` e prazo de 5 anos "não confirmado". Equivalência deferida com origem declarada também é declarada; o bloco de transferidas confirma | Heurística local |
+| RA-23 | Fase do curso e conquistas | Nenhuma | Fase e selos usam o registrado (importado e declarado, com a marca "declarado"); prevista e pincel só "quase lá". Calouro: menos de 25% e até dois semestres do Histórico do curso atual; veterano: 75% ou mais. Regras de mesmo período só com períodos do Histórico ([PC-12](DECISOES.md#pc-12--fase-do-curso-e-previsão-de-formatura), [PC-13](DECISOES.md#pc-13--conquistas)) | Heurística local |
+| RA-24 | Previsão de formatura | Nenhuma; os totais vêm de RA-01 | Só com o plano cobrindo créditos por grupo, obrigatórias (com Projeto de Graduação e Estágio) e ACE em horas; cada disciplina conta uma vez; o semestre aparece como estimativa ([PC-12](DECISOES.md#pc-12--fase-do-curso-e-previsão-de-formatura)) | Estimativa |
+
 **Políticas locais fora da tabela**
 
 - **Simulação sobre dados oficiais.** Tags do pincel e créditos ou horas manuais entram no progresso, sempre
@@ -120,6 +124,10 @@ Cada invariante aponta para a regra e para os casos de [REQUISITOS.md](REQUISITO
 | INV-16 | O período atual deduzido é estimativa; o informado pela pessoa não tem nota | RA-19 | 08e, 08f |
 | INV-17 | Aviso de paridade e aviso de ausência de oferta são distintos; ciclo básico e período sem data não geram aviso | RA-20 | 07a a 07e |
 | INV-18 | ACE em curso identificada pelo catálogo vai para extensão. NCC sem créditos e fora do currículo e do catálogo gera aviso | RA-17 | 06a, 06n |
+| INV-19 | Uma aprovação conta uma vez: a declarada confirmada pelo SIGA sai da conta e fica guardada; a declarada em conflito com reprovação não conta | RA-22 | R12 a R14, R26 |
+| INV-20 | Declarada sem semestre nunca ganha data inventada: requisito pelo limite de `registradoEm`, prazo "não confirmado" | RA-22, RA-09 | R07 a R11, R36 |
+| INV-21 | Pincel e prevista não dão selo nem contam para a fase; a declarada dá, sempre com "declarado" | RA-23 | R27 a R29, 20g, 20j |
+| INV-22 | A previsão de formatura só aparece com o plano cobrindo tudo o que falta; senão, a pendência concreta ou o motivo | RA-24 | 19a a 19e |
 
 ## Glossário
 
@@ -164,6 +172,11 @@ O aviso do rodapé e as notas de estimativa usam estes textos, sem alteração d
 | RA-09 · prazo de 5 anos | Junto da idade da cursada, no pedido e na tabela de livre escolha | Idade estimada pelo semestre de aprovação. Para quem reingressou, a data que vale pode ser outra; confira com a coordenação. |
 | RA-19 · período atual | No período atual deduzido, na linha do tempo e na prévia | Período atual deduzido do histórico. Confira e corrija na prévia, se precisar. |
 | RA-20 · horários e oferta | No aviso de oferta e nos horários de referência do Cronograma | Horários de referência mantidos por alunos (Notion, consultado em DD/MM/AAAA). Podem mudar; confira no SIGA antes da inscrição. |
+
+| RA-22 · declarada | No detalhe, na prévia e na Linha do tempo | "Registrada por você em AAAA-MM-DD · semestre AAAA/n (ou: semestre não informado). Não é registro do SIGA." Confirmação: "Confirmada pelo SIGA em AAAA/n." Divergência: "Você registrou AAAA/n; o SIGA traz AAAA/n. Vale o SIGA." Conflito: "O SIGA traz reprovação em AAAA/n, no semestre ou depois da aprovação que você registrou." Antes dela: "Sua aprovação registrada ainda não aparece no Histórico." Em curso: "O BOA mostra a disciplina em curso em AAAA/n." |
+| RA-22 · requisito sem semestre | Na Linha do tempo, no semestre do registro | Requisito CÓDIGO registrado por você sem semestre: não dá para saber se foi antes deste período. |
+| RA-22 · prazo | No pedido de equivalência | Sem semestre: "Data de aprovação não confirmada: CÓDIGO (aprovação registrada por você, sem semestre)". Com semestre: "Semestre informado por você, sem registro do SIGA." junto da nota de RA-09 |
+| RA-24 · previsão | No cartão da fase (Foco) | "No seu plano, você forma em AAAA/n (estimativa)." ou "Planeje os NN cr que faltam: …" |
 
 Na nota de RA-20, a data vem do campo `consultado` de `js/horarios.js`. A nota de RA-09 fica enquanto a regra
 de reingresso (RA-21) não estiver implementada e testada, e retirá-la depois é uma decisão registrada. A nota

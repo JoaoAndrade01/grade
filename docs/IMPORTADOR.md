@@ -26,7 +26,7 @@ automaticamente com o perfil em uso).
 | `--historico ARQ` | PDF do Histórico. Repita para mais de um curso | Ao menos um `--historico` ou um `--boa` |
 | `--boa ARQ` | PDF do BOA | Não. Sem BOA não há período atual criado a partir do boletim e o segundo número da livre escolha fica indisponível |
 | `--atual ARQ` | Qual dos `--historico` é o do curso atual. Vale mais que a regra automática | Só quando há dúvida (abaixo) |
-| `--mesclar PERFIL` | Perfil existente: preserva planos, pedidos, extensão, tags e textos | Não |
+| `--mesclar PERFIL` | Perfil existente: preserva planos, pedidos, extensão, tags, marcações, aprovações registradas por você e textos | Não |
 | `--curso N` | Índice do curso em `js/database.js` (ECI = 1, o padrão) | Não |
 | `-o ARQ` | Grava o perfil no arquivo. Sem ele, imprime na tela | Não |
 | `--hoje AAAA-MM-DD`, `--json`, `--texto` | Para teste: data fixa, JSON puro e arquivos `.txt` já extraídos | Não |
@@ -98,7 +98,8 @@ Pontos de atenção:
       períodos `AAAA/0` não são semestres reais;
    5. o período atual é o semestre seguinte ao último do histórico, com as disciplinas "Cursando" (atividades ACE vão
       para `extensao`);
-   6. mescla com o perfil anterior: títulos, pedidos, extensão, tags e períodos planejados. Preserva horários e
+   6. mescla com o perfil anterior: títulos, pedidos, extensão, tags, marcações, aprovações registradas por você
+      (`aprovacoesDeclaradas`, copiadas como estão) e períodos planejados. Preserva horários e
       status das disciplinas que continuam no período atual. Sem BOA, mantém o período atual anterior quando seu
       semestre é posterior ao último semestre do Histórico.
 

@@ -102,6 +102,7 @@ não são JSON: só o `.js` os aceita.
 | `periodos` | Períodos reais e planejados |
 | `equivalencias`, `extensao` | Pedidos de dispensa/equivalência e atividades de extensão |
 | `tags`, `marcacoes` | Tags de cor e o que foi pintado com o pincel |
+| `aprovacoesDeclaradas` | Opcional. Aprovações registradas por você em "Registrar marcações" (abaixo) |
 
 O app **recusa** o arquivo se um campo conhecido tiver o tipo errado (a mensagem aponta o campo) e **preserva o perfil
 anterior**. Campos desconhecidos são ignorados.
@@ -214,6 +215,32 @@ na barra de progresso; vale no máximo uma por tipo e nunca para `pendente`. Uma
 diz; `""` significa "sem tag". A tag "aprovada" do pincel é uma marcação manual, não um registro importado
 ([PC-02 e PC-03](DECISOES.md#pc-02-e-pc-03--tag-aprovada-do-pincel)).
 
+## `aprovacoesDeclaradas` (aprovações registradas por você)
+
+Lista opcional, um item por código. Tudo nela é "Aprovação registrada por você": conta para a fase e as conquistas
+com a marca "declarado", mas não é registro do SIGA
+([PC-14](DECISOES.md#pc-14--registrar-marcações-aprovações-registradas-por-você)). Fica fora de `periodos` porque a
+reimportação refaz os períodos cursados; o importador copia o campo do perfil anterior, como `tags` e `marcacoes`.
+
+```json
+"aprovacoesDeclaradas": [
+  { "code": "MAC118", "registradoEm": "2026-11-27", "semestre": "2025/1" },
+  { "code": "COS110", "registradoEm": "2026-11-27" }
+]
+```
+
+| Campo | Significado |
+| --- | --- |
+| `code` | Obrigatório. Código SIGA da disciplina aprovada |
+| `registradoEm` | Data do registro, `AAAA-MM-DD`. O app sempre grava. Sem `semestre`, é o limite superior da aprovação ("aprovada até esta data") |
+| `semestre` | Opcional, `AAAA/1` ou `AAAA/2`. Ausente = desconhecido. Nunca `AAAA/0` nem bloco |
+| `name`, `credits`, `category`, `horas` | Só para código fora do currículo e do catálogo, como em `periodos` |
+
+Não há `status` nem `nota`. Código repetido: vale o último item. Um arquivo com item inválido é recusado, com o campo
+apontado (por exemplo, `aprovacoesDeclaradas[2].semestre`). No navegador, as edições ficam no plano até exportar, e um
+item inválido é ignorado com aviso, sem derrubar o plano. Como as regras com o SIGA funcionam (confirmação,
+divergência, conflito com reprovação, semestre ausente) está em [REGRAS-ACADEMICAS.md](REGRAS-ACADEMICAS.md).
+
 ## Compatibilidade com perfis antigos
 
 O app continua lendo:
@@ -226,6 +253,9 @@ O app continua lendo:
 - `equivalencias[].cursada` (singular);
 - a paleta antiga de cinco tags: quem nunca a personalizou passa para a nova, e as tags antigas que ainda pintam
   alguma disciplina (como `aprov-esperada` e `reprov-esperada`) são mantidas. Tags personalizadas não mudam;
+- perfis sem `aprovacoesDeclaradas`: lista vazia, nada muda. Uma tag "aprovada" de perfil antigo continua pincel (✎);
+  só vira aprovação registrada quando a pessoa usa "Registrar marcações". Uma versão anterior do app ignora o campo e o
+  exporta de volta, mas a reimportação por ela o perde;
 - tags com `status: "reprovado"` (o antigo "Reprovação (não conta)"): valem e são lidas como `pendente` ("Não conta").
   A marcação continua; a exportação grava o tipo novo. O importador Python (`--mesclar`) copia as tags como estão, e o
   app faz a conversão ao abrir.
