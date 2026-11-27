@@ -301,9 +301,11 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
   período e a reta final (Projeto de Graduação, Estágio, ACE, Humanas e Optativas). O tom é **zoeira** por padrão, com a
   opção **discreto**; projeções aparecem como estimativa. Frases curtas do tom zoeira: "🐢 Devagar e sempre." junto ao
   próximo marco e "🧘 Calma, Calabreso. Período … com N matérias difíceis: dá para planejar." quando um período do
-  plano tem duas ou mais 🟠/🔴. A previsão de formatura só dá um semestre quando o Cronograma
-  cobre créditos por grupo, obrigatórias (inclusive Projeto de Graduação e Estágio) e ACE em horas, contando cada
-  disciplina uma vez; senão mostra a pendência concreta ("Planeje os NN cr que faltam", ou só as horas) ou explica por
+  plano tem duas ou mais 🟠/🔴. A previsão de formatura usa como cumprido só o registrado
+  (importado e registrado por você; créditos manuais, pincel e previstas não cumprem) e só dá um semestre quando o plano
+  cobre créditos por grupo, obrigatórias (inclusive Projeto de Graduação e Estágio) e ACE em horas. O plano é lido em
+  ordem cronológica, contando cada disciplina uma vez, na primeira ocorrência, e as horas de ACE no semestre delas; o
+  semestre mostrado é o primeiro em que tudo fica coberto. Senão, mostra a pendência concreta ("Planeje os NN cr que faltam", ou só as horas) ou explica por
   que não dá (sem perfil, sem período atual, período sem semestre). Tudo cumprido mostra a conclusão.
 - **Consequências:** casos 19a a 19e e 20f a 20h.
 
@@ -319,7 +321,8 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
   ou "quase lá (simulação ✎)". As regras de mesmo período (Calma, Calabreso; Tá pago; Movido a café) exigem um período
   do Histórico; o semestre declarado não conta. Com o total de créditos e ACE pendente, "Créditos completos" mostra as
   horas que faltam; "Acabou! Acabou!" só sai com créditos, ACE, Projeto de Graduação e Estágio. O selo do Notion depende
-  só de as disciplinas que faltam estarem no Cronograma (ACE não entra) e some se uma sair do plano. A estante recalcula
+  só do registrado e de as disciplinas que faltam estarem no Cronograma (ACE não entra; créditos manuais não cumprem) e
+  some se uma sair do plano. Cada ocorrência de ACE guarda a própria origem. A estante recalcula
   sempre do perfil atual. Só a lista de avisos já exibidos fica no navegador, por perfil, com uma identidade local
   opaca, nunca um dado do aluno: recarga e atualização do mesmo perfil preservam a lista; substituição ou limpeza
   recomeçam. A animação do selo novo respeita `prefers-reduced-motion`.
@@ -346,8 +349,11 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
   - **Contagem e SIGA:** o registro importado vence a declarada, que fica guardada fora da conta, com remoção em lote
     opcional; semestre diferente é divergência informativa ("Vale o SIGA"). A declarada vence previsão e plano. Uma
     reprovação do SIGA no semestre declarado ou depois é conflito e a declarada não conta; sem semestre, o limite é o
-    semestre de `registradoEm`. A equivalência deferida com origem declarada também é declarada. O bloco de
-    transferidas confirma; o semestre declarado só é comparado com `aprovadaEm`.
+    semestre de `registradoEm`. A equivalência deferida com origem declarada também é declarada, com a data da
+    origem que a determina (a mais recente; sem semestre, o limite de `registradoEm`). Uma equivalência importada
+    aprovada confirma também a declarada que estava em conflito. O bloco de transferidas confirma; o semestre declarado
+    só é comparado com `aprovadaEm`. Carregar outro perfil pergunta antes quando alguma declarada deste navegador não
+    está no arquivo; descartar o perfil salvo tira também as declaradas do plano.
   - **Semestre ausente:** requisito pelo limite de `registradoEm` (pré-requisito depois dele; co-requisito também nele),
     com aviso no próprio semestre; o prazo de cinco anos fica "Data de aprovação não confirmada", sem idade e sem data
     inventada. D-03 e D-08 não são reabertas.

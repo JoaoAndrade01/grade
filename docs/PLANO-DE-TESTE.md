@@ -194,13 +194,13 @@ parte dele) ou *sem teste* (conferir na integração).
 | H1, H9 | RF-14 | 14r, 14s | `t_controles_icones`, `t_todas_acesas` | `rotulo`, `glifo`, `renderOptativas` | direta |
 | H1, H4 | RF-14 | 14t | `t_plano_na_grade` | `cardLimpo` | direta |
 | H1 | RF-14 | 14u | `t_aparencia_migracao`, `t_destaque_migracao`, `t_sync` | `migraAparencia` (`js/tema.js`), migração de `exibir` | direta |
-| H4 | [RF-19](REQUISITOS.md#rf-19--previsão-de-formatura-calculada-h4) | 19a–19e | `t_motivacao`; `node testes/progresso.js` (previsão) | `previsaoFormatura` (`js/conquistas.js`), `coberturaDoPlano` | direta |
+| H4 | [RF-19](REQUISITOS.md#rf-19--previsão-de-formatura-calculada-h4) | 19a–19g | `t_motivacao`, `t_previsao_cobertura`; `node testes/progresso.js` (previsão e cobertura) | `previsaoFormatura`, `coberturaDoPlano` (`js/conquistas.js`), `coberturaDoPlano` de `js/app.js` | direta |
 | H3, H4 | [RF-20](REQUISITOS.md#rf-20--modo-foco-fase-do-curso-e-conquistas-h3-h4) | 20a–20e | `t_foco`, `t_foco_ajustes` | `alternaFoco`, `renderBotaoFoco`, `desenha`, `renderGrade`, `renderTimeline` | direta |
 | H3 | RF-20 | 20f–20h | `t_motivacao`, `t_foco_ajustes`; `node testes/progresso.js` (fronteiras, P5, R27) | `fase`, `faseDoCurso`, `percentual` (`js/conquistas.js`), `htmlCartaoFase` | direta |
-| H3 | RF-20 | 20i–20l | `t_conquistas_estante`, `t_foco_ajustes`; `node testes/progresso.js` (um caso por selo) | `avaliaSelos`, `proximoMarco` (`js/conquistas.js`), `htmlEstante`, `idDoPerfil` | direta |
+| H3 | RF-20 | 20i–20l | `t_conquistas_estante`, `t_foco_ajustes`, `t_ace_origem`, `t_previsao_cobertura`; `node testes/progresso.js` (um caso por selo) | `avaliaSelos`, `proximoMarco` (`js/conquistas.js`), `htmlEstante`, `idDoPerfil` | direta |
 | H1, H3, H11 | [RF-21](REQUISITOS.md#rf-21--registrar-marcações-aprovações-registradas-por-você-h1-h3-h11) | R01–R06, R30, R33 | `t_registrar_sem_perfil`, `t_registrar_com_perfil` | `gruposRegistro`, `gravaRegistro`, `desfazRegistro` | direta |
 | H3, H4, H5 | RF-21 | R07–R16, R31, R32, R35–R37 | `node testes/progresso.js`, `t_declaradas_modelo`, `t_declaradas_prazo_ace`, `t_declarada_cursando` | `classificaDeclaradas`, `registroCumpre`, `montaRegistros` (`js/progresso.js`), `baseDoPrazo`, `resumoExtensao` | direta |
-| H2, H11 | RF-21 | R17–R26 | `t_declaradas_arquivo`, `t_declaradas_reimportar`, `t_declaradas_detalhe`, `t_declaradas_gestao`, `t_declaradas_lote_foco`; oráculo `declaradas-mesclar`; paridade com `perfil-com-declaradas.json` | `erroDeclarada`, `normalizaDeclaradas`, `montarPerfil` (`js/siga.js`), `gerar_perfil.py`, `htmlDeclaradasPrevia` | direta |
+| H2, H11 | RF-21 | R17–R26 | `t_declaradas_arquivo`, `t_declaradas_reimportar`, `t_declaradas_detalhe`, `t_declaradas_gestao`, `t_declaradas_lote_foco`, `t_perfil_troca_declaradas`; oráculo `declaradas-mesclar`; paridade com `perfil-com-declaradas.json` | `erroDeclarada`, `normalizaDeclaradas`, `montarPerfil` (`js/siga.js`), `gerar_perfil.py`, `htmlDeclaradasPrevia` | direta |
 | H3 | RF-21 | R27–R29, R34 | `node testes/progresso.js`, `t_motivacao`, `t_conquistas_estante` | `faseDoCurso`, `avaliaSelos` | direta |
 | H1, H2 | RF-14 | 14o | `t_importar_sugere_planejador` | `abreImportador` | direta |
 | H1, H3, H10 | RF-14 | 14p | `t_abas_legendas` | `desenha`, `renderLegenda`, `escalaDificuldade`, `renderProgresso` | direta |

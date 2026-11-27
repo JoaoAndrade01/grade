@@ -70,7 +70,7 @@ coordenação.
 
 | RA-22 | Aprovação registrada por você (declarada) | Nenhuma: é informação da pessoa, não registro do SIGA ([PC-14](DECISOES.md#pc-14--registrar-marcações-aprovações-registradas-por-você)) | Conta como aprovada, com a origem "registrada por você" (☑). O registro importado vence: a declarada fica guardada fora da conta, e semestre diferente é divergência informativa. Reprovação do SIGA no semestre declarado ou depois (sem semestre, o de `registradoEm`) é conflito e a declarada não conta. Sem semestre, requisito pelo limite de `registradoEm` e prazo de 5 anos "não confirmado". Equivalência deferida com origem declarada também é declarada; o bloco de transferidas confirma | Heurística local |
 | RA-23 | Fase do curso e conquistas | Nenhuma | Fase e selos usam o registrado (importado e declarado, com a marca "declarado"); prevista e pincel só "quase lá". Calouro: menos de 25% e até dois semestres do Histórico do curso atual; veterano: 75% ou mais. Regras de mesmo período só com períodos do Histórico ([PC-12](DECISOES.md#pc-12--fase-do-curso-e-previsão-de-formatura), [PC-13](DECISOES.md#pc-13--conquistas)) | Heurística local |
-| RA-24 | Previsão de formatura | Nenhuma; os totais vêm de RA-01 | Só com o plano cobrindo créditos por grupo, obrigatórias (com Projeto de Graduação e Estágio) e ACE em horas; cada disciplina conta uma vez; o semestre aparece como estimativa ([PC-12](DECISOES.md#pc-12--fase-do-curso-e-previsão-de-formatura)) | Estimativa |
+| RA-24 | Previsão de formatura | Nenhuma; os totais vêm de RA-01 | O cumprido é só o registrado (créditos manuais e pincel não cumprem). Só com o plano cobrindo créditos por grupo, obrigatórias (com Projeto de Graduação e Estágio) e ACE em horas; plano em ordem cronológica, cada disciplina uma vez, ACE no semestre das horas; o semestre é o primeiro com tudo coberto e aparece como estimativa ([PC-12](DECISOES.md#pc-12--fase-do-curso-e-previsão-de-formatura)) | Estimativa |
 
 **Políticas locais fora da tabela**
 
@@ -127,7 +127,7 @@ Cada invariante aponta para a regra e para os casos de [REQUISITOS.md](REQUISITO
 | INV-19 | Uma aprovação conta uma vez: a declarada confirmada pelo SIGA sai da conta e fica guardada; a declarada em conflito com reprovação não conta | RA-22 | R12 a R14, R26 |
 | INV-20 | Declarada sem semestre nunca ganha data inventada: requisito pelo limite de `registradoEm`, prazo "não confirmado" | RA-22, RA-09 | R07 a R11, R36 |
 | INV-21 | Pincel e prevista não dão selo nem contam para a fase; a declarada dá, sempre com "declarado" | RA-23 | R27 a R29, 20g, 20j |
-| INV-22 | A previsão de formatura só aparece com o plano cobrindo tudo o que falta; senão, a pendência concreta ou o motivo | RA-24 | 19a a 19e |
+| INV-22 | A previsão de formatura só aparece com o plano cobrindo tudo o que falta; senão, a pendência concreta ou o motivo. Repetir uma disciplina no plano não muda o semestre; simulação não cumpre | RA-24 | 19a a 19g |
 
 ## Glossário
 
