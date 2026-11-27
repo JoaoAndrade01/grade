@@ -540,17 +540,18 @@
       if (info?.category != 5) return;
       const registros = (M.regs[code] || []).filter((r) => r.status === "aprovado");
       if (!registros.length) {
-        inclui({ code, nome: info.name, horas: valorCat(info), semestre: null, historico: true });
+        inclui({ code, nome: info.name, horas: valorCat(info), semestre: null, historico: true, origem: "pincel" });
       }
+      // Cada ocorrência guarda a própria origem (importado ou registrada por você) para fase e conquistas.
       registros.forEach((r) => inclui({
         code, nome: info.name, horas: r.horas ?? valorCat(info),
-        semestre: semestreDoRegistro(r), historico: true,
+        semestre: semestreDoRegistro(r), historico: true, origem: r.origem === "declarado" ? "declarado" : "importado",
       }));
     });
     getExt().forEach((a) => {
       if (a.status !== "validada") return;
       inclui({ code: (a.code || "").trim().toUpperCase(), nome: a.nome || a.code || "atividade",
-        horas: Number(a.horas) || 0, semestre: semIdx(a.periodo) });
+        horas: Number(a.horas) || 0, semestre: semIdx(a.periodo), origem: "importado" });
     });
 
     for (const [code, periodos] of porCodigo) {
@@ -576,7 +577,9 @@
         }
       }
       grupos.forEach((grupo) => {
-        const maior = grupo.reduce((a, b) => a.horas >= b.horas ? a : b);
+        // Empate: fica a origem mais forte (registro importado antes de registrada por você e do pincel).
+        const peso = { importado: 0, declarado: 1, pincel: 2 };
+        const maior = grupo.reduce((a, b) => (a.horas > b.horas || (a.horas === b.horas && (peso[a.origem] ?? 0) <= (peso[b.origem] ?? 0)) ? a : b));
         confirmadas.push(maior);
         if (grupo.length < 2) return;
         codigosDuvidosos.add(code);
@@ -1812,8 +1815,8 @@
       const k = String(i.category); creditos[k] = creditos[k] || {}; creditos[k][f] = (creditos[k][f] || 0) + valorCat(i);
     });
     resumoExtensao().confirmadas.forEach((a) => {
-      const f = a.code && M.regs[a.code] ? fonteDe(a.code) || "importado" : a.code && Object.hasOwn(marcacoes, a.code) ? fonteDe(a.code) : "importado";
-      if (f) ace[f] = (ace[f] || 0) + a.horas;
+      const f = a.origem || "importado";     // a origem da própria ocorrência, não a do código
+      ace[f] = (ace[f] || 0) + a.horas;
     });
     const historico = M.periodos.filter((p) => p.tipo === "cursado" && p.semestre != null && !p.declarado)
       .map((p) => ({ nome: p.nome, itens: p.itens.map((it) => ({ code: it.alvo, status: it.status })) }));

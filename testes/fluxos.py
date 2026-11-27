@@ -3693,8 +3693,21 @@ def t_foco_ajustes(b):
     expect(card).not_to_contain_text("Devagar e sempre"); expect(card).to_contain_text("O período 2027/1 tem 2 matérias difíceis. Vale planejar com folga.")
     ctx.close()
 
+@caso("ACE com origens diferentes: 405 h validadas e 30 h registradas por você no mesmo código, em outro semestre, não deixam Extensão em dia nem Acabou! como declarado")
+def t_ace_origem(b):
+    ctx, pg = abre(b, perfil={"periodos": []}, nome="ace-origem-obr", relogio=HOJE); obr = [c for c, _, _ in obrigatorias(pg)]; ctx.close()
+    perfil = {"periodos": [{"nome": "2025/1", "disciplinas": obr + [{"code": "XYZ201", "name": "Optativa fictícia", "credits": 40, "category": 2},
+                {"code": "XYZ301", "name": "Livre fictícia", "credits": 8, "category": 3}, {"code": "XYZ401", "name": "Humanas fictícia", "credits": 4, "category": 4}]},
+                           {"nome": "2026/2", "atual": True, "disciplinas": []}],
+              "extensao": [{"code": "ACE901", "nome": "Atividade validada fictícia", "periodo": "2026/2", "horas": 405, "status": "validada"}],
+              "aprovacoesDeclaradas": [{"code": "ACE901", "name": "Atividade declarada fictícia", "semestre": "2025/1", "registradoEm": "2026-11-27", "horas": 30, "category": 5}]}
+    ctx, pg = abre(b, perfil=perfil, extra={"modoClassico": False, "vista": "grade", "foco": True}, nome="ace-origem", relogio=HOJE)
+    s = {x["id"]: (x["estado"], x.get("declarado")) for x in motivacao(pg)["selos"]}
+    assert s["extensao"] == ("obtido", False) and s["acabou"] == ("obtido", False), s
+    ctx.close()
+
 CASOS5 = [t_controles_icones, t_todas_acesas, t_minimalista, t_plano_na_grade, t_declaradas_modelo, t_declaradas_prazo_ace, t_declaradas_arquivo, t_declaradas_reimportar,
-          t_registrar_sem_perfil, t_registrar_com_perfil, t_declaradas_detalhe, t_declaradas_gestao, t_declarada_cursando, t_foco, t_motivacao, t_conquistas_estante, t_declaradas_lote_foco, t_foco_ajustes]
+          t_registrar_sem_perfil, t_registrar_com_perfil, t_declaradas_detalhe, t_declaradas_gestao, t_declarada_cursando, t_foco, t_motivacao, t_conquistas_estante, t_declaradas_lote_foco, t_foco_ajustes, t_ace_origem]
 CASOS += CASOS5
 
 
