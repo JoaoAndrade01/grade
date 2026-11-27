@@ -470,7 +470,7 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
   - **Ao segurar:** clicar e segurar, tocar e segurar (cerca de 400 ms) ou segurar Espaço num cartão mostra a trilha;
     soltar apaga, mesmo com Detalhes aberto. Nenhum outro gatilho acende. Cancela com movimento acima de 10 px, rolagem,
     saída do alvo, perda de foco ou troca de tela. O clique curto continua igual; o clique que encerra a pressão longa é
-    consumido. A rolagem da página continua.
+    consumido. A rolagem da página continua. Com o Espaço segurado, Enter continua ativando o cartão.
   - **Migração pela regra literal:** sem a chave, Ao segurar; "foco" e "desligado" salvos continuam; a cadeia antiga
     `setas` migra (Ocultas → Desligado; Disciplina em foco e Todas → Ao passar o mouse).
 - **Consequências:** casos 14d, 14l, 14u e 14z.
