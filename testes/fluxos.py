@@ -815,7 +815,7 @@ def t_timeline_ocorrencia_edicao(b):
 
 @caso("Cartões: nome acessível sem espaço antes da vírgula, na Grade e na Linha do tempo")
 def t_nome_sem_espaco(b):
-    ctx, pg = abre(b, perfil=PERFIL, nome="nome-sem-espaco")
+    ctx, pg = abre(b, perfil=PERFIL, extra={"vista": "grade"}, nome="nome-sem-espaco")
     expect(pg.locator('#painel .card[data-code="COS110"]')).to_have_accessible_name(re.compile(r"Algoritmos e Programação, Aprovada · perfil"))
     completo(pg, "timeline")
     expect(cartao_na_coluna(pg, "2025/1", "COS110")).to_have_accessible_name(re.compile(r"Algoritmos e Programação, Aprovada · perfil"))
@@ -2121,7 +2121,7 @@ def t_tags_barra_teclado(b):
 
 @caso("Cadeado: só ícone com nome acessível, começa desligado e lembra; protege cursadas e aprovadas do perfil; detalhes e destaque continuam")
 def t_cadeado(b):
-    ctx, pg = abre(b, perfil=PERFIL, nome="cadeado")
+    ctx, pg = abre(b, perfil=PERFIL, extra={"vista": "grade"}, nome="cadeado")
     cad = pg.locator("#cadeado")
     assert cad.get_attribute("aria-label") == "Proteger disciplinas cursadas" and cad.get_attribute("aria-pressed") == "false" and not cad.locator(".so-texto").is_visible()
     pg.click('[data-pincel="cursando"]'); pg.locator('.card[data-code="EEL871"]').click()     # sem cadeado: pinta normalmente
