@@ -151,6 +151,9 @@ duplicatas de `js/horarios.js` e `js/guia.js`, e lista as turmas sem código. O 
   em "uso em duplicidade". A Grade não bloqueia esses pedidos; confira com a coordenação
   ([DECISOES.md](DECISOES.md#pc-14--registrar-marcações-aprovações-registradas-por-você)).
 - **Plano num período que já passou.** Com o período atual sem semestre, o aviso não aparece.
+- **Ordem dos períodos.** Uma disciplina fora do catálogo que aparece em dois períodos com créditos diferentes pode
+  somar um ou outro valor conforme a ordem dos períodos. Duas aprovações do mesmo código no mesmo semestre podem variar
+  conforme a ordem.
 - **Navegação por teclado nos links do Safari.** A verificação automatizada de Tab nos links cobre Chromium e Firefox; o
   Safari no Mac, o iPhone real e a passada com leitor de tela estão pendentes
   ([PLANO-DE-TESTE.md](PLANO-DE-TESTE.md#6-limite-do-ambiente-webkit)).

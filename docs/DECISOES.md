@@ -399,6 +399,9 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
   - *Ciclos maiores* (A usa a pedida de B, B a de C, C a de A): são sinalizados, mas o aviso fala em "uso em
     duplicidade", não em ciclo.
   - *Período atual sem semestre:* o aviso de plano num período que já passou não aparece.
+  - *Disciplina fora do catálogo com créditos diferentes:* se ela aparece em dois períodos com créditos diferentes, a
+    soma pode usar um ou outro valor conforme a ordem dos períodos.
+  - *Duas aprovações do mesmo código no mesmo semestre:* o resultado pode variar conforme a ordem.
 
 ## Publicação e processo
 
