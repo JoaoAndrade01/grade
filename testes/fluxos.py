@@ -4399,6 +4399,101 @@ def t_clique_fora(b):
     expect(det).to_be_visible()
     ctx.close()
 
+MOVE_JS = """([code, tipo, dx]) => { const el = document.querySelector(`#painel .card[data-code="${code}"]`); const r = el.getBoundingClientRect();
+    el.dispatchEvent(new PointerEvent(tipo, { bubbles: true, cancelable: true, composed: true, pointerId: 7, pointerType: 'touch', isPrimary: true,
+        button: tipo === 'pointermove' ? -1 : 0, buttons: tipo === 'pointerup' || tipo === 'pointercancel' ? 0 : 1, clientX: r.x + r.width / 2 + dx, clientY: r.y + r.height / 2 })); }"""
+
+@v210
+@caso("Trilha Ao segurar: depois que a trilha acendeu, mover dentro ou sair do cartão, esperar mais de 700 ms e soltar não pinta nem abre Detalhes (mouse, toque, Espaço, pointercancel); o clique curto seguinte funciona")
+def t_trilha_soltar_tarde(b):
+    # Clássico sem perfil, pincel padrão (Cursada): era aqui que o clique escapava depois de 700 ms
+    ctx, pg = abre(b, nome="trilha-soltar-tarde", modo="classico")
+    card = pg.locator('#painel .card[data-code="MAC248"]')
+    caixa = card.bounding_box(); cx, cy = caixa["x"] + caixa["width"] / 2, caixa["y"] + caixa["height"] / 2
+    # mouse: acende, move 12 px dentro do cartão, espera 900 ms e solta
+    pg.mouse.move(cx, cy); pg.mouse.down(); pg.wait_for_timeout(650)
+    assert destaque(pg)["self"] == ["MAC248"]
+    pg.mouse.move(cx + 12, cy, steps=3); pg.wait_for_timeout(900); pg.mouse.up(); pg.wait_for_timeout(150)
+    assert (ls(pg, "marcacoes") or {}) == {}, ls(pg, "marcacoes"); expect(pg.locator("#detalhes")).to_be_hidden()
+    # mouse: sai do cartão e volta, espera e solta em cima dele
+    pg.mouse.move(cx, cy); pg.mouse.down(); pg.wait_for_timeout(650)
+    pg.mouse.move(cx, cy - caixa["height"] * 2, steps=3); pg.mouse.move(cx, cy, steps=3); pg.wait_for_timeout(900); pg.mouse.up(); pg.wait_for_timeout(150)
+    assert (ls(pg, "marcacoes") or {}) == {}, ls(pg, "marcacoes")
+    # o clique curto seguinte pinta
+    card.click(); assert ls(pg, "marcacoes") == {"MAC248": "aprovada"}
+    pg.click('#paleta [data-pincel=""]'); card.click(); pg.click('#paleta [data-pincel="aprovada"]')
+    antes = ls(pg, "marcacoes")
+    # Espaço: acende, perde o foco e volta; soltar não ativa
+    card.focus(); pg.keyboard.down(" "); pg.wait_for_timeout(650); assert destaque(pg)["self"] == ["MAC248"]
+    pg.wait_for_timeout(900); pg.keyboard.up(" "); pg.wait_for_timeout(150)
+    assert ls(pg, "marcacoes") == antes, ls(pg, "marcacoes")
+    ctx.close()
+    if b.browser_type.name in ("chromium", "webkit"):
+        ctx, pg = abre(b, vp=C, nome="trilha-soltar-tarde-toque", toque=True, modo="classico")
+        el = pg.locator('#painel .card[data-code="MAC248"]')
+        # toque: acende, move 12 px, espera 900 ms, solta; o clique que o navegador geraria é consumido
+        pg.evaluate(MOVE_JS, ["MAC248", "pointerdown", 0]); pg.wait_for_timeout(650); assert destaque(pg)["self"] == ["MAC248"]
+        pg.evaluate(MOVE_JS, ["MAC248", "pointermove", 12]); pg.wait_for_timeout(900); pg.evaluate(MOVE_JS, ["MAC248", "pointerup", 12])
+        el.evaluate("e => e.click()")
+        assert (ls(pg, "marcacoes") or {}) == {} and pg.locator("#consulta").count() == 0, ls(pg, "marcacoes")
+        # pointercancel depois de acender: nada é ativado, e o toque curto seguinte consulta
+        pg.evaluate(MOVE_JS, ["MAC248", "pointerdown", 0]); pg.wait_for_timeout(650); pg.evaluate(MOVE_JS, ["MAC248", "pointercancel", 0])
+        assert destaque(pg)["self"] == []
+        el.tap(); expect(pg.locator("#consulta")).to_be_visible(); assert (ls(pg, "marcacoes") or {}) == {}
+        ctx.close()
+
+@v210
+@caso("Trilha Ao segurar com o mouse: uma rolagem pequena da página (menor que a tolerância) não cancela; rolar de verdade cancela")
+def t_trilha_rolagem_pequena(b):
+    ctx, pg = abre(b, vp={"width": 1440, "height": 700}, perfil=PERFIL, extra={"vista": "grade"}, nome="trilha-rolagem")
+    pg.evaluate("window.scrollTo(0, 120)")
+    card = pg.locator('#painel .card[data-code="MAC128"]'); card.scroll_into_view_if_needed()
+    caixa = card.bounding_box(); pg.mouse.move(caixa["x"] + caixa["width"] / 2, caixa["y"] + caixa["height"] / 2)
+    pg.mouse.down(); pg.evaluate("window.scrollBy(0, 3)"); pg.wait_for_timeout(650)
+    assert destaque(pg)["self"] == ["MAC128"], "uma rolagem de 3 px cancelou a pressão"
+    pg.mouse.up(); assert destaque(pg) == APAGADO
+    pg.mouse.down(); pg.evaluate("window.scrollBy(0, 60)"); pg.wait_for_timeout(650)
+    assert destaque(pg) == APAGADO; pg.mouse.up()
+    ctx.close()
+
+@v210
+@caso("Clássico: os blocos sem código (Humanas, optativas, livre escolha, ACE) não abrem Detalhes, nem pelo mouse nem pelo teclado")
+def t_classico_blocos_sem_detalhes(b):
+    ctx, pg = abre(b, perfil=PERFIL, nome="classico-blocos", modo="classico")
+    blocos = pg.locator("#painel .card.bloco")
+    assert blocos.count() > 0
+    humanas = blocos.filter(has_text="Humanas").first
+    humanas.click(); pg.wait_for_timeout(150); expect(pg.locator("#detalhes")).to_be_hidden()
+    humanas.focus(); pg.keyboard.press("Enter"); pg.wait_for_timeout(150); expect(pg.locator("#detalhes")).to_be_hidden()
+    pg.keyboard.press(" "); pg.wait_for_timeout(150); expect(pg.locator("#detalhes")).to_be_hidden()
+    for i in range(blocos.count()):
+        blocos.nth(i).click(); pg.wait_for_timeout(80)
+        expect(pg.locator("#detalhes")).to_be_hidden()
+    assert pg.locator("#detalhes [data-creditos]").count() == 0
+    # no Planejador, o bloco continua abrindo os créditos extras
+    alterna_modo(pg); pg.click('[data-vista="grade"]')
+    pg.locator("#painel .card.bloco").filter(has_text="Humanas").first.click()
+    expect(pg.locator("#detalhes [data-creditos]")).to_have_count(1)
+    ctx.close()
+
+@v210
+@caso("Optativas a 320 px, Ícone + texto: os grupos e os filtros não rolam de lado, também com uma inativa planejada e Todas acesas ligada")
+def t_optativas_320(b):
+    ctx, pg = abre(b, perfil=PERFIL, extra={"vista": "optativas", "filtros": {"ativas": False}}, nome="optativas-320-obr")
+    alvo = pg.locator(".opt.opt-inativa").first.get_attribute("data-code"); ctx.close()
+    perfil = json.loads(json.dumps(PERFIL)); perfil["periodos"][4]["disciplinas"].append(alvo)
+    for esq in ("light", "dark"):
+        ctx, pg = abre(b, vp=C320, perfil=perfil, extra={"vista": "optativas"}, nome=f"optativas-320-{esq}", esquema=esq, toque=True)
+        assert pg.evaluate("document.documentElement.scrollWidth - innerWidth") <= 1
+        pg.get_by_role("button", name="Todas acesas", exact=True).click()
+        for g in ("Humanas", "ACE (extensão)", "Condicionada"):
+            pg.get_by_role("button", name=g, exact=True).click()
+            assert pg.evaluate("document.documentElement.scrollWidth - innerWidth") <= 1, g
+            direita = pg.locator(".filtros .seg").evaluate("e => e.getBoundingClientRect().right")
+            assert direita <= 320 + 0.5, (g, direita)
+        foto(pg, f"optativas-320-{esq}")
+        ctx.close()
+
 PERFIS_FASE = {
     "calouro": {"periodos": [{"nome": "2025/2", "disciplinas": ["COS110", "COS111"]}, {"nome": "2026/2", "atual": True, "disciplinas": ["MAC118"]}]},
     "meio": {"periodos": [{"nome": n, "disciplinas": [c]} for n, c in (("2024/1", "COS110"), ("2024/2", "COS111"), ("2025/1", "EEL280"))]},
