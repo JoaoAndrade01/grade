@@ -64,8 +64,8 @@ text{font-family:system-ui,Segoe UI,Arial,sans-serif;fill:#142238}
 <rect x="740" y="440" width="310" height="120" rx="12" class="no"/>
 <g transform="translate(756 484) scale(1.3333333333333333)" class="icone"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4m8-4v4m-8 7h2m4 0h2m-8 3h2"/></g>
 <text x="802" y="487" class="rotulo">Modelo e regras</text>
-<text x="802" y="506" class="descricao">status, créditos, requisitos,</text>
-<text x="802" y="525" class="descricao">pedidos e avisos</text>
+<text x="802" y="506" class="descricao">progresso.js e conquistas.js</text>
+<text x="802" y="525" class="descricao">créditos, requisitos e selos</text>
 </g>
 <g id="eci">
 <rect x="740" y="620" width="310" height="110" rx="12" class="no"/>

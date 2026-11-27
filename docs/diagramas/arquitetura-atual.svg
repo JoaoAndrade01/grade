@@ -141,13 +141,13 @@ text{font-family:system-ui,Segoe UI,Arial,sans-serif;fill:#142238}
 <rect x="1110" y="130" width="340" height="90" rx="12" class="no"/>
 <g transform="translate(1126 159) scale(1.3333333333333333)" class="icone"><path d="m3 8 9-5 9 5-9 5zM3 12l9 5 9-5M3 16l9 5 9-5"/></g>
 <text x="1172" y="171" class="rotulo">Modelo</text>
-<text x="1172" y="190" class="descricao">status · créditos · requisitos</text>
+<text x="1172" y="190" class="descricao">status · créditos · requisitos · fase</text>
 </g>
 <g id="g1">
 <rect x="1110" y="270" width="160" height="90" rx="12" class="no"/>
 <g transform="translate(1126 302.5) scale(1.0416666666666667)" class="icone"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16m6-16v16M3 10h18"/></g>
 <text x="1165" y="311" class="rotulo compacto">Grade</text>
-<text x="1165" y="330" class="descricao">Tags e setas</text>
+<text x="1165" y="330" class="descricao">Tags e destaque</text>
 </g>
 <g id="g2">
 <rect x="1286" y="270" width="164" height="90" rx="12" class="no"/>

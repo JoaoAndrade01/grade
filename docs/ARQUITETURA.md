@@ -87,7 +87,7 @@ flowchart LR
     interface["Interface<br/>Telas, Configurações,<br/>aviso e notas (js/app.js)"]
     tema["Tema e aparência<br/>js/tema.js"]
     importacao["Importação do SIGA<br/>js/siga.js e pdf.js:<br/>leitura e prévia"]
-    modelo["Modelo e regras<br/>status, créditos, requisitos,<br/>pedidos e avisos"]
+    modelo["Modelo e regras<br/>progresso.js e conquistas.js<br/>créditos, requisitos e selos"]
     eci["A ECI por trás da Grade<br/>js/eci.js e demo-pdf.js<br/>Só dados fictícios"]
     persist["Persistência local<br/>localStorage, exportar e<br/>carregar perfil"]
     dados["Dados de referência<br/>database, optativas,<br/>horários e guia"]
@@ -108,21 +108,29 @@ flowchart LR
 | Componente | Arquivos | O que faz | Regras e casos |
 | --- | --- | --- | --- |
 | Interface | `index.html`, `js/app.js`, `static/app.css` | Telas (Grade, Linha do tempo, Optativas, Cronograma, Equivalências e Extensão / ACE), Configurações, faixa e notas, prévia | [DESIGN.md](DESIGN.md), [RF-08](REQUISITOS.md#rf-08--aviso-de-que-a-grade-não-é-oficial-versão-e-relato-d-06), [RF-14](REQUISITOS.md#rf-14--marcação-manual-aparência-tags-e-referências-h1-h3-h10) |
-| Tema e aparência | `js/tema.js` (no `<head>`, antes da primeira pintura) | Tema claro ou escuro e formato das abas | [DESIGN.md](DESIGN.md) |
+| Tema e aparência | `js/tema.js` (no `<head>`, antes da primeira pintura) | Tema claro ou escuro e a Aparência (Ícone + texto, Só ícones, Minimalista), com a migração da preferência antiga | [DESIGN.md](DESIGN.md) |
 | Importação do SIGA | `js/siga.js`, `js/vendor/` (pdf.js), `ferramentas/gerar_perfil.py` | Lê Histórico e BOA, monta o perfil, prévia | [IMPORTADOR.md](IMPORTADOR.md), [RF-06](REQUISITOS.md#rf-06--importação-do-siga-ra-05-ra-06-ra-17-ra-19-ra-21) |
-| Modelo e regras | `js/app.js` (`montaModelo`, `statusDe`, `totais`, `avisos`, `analisaPedido`, `candidatos`, `montaProposta`, `avisoOferta`) | Status, créditos por grupo, requisitos, pedidos, sugestões e avisos de oferta | [REGRAS-ACADEMICAS.md](REGRAS-ACADEMICAS.md), [REQUISITOS.md](REQUISITOS.md) |
+| Modelo e regras | `js/progresso.js` (`montaRegistros`, `classificaDeclaradas`, `registroCumpre`, `statusDosRegistros`, `fonteDaAprovacao`, `semestreDoRegistro`), `js/conquistas.js` (`fase`, `percentual`, `avaliaSelos`, `proximoMarco`, `previsaoFormatura`) e `js/app.js` (`montaModelo`, `statusDe`, `totais`, `avisos`, `analisaPedido`, `candidatos`, `montaProposta`, `avisoOferta`) | Registros por código e por fonte (importado, registrado por você, previsto, pincel), status, créditos por grupo, requisitos, pedidos, sugestões, avisos de oferta, fase do curso, conquistas e previsão de formatura | [REGRAS-ACADEMICAS.md](REGRAS-ACADEMICAS.md), [REQUISITOS.md](REQUISITOS.md) |
 | Persistência local | `js/app.js` (`localStorage`, prefixo `gradeECI.v2.`; exportar e carregar) | Guarda e recupera o perfil e as preferências | [PERFIL.md](PERFIL.md), [PRIVACIDADE.md](PRIVACIDADE.md) |
 | Dados de referência | `js/database.js`, `js/optativas.js`, `js/horarios.js`, `js/guia.js` | Currículo, catálogo, turmas e guia | [Dicionário das fontes](#dicionário-das-fontes), [RF-17](REQUISITOS.md#rf-17--validação-dos-dados-de-referência-h14) |
 | A ECI por trás da Grade | `js/eci.js`, `js/demo-pdf.js` | Experiências com PDFs fictícios; **não** leem nem gravam o perfil | [RF-13](REQUISITOS.md#rf-13--a-eci-por-trás-da-grade-h12) |
 
 Ordem de carga no `index.html`: `js/tema.js` aplica tema e aparência antes da primeira pintura. Os ícones, os dados do
-curso, `js/eci.js` e `js/app.js` executam em ordem com `defer`. Na abertura direta por `file://`, o app procura o
+curso, `js/eci.js`, `js/progresso.js`, `js/conquistas.js` e `js/app.js` executam em ordem com `defer`.
+
+**Fronteira do cálculo.** `js/progresso.js` e `js/conquistas.js` não leem DOM nem armazenamento: recebem dados
+explícitos (currículo, catálogo, períodos, edições, pedidos, aprovações registradas por você e, para os selos, um
+contexto montado por `js/app.js`) e devolvem resultados. Funcionam no navegador (`window.PROGRESSO`,
+`window.CONQUISTAS`) e no Node, onde `node testes/progresso.js` testa as regras sem navegador. A prévia do importador
+usa a mesma montagem dos registros que o modelo. `js/app.js` junta esse resultado com as preferências da tela
+(marcações, tags, filtros) e desenha. Na abertura direta por `file://`, o app procura o
 perfil local opcional antes de montar a grade. `js/siga.js` e o pdf.js são carregados ao ler PDFs. `js/demo-pdf.js` só é
 carregado ao abrir uma experiência que usa os PDFs fictícios.
 
 O site abre no **modo clássico** (seletor de modo no topo): a grade inteira numa tela e a paleta. Desligando o
 seletor aparecem as abas. Os dois modos usam os mesmos dados. Em **Configurações** dá para trocar o modo, ocultar o
-seletor, escolher a aparência e fixar atalhos.
+seletor, escolher a Aparência e o tom das mensagens do Foco e fixar atalhos. No Planejador, o 🎯 **Foco** esconde o
+que já foi concluído e mostra a fase do curso, a previsão de formatura e as conquistas.
 
 ### Camadas da interface
 
@@ -142,8 +150,9 @@ flowchart TB
     EQ["Equivalências e Extensão/ACE: pedidos, contas, livre escolha"]
     DET["Painel lateral: guia, histórico, requisitos, tags, Privacidade, Referências"]
     ECI["A ECI por trás da Grade: experiências em tela cheia (js/eci.js)"]
+    FOCO["Foco: o que falta, fase do curso, previsão e conquistas"]
   end
-  CFG["Configurações: aparência, tema, modo, atalhos, Exibir/setas/cadeado"]
+  CFG["Configurações: Aparência, tom, tema, modo, atalhos, Exibir/destaque/cadeado, Registrar marcações"]
   CFG -.-> CAM1 & CAM2 & CAM3
   CAM1 --> CAM2 --> CAM3
 ```
@@ -176,8 +185,8 @@ flowchart LR
     demo["demo-pdf.js<br/>PDFs fictícios e paridade"]
   end
   subgraph G3["GRADE INTERATIVA (no seu navegador)"]
-    modelo["Modelo<br/>status · créditos · requisitos"]
-    g1["Grade<br/>Tags e setas"]
+    modelo["Modelo<br/>status · créditos · requisitos · fase"]
+    g1["Grade<br/>Tags e destaque"]
     g2["Linha do tempo"]
     g3["Cronograma"]
     g4["Equivalências<br/>Extensão/ACE"]
