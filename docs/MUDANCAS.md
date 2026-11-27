@@ -4,48 +4,6 @@
 mudanças estão em [DECISOES.md](DECISOES.md); os critérios, em [REQUISITOS.md](REQUISITOS.md). A versão atual aparece no
 rodapé da Grade.
 
-## Próxima versão (identificação pendente)
-
-Ajustes depois da publicação da v2.0.0. O número desta versão depende de decisão da manutenção; até lá, o rodapé
-continua mostrando a versão anterior.
-
-### O que mudou para quem usa
-
-- **Transferidas cumprem requisito** (D-08). A disciplina do bloco "AAAA (transferidas)" vale pelo semestre original,
-  quando o histórico do curso anterior o informa. Sem ele, conta só a partir do ano seguinte ao do bloco. Antes, ela
-  nunca cumpria pré ou co-requisito (por exemplo, "Requisito MAC128 não cumprido" em Cálculo III de quem reingressou).
-  O prazo de 5 anos continua pelo ano do bloco (D-03). A data original da aprovação deixa de ser só informação, como
-  era na v2.0.0: passa a reger pré e co-requisitos e a posição na Linha do tempo.
-- **Linha do tempo.** A transferida aparece no semestre original, com a etiqueta "transferida · bloco AAAA" e listras
-  discretas; sem ele, fica no bloco. "detalhes" volta a recolher. O clique num cartão abre os detalhes da disciplina,
-  mesmo com uma tag escolhida no pincel da Grade (antes, pintava e podia mandar a cursada para "A alocar").
-- **Tags.** "Reprovação (não conta)" e "Não conta" viram uma opção só, "Não conta". Tags salvas no navegador e perfis
-  antigos são convertidos, e as marcações continuam. Uma tag "Não conta" só pinta o que você marcou.
-- **Barra de progresso em quatro trechos:** concluídas, previstas, cursando e planejadas. Em cada tag que conta, "Usar a
-  cor desta tag na barra" pinta o trecho do tipo dela (uma tag por tipo).
-- **Configurações** fecha pelo X no topo, por clique fora e por Esc, e o foco volta ao botão que abriu. Ganha a seção
-  **Sobre**. "Adicionar período" usa a mesma janela central de "Excluir período", com validação do nome.
-- **Setas de requisitos** com mais espaço na Grade, para as setas não se tocarem.
-- **Clássico | Planejador.** O interruptor sem texto vira um seletor visível no topo, e "Completo" passa a se chamar
-  "Planejador". Há a opção "Mostrar só ícones no seletor". No modo Clássico, "Importar do SIGA" sugere o Planejador.
-- **Aviso no rodapé** (D-09). "Feita por alunos de ECI. Não substitui o SIGA, o BOA nem a coordenação." sai do topo e
-  fica numa linha do rodapé.
-- **Detalhamento mais curto.** O cartão "Livre escolha" fica no formato dos outros, com um ⓘ pequeno ao lado do título
-  que mostra os números da Grade e do BOA e a nota, por clique, toque ou teclado. Sai a legenda de estados; o cartão já diz a situação em texto.
-
-### Correções técnicas
-
-- Corrida ao reabrir Configurações logo depois de fechar: a janela podia abrir vazia.
-- Configurações devolve o foco ao botão também quando aberta pelo mouse no WebKit.
-- O editor de tags mantém o foco no controle ao salvar (antes, Tab saía do editor).
-- Com "ECI por trás" ligada, a Linha do tempo abre os detalhes, e não a experiência.
-- O link "Achou um erro?" do rodapé abre a escolha de modelo de Issue (`/issues/new/choose`).
-
-### Testes
-
-- Novos cenários de interface: CR-05 (transferida e requisitos) e os casos 01h, 08m, 08n, 10f a 10h e 14j a 14o. A
-  matriz passa a ter 100 cenários por `file://` e 101 por HTTP ([testes/README.md](../testes/README.md)).
-
 ## v2.0.0 — primeira versão pública
 
 A data de publicação é a da release `v2.0.0` no GitHub, que usa o texto de "O que mudou" até "Limitações conhecidas"
@@ -57,22 +15,37 @@ acadêmicos só no navegador. A Grade orienta; não substitui o SIGA, o BOA nem 
 
 ### O que mudou para quem usa
 
-- **Aviso de que a Grade não é oficial.** Uma faixa curta no topo ("Feita por alunos de ECI. Não substitui o SIGA, o BOA
-  nem a coordenação.") e uma nota junto de cada cálculo que é estimativa: livre escolha, prazo de 5 anos, período atual
-  deduzido do histórico e horários de referência.
-- **Livre escolha com dois números.** A conta da Grade e a soma das "Cursadas e Não Explicitadas" do BOA aparecem lado
-  a lado, rotuladas, porque o BOA pode continuar contando créditos de um pedido já deferido.
+- **Clássico | Planejador.** Um seletor visível no topo troca entre o modo **Clássico** (a grade inteira numa tela,
+  com a paleta) e o **Planejador** (linha do tempo, optativas, cronograma e pedidos). Configurações oferece "Mostrar só
+  ícones no seletor". No modo Clássico, "Importar do SIGA" sugere o Planejador.
+- **Aviso de que a Grade não é oficial.** Uma linha no rodapé ("Feita por alunos de ECI. Não substitui o SIGA, o BOA
+  nem a coordenação."), a seção **Sobre** em Configurações e uma nota junto de cada cálculo que é estimativa: livre
+  escolha, prazo de 5 anos, período atual deduzido do histórico e horários de referência.
+- **Livre escolha com dois números.** A conta da Grade e a soma das "Cursadas e Não Explicitadas" do BOA aparecem
+  rotuladas, em Pedidos e no ⓘ do cartão "Livre escolha" do detalhamento, porque o BOA pode continuar contando créditos
+  de um pedido já deferido.
 - **Prazo de 5 anos com mais honestidade.** O prazo só aparece como alerta (some a linha "dentro de 5 anos"). Para quem
-  reingressou, vale o ano do bloco de créditos transferidos do histórico do curso atual, e a data original da aprovação
-  fica só como informação. Se não dá para saber qual histórico é o do curso atual, a prévia **pergunta** e só libera
+  reingressou, vale o ano do bloco de créditos transferidos do histórico do curso atual; a data original da aprovação
+  não conta para o prazo. Se não dá para saber qual histórico é o do curso atual, a prévia **pergunta** e só libera
   **Usar este perfil** e **Baixar perfil.js** depois da escolha.
+- **Transferidas cumprem requisito** (D-08). A disciplina do bloco "AAAA (transferidas)" vale pelo semestre original,
+  quando o histórico do curso anterior o informa; sem ele, conta só a partir do ano seguinte ao do bloco. Na Linha do
+  tempo, ela aparece no semestre original, com a etiqueta "transferida · bloco AAAA", ou no bloco, sem ele.
+- **Tags e barra de progresso.** "Não conta" é uma opção só (o antigo "Reprovação (não conta)" é convertido, no
+  navegador e em perfis antigos) e só pinta o que você marcou. A barra tem quatro trechos: concluídas, previstas,
+  cursando e planejadas; em cada tag que conta, "Usar a cor desta tag na barra" pinta o trecho do tipo dela.
 - **Carga horária como orientação.** A comparação deixa de usar ✓ e ✗ e aparece como dica neutra.
 - **Marcação manual identificada.** A disciplina aprovada pelo pincel é identificada como marcação manual no detalhe e na
   legenda do progresso, e a disciplina que dela depende mostra que o requisito foi satisfeito por marcação manual.
 - **Horas de extensão "a confirmar".** Quando não dá para saber se duas entradas são a mesma atividade, a Grade confirma o
   maior valor e mostra o restante como "a confirmar", com aviso.
-- **Rodapé.** Versão, data de conferência do currículo no SIGA e o link "Achou um erro? Crie uma nova issue", que também
-  aparece quando a importação falha.
+- **Rodapé.** Aviso de que a Grade não é oficial, versão, data de conferência do currículo no SIGA e o link "Achou um
+  erro? Crie uma nova issue", que abre a escolha de modelo de Issue e também aparece quando a importação falha.
+- **Janelas e telas.** Configurações fecha pelo X no topo, por clique fora e por Esc, e o foco volta ao botão que abriu.
+  "Adicionar período" usa a mesma janela central de "Excluir período", com validação do nome. Na Linha do tempo,
+  "detalhes" recolhe o detalhamento e o clique num cartão abre os detalhes da disciplina. Com as setas de requisitos
+  ligadas, a Grade abre mais espaço entre colunas e cartões. O detalhamento não tem legenda de estados: o cartão já diz
+  a situação em texto.
 - **Acessibilidade.** Correções feitas depois de uma inspeção com axe-core e teclado:
   - **Situação e origem em texto.** Cada cartão diz "Aprovada", "Aprovação prevista" ou "Planejada" e se vem do
     "perfil" ou de uma "marcação", sem depender de cor nem de passar o mouse. A disciplina reprovada deixou de ficar
@@ -81,7 +54,7 @@ acadêmicos só no navegador. A Grade orienta; não substitui o SIGA, o BOA nem 
     link "Detalhes") e o segundo toque marca. Mouse e teclado marcam com uma ativação.
   - **Foco e teclado.** O foco entra no painel ao abrir a importação e os detalhes, segue para o resultado e volta ao
     botão de origem (no importador aberto por Configurações, volta a Configurações, inclusive quando o atalho do topo
-    some depois de Usar); não fica escondido sob a faixa nem sob a paleta. O painel de detalhes fica acima da paleta. As
+    some depois de Usar); não fica escondido sob a paleta. O painel de detalhes fica acima da paleta. As
     abas têm painel associado e respondem a setas, Home e End. A grade de horários do Cronograma funciona por teclado
     (setas movem, Espaço ou Enter marca), e "Escolher perfil" pode ser acionado por Tab e Enter e por toque.
   - **Nomes.** O seletor de PDFs e os campos de Pedidos e de atividades de extensão ganharam nome para leitores de tela;
@@ -107,12 +80,15 @@ Erros encontrados antes da publicação, cada um com um caso de teste permanente
 | CR-02 · origem em duas dispensas | Uma origem de 6 cr com duas dispensas somava 14 cr (origem mais os dois alvos) | Os alvos contam como no histórico (8 cr) e a origem não soma; há aviso quando a origem aparece em duas ou mais dispensas. O alvo fora do catálogo mantém nome, créditos e grupo |
 | CR-03 · ACE contada duas vezes | A mesma atividade de 30 h, no catálogo e na extensão, somava 60 h | Mesma identidade: o maior valor é confirmado e o resto fica "a confirmar". Períodos conhecidos diferentes somam |
 | CR-04 · reingresso | O prazo dependia da ordem dos arquivos e do semestre antigo; ocorrências distintas de ACE se perdiam | O prazo usa o ano do bloco do histórico atual, nas duas ordens; ocorrências distintas continuam distintas |
+| CR-05 · transferida e requisito | A disciplina do bloco de transferidas nunca cumpria pré ou co-requisito ("Requisito MAC128 não cumprido" em Cálculo III de quem reingressou) | Vale pelo semestre original; sem ele, só a partir do ano seguinte ao do bloco. Na Linha do tempo, a transferida aprovada não recebe alerta |
 
 Outras correções: trocar o histórico atual na prévia agora recalcula os planos que ficam de fora, com confirmação antes
 de descartar; a escolha explícita do histórico vale mesmo sem datas; o período atual só é marcado como deduzido
 quando o semestre é real e a marca é mantida ao reimportar os mesmos PDFs; perfis antigos com histórico em dúvida
 continuam abrindo, com o aviso de estimativa; os links do rodapé apontam para o fork (relato e GitHub) e para o
-Grêmio (crédito); e o importador de terminal passou a exigir `--atual` quando não consegue decidir.
+Grêmio (crédito); e o importador de terminal passou a exigir `--atual` quando não consegue decidir. Na interface:
+Configurações não abre mais vazia ao ser reaberta logo depois de fechada; o foco volta ao botão também no WebKit; o
+editor de tags mantém o foco no controle ao salvar; e, com "ECI por trás" ligada, a Linha do tempo abre os detalhes.
 
 ### Validação dos dados de referência
 
@@ -147,7 +123,8 @@ duplicatas de `js/horarios.js` e `js/guia.js`, e lista as turmas sem código. O 
 
 Documentação nova: visão, requisitos, regras acadêmicas, plano de teste, decisões, manutenção, privacidade, formato do
 perfil e guia de contribuição, além de instruções públicas para agentes de IA ([AGENTS.md](../AGENTS.md)) e modelo de
-Issue. O que está previsto para depois está em [MANUTENCAO.md](MANUTENCAO.md).
+Issue. O kit de interface tem 100 cenários por `file://` e 101 por HTTP ([testes/README.md](../testes/README.md)). O que
+está previsto para depois está em [MANUTENCAO.md](MANUTENCAO.md).
 
 ---
 

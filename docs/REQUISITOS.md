@@ -188,7 +188,7 @@ registro.
 | 01d · CR-03 | P1 + `ACE901` aprovada em 2025/2 + entrada `ACE901`, 30 h, período 2026/1, "validada" (duas ocorrências, períodos diferentes) | Abrir o progresso de ACE | **60 h** (PC-01) |
 | 01e · CR-03 | P1 + `ACE901` aprovada em 2026/1 + entrada `ACE901`, 30 h, **sem período**, "validada" | Abrir o progresso de ACE | Identidade incerta: **30 h confirmadas** e 30 h à parte como "a confirmar", com aviso de possível duplicidade. O total confirmado nunca é 60 h |
 | 01f · CR-03 | P1 + duas entradas `ACE901` no período 2026/1, uma de 30 h e outra de 20 h, sem marcação da pessoa | Abrir o progresso de ACE | Identidade incerta: **30 h confirmadas** (o maior valor) e 20 h "a confirmar", com aviso |
-| 01h · barra | Disciplinas aprovadas, previstas, cursando e planejadas | Ler a barra de progresso do topo | Quatro trechos, nesta ordem: concluídas, previstas, cursando e planejadas, e o restante "não planejada". As somas são as mesmas da versão anterior (antes, prevista e cursando eram um só trecho). Sem tag escolhida, cada trecho usa a cor padrão |
+| 01h · barra | Disciplinas aprovadas, previstas, cursando e planejadas | Ler a barra de progresso do topo | Quatro trechos, nesta ordem: concluídas, previstas, cursando e planejadas, e o restante "não planejada". As somas são as mesmas de quando prevista e cursando formavam um só trecho. Sem tag escolhida, cada trecho usa a cor padrão |
 | 01g · versão seguinte | O mesmo de 01f, com a pessoa marcando as duas como atividades distintas | Abrir o progresso de ACE | **50 h** confirmadas, sem aviso de duplicidade. A marcação persiste após recarga, exportação e reimportação |
 
 ### RF-02 · Requisitos e co-requisitos (RA-03, RA-04)
