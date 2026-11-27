@@ -597,7 +597,9 @@ function gerador(semente) { let a = semente >>> 0; return () => { a = (a + 0x6D2
 const embaralha = (lista, rnd) => { const a = lista.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 function embaralhaPerfil(perfil, rnd) {
   const p = clone(perfil);
-  p.periodos = p.periodos.map((x) => ({ ...x, disciplinas: embaralha(x.disciplinas || [], rnd) }));
+  p.periodos = embaralha(p.periodos.map((x) => ({ ...x, disciplinas: embaralha(x.disciplinas || [], rnd) })), rnd);   // também a ordem dos períodos
+  if (p.extensao) p.extensao = embaralha(p.extensao, rnd);
+  if (p.planoLocal) p.planoLocal = Object.fromEntries(embaralha(Object.entries(p.planoLocal), rnd).map(([k, v]) => [k, embaralha(v, rnd)]));
   p.equivalencias = embaralha(p.equivalencias || [], rnd).map((e) => ({ ...e, cursadas: embaralha(e.cursadas, rnd) }));
   p.aprovacoesDeclaradas = embaralha(p.aprovacoesDeclaradas || [], rnd);
   return p;
@@ -605,13 +607,13 @@ function embaralhaPerfil(perfil, rnd) {
 const SEMESTRE_ATUAL = sem("2026/2");
 /** Tudo o que o perfil produz e que não pode depender da ordem das listas. */
 function saidaDoPerfil(perfil) {
-  const m = modelo(perfil);
+  const m = modelo(perfil, perfil.planoLocal ? { periodos: perfil.planoLocal } : undefined);   // planoLocal: edições do plano
   const cumprida = (code) => ["importado", "declarado"].includes(P.fonteDaAprovacao(m.regs[code]));
   const codigos = Object.keys(m.regs).sort();
   const porCodigo = {};
   codigos.forEach((code) => {
     const rs = m.regs[code];
-    const ultimo = rs.filter((r) => r.status === "aprovado").pop();
+    const ultimo = P.aprovacaoDoPrazo(rs, m.periodos);
     porCodigo[code] = { status: P.statusDosRegistros(rs, !!m.pendEq[code]), fonte: P.fonteDaAprovacao(rs),
       semestres: rs.map((r) => P.semestreDoRegistro(r, m.periodos)).sort(),
       prazo: ultimo ? P.prazoDoRegistro(ultimo, m.periodos) : null,
@@ -630,12 +632,14 @@ function saidaDoPerfil(perfil) {
   const grupos = {};
   ["1", "2", "3", "4"].forEach((k) => { grupos[k] = { nome: k, un: "cr", total: TOTAIS[k], cumprido: reg(creditos[k] || {}) }; });
   const obrigatorias = GRADE.filter((c) => c.code && c.category === 1 && !cumprida(c.code)).map((c) => ({ code: c.code, nome: c.code }));
-  const cob = C.coberturaDoPlano({ grupos, obrigatorias, itens: P.itensDoPlano(m, { cumprida }), horasAce: [], semestreAtual: SEMESTRE_ATUAL });
+  const cob = C.coberturaDoPlano({ grupos, obrigatorias, itens: P.itensDoPlano(m, { cumprida }),
+    horasAce: (perfil.extensao || []).filter((a) => a.status !== "validada").map((a) => ({ horas: a.horas, semestre: P.semIdx(a.periodo) })), semestreAtual: SEMESTRE_ATUAL });
   const previsao = C.previsaoFormatura({ perfil: true, temAtual: true, grupos: cob.grupos, obrigatoriasSemPlano: cob.semPlano, ultimoSemestre: cob.primeiro,
     semDataNecessaria: cob.semData, noPassado: cob.noPassado, nomeDoSemestre: P.nomeDoSemestre });
   const selos = C.avaliaSelos(ctx({ aprov: Object.fromEntries(codigos.map((c) => [c, P.fonteDaAprovacao(m.regs[c])]).filter(([, f]) => f)), creditos, plano: cob.disciplinasPlanejadas }))
     .map((s) => [s.id, s.estado, s.declarado || false]);
-  return { porCodigo, conflitos: [...m.pedidosComConflito].map((e) => e.pedida).sort(), consumidas: [...m.consumidas].sort(), cob, previsao, selos };
+  const pendentes = Object.fromEntries(Object.keys(m.pendEq).sort().map((c) => [c, m.pendEq[c].cursadas]));
+  return { porCodigo, pendentes, conflitos: [...m.pedidosComConflito].map((e) => e.pedida).sort(), consumidas: [...m.consumidas].sort(), cob, previsao, selos };
 }
 const OBR = GRADE.filter((c) => c.code && c.category === 1).map((c) => c.code);
 const PERFIS_INVARIANCIA = {
@@ -654,11 +658,24 @@ const PERFIS_INVARIANCIA = {
   ciclo: { periodos: [{ nome: "2025/1", disciplinas: ["XYZ101"] }],
     equivalencias: [{ status: "deferido", pedida: "XYZ102", cursadas: ["XYZ103"] }, { status: "deferido", pedida: "XYZ103", cursadas: ["XYZ102"] },
       { status: "deferido", pedida: "XYZ104", cursadas: ["XYZ101"] }] },
+  // dois blocos de transferidos com a mesma disciplina: a base do prazo é a do bloco mais recente (D-03, PC-05)
+  doisBlocos: { periodos: [{ nome: "2019 (transferidas)", disciplinas: [{ code: "XYZ101", aprovadaEm: "2018/2" }] },
+    { nome: "2025 (transferidas)", disciplinas: [{ code: "XYZ101", aprovadaEm: "2018/2" }] }, { nome: "2026/2", atual: true, disciplinas: [] }],
+    equivalencias: [{ status: "deferido", pedida: OBR[0], cursadas: ["XYZ101"] }] },
+  // itens que convergem para o mesmo código no mesmo semestre, dois pendentes para o mesmo alvo e ACE planejada
+  convergentes: { periodos: [{ nome: "2025/1", disciplinas: OBR.slice(3) }, { nome: "2026/2", atual: true, disciplinas: [] },
+    { nome: "2027/1", planejado: true, disciplinas: [] }, { nome: "2024 (transferidas)", disciplinas: ["XYZ104"] }],
+    planoLocal: { "2027/1": [{ code: "XYZ101", equivale: "XYZ103", credits: 5, category: 2 }, { code: "XYZ102", equivale: "XYZ103", credits: 2, category: 3 }, OBR[0]] },
+    extensao: [{ nome: "Projeto fictício A", horas: 200, periodo: "2026/2", status: "planejada" }, { nome: "Projeto fictício B", horas: 205, periodo: "2027/1", status: "planejada" },
+      { nome: "Projeto fictício C", horas: 30, periodo: "2024/2", status: "planejada" }],
+    equivalencias: [{ status: "a pedir", pedida: OBR[1], cursadas: ["XYZ104"] }, { status: "em análise", pedida: OBR[1], cursadas: ["XYZ105"] }] },
   repetidos: { periodos: [{ nome: "2024/1", disciplinas: [{ code: "XYZ101", status: "reprovado" }, "XYZ102"] }, { nome: "2025/1", disciplinas: ["XYZ101", "XYZ102"] }],
     equivalencias: [{ status: "deferido", pedida: OBR[0], cursadas: ["XYZ101", "XYZ102"] }] },
 };
 
-caso("Invariância: 24 embaralhamentos de pedidos, origens, itens de período e declaradas dão a mesma saída (status, fontes, datas, prazo, período, cobertura, previsão e selos)", () => {
+// Fora do teste, por limitação conhecida (docs/DECISOES.md, PC-14, "Limitações conhecidas"): a cadeia em que o SIGA
+// confirma a pedida intermediária e o pedido que usa a própria pedida como origem (autociclo). Os perfis abaixo passam.
+caso("Invariância: 24 embaralhamentos de pedidos, origens, itens e ordem dos períodos, declaradas, ACE e edições do plano dão a mesma saída (status, fontes, datas, prazo, período, pendentes, cobertura, previsão e selos)", () => {
   const falhas = [];
   for (const [nome, perfil] of Object.entries(PERFIS_INVARIANCIA)) {
     const base = JSON.stringify(saidaDoPerfil(perfil));
@@ -668,6 +685,15 @@ caso("Invariância: 24 embaralhamentos de pedidos, origens, itens de período e 
     }
   }
   assert.deepEqual(falhas, []);
+});
+
+caso("Ordem fora das cadeias: o bloco mais recente dá o prazo, a origem de menor código vence no mesmo semestre e o pedido em análise vence o a pedir", () => {
+  const dois = saidaDoPerfil(PERFIS_INVARIANCIA.doisBlocos);
+  assert.deepEqual([dois.porCodigo.XYZ101.prazo.ano, dois.porCodigo[OBR[0]].prazo.ano], [2025, 2025]);
+  const conv = saidaDoPerfil(PERFIS_INVARIANCIA.convergentes);
+  assert.deepEqual([conv.cob.grupos["2"].planejado, conv.cob.grupos["3"].planejado], [5, 0]);         // XYZ101 (menor código) dá o XYZ103
+  assert.deepEqual(conv.pendentes[OBR[1]], ["XYZ105"]);                                                // em análise vence a pedir
+  assert.deepEqual(conv.cob.noPassado, ["2024/2"]);                                                    // ACE planejada no passado
 });
 
 caso("Encadeadas, ciclo, plano no passado e desempate aninhado: os resultados esperados", () => {

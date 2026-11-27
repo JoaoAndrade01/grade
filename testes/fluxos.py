@@ -3829,7 +3829,7 @@ def t_equivalencia_vizinhos(b):
                     f"eq-vizinhos-empate-{n}") for n, ordem in enumerate((["XYZ201", "XYZ202"], ["XYZ202", "XYZ201"]))]
     assert rows[0] == rows[1] and "2024/2" in rows[0], rows
 
-@caso("Equivalência encadeada e plano no passado na tela: a cadeia dá o mesmo resultado nas duas ordens; plano num período que já passou não cobre e é avisado; o prazo misto diz de onde vem a data")
+@caso("Equivalência encadeada e plano no passado na tela: a cadeia dá o mesmo resultado nas duas ordens; plano num período que já passou não cobre e é avisado; o prazo misto diz de onde vem a data; com dois blocos, o prazo usa o mais recente nas duas ordens")
 def t_equivalencia_encadeada(b):
     ctx, pg = abre(b, perfil={"periodos": []}, nome="eq-cadeia-obr", relogio=HOJE); obr = [c for c, _, _ in obrigatorias(pg)]; ctx.close()
     pedida, outra = obr[:2]
@@ -3855,6 +3855,15 @@ def t_equivalencia_encadeada(b):
     ctx, pg = abre(b, perfil=perfil, extra={"modoClassico": False, "vista": "pedidos"}, nome="eq-prazo-misto", relogio=HOJE)
     t = pg.locator("tr.eq-a-pedir").inner_text(); ctx.close()
     assert "Base do prazo: o registro do SIGA" in t and "SIGA.Base" not in t and "sem registro do SIGA" not in t, t
+    # dois blocos de transferidos com a mesma disciplina: o prazo usa o bloco mais recente (2025), nas duas ordens
+    blocos = [{"nome": "2019 (transferidas)", "disciplinas": [{"code": "XYZ201", "aprovadaEm": "2018/2", "name": "Transferida fictícia"}]},
+              {"nome": "2025 (transferidas)", "disciplinas": [{"code": "XYZ201", "aprovadaEm": "2018/2", "name": "Transferida fictícia"}]}]
+    for n, ordem in enumerate((blocos, blocos[::-1])):
+        perfil = {"periodos": ordem + [{"nome": "2026/2", "atual": True, "disciplinas": []}],
+                  "equivalencias": [{"status": "a pedir", "pedida": obr[0], "cursadas": ["XYZ201"]}]}
+        ctx, pg = abre(b, perfil=perfil, extra={"modoClassico": False, "vista": "pedidos"}, nome=f"eq-dois-blocos-{n}", relogio=HOJE)
+        t = pg.locator("tr.eq-a-pedir").inner_text(); ctx.close()
+        assert "só o ano 2025" in t and "2019" not in t.replace("2018/2", ""), (n, t)
 
 CASOS5 = [t_controles_icones, t_todas_acesas, t_minimalista, t_plano_na_grade, t_declaradas_modelo, t_declaradas_prazo_ace, t_declaradas_arquivo, t_declaradas_reimportar,
           t_registrar_sem_perfil, t_registrar_com_perfil, t_declaradas_detalhe, t_declaradas_gestao, t_declarada_cursando, t_foco, t_motivacao, t_conquistas_estante, t_declaradas_lote_foco, t_foco_ajustes, t_ace_origem, t_previsao_cobertura, t_perfil_troca_declaradas, t_previsao_equivalencia_prevista, t_equivalencia_vizinhos, t_equivalencia_encadeada]

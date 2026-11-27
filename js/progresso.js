@@ -122,6 +122,25 @@
   }
 
   /**
+   * Ordem fixa entre registros do mesmo código, que não depende da ordem dos períodos: pelo semestre dos requisitos,
+   * depois pela base do prazo (D-03: entre dois blocos de transferidos, o mais recente é o do curso atual, PC-05),
+   * depois pelo nome do período. Negativo: a vem antes (é mais antigo) que b.
+   */
+  function ordemDosRegistros(a, b, periodos) {
+    const sa = semestreDoRegistro(a, periodos) ?? -1, sb = semestreDoRegistro(b, periodos) ?? -1;
+    if (sa !== sb) return sa - sb;
+    const pa = prazoDoRegistro(a, periodos), pb = prazoDoRegistro(b, periodos);
+    const ta = pa ? pa.ate * 2 + pa.de : -1, tb = pb ? pb.ate * 2 + pb.de : -1;
+    if (ta !== tb) return ta - tb;
+    const na = (periodos[a.pi] || {}).nome || "", nb = (periodos[b.pi] || {}).nome || "";
+    return na < nb ? -1 : na > nb ? 1 : 0;
+  }
+  /** A aprovação que dá a base do prazo de um código: a mais recente pela ordem fixa (ordemDosRegistros). */
+  function aprovacaoDoPrazo(rs, periodos) {
+    return (rs || []).filter((r) => r.status === "aprovado").sort((a, b) => ordemDosRegistros(a, b, periodos)).pop() || null;
+  }
+
+  /**
    * REGRA ÚNICA da pedida de uma equivalência deferida, a partir do CONJUNTO de origens (a ordem não muda nada):
    * - status: aprovada se todas as origens estão aprovadas; prevista se as que faltam estão previstas ou em curso;
    *   pendente se alguma origem está ausente ou reprovada (sem fonte, sem plano e sem selo).
@@ -178,13 +197,13 @@
     m.periodos.filter((p) => (p.tipo === "atual" || p.tipo === "planejado") && !p.declarado).forEach((p) => p.itens.forEach((it) => {
       if (it.status === "reprovado" || cumprida(it.alvo) || m.consumidas.has(it.alvo)) return;
       const cat = String(it.category);
-      itens.push({ code: it.alvo, grupo: cat, valor: valor(cat, it), semestre: p.semestre, periodo: p.nome });
+      itens.push({ code: it.alvo, origem: it.code, grupo: cat, valor: valor(cat, it), semestre: p.semestre, periodo: p.nome });
     }));
     Object.keys(m.regs).sort().forEach((code) => m.regs[code].forEach((r) => {
       if (!r.origens || !r.noPlano || cumprida(code) || m.consumidas.has(code)) return;
       const i = m.info(code); if (!i) return;
       const cat = String(i.category);
-      itens.push({ code, grupo: cat, valor: cat === "5" ? (i.horas != null ? i.horas : i.credits) : i.credits, semestre: r.semestreEfetivo,
+      itens.push({ code, origem: code, grupo: cat, valor: cat === "5" ? (i.horas != null ? i.horas : i.credits) : i.credits, semestre: r.semestreEfetivo,
         periodo: r.semestreEfetivo == null ? null : nomeDoSemestre(r.semestreEfetivo) });
     }));
     return itens;
@@ -393,7 +412,14 @@
       if (!pronto) { resto.forEach((e) => pedidosComConflito.add(e)); break; }    // só sobrou ciclo
       ordemTopologica.push(pronto); feitos.add(pronto); resto = resto.filter((e) => e !== pronto);
     }
-    const emOrdem = [...ordemTopologica, ...pedidos.filter((e) => !deferidos.includes(e))];
+    // Os pendentes também seguem uma ordem fixa: para o mesmo alvo, "em análise" (já enviado) vence "a pedir"; depois, a
+    // menor chave. Assim o pedido exibido não depende da ordem da lista.
+    const pesoPendente = (e) => ((e && e.status) === "em análise" ? 0 : 1);
+    const outros = pedidos.filter((e) => !deferidos.includes(e)).sort((a, b) => {
+      if (!a || !b || !a.pedida || !b.pedida) return 0;
+      return pesoPendente(a) - pesoPendente(b) || (chave(a) < chave(b) ? -1 : chave(a) > chave(b) ? 1 : 0);
+    });
+    const emOrdem = [...ordemTopologica, ...outros];
     emOrdem.forEach((e) => {
       if (pedidosComConflito.has(e)) return;
       const cs = e ? cursadasDe(e) : [];
@@ -404,9 +430,8 @@
           pedidosComConflito.add(e);
           return;
         }
-        const maisRecentePrimeiro = (a, b) => (semestreDe(b) ?? -1) - (semestreDe(a) ?? -1);
         const registros = cs.map((c) => {
-          const origens = (regs[c.code] || []).filter((r) => r.pi != null).sort(maisRecentePrimeiro);
+          const origens = (regs[c.code] || []).filter((r) => r.pi != null).sort((a, b) => ordemDosRegistros(b, a, periodos));
           return origens.find((r) => r.status === "aprovado")
             || origens.find((r) => r.status === "previsto" || emCurso(r.status));
         });
@@ -417,7 +442,7 @@
           pedidosComConflito.add(e);
           return;
         }
-        pendEq[e.pedida] = e;
+        if (!pendEq[e.pedida]) pendEq[e.pedida] = e;
         cs.forEach((c) => pendConsumo.add(c.code));
       }
     });
@@ -505,7 +530,7 @@
     ? r.origens.some((o) => limiteEm(o, periodos, semestre)) && r.origens.every((o) => limiteEm(o, periodos, semestre) || cumpreUm(o, periodos, semestre, false))
     : limiteEm(r, periodos, semestre)));
 
-  return { FORCA, NOME_DECL, tempoDaOrigem, prazoDoRegistro, pedidaDaEquivalencia, itensDoPlano, dataValida, semestreDaData, nomeDoSemestre, semestreDoHistorico, erroDeclarada, normalizaDeclaradas,
+  return { FORCA, NOME_DECL, tempoDaOrigem, prazoDoRegistro, ordemDosRegistros, aprovacaoDoPrazo, pedidaDaEquivalencia, itensDoPlano, dataValida, semestreDaData, nomeDoSemestre, semestreDoHistorico, erroDeclarada, normalizaDeclaradas,
     classificaDeclaradas, registroCumpre, declaradaSemSemestreEm, statusDosRegistros, fonteDaAprovacao, semestreValido, semIdx, anoDoBloco, emCurso, parseHorarios, cursadasDe, pendente, semestreDoRegistro,
     montaRegistros };
 });

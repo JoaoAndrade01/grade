@@ -432,13 +432,15 @@
     if (s === "pendente") return null;   // "Não conta" só pinta o que a pessoa marcou
     return tags.find((t) => t.status === s) || COR_STATUS[s] || null;
   }
+  // Registros em ordem fixa (ordemDosRegistros), não na ordem dos períodos: o último é o mais recente.
+  const emOrdemFixa = (code) => (M.regs[code] || []).slice().sort((a, b) => window.PROGRESSO.ordemDosRegistros(a, b, M.periodos));
   const notaDe = (code) => {
-    const r = (M.regs[code] || []).filter((x) => concluido(x.status)).pop();
+    const r = emOrdemFixa(code).filter((x) => concluido(x.status)).pop();
     return r ? r.nota : null;
   };
   /** Nome do período de um registro; a declarada usa o semestre informado (ou nenhum). */
   const nomeDoRegistro = (r) => M.periodos[r.pi]?.declarado ? (r.semestreDeclarado || null) : M.periodos[r.pi]?.nome;
-  const periodoDe = (code, filtro) => (M.regs[code] || []).filter((r) => filtro(r.status)).map(nomeDoRegistro).filter(Boolean);
+  const periodoDe = (code, filtro) => emOrdemFixa(code).filter((r) => filtro(r.status)).map(nomeDoRegistro).filter(Boolean);
 
   // A marcação manual simula aprovação mesmo sem uma data no histórico.
   /** O registro do perfil (com data) cumpre o requisito neste semestre, sem contar a marcação manual. */
@@ -1214,7 +1216,7 @@
   // Perfis antigos podem trazer historicoAtual "duvida"; os gerados agora nunca gravam esse valor (PC-05).
   const papelEmDuvida = () => !!(perfil && perfil.fonte && perfil.fonte.historicoAtual === "duvida");
   function baseDoPrazo(code) {
-    const r = (M.regs[code] || []).filter((x) => x.status === "aprovado").pop();
+    const r = window.PROGRESSO.aprovacaoDoPrazo(M.regs[code], M.periodos);   // ordem fixa, não a dos períodos
     if (!r) return null;
     // D-03 (js/progresso.js): transferida pelo ano do bloco; declarada sem semestre sem data; pedida pela origem mais tardia.
     const b = window.PROGRESSO.prazoDoRegistro(r, M.periodos);

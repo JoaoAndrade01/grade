@@ -171,7 +171,7 @@
    * @param {object} e
    * @param {object} e.grupos         grupo ("1" a "4" em cr, "5" ACE em h) -> { nome, un, total, cumprido }
    * @param {Array} e.obrigatorias    obrigatórias que ainda faltam: [{ code, nome }]
-   * @param {Array} e.itens           itens do plano: [{ code, grupo, valor, semestre }] (semestre null = sem data)
+   * @param {Array} e.itens           itens do plano: [{ code, origem, grupo, valor, semestre }] (semestre null = sem data)
    * @param {Array} e.horasAce        extensão planejada: [{ horas, semestre }]
    * @returns {{ grupos, semPlano, primeiro, semData, disciplinasPlanejadas, concluido }}
    *   primeiro: o primeiro semestre em que tudo fica coberto (null se não fica); semData: só fica com itens sem data
@@ -184,7 +184,10 @@
       ...(horasAce || []).filter(passou).map((h) => nomeSem(h.semestre))])].sort();
     itens = itens.filter((it) => !passou(it));
     horasAce = (horasAce || []).filter((h) => !passou(h));
-    const ordem = (a, b) => (a.semestre ?? Infinity) - (b.semestre ?? Infinity) || String(a.code || "").localeCompare(String(b.code || ""));
+    // Ordem fixa: semestre, código e, quando dois itens dão o mesmo código no mesmo semestre, a origem de menor código.
+    const cmp = (x, y) => (x < y ? -1 : x > y ? 1 : 0);
+    const ordem = (a, b) => (a.semestre ?? Infinity) - (b.semestre ?? Infinity) || cmp(String(a.code || ""), String(b.code || ""))
+      || cmp(String(a.origem || ""), String(b.origem || ""));
     const vistos = new Set(), plano = [];
     itens.slice().sort(ordem).forEach((it) => {
       if (it.code && vistos.has(it.code)) return;
