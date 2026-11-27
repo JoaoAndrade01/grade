@@ -299,7 +299,9 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
   semestres. Sem Histórico, só o percentual. A precisão é a do cálculo; só a tela arredonda. Quando a fase muda sem as
   declaradas, o cartão mostra "· declarado". Os cartões trazem, por fase, o que a base destrava, marcos, avanço do
   período e a reta final (Projeto de Graduação, Estágio, ACE, Humanas e Optativas). O tom é **zoeira** por padrão, com a
-  opção **discreto**; projeções aparecem como estimativa. A previsão de formatura só dá um semestre quando o Cronograma
+  opção **discreto**; projeções aparecem como estimativa. Frases curtas do tom zoeira: "🐢 Devagar e sempre." junto ao
+  próximo marco e "🧘 Calma, Calabreso. Período … com N matérias difíceis: dá para planejar." quando um período do
+  plano tem duas ou mais 🟠/🔴. A previsão de formatura só dá um semestre quando o Cronograma
   cobre créditos por grupo, obrigatórias (inclusive Projeto de Graduação e Estágio) e ACE em horas, contando cada
   disciplina uma vez; senão mostra a pendência concreta ("Planeje os NN cr que faltam", ou só as horas) ou explica por
   que não dá (sem perfil, sem período atual, período sem semestre). Tudo cumprido mostra a conclusão.
