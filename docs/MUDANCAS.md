@@ -4,6 +4,57 @@
 mudanças estão em [DECISOES.md](DECISOES.md); os critérios, em [REQUISITOS.md](REQUISITOS.md). A versão atual aparece no
 rodapé da Grade.
 
+## v2.1.0 — Clássico para pintar, Trilha ao segurar e aba Conquistas
+
+A data de publicação é a da release `v2.1.0` no GitHub, que usa o texto de "O que mudou" até "Limitações conhecidas"
+como notas. Os perfis e as preferências salvos na v2.0.0 continuam valendo.
+
+### O que mudou para quem usa
+
+- **Clássico só para pintar.** No topo do Clássico ficam só o seletor "Clássico | Planejador" e o botão de tema. Os
+  cartões mostram cor e nome, sem barra, legenda nem ícones de estado. A paleta continua com as tags, "Limpar", Editar
+  tags e o cadeado. Configurações, Importar, Criar perfil, Foco e Registrar marcações ficam no Planejador. As suas
+  escolhas de Exibir continuam guardadas para o Planejador.
+- **Botões que acendem.** Exibir e os filtros das Optativas viraram um botão por opção, aceso quando ligado, sem caixa
+  de marcar. Em Só ícones, aparece só o ícone, com o nome ao passar o mouse e no leitor de tela.
+- **Ícones de uma biblioteca só.** Todos os controles e os ícones de estado dos cartões usam a Lucide. Continuam as
+  bolinhas coloridas da dificuldade e os emojis das conquistas.
+- **Situação.** A nova opção Exibir → Situação liga ou desliga o ícone de estado nos cartões da Grade. Começa ligada. A
+  situação continua no leitor de tela e nos detalhes.
+- **Legenda da dificuldade.** Em Ícone + texto, uma linha com cada bolinha junto do nome. Em Só ícones, só as cinco
+  bolinhas, com o nome ao passar o mouse e no leitor de tela.
+- **Trilha dos requisitos ao segurar.** Exibir → Destaque virou **Trilha**, com três modos numa chave igual ao seletor
+  de modo: **Ao segurar** (novo padrão), **Ao passar o mouse** (o antigo "Em foco") e **Desligado**. Ao segurar, clique e
+  segure, toque e segure ou segure a barra de espaço numa disciplina; soltar apaga. Segurar não pinta nem abre os
+  detalhes. Quem tinha escolhido "Em foco" ou "Desligado" continua com a mesma escolha.
+- **Detalhes no celular.** Os detalhes abrem como uma folha que sobe de baixo, inteira, com rolagem interna. O ✕, o toque
+  no fundo e o Esc fecham, e o foco volta à disciplina. Clicar fora fecha os detalhes da disciplina e o editor de tags,
+  também no computador.
+- **Aba Conquistas.** Com o Foco ligado, aparece a aba **Conquistas**, depois de Cronograma: a sua situação (fase,
+  avanço do período, próximo marco, o que destrava e previsão de formatura) e as conquistas em cartões por grupo, com o
+  progresso de cada uma. O cartão da fase e a estante saíram da Grade e da Linha do tempo. Em Configurações →
+  Conquistas, dá para mostrar a aba também fora do Foco.
+
+### Correções
+
+- No celular, o detalhe de uma disciplina pintada podia cortar a parte de cima.
+
+### Limitações conhecidas
+
+- As limitações da v2.0.0 continuam valendo.
+- **Arrastar a folha para baixo** ainda não fecha os detalhes no celular; use o ✕, o fundo ou o Esc.
+- **Ao segurar no iPhone real:** a pressão longa foi testada em WebKit com toque simulado; o Safari do iPhone real e o
+  leitor de tela estão pendentes.
+- **Diagramas.** Os diagramas de arquitetura ainda dizem v2.0.0; a estrutura do app não mudou.
+
+### Para quem contribui
+
+O helper `abre()` dos testes ganhou `modo=` (padrão Planejador; os cenários do Clássico pedem `modo="classico"`). O kit
+de interface passa a 148 cenários por `file://` e 149 por HTTP ([testes/README.md](../testes/README.md)). As decisões
+novas são PC-15 a PC-19 ([DECISOES.md](DECISOES.md)).
+
+---
+
 ## v2.0.0 — primeira versão pública
 
 A data de publicação é a da release `v2.0.0` no GitHub, que usa o texto de "O que mudou" até "Limitações conhecidas"
