@@ -131,7 +131,7 @@ duplicatas de `js/horarios.js` e `js/guia.js`, e lista as turmas sem código. O 
 
 Documentação nova: visão, requisitos, regras acadêmicas, plano de teste, decisões, manutenção, privacidade, formato do
 perfil e guia de contribuição, além de instruções públicas para agentes de IA ([AGENTS.md](../AGENTS.md)) e modelo de
-Issue. O kit de interface tem 103 cenários por `file://` e 104 por HTTP ([testes/README.md](../testes/README.md)). O que
+Issue. O kit de interface tem 105 cenários por `file://` e 106 por HTTP ([testes/README.md](../testes/README.md)). O que
 está previsto para depois está em [MANUTENCAO.md](MANUTENCAO.md).
 
 ---
