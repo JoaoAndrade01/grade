@@ -4239,6 +4239,120 @@ def t_trilha_migracao(b):
     assert "MAC128" not in (ls(pg, "marcacoes") or {})                                         # segurar no Clássico não pinta
     ctx.close()
 
+FOLHA_JS = """() => { const d = document.querySelector('#detalhes'), r = d.getBoundingClientRect(), x = d.querySelector('.fechar').getBoundingClientRect();
+    return { top: r.top, bottom: r.bottom, alt: innerHeight, xTop: x.top, xBottom: x.bottom, scrollTop: d.scrollTop, folha: d.classList.contains('folha'),
+             role: d.getAttribute('role'), modal: d.getAttribute('aria-modal'), mainInerte: document.querySelector('main').inert,
+             topoInerte: document.querySelector('.topo').inert, fundo: !document.querySelector('#detalhes-fundo').hidden,
+             dentro: d.contains(document.activeElement) }; }"""
+def abre_pela_consulta(pg, code):
+    """Planejador, pincel escolhido: o primeiro toque consulta; "Detalhes" da consulta abre o painel."""
+    pg.locator('#paleta [data-pincel="cursando"]').tap()
+    pg.locator(f'#painel .card[data-code="{code}"]').tap(); expect(pg.locator("#consulta-detalhes")).to_be_visible()
+    pg.locator("#consulta-detalhes").tap(); expect(pg.locator("#detalhes")).to_be_visible()
+
+@v210
+@caso("Detalhes no celular, disciplina pintada aberta pela consulta: o painel cabe inteiro na tela, com o topo e o botão de fechar visíveis (defeito do corte do topo)")
+def t_folha_corte_topo(b):
+    # Usa só controles que já existiam na v2.0.0, para comparar a base e o candidato no mesmo cenário.
+    if b.browser_type.name not in ("chromium", "webkit"): return
+    ctx, pg = abre(b, vp=C, perfil=PERFIL, extra={"vista": "grade", "marcacoes": {"COS231": "cursando"}}, nome="folha-corte", toque=True)
+    abre_pela_consulta(pg, "COS231")
+    pg.wait_for_timeout(300)
+    f = pg.evaluate(FOLHA_JS)
+    foto(pg, "folha-corte-topo-390")
+    assert f["top"] >= -0.5 and f["bottom"] <= f["alt"] + 0.5, f
+    assert f["xTop"] >= -0.5 and f["xBottom"] <= f["alt"] + 0.5, f                 # o fechar está na tela
+    ctx.close()
+
+@v210
+@caso("Folha de detalhes no celular (Chromium e WebKit com toque, 390×844, dois temas): inteira, rolagem interna, fundo, inert, role=dialog; foco preso; ✕, fundo e Esc fecham e o foco volta ao cartão; voltar a 1024 limpa; axe")
+def t_folha_celular(b):
+    if b.browser_type.name not in ("chromium", "webkit"): return
+    for esq in ("light", "dark"):
+        ctx, pg = abre(b, vp=C, perfil=PERFIL, esquema=esq, extra={"vista": "grade", "marcacoes": {"COS231": "cursando"}}, nome=f"folha-{esq}", toque=True)
+        card = pg.locator('#painel .card[data-code="COS231"]')
+        # abrir pelo toque no cartão (pincel em Detalhes): folha inteira, fundo, resto inerte, foco dentro
+        card.tap(); expect(pg.locator("#detalhes")).to_be_visible(); pg.wait_for_timeout(300)
+        f = pg.evaluate(FOLHA_JS)
+        assert f["folha"] and f["role"] == "dialog" and f["modal"] == "true" and f["mainInerte"] and f["topoInerte"] and f["fundo"] and f["dentro"], f
+        assert f["top"] >= -0.5 and f["bottom"] <= f["alt"] + 0.5 and f["xTop"] >= -0.5 and f["scrollTop"] == 0, f
+        expect(pg.locator("#detalhes")).to_have_accessible_name(re.compile(r"\S"))
+        foto(pg, f"folha-detalhes-390-{esq}")
+        # rolagem interna: a folha rola, a página não
+        y = pg.evaluate("scrollY"); pg.locator("#detalhes").evaluate("d => { d.scrollTop = 400; }")
+        assert pg.evaluate("scrollY") == y
+        # Tab e Shift+Tab circulam dentro
+        for tecla in ("Tab", "Shift+Tab"):
+            for _ in range(pg.locator("#detalhes button, #detalhes input").count() + 3):
+                pg.keyboard.press(tecla); assert foco_em(pg, "#detalhes *"), (tecla, descreve_foco(pg))
+        graves = axe_graves(pg); assert not graves, (esq, graves[:3])
+        # Esc fecha e devolve o foco ao cartão
+        pg.keyboard.press("Escape"); expect(pg.locator("#detalhes")).to_be_hidden()
+        assert foco_em(pg, '#painel .card[data-code="COS231"]'), descreve_foco(pg)
+        f = pg.evaluate("() => [document.querySelector('main').inert, document.querySelector('#detalhes-fundo').hidden, document.querySelector('#detalhes').getAttribute('role')]")
+        assert f == [False, True, None], f
+        # ✕ fecha
+        card.tap(); expect(pg.locator("#detalhes")).to_be_visible()
+        pg.locator("#detalhes .fechar").tap(); expect(pg.locator("#detalhes")).to_be_hidden()
+        assert foco_em(pg, '#painel .card[data-code="COS231"]'), descreve_foco(pg)
+        # toque no fundo fecha
+        card.tap(); expect(pg.locator("#detalhes")).to_be_visible()
+        pg.touchscreen.tap(195, 10); expect(pg.locator("#detalhes")).to_be_hidden()
+        assert foco_em(pg, '#painel .card[data-code="COS231"]'), descreve_foco(pg)
+        # pela consulta (disciplina pintada): o foco volta ao cartão consultado
+        abre_pela_consulta(pg, "COS231"); pg.keyboard.press("Escape")
+        assert foco_em(pg, '#painel .card[data-code="COS231"]'), descreve_foco(pg)
+        pg.click('#paleta [data-pincel="__detalhes"]')
+        # mudar a janela para 1024 com a folha aberta: volta a ser o painel lateral e a página deixa de ser inerte
+        card.tap(); expect(pg.locator("#detalhes")).to_be_visible()
+        pg.set_viewport_size({"width": 1024, "height": 800}); pg.wait_for_timeout(200)
+        f = pg.evaluate(FOLHA_JS)
+        assert not f["folha"] and not f["mainInerte"] and not f["fundo"] and f["role"] is None, f
+        pg.set_viewport_size(C); pg.wait_for_timeout(200)
+        assert pg.evaluate(FOLHA_JS)["folha"]
+        ctx.close()
+
+@v210
+@caso("Clique fora fecha os detalhes da disciplina e o editor de tags; clique dentro mantém (chip que redesenha, edição preservada); outro cartão troca; prévia do SIGA, Privacidade e diálogo de confirmação não fecham")
+def t_clique_fora(b):
+    if b.browser_type.name not in ("chromium", "webkit"): return
+    decl = {"periodos": [{"nome": "2025/1", "disciplinas": ["COS110"]}], "aprovacoesDeclaradas": [{"code": "MAC118", "registradoEm": "2026-11-27"}]}
+    ctx, pg = abre(b, perfil=PERFIL, extra={"vista": "grade"}, nome="clique-fora")
+    det = pg.locator("#detalhes")
+    # disciplina: clique fora fecha
+    pg.locator('#painel .card[data-code="MAC128"]').click(); expect(det).to_be_visible()
+    pg.locator("#titulo").click(); expect(det).to_be_hidden()
+    # clique dentro mantém; o chip de tag redesenha o painel e ele continua aberto
+    pg.locator('#painel .card[data-code="MAC128"]').click()
+    pg.locator("#detalhes h3").click(); expect(det).to_be_visible()
+    pg.locator('#detalhes [data-settag][data-tag="planejada"]').click(); expect(det).to_be_visible()
+    assert ls(pg, "marcacoes").get("MAC128") == "planejada"
+    # outro cartão troca o conteúdo, sem fechar
+    pg.locator('#painel .card[data-code="COS231"]').click(); expect(det).to_be_visible()
+    assert det.get_attribute("data-alvo") == "c:COS231"
+    pg.locator(".rodape").click(position={"x": 5, "y": 5}); expect(det).to_be_hidden()
+    # editor de tags: clique dentro preserva a edição; clique fora fecha
+    pg.click("#editar-tags"); expect(det).to_contain_text("Tags de cor")
+    pg.fill('#detalhes [data-tagnome="0"]', "Feita"); pg.locator("#detalhes h3").click()
+    expect(det).to_be_visible(); expect(pg.locator('#detalhes [data-tagnome="0"]')).to_have_value("Feita")
+    pg.locator("#titulo").click(); expect(det).to_be_hidden(); assert ls(pg, "tags")[0]["nome"] == "Feita"
+    # Privacidade não fecha por clique fora
+    pg.click("#btn-privacidade"); expect(det).to_be_visible(); pg.locator("#titulo").click(); expect(det).to_be_visible()
+    pg.keyboard.press("Escape")
+    # prévia do SIGA aberta não fecha por clique fora
+    gera(pg, ["historico-ficticio.pdf", "boa-ficticio.pdf"]); expect(pg.locator("#siga-usar")).to_be_visible()
+    pg.locator("#titulo").click(); expect(pg.locator("#siga-usar")).to_be_visible()
+    pg.locator("#detalhes .fechar").click()
+    ctx.close()
+    # diálogo de confirmação aberto a partir dos detalhes: clicar nele não fecha o painel
+    ctx, pg = abre(b, perfil=decl, extra={"vista": "grade"}, nome="clique-fora-confirma", relogio=HOJE)
+    det = pg.locator("#detalhes")
+    pg.locator('#painel .card[data-code="MAC118"]').click(); expect(det).to_be_visible()
+    pg.locator("#detalhes [data-decl-remover]").click(); expect(pg.locator("#dlg-confirma")).to_be_visible()
+    pg.locator('#dlg-confirma button[value=""]').click(); expect(pg.locator("#dlg-confirma")).to_be_hidden()
+    expect(det).to_be_visible()
+    ctx.close()
+
 CASOS += CASOS6
 
 

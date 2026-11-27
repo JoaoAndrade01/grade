@@ -966,7 +966,7 @@
       <p class="dica">Na barra, cada tipo (concluída, prevista, cursando, planejada) usa a cor de no máximo uma tag; sem escolha, a cor padrão.</p>
       <div class="add"><button type="button" class="btn btn-sm" id="tag-nova">${icone("mais", 16)} Nova tag</button>
       <button type="button" class="btn btn-sm btn-ghost" id="tag-padrao">Restaurar padrão</button></div>`;
-    box.hidden = false;
+    mostraPainel();
     box.dataset.alvo = "tags";
   }
   /** Salva e redesenha o editor de tags devolvendo o foco ao mesmo controle (o redesenho troca o HTML do painel). */
@@ -2206,7 +2206,7 @@
       <h4>Links</h4>
       <ul class="lista refs">${LINKS.map((l) => `<li><a href="${l.url}" target="_blank" rel="noopener noreferrer">${esc(l.nome)} ${icone("externo", 13)}<span class="sr"> (abre em outra aba)</span></a><small>${esc(l.txt)}</small></li>`).join("")}</ul>
       <p class="dica">Os links abrem em outra aba só quando você clica. Abrir esta lista não carrega nada de fora deste site.</p>`;
-    box.hidden = false;
+    mostraPainel();
     box.dataset.alvo = "referencias";
   }
 
@@ -2381,7 +2381,7 @@
       box.dataset.alvo = "i:" + c.idx;
     } else return;
     box.innerHTML = html;
-    box.hidden = false;
+    mostraPainel();
   }
 
   /** Seção "Aprovação registrada por você" do detalhe: o registro, a confirmação pelo SIGA e as divergências. */
@@ -2413,6 +2413,36 @@
   let gatilho = null;
   const guardaGatilho = (el) => { gatilho = chaveFoco(el); };
   function focaPainel() { const h = focaTitulo($("#detalhes h3") || $("#detalhes header")); if (h) h.focus(); }
+  /**
+   * Abre e fecha o painel #detalhes por um caminho só (T5). Em telas de até 720 px ele vira uma folha que sobe de baixo,
+   * inteira e com rolagem interna: fundo escurecido, o resto da página `inert`, role="dialog" com aria-modal e o foco
+   * preso dentro. Ao passar de 720 px com a folha aberta, volta a ser o painel lateral e a página deixa de ser inerte.
+   */
+  const midiaFolha = window.matchMedia ? window.matchMedia("(max-width: 720px)") : { matches: false };
+  function mostraPainel() {
+    const box = $("#detalhes"), abrindo = box.hidden;
+    box.hidden = false;
+    if (abrindo) box.scrollTop = 0;
+    aplicaFolha();
+    if (abrindo && box.classList.contains("folha")) focaPainel();
+  }
+  function aplicaFolha() {
+    const box = $("#detalhes"), fundo = $("#detalhes-fundo"), folha = !box.hidden && !!midiaFolha.matches;
+    box.classList.toggle("folha", folha);
+    if (folha) {
+      const t = box.querySelector("h3");
+      box.setAttribute("role", "dialog"); box.setAttribute("aria-modal", "true");
+      box.setAttribute("aria-label", (t && t.textContent.trim()) || "Detalhes");
+    } else ["role", "aria-modal", "aria-label"].forEach((a) => box.removeAttribute(a));
+    fundo.hidden = !folha;
+    [...document.body.children].forEach((el) => {
+      if (el === box || el === fundo || el.id === "anuncio" || el.tagName === "DIALOG" || el.tagName === "SCRIPT") return;
+      if (folha && !el.inert) { el.inert = true; el.dataset.inertFolha = "1"; }
+      else if (!folha && el.dataset.inertFolha) { el.inert = false; delete el.dataset.inertFolha; }
+    });
+  }
+  /** Clique fora fecha só os detalhes de uma disciplina, de um bloco e o editor de tags (T4). */
+  const fechaComCliqueFora = () => /^(c|i):/.test($("#detalhes").dataset.alvo || "") || $("#detalhes").dataset.alvo === "tags";
   function abrePainel(ev, abre, foco = true) {
     guardaGatilho(ev.target.closest("button, [data-code]") || ev.target);
     abre();
@@ -2422,6 +2452,7 @@
     const box = $("#detalhes");
     const tinhaFoco = !box.hidden && (box.contains(document.activeElement) || document.activeElement === document.body);   // o foco pode ter sumido com o botão
     box.hidden = true;
+    aplicaFolha();   // tira o inert antes de devolver o foco
     if (!tinhaFoco) return;
     let alvo = gatilho && document.querySelector(gatilho);
     gatilho = null;
@@ -2518,7 +2549,7 @@
         <button type="button" class="btn btn-sm btn-ghost" id="apagar-tudo">${icone("lixeira", 14)} Apagar tudo deste navegador</button>
       </div>
       <p class="dica">Detalhes técnicos em docs/PRIVACIDADE.md.</p>`;
-    box.hidden = false;
+    mostraPainel();
     box.dataset.alvo = "privacidade";
   }
 
@@ -2666,7 +2697,7 @@
       <button type="button" class="btn btn-sm" id="escolher-perfil" aria-describedby="escolher-perfil-dica">Escolher perfil.js / .json</button>
       <input type="file" id="importar" accept=".json,.js" hidden aria-label="Arquivo de perfil (.js ou .json)">
       <p class="dica" id="escolher-perfil-dica">Um arquivo válido substitui o perfil salvo; um inválido é recusado e nada muda.</p>`;
-    box.hidden = false;
+    mostraPainel();
     box.dataset.alvo = "importar";
   }
 
@@ -3558,7 +3589,11 @@
         filtroNivel = filtroNivel.includes(n) ? filtroNivel.filter((x) => x !== n) : filtroNivel.concat([n]);
         save("filtroNivel", filtroNivel); return render();
       }
-      if (t.id === "consulta-detalhes") { const c = consultado; consultado = null; $("#paleta").innerHTML = renderPaleta(); return c && abrePainel(ev, () => abreDetalhes({ code: c })); }
+      if (t.id === "consulta-detalhes") {   // ao fechar, o foco volta ao cartão consultado (o botão some com a consulta)
+        const c = consultado; consultado = null; $("#paleta").innerHTML = renderPaleta();
+        const cartao = c && document.querySelector(`#painel .card[data-code="${CSS.escape(c)}"]`);
+        return c && abrePainel({ target: cartao || t, detail: ev.detail }, () => abreDetalhes({ code: c }));
+      }
       if (t.id === "editar-tags") return abrePainel(ev, abreEditorTags);
       if (t.id === "cadeado") {
         cadeado = !cadeado; save("cadeado", cadeado); render(); $("#cadeado").focus(); atualizaConfig();
@@ -3621,6 +3656,26 @@
 
     $("#detalhes").addEventListener("keydown", (ev) => {
       if (ev.key === "Enter" && ev.target.id === "decl-semestre") { ev.preventDefault(); salvaSemestreDeclarada(ev.target.dataset.declCode); }
+    });
+    // Folha (≤ 720 px): Tab e Shift+Tab circulam dentro dela.
+    $("#detalhes").addEventListener("keydown", (ev) => {
+      const box = $("#detalhes");
+      if (ev.key !== "Tab" || !box.classList.contains("folha")) return;
+      const foc = [...box.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')]
+        .filter((el) => !el.disabled && el.getClientRects().length);
+      if (!foc.length) return;
+      const primeiro = foc[0], ultimo = foc[foc.length - 1], a = document.activeElement;
+      if (ev.shiftKey && (a === primeiro || !foc.includes(a))) { ev.preventDefault(); ultimo.focus(); }
+      else if (!ev.shiftKey && (a === ultimo || !foc.includes(a))) { ev.preventDefault(); primeiro.focus(); }
+    });
+    if (midiaFolha.addEventListener) midiaFolha.addEventListener("change", aplicaFolha);
+    // Clique fora (decidido no pointerdown) fecha os detalhes da disciplina e o editor de tags; o fundo da folha também.
+    // Não fecham: importador, Privacidade e Referências; nem cliques em cartões (abrem outro), na paleta e em diálogos.
+    document.addEventListener("pointerdown", (ev) => {
+      const box = $("#detalhes"), t = ev.target;
+      if (box.hidden || !fechaComCliqueFora() || !t.isConnected || box.contains(t)) return;
+      if (t.closest && t.closest(".card, [data-abrir], #paleta, dialog")) return;
+      fechaDetalhes();
     });
     $("#detalhes").addEventListener("click", (ev) => {
       const t = ev.target.closest("button"); if (!t) return;

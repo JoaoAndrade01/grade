@@ -1057,3 +1057,15 @@ body:has(.paleta:not([hidden])) .detalhes {
 
 /* Trilha Ao segurar: o toque longo não seleciona texto nem abre o menu do sistema (a rolagem continua: sem touch-action) */
 .painel.vista-grade .card { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+
+/* Detalhes no celular (≤ 720 px): folha que sobe de baixo, inteira (sem cortar o topo), com rolagem interna, acima da
+   paleta fixa; fundo escurecido. O id vence a regra que encaixa o painel lateral acima da paleta. */
+.detalhes-fundo { position: fixed; inset: 0; z-index: 40; background: rgb(0 0 0 / .45); }
+@media (max-width: 720px) {
+  #detalhes.folha { top: auto; left: 0; right: 0; bottom: 0; width: auto; z-index: 41; max-height: calc(100vh - 16px); max-height: calc(100dvh - 16px);
+    border-radius: 16px 16px 0 0; border-bottom: 0; padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    overflow-y: auto; overscroll-behavior: contain; animation: sobe .2s ease-out; }
+  #detalhes.folha header { position: sticky; top: -16px; z-index: 1; margin: -16px -18px 0; padding: 12px 18px 6px; background: var(--surface); }
+}
+@keyframes sobe { from { transform: translateY(24px); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { #detalhes.folha { animation: none; } }
