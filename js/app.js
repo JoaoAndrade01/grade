@@ -1892,7 +1892,7 @@
       const d = maisDestrava(cursando);
       if (d && d[1].length) partes.push(`<h3>O que você destrava</h3><p>Passando em <b>${esc(M.info(d[0]).name)}</b>:</p><p class="chips">${htmlLibera(d[1])}</p>`);
       const alvo = fase.pct < 0.5 ? 0.5 : 0.75;
-      partes.push(`<h3>${alvo === 0.5 ? "Metade do caminho ⛰️" : "Rumo à reta final 🏁"}</h3><p>${marco(alvo) === 1 ? "Falta" : "Faltam"} ${marco(alvo)} cr para ${alvo * 100}%. Optativas: ${fmt(cr(2).ok)} de ${fmt(cr(2).total)} cr${z ? "; escolha pelo que te interessa" : ""}.</p>`);
+      partes.push(`<h3>${alvo === 0.5 ? "Metade do caminho ⛰️" : "Rumo à reta final 🏁"}</h3><p>${z ? "🐢 Devagar e sempre. " : ""}${marco(alvo) === 1 ? "Falta" : "Faltam"} ${marco(alvo)} cr para ${alvo * 100}%. Optativas: ${fmt(cr(2).ok)} de ${fmt(cr(2).total)} cr${z ? "; escolha pelo que te interessa" : ""}.</p>`);
     } else {
       const falta = Math.max(0, Math.ceil(m.totalCr - feitoCr - 1e-9));
       partes.push(`<h3>${z ? "Reta final 🏁" : "O que falta"}</h3><p>${falta === 1 ? "Falta" : "Faltam"} ${falta} cr${falta ? `, em ${Math.ceil(falta / 4) === 1 ? "uma matéria" : `umas ${Math.ceil(falta / 4)} matérias`} (estimativa)` : ""}.</p>`);
@@ -1903,6 +1903,12 @@
         [cr(2).ok >= cr(2).total, `Optativas: ${fmt(cr(2).ok)} de ${fmt(cr(2).total)} cr`]]
         .map(([v, t]) => `<li>${v ? "☑" : "☐"} ${t}<span class="sr">${v ? ": cumprido" : ": falta"}</span></li>`).join("")}</ul>`);
     }
+    // Período do plano com duas ou mais 🟠/🔴: dá para planejar (frase da tabela de conquistas).
+    M.periodos.filter((p) => p.tipo === "planejado" || p.tipo === "atual").forEach((p) => {
+      const n = p.itens.filter((it) => it.status !== "reprovado" && ((guiaDe(it.alvo) || {}).nivel || 0) >= 4).length;
+      if (n >= 2) partes.push(`<p class="frase-dificeis">${z ? `🧘 Calma, Calabreso. Período ${esc(p.nome)} com ${n} matérias difíceis: dá para planejar.`
+        : `O período ${esc(p.nome)} tem ${n} matérias difíceis. Vale planejar com folga.`}</p>`);
+    });
     partes.push(`<h3>Previsão de formatura</h3><p class="previsao">${esc(m.previsao.texto)}${m.previsao.estado === "previsao" ? " 🎓" : ""}</p>`);
     return `<article class="cartao-fase fase-${fase.fase}" aria-labelledby="fase-titulo">
       <h2 id="fase-titulo">${emoji} ${nome}${fase.declarado ? ` <span class="marca-declarado">· declarado</span><span class="sr"> (inclui aprovações registradas por você)</span>` : ""}</h2>
@@ -1935,7 +1941,8 @@
       <span class="selo-emoji" aria-hidden="true">${s.emoji}</span>
       <span class="selo-texto"><b>${esc(s.titulo)}</b>${s.estado === "obtido" && s.declarado ? ` <span class="marca-declarado">· declarado</span>` : ""}
         <small>${s.estado === "obtido" ? esc(s.regra) + (s.nota ? ` · ${esc(s.nota)}` : "")
-          : s.estado === "quase" ? `quase lá (${esc(s.origem)}) · ${esc(s.falta)}` : esc(s.regra) + " · " + esc(s.falta)}</small></span>
+          : s.estado === "quase" ? `quase lá (${esc(s.origem)}) · ${esc(s.falta)}`
+          : esc(s.regra) + (s.falta && s.falta !== `falta ${s.regra}` ? " · " + esc(s.falta) : "")}</small></span>
       <span class="sr">${s.estado === "obtido" ? "obtida" : s.estado === "quase" ? "quase lá" : "ainda não"}</span></li>`;
     const grupos = Object.entries(CQ().GRUPOS).map(([g, t]) => `<h3>${t}</h3><ul class="estante-lista">${m.selos.filter((s) => s.grupo === g).map(item).join("")}</ul>`).join("");
     return `<section class="estante" aria-labelledby="estante-titulo">
@@ -2405,6 +2412,9 @@
   let anuncioTempo = null;
   function anuncia(msg) {
     const el = $("#anuncio");
+    // Abaixo da barra do topo, para não cobrir botões (com a página rolada, a barra saiu da tela: volta ao alto).
+    const topo = $(".topo").getBoundingClientRect();
+    el.style.top = `${Math.max(14, Math.round(topo.bottom) + 8)}px`;
     el.textContent = msg; el.classList.add("visivel");
     clearTimeout(anuncioTempo);
     anuncioTempo = setTimeout(() => { el.classList.remove("visivel"); }, 3500);

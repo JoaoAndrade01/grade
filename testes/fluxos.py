@@ -3657,8 +3657,44 @@ def t_declaradas_lote_foco(b):
     pg.keyboard.press("Tab"); assert foco_em(pg, "#dlg-config *"), descreve_foco(pg)     # o Tab continua dentro de Configurações
     ctx.close()
 
+@caso("Foco: o aviso de conquistas não cobre os botões do topo; a estante não repete a regra no que falta; frases da fase; a paleta não encobre o cartão a 320 px")
+def t_foco_ajustes(b):
+    for vp, nome in ((D, "1440"), (C320, "320")):
+        ctx, pg = abre(b, vp=vp, perfil=PERFIL, extra={"modoClassico": False, "vista": "grade"}, nome=f"foco-ajustes-{nome}", relogio=HOJE, toque=vp is C320)
+        pg.locator("#btn-foco").click()
+        expect(pg.locator("#anuncio")).to_have_class(re.compile(r"visivel")); expect(pg.locator("#anuncio")).to_contain_text("novas conquistas")
+        cobertos = pg.evaluate("""() => { const a = document.querySelector('#anuncio').getBoundingClientRect();
+            return [...document.querySelectorAll('.topo button, .topo label, .topo [role=tab]')].filter((e) => e.getClientRects().length).filter((e) => {
+              const r = e.getBoundingClientRect(); return r.left < a.right && a.left < r.right && r.top < a.bottom && a.top < r.bottom; }).map((e) => e.id || e.textContent.trim()); }""")
+        assert not cobertos, (nome, cobertos)
+        foto(pg, f"foco-aviso-{nome}")
+        if vp is C320:
+            # a paleta fixa embaixo não encobre o cartão da fase nem a estante: cada linha visível fica acima dela
+            ruins = pg.evaluate("""() => [...document.querySelectorAll('#motivacao h2, #motivacao h3, #motivacao p, #motivacao summary')].filter((e) => e.getClientRects().length && !e.closest('details:not([open]) > :not(summary)')).filter((e) => {
+                e.scrollIntoView({ block: 'end' }); return e.getBoundingClientRect().bottom > document.querySelector('#paleta').getBoundingClientRect().top + 0.5; }).map((e) => e.textContent.slice(0, 30))""")
+            assert not ruins, ruins
+        ctx.close()
+    # estante: no selo não obtido, sem repetir a regra no "falta"
+    ctx, pg = abre(b, perfil={"periodos": [{"nome": "2025/1", "disciplinas": ["FIT112"]}]}, extra={"modoClassico": False, "vista": "grade", "foco": True}, nome="foco-estante-falta", relogio=HOJE)
+    pg.locator(".estante-todas summary").click()
+    einstein = pg.locator("#motivacao .selo", has_text="Valeu, Einstein").locator("small").inner_text()
+    assert "· falta" in einstein and einstein.split("· falta")[1].count(",") == 2, einstein
+    rede = pg.locator("#motivacao .selo", has_text="Ping 0 ms").locator("small").inner_text()
+    assert "falta" not in rede, rede                                                         # nada aprovado: só a regra
+    ctx.close()
+    # frases: Devagar e sempre (meio de curso) e Calma, Calabreso (período planejado com duas difíceis); discreto é sóbrio
+    perfil = {"periodos": [{"nome": n, "disciplinas": [c]} for n, c in (("2024/1", "COS110"), ("2024/2", "COS111"), ("2025/1", "EEL280"))]
+              + [{"nome": "2027/1", "planejado": True, "disciplinas": ["MAC238", "COS360"]}]}
+    ctx, pg = abre(b, perfil=perfil, extra={"modoClassico": False, "vista": "grade", "foco": True}, nome="foco-frases", relogio=HOJE)
+    card = pg.locator("#motivacao .cartao-fase")
+    expect(card).to_contain_text("🐢 Devagar e sempre. Faltam")
+    expect(card).to_contain_text("🧘 Calma, Calabreso. Período 2027/1 com 2 matérias difíceis: dá para planejar.")
+    abre_config(pg); pg.check('#dlg-config input[name="tom"][value="discreto"]'); pg.keyboard.press("Escape")
+    expect(card).not_to_contain_text("Devagar e sempre"); expect(card).to_contain_text("O período 2027/1 tem 2 matérias difíceis. Vale planejar com folga.")
+    ctx.close()
+
 CASOS5 = [t_controles_icones, t_todas_acesas, t_minimalista, t_plano_na_grade, t_declaradas_modelo, t_declaradas_prazo_ace, t_declaradas_arquivo, t_declaradas_reimportar,
-          t_registrar_sem_perfil, t_registrar_com_perfil, t_declaradas_detalhe, t_declaradas_gestao, t_declarada_cursando, t_foco, t_motivacao, t_conquistas_estante, t_declaradas_lote_foco]
+          t_registrar_sem_perfil, t_registrar_com_perfil, t_declaradas_detalhe, t_declaradas_gestao, t_declarada_cursando, t_foco, t_motivacao, t_conquistas_estante, t_declaradas_lote_foco, t_foco_ajustes]
 CASOS += CASOS5
 
 
