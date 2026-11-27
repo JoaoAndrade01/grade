@@ -3527,27 +3527,36 @@
     // ativação, sem pintar nem abrir Detalhes. A rolagem da página continua (sem touch-action: none).
     const SEGURAR_MS = 400, TOLERANCIA = 10;
     const segurarAtivo = () => painel.classList.contains("vista-grade") && exibir.destaque === "segurar";
+    // Depois que a trilha acendeu, o gesto fica marcado até soltar: cancelar o destaque (movimento, saída do alvo,
+    // rolagem, perda de foco) não libera a ativação; o clique que vier com a soltura é consumido, seja quando for.
+    let consumir = null;   // id do gesto (ponteiro ou "teclado") cuja soltura não deve ativar o cartão
     function encerraPressao() {
       if (!pressao) return;
       clearTimeout(pressao.timer);
-      if (pressao.ativa) { limpaDestaque(); semCliqueAte = Date.now() + 700; }
+      if (pressao.ativa) { limpaDestaque(); consumir = pressao.id; }
       pressao = null;
     }
-    function iniciaPressao(el, x, y, id) {
+    function soltou(id) {
+      if (pressao && pressao.id === id) encerraPressao();
+      if (consumir === id) { consumir = null; semCliqueAte = Date.now() + 700; }
+    }
+    function iniciaPressao(el, x, y, id, toque = false) {
       encerraPressao();
-      const p = pressao = { code: el.dataset.code, el, x, y, id, ativa: false };
+      const p = pressao = { code: el.dataset.code, el, x, y, id, toque, sx: window.scrollX, sy: window.scrollY, ativa: false };
       p.timer = setTimeout(() => { if (pressao !== p) return; p.ativa = true; destaca(p.code, true); }, SEGURAR_MS);
     }
+    // Um gesto novo recomeça: tira o carimbo antigo e a marca do gesto anterior do mesmo ponteiro.
+    document.addEventListener("pointerdown", (ev) => { semCliqueAte = 0; if (consumir === ev.pointerId) consumir = null; }, true);
     painel.addEventListener("pointerdown", (ev) => {
       if (!segurarAtivo() || ev.button !== 0) return;
       const el = ev.target.closest(".card[data-code]"); if (!el || el.inert) return;
-      iniciaPressao(el, ev.clientX, ev.clientY, ev.pointerId);
+      iniciaPressao(el, ev.clientX, ev.clientY, ev.pointerId, ev.pointerType === "touch");
     });
     document.addEventListener("pointermove", (ev) => {
       if (pressao && pressao.id === ev.pointerId && Math.hypot(ev.clientX - pressao.x, ev.clientY - pressao.y) > TOLERANCIA) encerraPressao();
     });
-    document.addEventListener("pointerup", (ev) => { if (pressao && pressao.id === ev.pointerId) encerraPressao(); });
-    document.addEventListener("pointercancel", encerraPressao);
+    document.addEventListener("pointerup", (ev) => soltou(ev.pointerId));
+    document.addEventListener("pointercancel", (ev) => soltou(ev.pointerId));
     document.addEventListener("pointerout", (ev) => {
       if (pressao && pressao.id === ev.pointerId && ev.target === pressao.el && !pressao.el.contains(ev.relatedTarget)) encerraPressao();
     });
@@ -3557,13 +3566,14 @@
     // O menu do sistema (toque longo) fica bloqueado só durante a pressão.
     document.addEventListener("contextmenu", (ev) => { if (pressao && pressao.el.contains(ev.target)) ev.preventDefault(); });
     // Teclado: Espaço curto continua ativando (o clique nativo sai no keyup); Espaço segurado mostra a trilha.
+    document.addEventListener("keydown", (ev) => { if (!ev.repeat) { semCliqueAte = 0; if (consumir === "teclado") consumir = null; } }, true);
     painel.addEventListener("keydown", (ev) => {
       if (ev.key !== " " || !segurarAtivo()) return;
       const el = ev.target.closest && ev.target.closest(".card[data-code]"); if (!el) return;
       if (ev.repeat) return;
       iniciaPressao(el, 0, 0, "teclado");
     });
-    painel.addEventListener("keyup", (ev) => { if (ev.key === " " && pressao && pressao.id === "teclado") encerraPressao(); });
+    document.addEventListener("keyup", (ev) => { if (ev.key === " ") soltou("teclado"); });
     painel.addEventListener("focusout", (ev) => { if (pressao && pressao.id === "teclado" && ev.target === pressao.el) encerraPressao(); });
     // O clique que termina uma pressão longa é consumido (fase de captura): não pinta, não consulta, não abre Detalhes.
     document.addEventListener("click", (ev) => {
