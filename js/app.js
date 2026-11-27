@@ -855,7 +855,7 @@
   const ICONE_ESTADO = { aprovado: "✓", previsto: "…", cursando: "◐", planejado: "○", reprovado: "✗", analise: "⇄" };
   const ICONE_MARCACAO = "✎";
   function estadoHtml(ico) {
-    return ico ? `<span class="estado" aria-hidden="true">${ico}</span>` : "";
+    return ico ? `<span class="estado${ico === ICONE_MARCACAO ? " e-marcacao" : ""}" aria-hidden="true">${ico}</span>` : "";
   }
   /**
    * Nome visível e nome acessível do cartão. Com situação, o nome visível fica fora da árvore de acessibilidade e um
