@@ -3447,7 +3447,8 @@ def t_declaradas_gestao(b):
     pg.click("#btn-importar")
     pg.set_input_files("#importar", {"name": "outro.json", "mimeType": "application/json", "buffer": json.dumps({"periodos": [], "nome": "Outra"}).encode("utf-8")})
     expect(pg.locator("#dlg-confirma")).to_be_visible()
-    expect(pg.locator("#dlg-confirma-texto")).to_contain_text("aprovações registradas por você ainda não foram exportadas")
+    expect(pg.locator("#dlg-confirma-texto")).to_contain_text("aprovações registradas por você")
+    expect(pg.locator("#dlg-confirma-texto")).to_contain_text("não estão no arquivo")
     pg.locator("#dlg-confirma button[value='']").click()
     assert any(d["code"] == "MAC128" for d in ls(pg, "plano")["aprovacoesDeclaradas"])
     assert ls(pg, "perfilImportado").get("nome") != "Outra"
@@ -3628,6 +3629,7 @@ def t_conquistas_estante(b):
     # substituição: outro arquivo recomeça a lista
     pg.click("#btn-importar")
     pg.set_input_files("#importar", {"name": "outro.json", "mimeType": "application/json", "buffer": json.dumps({"periodos": [{"nome": "2025/1", "disciplinas": ["COS110"]}]}).encode("utf-8")})
+    expect(pg.locator("#dlg-confirma-texto")).to_contain_text("MAC248"); pg.locator("#dlg-confirma-ok").click()   # a declarada sairia: confirma
     pg.wait_for_function("(id) => JSON.parse(localStorage.getItem('gradeECI.v2.perfilId') || 'null') !== id", arg=ident)
     completo(pg, "grade"); pg.keyboard.press("Escape")
     expect(pg.locator("#anuncio")).to_contain_text("Hello, world")
@@ -3732,8 +3734,41 @@ def t_previsao_cobertura(b):
     expect(pg.locator("#motivacao .previsao")).to_contain_text("Planeje os 52 cr que faltam"); expect(pg.locator("#motivacao .previsao")).not_to_contain_text("Você já cumpriu")
     ctx.close()
 
+@caso("Trocar e descartar perfil com declaradas: avisa pelas que sairiam (mesmo sem edições); arquivo inválido não apaga os avisos; descartar tira as do plano")
+def t_perfil_troca_declaradas(b):
+    perfil = {"nome": "Beatriz Fictícia", "periodos": [{"nome": "2026/2", "atual": True, "disciplinas": []}],
+              "aprovacoesDeclaradas": [{"code": "COS110", "registradoEm": "2026-11-27"}]}
+    ctx, pg = abre(b, perfil=perfil, extra={"modoClassico": False, "vista": "grade", "foco": True}, nome="troca-declaradas", relogio=HOJE)
+    pg.wait_for_function("localStorage.getItem('gradeECI.v2.selosAvisados') !== null")
+    avisos, ident = ls(pg, "selosAvisados"), ls(pg, "perfilId")
+    def carrega(obj, nome):
+        pg.click("#btn-importar"); pg.set_input_files("#importar", {"name": nome, "mimeType": "application/json", "buffer": json.dumps(obj).encode("utf-8")})
+    # arquivo inválido: recusado sem mexer nos avisos nem na identidade
+    msgs = []; pg.on("dialog", lambda d: (msgs.append(d.message), d.accept()))
+    carrega({"periodos": 5}, "invalido.json"); pg.wait_for_timeout(300)
+    assert msgs and "periodos" in msgs[-1], msgs
+    assert ls(pg, "selosAvisados") == avisos and ls(pg, "perfilId") == ident
+    pg.keyboard.press("Escape")
+    # o mesmo registro no arquivo: nada sai, sem pergunta
+    carrega({"nome": "Mesmo", "periodos": [], "aprovacoesDeclaradas": perfil["aprovacoesDeclaradas"]}, "mesmo.json")
+    expect(pg.locator("#titulo")).to_contain_text("Mesmo"); assert pg.locator("#dlg-confirma").is_hidden()
+    # sem edições, outro arquivo sem a declarada: pergunta antes; cancelar mantém
+    pg.keyboard.press("Escape"); carrega({"nome": "Outro", "periodos": []}, "outro.json")
+    expect(pg.locator("#dlg-confirma")).to_be_visible(); expect(pg.locator("#dlg-confirma-texto")).to_contain_text("COS110")
+    pg.locator("#dlg-confirma button[value='']").click()
+    assert pg.evaluate("GradeInterativa.fonte('COS110')") == "declarado" and ls(pg, "perfilImportado")["nome"] == "Mesmo"
+    ctx.close()
+    # descartar: a declarada do plano sai junto e não fica ativa
+    ctx, pg = abre(b, perfil={"nome": "Perfil fictício", "periodos": []}, extra={"modoClassico": False, "vista": "grade",
+        "plano": {"periodos": {}, "novos": [], "aprovacoesDeclaradas": [{"code": "COS110", "registradoEm": "2026-11-27"}]}}, nome="descartar-declaradas", relogio=HOJE)
+    msgs = []; pg.on("dialog", lambda d: (msgs.append(d.message), d.accept()))
+    pg.locator("#descartar-importado").click(); pg.wait_for_function("localStorage.getItem('gradeECI.v2.perfilImportado') === null")
+    assert "e 1 aprovação registrada por você também" in msgs[-1], msgs
+    assert "aprovacoesDeclaradas" not in (ls(pg, "plano") or {}) and pg.evaluate("GradeInterativa.declaradas().ativas") == []
+    ctx.close()
+
 CASOS5 = [t_controles_icones, t_todas_acesas, t_minimalista, t_plano_na_grade, t_declaradas_modelo, t_declaradas_prazo_ace, t_declaradas_arquivo, t_declaradas_reimportar,
-          t_registrar_sem_perfil, t_registrar_com_perfil, t_declaradas_detalhe, t_declaradas_gestao, t_declarada_cursando, t_foco, t_motivacao, t_conquistas_estante, t_declaradas_lote_foco, t_foco_ajustes, t_ace_origem, t_previsao_cobertura]
+          t_registrar_sem_perfil, t_registrar_com_perfil, t_declaradas_detalhe, t_declaradas_gestao, t_declarada_cursando, t_foco, t_motivacao, t_conquistas_estante, t_declaradas_lote_foco, t_foco_ajustes, t_ace_origem, t_previsao_cobertura, t_perfil_troca_declaradas]
 CASOS += CASOS5
 
 

@@ -3499,9 +3499,11 @@
         if (!confirm(`${perfilArquivo ? "Voltar a usar o perfil/perfil.js" : "Ficar sem perfil"} e descartar o perfil salvo neste navegador?
 
 `
-          + "Os planos, pedidos e a extensão guardados nele também saem" + (declaradasNoNavegador() ? `, e as ${textoDeclaradas(declaradasNoNavegador())} também` : "")
+          + "Os planos, pedidos e a extensão guardados nele também saem" + (declaradasNoNavegador() ? `, e ${textoDeclaradas(declaradasNoNavegador())} também` : "")
           + ". Use \"Baixar perfil.js\" antes, se quiser guardar uma cópia.")) return;
         perfilImportado = null; save("perfilImportado", null); perfil = perfilArquivo || perfilLocalAntigo();
+        // As aprovações registradas por você no plano eram do perfil descartado: saem junto, como o aviso disse.
+        if (plano.aprovacoesDeclaradas) { delete plano.aprovacoesDeclaradas; save("plano", plano); }
         save("perfilId", null); save("selosAvisados", null);   // substituição: os avisos de conquistas recomeçam
         avisosPerfil.delete("perfil importado");
         montaModelo(); return render();
@@ -3755,13 +3757,18 @@
     f.text().then(async (txt) => {
       const m = txt.match(/^\s*window\.PERFIL\s*=\s*/m);
       const obj = JSON.parse((m ? txt.slice(m.index + m[0].length) : txt).replace(/;\s*$/, ""));
-      const nd = temEdicoes() ? declaradasNoNavegador() : 0;
-      const substitui = () => { save("perfilId", null); save("selosAvisados", null); };   // outro perfil: avisos recomeçam
-      if (nd && !(await confirma({ titulo: "Trocar de perfil", ok: "Usar o arquivo",
-        texto: `${textoDeclaradas(nd)} ainda não ${nd === 1 ? "foi exportada" : "foram exportadas"}. O arquivo substitui o perfil salvo e ${nd === 1 ? "ela sai" : "elas saem"}. Use Exportar perfil.js antes, se quiser guardar uma cópia.` }))) return;
-      const idAntes = load("perfilId", null);
-      substitui();
-      try { usaPerfilImportado(obj); } catch (e) { save("perfilId", idAntes); throw e; }
+      const erro = erroPerfil(obj);     // arquivo inválido: recusado antes de perguntar ou de mexer em qualquer coisa
+      if (erro) throw new Error(`perfil com campos inválidos (${erro}). Confira a estrutura em docs/PERFIL.md`);
+      // Avisa pelas declaradas que efetivamente sairiam: as deste navegador que o arquivo não traz.
+      const novas = new Set(window.PROGRESSO.normalizaDeclaradas(obj.aprovacoesDeclaradas || []).itens.map((d) => d.code));
+      const saem = declaradasNoNavegador() ? getDecl().filter((d) => !novas.has(d.code)).map((d) => d.code) : [];
+      const n = saem.length;
+      if (n && !(await confirma({ titulo: "Trocar de perfil", ok: "Usar o arquivo",
+        texto: `${textoDeclaradas(n)} (${saem.join(", ")}) não ${n === 1 ? "está" : "estão"} no arquivo e ${n === 1 ? "sai" : "saem"} com o perfil salvo. Use Exportar perfil.js antes, se quiser guardar uma cópia.` }))) return;
+      // Outro perfil: os avisos de conquistas recomeçam, mas só depois que a troca deu certo.
+      const idAntes = load("perfilId", null), avisosAntes = load("selosAvisados", null);
+      save("perfilId", null); save("selosAvisados", null);
+      try { usaPerfilImportado(obj); } catch (e) { save("perfilId", idAntes); save("selosAvisados", avisosAntes); throw e; }
     }).catch((e) => alert("Não consegui ler o perfil: " + e.message + "\n(O conteúdo precisa ser JSON válido, com chaves entre aspas.)"));
     input.value = "";
   }
