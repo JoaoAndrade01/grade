@@ -532,6 +532,10 @@ small.alerta, .alerta { color: var(--dep); }
   .vista-grade .card .meta, .vista-grade .card .sub { font-size: clamp(9px, .62vw, 11px); }
   .vista-grade .card.bloco { background: var(--surface); border: 1.5px dashed var(--border); text-align: center; align-items: center; justify-content: center; }
   .vista-grade .card.bloco::before { display: none; }
+  /* setas ligadas: vãos maiores para as curvas (cada curva usa até 24 px) e colunas com largura mínima legível;
+     se não couber, a Grade rola de lado na própria região, nunca a página */
+  .painel.vista-grade.com-setas { gap: 28px; grid-auto-columns: minmax(112px, 1fr); overflow-x: auto; }
+  .vista-grade.com-setas .col-cards { gap: 14px; }
 }
 
 /* paleta flutuante */
@@ -567,6 +571,8 @@ small.alerta, .alerta { color: var(--dep); }
   .vista-grade .coluna { flex: none; width: 100%; }
   .vista-grade .col-topo { display: flex; justify-content: space-between; align-items: center; }
   .vista-grade .col-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .painel.vista-grade.com-setas { gap: 18px; }
+  .vista-grade.com-setas .col-cards { gap: 14px 18px; }
   .vista-grade .card { min-height: 56px; }
   .vista-grade .card .nome { font-size: 13px; }
   .paleta { bottom: 8px; width: calc(100vw - 16px); }

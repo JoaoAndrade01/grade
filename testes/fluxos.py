@@ -1544,6 +1544,34 @@ def t_setas(b):
     pg.locator('.card[data-code="MAC238"]').scroll_into_view_if_needed(); foto(pg, "38-setas-toque-celular")
     ctx.close()
 
+def medidas_grade(pg):
+    return pg.evaluate("""() => { const p = document.querySelector('#painel'), cs = getComputedStyle(p), c = document.querySelector('#painel .col-cards');
+        const nomes = [...document.querySelectorAll('#painel .card .nome')].map((n) => parseFloat(getComputedStyle(n).fontSize));
+        const cards = [...document.querySelectorAll('#painel .card[data-code]')].map((k) => k.getBoundingClientRect().width);
+        const svg = p.querySelector(':scope > svg.setas');
+        return { col: parseFloat(cs.columnGap) || parseFloat(cs.rowGap), cartao: parseFloat(getComputedStyle(c).rowGap),
+                 pagina: document.documentElement.scrollWidth - innerWidth, rola: p.scrollWidth - p.clientWidth, overflowX: cs.overflowX,
+                 fonte: Math.min(...nomes), largura: Math.min(...cards), svg: svg ? +svg.getAttribute('width') : null, total: p.scrollWidth }; }""")
+
+@caso("Setas: ligadas, a Grade abre espaço entre colunas e cartões; leitura e rolagem em tela larga e estreita")
+def t_setas_espaco(b):
+    observado = {}
+    for nome, vp in (("larga", D), ("media", {"width": 1180, "height": 900}), ("estreita", C)):
+        ctx, pg = abre(b, vp=vp, perfil=PERFIL, extra={"modoClassico": False, "vista": "grade"}, nome=f"setas-espaco-{nome}")
+        sem = medidas_grade(pg)
+        pg.evaluate("() => { const e = JSON.parse(localStorage.getItem('gradeECI.v2.exibir') || '{}'); e.setas = 'todas'; localStorage.setItem('gradeECI.v2.exibir', JSON.stringify(e)); }")
+        pg.reload(); pg.wait_for_load_state("load"); pronto(pg, f"setas-espaco-{nome}")
+        com = medidas_grade(pg)
+        assert com["col"] > sem["col"] and com["cartao"] > sem["cartao"], (nome, sem, com)
+        assert com["pagina"] <= 1 and sem["pagina"] <= 1, (nome, sem, com)                  # a página não rola de lado
+        assert com["fonte"] >= 10 and com["largura"] >= 96, (nome, com)                     # nomes legíveis
+        if com["rola"] > 0:                                                                  # se a Grade não cabe, rola na própria região
+            assert com["overflowX"] in ("auto", "scroll") and com["svg"] == com["total"], (nome, com)
+        observado[nome] = (com["col"] >= 24 if nome != "estreita" else com["cartao"] >= 12, com["rola"] > 0)
+        foto(pg, f"setas-espaco-{nome}")
+        ctx.close()
+    assert observado == {"larga": (True, False), "media": (True, True), "estreita": (True, False)}, observado
+
 ANTIGAS_TAGS = [{"id": "aprovada", "nome": "Aprovada", "cor": "#16a34a", "status": "aprovado"},
                 {"id": "aprov-esperada", "nome": "Aprovação esperada", "cor": "#84cc16", "status": "previsto"},
                 {"id": "cursando", "nome": "Cursando", "cor": "#2563eb", "status": "cursando"},
@@ -1684,7 +1712,7 @@ def t_cadeado(b):
     ctx.close()
 
 
-CASOS2 = [t_plano_preservado, t_aviso_pdf, t_setas, t_tags, t_tags_nao_conta, t_barra_quatro_trechos, t_cadeado]
+CASOS2 = [t_plano_preservado, t_aviso_pdf, t_setas, t_setas_espaco, t_tags, t_tags_nao_conta, t_barra_quatro_trechos, t_cadeado]
 
 # ================================================================== rodada 3
 PLANOS2 = {"titulo": "Grade ECI", "nome": "Caio", "curso": 1, "periodos": [

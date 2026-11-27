@@ -1965,7 +1965,9 @@
       <button type="button" class="link" id="descartar-importado">${perfilArquivo ? "Voltar ao perfil/perfil.js" : "Descartar perfil salvo"}</button>`;
     const painel = $("#painel");
     const scroll = painel.dataset.vista === vista ? { x: painel.scrollLeft, y: window.scrollY } : null;
-    painel.className = `painel vista-${vista}`;
+    // Com as setas de requisitos ligadas, a Grade abre espaço entre colunas e cartões para as setas não se tocarem.
+    const comSetas = vista === "grade" && !modoClassico && exibir.setas !== "ocultas";
+    painel.className = `painel vista-${vista}${comSetas ? " com-setas" : ""}`;
     painel.dataset.vista = vista;
     const foco = document.activeElement && document.activeElement.id === "busca-opt" ? document.activeElement.selectionStart : null;
     const fn = { timeline: renderTimeline, optativas: renderOptativas, cronograma: renderCronograma, pedidos: renderPedidos,
