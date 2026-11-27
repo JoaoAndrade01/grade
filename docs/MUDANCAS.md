@@ -36,6 +36,11 @@ como notas. Os perfis e as preferências salvos na v2.0.0 continuam valendo.
   progresso de cada uma. O cartão da fase e a estante saíram da Grade e da Linha do tempo. Em Configurações →
   Conquistas, dá para mostrar a aba também fora do Foco.
 
+- **Aviso do perfil salvo uma vez.** "Usando o perfil importado do SIGA…" aparece uma vez por perfil, com o botão "OK,
+  entendi", e só volta quando outro perfil for importado ou carregado. "Baixar perfil.js" e "Descartar perfil salvo" (ou
+  "Voltar ao perfil/perfil.js") ficam em Configurações → Perfil e dados, com as mesmas confirmações. O "Exportar
+  perfil.js" do Cronograma continua.
+
 ### Correções
 
 - No celular, o detalhe de uma disciplina pintada podia cortar a parte de cima.
@@ -53,7 +58,7 @@ como notas. Os perfis e as preferências salvos na v2.0.0 continuam valendo.
 ### Para quem contribui
 
 O helper `abre()` dos testes ganhou `modo=` (padrão Planejador; os cenários do Clássico pedem `modo="classico"`). O kit
-de interface passa a 153 cenários por `file://` e 154 por HTTP ([testes/README.md](../testes/README.md)). As decisões
+de interface passa a 154 cenários por `file://` e 155 por HTTP ([testes/README.md](../testes/README.md)). As decisões
 novas são PC-15 a PC-19 ([DECISOES.md](DECISOES.md)).
 
 ---

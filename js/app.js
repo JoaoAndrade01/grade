@@ -1796,6 +1796,11 @@
     $("#legenda").innerHTML = Object.keys(CATS).map((k) => `<span class="leg-cat cat-${k}"><i></i>${CATS[k].nome}</span>`).join("");
   }
 
+  /** "Usando o perfil importado do SIGA (BOA de …)" ou "Usando o perfil salvo" (aviso e Configurações). */
+  function textoPerfilSalvo() {
+    const doSiga = /^siga/i.test((perfilImportado && perfilImportado.fonte && perfilImportado.fonte.geradoPor) || "");
+    return `${doSiga ? "Usando o perfil importado do SIGA" : "Usando o perfil salvo"}${perfilImportado && perfilImportado.fonte && perfilImportado.fonte.boaEmissao ? ` (BOA de ${esc(perfilImportado.fonte.boaEmissao)})` : ""}`;
+  }
   function renderAvisoPerfil() {
     const el = $("#aviso-perfil");
     el.hidden = !avisosPerfil.size && !avisoDeclaradas;
@@ -2110,6 +2115,9 @@
       <p class="dlg-texto">As escolhas valem na hora e ficam salvas neste navegador. Fixe um item para ele aparecer também na barra do topo; ele continua aqui.</p>
       <section class="cfg-sec" aria-labelledby="cfg-h-perfil"><h2 id="cfg-h-perfil">Perfil e dados</h2>
         ${linhaAtalho("perfil")}${linhaAtalho("importar")}${linhaAtalho("privacidade")}
+        ${perfilImportado ? `<div class="cfg-linha cfg-perfil-salvo"><span class="dica">${textoPerfilSalvo()}, guardado neste navegador.</span>
+          <button type="button" class="btn btn-sm" id="baixar-importado">${icone("baixar", 16)} Baixar perfil.js</button>
+          <button type="button" class="btn btn-sm btn-perigo-ghost" id="descartar-importado">${perfilArquivo ? "Voltar ao perfil/perfil.js" : "Descartar perfil salvo"}</button></div>` : ""}
         <div class="cfg-linha">${botaoRegistrar("btn btn-sm cfg-abrir", "cfg-registrar")}
           <span class="dica">Grava as marcações aprovadas do pincel como aprovações registradas por você.</span></div>
         ${htmlListaDeclaradas()}
@@ -2225,7 +2233,7 @@
     if (!confirm("Apagar tudo o que foi salvo neste navegador (marcações manuais, edições de planejamento" + (temImportado ? ", perfil importado" : "")
       + (nd ? `, ${textoDeclaradas(nd)}` : "") + ")?" + (nd ? " Use Exportar perfil.js antes, se quiser guardar uma cópia." : ""))) return;
     marcacoes = {}; creditosManuais = {}; plano = { periodos: {}, novos: [] }; proposta = null; cronoSlot = null;
-    ["manual", "marcacoes", "creditos", "plano", "perfilImportado", "perfilId", "selosAvisados"].forEach((k) => save(k, null));
+    ["manual", "marcacoes", "creditos", "plano", "perfilImportado", "perfilId", "selosAvisados", "avisoImportadoVisto"].forEach((k) => save(k, null));
     avisosPerfil.delete("perfil importado");
     if (perfilImportado) { perfilImportado = null; perfil = perfilArquivo || perfilLocalAntigo(); }
     if (temImportado) { save("perfil", null); perfil = null; }
@@ -2315,11 +2323,13 @@
     if (vista === "grade") $("#paleta").innerHTML = renderPaleta();
     const imp = $("#aviso-importado");
     renderAvisoPerfil();
-    imp.hidden = !perfilImportado || modoClassico;   // o Clássico é só para pintar: perfil e arquivos ficam no Planejador
-    const doSiga = /^siga/i.test((perfilImportado && perfilImportado.fonte && perfilImportado.fonte.geradoPor) || "");
-    if (perfilImportado) imp.innerHTML = `${doSiga ? "Usando o perfil importado do SIGA" : "Usando o perfil salvo"}${perfilImportado.fonte && perfilImportado.fonte.boaEmissao ? ` (BOA de ${esc(perfilImportado.fonte.boaEmissao)})` : ""}, guardado neste navegador.
-      <button type="button" class="link" id="baixar-importado">Baixar perfil.js</button> ·
-      <button type="button" class="link" id="descartar-importado">${perfilArquivo ? "Voltar ao perfil/perfil.js" : "Descartar perfil salvo"}</button>`;
+    // O aviso do perfil salvo aparece uma vez por perfil: "OK, entendi" fecha e guarda a identidade opaca do perfil
+    // (avisoImportadoVisto = perfilId); outro perfil importado ou carregado traz o aviso de volta. Baixar e descartar
+    // ficam em Configurações → Perfil e dados. O Clássico é só para pintar: sem o aviso.
+    const avisoVisto = !!perfilImportado && load("avisoImportadoVisto", null) === idDoPerfil();
+    imp.hidden = !perfilImportado || modoClassico || avisoVisto;
+    if (perfilImportado && !imp.hidden) imp.innerHTML = `${textoPerfilSalvo()}, guardado neste navegador. Baixar e descartar ficam em Configurações → Perfil e dados.
+      <button type="button" class="btn btn-sm" id="aviso-importado-ok">OK, entendi</button>`;
     const painel = $("#painel");
     const scroll = painel.dataset.vista === vista ? { x: painel.scrollLeft, y: window.scrollY } : null;
     painel.className = `painel vista-${vista}`;
@@ -3699,6 +3709,10 @@
       if (t.id === "btn-perfil") return abreDialogoPerfil();
       if (t.id === "btn-privacidade") return abrePainel(ev, abrePrivacidade);
       if (t.id === "baixar-importado") return baixa("perfil.js", textoPerfil(perfilExportado()));
+      if (t.id === "aviso-importado-ok") {
+        save("avisoImportadoVisto", idDoPerfil()); render(); focaTitulo($("#titulo")).focus();
+        return anuncia("Aviso fechado. Baixar e descartar o perfil salvo ficam em Configurações → Perfil e dados.");
+      }
       if (t.id === "apagar-tudo") {
         if (!confirm("Apagar TUDO o que este site guardou neste navegador (perfil importado, tags, marcações, planos e preferências)?")) return;
         try { Object.keys(localStorage).filter((k) => k.startsWith(STORE)).forEach((k) => localStorage.removeItem(k)); } catch (e) { /* ok */ }
@@ -3714,9 +3728,11 @@
         perfilImportado = null; save("perfilImportado", null); perfil = perfilArquivo || perfilLocalAntigo();
         // As aprovações registradas por você no plano eram do perfil descartado: saem junto, como o aviso disse.
         if (plano.aprovacoesDeclaradas) { delete plano.aprovacoesDeclaradas; save("plano", plano); }
-        save("perfilId", null); save("selosAvisados", null);   // substituição: os avisos de conquistas recomeçam
+        save("perfilId", null); save("selosAvisados", null); save("avisoImportadoVisto", null);   // substituição: os avisos recomeçam
         avisosPerfil.delete("perfil importado");
-        montaModelo(); return render();
+        montaModelo(); render(); atualizaConfig();
+        const volta = $("#dlg-config").open && ($("#dlg-config #descartar-importado") || $("#dlg-config-titulo")); if (volta) volta.focus();
+        return;
       }
     });
     document.addEventListener("change", (ev) => {
@@ -3789,6 +3805,7 @@
         if (!previaLiberada()) return;
         try {
           usaPerfilImportado(perfilDaImportacao(resultadoImportacao));
+          save("avisoImportadoVisto", null);   // perfil importado agora: o aviso do perfil salvo volta
           resultadoImportacao = null;
           previaObsoleta = false;
         } catch (e) {
@@ -3998,6 +4015,7 @@
       const idAntes = load("perfilId", null), avisosAntes = load("selosAvisados", null);
       save("perfilId", null); save("selosAvisados", null);
       try { usaPerfilImportado(obj); } catch (e) { save("perfilId", idAntes); save("selosAvisados", avisosAntes); throw e; }
+      save("avisoImportadoVisto", null); render();   // outro perfil carregado: o aviso do perfil salvo volta
     }).catch((e) => alert("Não consegui ler o perfil: " + e.message + "\n(O conteúdo precisa ser JSON válido, com chaves entre aspas.)"));
     input.value = "";
   }

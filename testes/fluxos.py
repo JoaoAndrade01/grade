@@ -1800,7 +1800,8 @@ def t_regressao(b):
     pg.click('[data-vista="grade"]'); pg.locator('.card[data-code="MAC128"]').click()
     assert "pré-requisitos" in pg.locator("#detalhes").inner_text().lower()
     pg.keyboard.press("Escape")
-    with pg.expect_download() as d: pg.click("#baixar-importado")
+    with pg.expect_download() as d: perfil_salvo(pg, "baixar-importado").click()
+    pg.keyboard.press("Escape")
     assert "window.PERFIL" in pathlib.Path(d.value.path()).read_text(encoding="utf-8")
     pg.reload(); pg.wait_for_load_state("load"); assert not pg.locator("#modo-classico").is_checked()
     # privacidade: textos que antes eram engolidos pelo ícone aparecem
@@ -1836,7 +1837,7 @@ def t_a11y(b):
 @caso("Descartar perfil salvo (sem perfil/perfil.js): rótulo claro, confirmação e volta ao estado sem perfil")
 def t_descartar_salvo(b):
     ctx, pg = abre(b, perfil=PERFIL, nome="descartar-salvo")
-    link = pg.locator("#descartar-importado"); assert link.inner_text() == "Descartar perfil salvo"
+    link = perfil_salvo(pg, "descartar-importado"); assert link.inner_text() == "Descartar perfil salvo"
     msgs = []
     pg.once("dialog", lambda d: (msgs.append(d.message), d.accept())); link.click()
     assert "Os planos, pedidos e a extensão guardados nele também saem" in msgs[0], msgs
@@ -2207,6 +2208,10 @@ def t_previa_download(b):
 
 def abre_config(pg):
     pg.click("#btn-config"); expect(pg.locator("#dlg-config")).to_be_visible()
+def perfil_salvo(pg, id_):
+    """Baixar e descartar o perfil salvo ficam em Configurações → Perfil e dados (o aviso só tem "OK, entendi")."""
+    if not pg.locator("#dlg-config[open]").count(): abre_config(pg)
+    return pg.locator(f"#dlg-config #{id_}")
 
 @caso("Aparência: Ícone + texto (padrão), Só ícones e Minimalista nas abas e atalhos; nomes acessíveis, aba ativa e foco; desktop e celular")
 def t_formatos(b):
@@ -2907,7 +2912,7 @@ def t_b8_alvos(b):
         pg.click('[data-vista="optativas"]')
         assert not axe_graves(pg, ["target-size"]), (nome, "optativas", axe_graves(pg, ["target-size"]))
         pg.click('[data-vista="grade"]')          # aviso do perfil salvo (só no Planejador)
-        mede(pg, ["#baixar-importado", "#descartar-importado", "#ferramentas .ctl.aceso"], f"aviso-{nome}")
+        mede(pg, ["#aviso-importado-ok", "#ferramentas .ctl.aceso"], f"aviso-{nome}")
         assert not axe_graves(pg, ["target-size"]), (nome, "aviso", axe_graves(pg, ["target-size"]))
         if toque:
             for s in ("#btn-importar", "#btn-perfil", "#seletor-modo label", ".pal-btn"):
@@ -3487,7 +3492,7 @@ def t_declaradas_gestao(b):
     assert any(d["code"] == "MAC128" for d in ls(pg, "plano")["aprovacoesDeclaradas"])
     assert ls(pg, "perfilImportado").get("nome") != "Outra"
     # Descartar perfil salvo também avisa
-    pg.once("dialog", lambda d: responde(d, False)); pg.keyboard.press("Escape"); pg.locator("#descartar-importado").click()
+    pg.once("dialog", lambda d: responde(d, False)); pg.keyboard.press("Escape"); perfil_salvo(pg, "descartar-importado").click()
     assert "aprovações registradas por você também" in msgs[-1], msgs[-1]
     ctx.close()
 
@@ -3549,7 +3554,7 @@ def t_foco(b):
     alterna_modo(pg); expect(f).to_have_attribute("aria-pressed", "true")
     pg.reload(); pronto(pg, "foco"); expect(pg.locator("#btn-foco")).to_have_attribute("aria-pressed", "true")
     # sem perfil: desabilitado com orientação; o planejamento fica intacto
-    pg.once("dialog", lambda d: d.accept()); pg.locator("#descartar-importado").click()
+    pg.once("dialog", lambda d: d.accept()); perfil_salvo(pg, "descartar-importado").click()
     expect(pg.locator("#btn-foco")).to_have_attribute("aria-disabled", "true"); assert pg.locator("#aba-conquistas").is_hidden()
     ctx.close()
     ctx, pg = abre(b, vp=C320, perfil=PERFIL, extra={"modoClassico": False, "vista": "timeline", "foco": True}, nome="foco-320", relogio=HOJE, toque=True, esquema="dark")
@@ -3800,7 +3805,7 @@ def t_perfil_troca_declaradas(b):
     ctx, pg = abre(b, perfil={"nome": "Perfil fictício", "periodos": []}, extra={"modoClassico": False, "vista": "grade",
         "plano": {"periodos": {}, "novos": [], "aprovacoesDeclaradas": [{"code": "COS110", "registradoEm": "2026-11-27"}]}}, nome="descartar-declaradas", relogio=HOJE)
     msgs = []; pg.on("dialog", lambda d: (msgs.append(d.message), d.accept()))
-    pg.locator("#descartar-importado").click(); pg.wait_for_function("localStorage.getItem('gradeECI.v2.perfilImportado') === null")
+    perfil_salvo(pg, "descartar-importado").click(); pg.wait_for_function("localStorage.getItem('gradeECI.v2.perfilImportado') === null")
     assert "e 1 aprovação registrada por você também" in msgs[-1], msgs
     assert "aprovacoesDeclaradas" not in (ls(pg, "plano") or {}) and pg.evaluate("GradeInterativa.declaradas().ativas") == []
     ctx.close()
@@ -4644,7 +4649,7 @@ def t_conquistas_some(b):
     ctx.close()
     # descartar o perfil salvo
     ctx, pg = abre(b, perfil=PERFIL, extra={"vista": "conquistas", "foco": True}, nome="some-descartar", relogio=HOJE)
-    pg.once("dialog", lambda d: d.accept()); pg.locator("#descartar-importado").click()
+    pg.once("dialog", lambda d: d.accept()); perfil_salvo(pg, "descartar-importado").click()
     expect(pg.locator("#aba-conquistas")).to_be_hidden(); expect(pg.locator("#aba-grade")).to_have_attribute("aria-selected", "true")
     expect(pg.locator("#anuncio")).to_contain_text(AVISO_ABA)
     ctx.close()
@@ -4684,6 +4689,30 @@ def t_conquistas_aviso_aba_fechada(b):
     pg.reload(); pronto(pg, "aviso-aba-fechada"); pg.wait_for_timeout(300)
     assert "Rei dos Cálculos" not in pg.locator("#anuncio").inner_text()
     assert pg.locator("#painel .selo.novo").count() == 0
+    ctx.close()
+
+@v210
+@caso("Aviso do perfil salvo: aparece uma vez por perfil, com OK, entendi; fica fechado ao recarregar; volta com outro perfil carregado; Baixar e Descartar ficam em Configurações → Perfil e dados")
+def t_aviso_perfil_salvo(b):
+    ctx, pg = abre(b, perfil=PERFIL, extra={"vista": "grade"}, nome="aviso-perfil")
+    aviso = pg.locator("#aviso-importado"); expect(aviso).to_be_visible()
+    expect(aviso).to_contain_text("guardado neste navegador")
+    assert aviso.locator("#baixar-importado, #descartar-importado").count() == 0
+    ok = pg.get_by_role("button", name="OK, entendi", exact=True); ok.click()
+    expect(aviso).to_be_hidden(); assert ls(pg, "avisoImportadoVisto") == ls(pg, "perfilId") and ls(pg, "perfilId")
+    expect(pg.locator("#anuncio")).to_contain_text("Configurações")
+    pg.reload(); pronto(pg, "aviso-perfil"); expect(pg.locator("#aviso-importado")).to_be_hidden()
+    # Configurações → Perfil e dados: baixar e descartar, com as confirmações de antes
+    abre_config(pg)
+    expect(pg.locator("#dlg-config #baixar-importado")).to_be_visible(); expect(pg.locator("#dlg-config #descartar-importado")).to_have_text("Descartar perfil salvo")
+    with pg.expect_download() as d: pg.locator("#dlg-config #baixar-importado").click()
+    assert "window.PERFIL" in pathlib.Path(d.value.path()).read_text(encoding="utf-8")
+    pg.once("dialog", lambda d: d.dismiss()); pg.locator("#dlg-config #descartar-importado").click()
+    assert ls(pg, "perfilImportado") is not None                                                   # cancelar mantém o perfil
+    # carregar outro perfil traz o aviso de volta
+    pg.click('#dlg-config [data-abrir-atalho="importar"]')
+    pg.set_input_files("#importar", {"name": "outro.json", "mimeType": "application/json", "buffer": json.dumps({"periodos": [{"nome": "2025/1", "disciplinas": ["COS110"]}]}).encode("utf-8")})
+    expect(pg.locator("#aviso-importado")).to_be_visible(); assert ls(pg, "avisoImportadoVisto") is None
     ctx.close()
 
 CASOS += CASOS6
