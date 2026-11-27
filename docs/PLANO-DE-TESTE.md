@@ -57,6 +57,7 @@ pessoa, que não a escreveu. A aprovação é por **hash completo** (40 caracter
 | Nível | O que verifica | Onde | O que ele **não** prova |
 | --- | --- | --- | --- |
 | Interface (matriz) | Casos de [REQUISITOS.md](REQUISITOS.md) no navegador, nos seis pares | `testes/runner.py`, `fluxos.py`, `reimportacao.py`, `auditoria.py` | Safari no Mac, iPhone real, leitor de tela |
+| Regras do cálculo (Node) | Montagem dos registros, fontes, aprovações registradas por você, requisitos, fase, selos e previsão, sem navegador | `node testes/progresso.js` (sobre `js/progresso.js` e `js/conquistas.js`) | A tela: o kit de interface cobre a apresentação |
 | Paridade | Que as regras JS e Python geram o mesmo perfil, com leitores de PDF diferentes | `ferramentas/testar_paridade.sh` | Que o perfil está **certo**: erro compartilhado passa |
 | Oráculo independente | Que as duas saídas batem com perfis esperados escritos à mão | `testes/importador.py`, `testes/fixtures/oraculos.json` | Layouts do SIGA fora das fixtures |
 | Validador dos dados de referência (RF-17) | Formato, códigos, duplicatas e turmas sem código de `js/horarios.js` e `js/guia.js` | `testes/referencia_casos.py`, `testes/referencia.py`, `testes/fixtures/excecoes-referencia.json` | Que a oferta é a oficial |
@@ -68,7 +69,9 @@ pessoa, que não a escreveu. A aprovação é por **hash completo** (40 caracter
 histórico do curso atual (único, automático, dúvida, escolha explícita, datas ausentes, as duas ordens dos
 arquivos); seção do BOA (ausente, vazia, presente); ocorrências de ACE (mesmo período, períodos distintos, sem
 período); dispensa (uma, duas ou mais, alvo fora do catálogo); horário (malformado, início igual ou posterior ao
-fim, duplicata).
+fim, duplicata); fase do curso (24,9%, 25%, 74,9% e 75%; até dois e três semestres; sem Histórico; reingresso); aprovação
+registrada por você (com e sem semestre, confirmada, divergente, em conflito com reprovação antes, no semestre e depois,
+bloco de transferidas, equivalência com origem declarada).
 
 **Lacunas conhecidas** (também marcadas na matriz): os casos 11a–11d (resultado dos filtros e do guia nas
 optativas) e o 06n (atividade em curso desconhecida) **não têm teste automatizado**; os casos 12c a 12e e 14e a 14g
@@ -177,16 +180,28 @@ parte dele) ou *sem teste* (conferir na integração).
 | H12 | [RF-13](REQUISITOS.md#rf-13--a-eci-por-trás-da-grade-h12) | 13a–13c | `t_experiencias`, `t_exp_com_perfil`, `t_seletor_eci`, `t_fecha_durante_leitura`, `t_eci_timeline` | `js/eci.js`, `js/demo-pdf.js` | direta |
 | H1, H3, H10 | [RF-14](REQUISITOS.md#rf-14--marcação-manual-aparência-tags-e-referências-h1-h3-h10) | 14a–14b | `t_cr01_manual`, `t_pc02_manual_credito` | `marca`, `pinta`, `tagDe` | direta |
 | H1, H3 | RF-14 | 14c | `t_cadeado` | `protegida` | direta |
-| H1, H3 | RF-14 | 14d | `t_setas` | `arestasDe` | direta |
+| H1, H3 | RF-14 | 14d | `t_destaque` (mouse, teclado, detalhes, toque com e sem pincel, Desligado) | `destaca`, `destaqueEmRepouso` | direta |
 | H1, H3, H10 | RF-14 | 14h, 14i | `t_b1_estado_dos_cartoes` (1º toque consulta e o 2º marca; ícone de estado, situação e origem no nome acessível), `t_timeline_ocorrencia`, `t_timeline_ocorrencia_mesma_coluna`, `t_timeline_ocorrencia_edicao`, `t_nome_sem_espaco` | ícone de estado e linha de consulta (`js/app.js`, `static/app.css`) | direta |
 | H1, H3 | RF-14 | 14e | `t_tema`, `t_modo`, `t_atalhos`, `t_formatos` | `renderAtalhos`, `renderConfig` | parcial (anúncio ao desafixar: conferir) |
 | H1, H3 | RF-14 | 14f | `t_tags` | `renderConfig` (editor de tags) | parcial |
 | H10 | RF-14 | 14g | `t_atalhos` (Referências sem requisição externa) | `abreReferencias` | parcial |
 | H1, H3 | RF-14 | 14j | `t_tags_nao_conta` | `normalizaTags`, `tagDe` | direta |
 | H1, H3 | RF-14 | 14k | `t_barra_quatro_trechos`, `t_tags_barra_teclado` | editor de tags (`salvaTags`), `renderBarraGeral` | direta |
-| H1 | RF-14 | 14l | `t_setas_espaco` | `desenha` (classe `com-setas`), `static/app.css` | direta |
+| H1 | RF-14 | 14l | `t_destaque` (a etiqueta "libera" não cruza o nome nem o código, a 1440 e a 320 px, nos dois temas) | `destaca` (`.etq-libera`), `static/app.css` | direta |
 | H1, H3 | RF-14 | 14m | `t_config_fechar` | `abreConfiguracoes`, `fechaAoClicarFora` | direta |
-| H1 | RF-14 | 14n | `t_seletor_modo` | `#seletor-modo`, `renderConfig` | direta |
+| H1 | RF-14 | 14n | `t_seletor_modo`, `t_formatos` | `#seletor-modo`, `renderConfig`, `js/tema.js` | direta |
+| H1, H3 | RF-14 | 14q | `t_minimalista` | `renderBarraGeral`, `renderFerramentas` (painel ⋯), `static/app.css` | direta |
+| H1, H9 | RF-14 | 14r, 14s | `t_controles_icones`, `t_todas_acesas` | `rotulo`, `glifo`, `renderOptativas` | direta |
+| H1, H4 | RF-14 | 14t | `t_plano_na_grade` | `cardLimpo` | direta |
+| H1 | RF-14 | 14u | `t_aparencia_migracao`, `t_destaque_migracao`, `t_sync` | `migraAparencia` (`js/tema.js`), migração de `exibir` | direta |
+| H4 | [RF-19](REQUISITOS.md#rf-19--previsão-de-formatura-calculada-h4) | 19a–19e | `t_motivacao`; `node testes/progresso.js` (previsão) | `previsaoFormatura` (`js/conquistas.js`), `coberturaDoPlano` | direta |
+| H3, H4 | [RF-20](REQUISITOS.md#rf-20--modo-foco-fase-do-curso-e-conquistas-h3-h4) | 20a–20e | `t_foco`, `t_foco_ajustes` | `alternaFoco`, `renderBotaoFoco`, `desenha`, `renderGrade`, `renderTimeline` | direta |
+| H3 | RF-20 | 20f–20h | `t_motivacao`, `t_foco_ajustes`; `node testes/progresso.js` (fronteiras, P5, R27) | `fase`, `faseDoCurso`, `percentual` (`js/conquistas.js`), `htmlCartaoFase` | direta |
+| H3 | RF-20 | 20i–20l | `t_conquistas_estante`, `t_foco_ajustes`; `node testes/progresso.js` (um caso por selo) | `avaliaSelos`, `proximoMarco` (`js/conquistas.js`), `htmlEstante`, `idDoPerfil` | direta |
+| H1, H3, H11 | [RF-21](REQUISITOS.md#rf-21--registrar-marcações-aprovações-registradas-por-você-h1-h3-h11) | R01–R06, R30, R33 | `t_registrar_sem_perfil`, `t_registrar_com_perfil` | `gruposRegistro`, `gravaRegistro`, `desfazRegistro` | direta |
+| H3, H4, H5 | RF-21 | R07–R16, R31, R32, R35–R37 | `node testes/progresso.js`, `t_declaradas_modelo`, `t_declaradas_prazo_ace`, `t_declarada_cursando` | `classificaDeclaradas`, `registroCumpre`, `montaRegistros` (`js/progresso.js`), `baseDoPrazo`, `resumoExtensao` | direta |
+| H2, H11 | RF-21 | R17–R26 | `t_declaradas_arquivo`, `t_declaradas_reimportar`, `t_declaradas_detalhe`, `t_declaradas_gestao`, `t_declaradas_lote_foco`; oráculo `declaradas-mesclar`; paridade com `perfil-com-declaradas.json` | `erroDeclarada`, `normalizaDeclaradas`, `montarPerfil` (`js/siga.js`), `gerar_perfil.py`, `htmlDeclaradasPrevia` | direta |
+| H3 | RF-21 | R27–R29, R34 | `node testes/progresso.js`, `t_motivacao`, `t_conquistas_estante` | `faseDoCurso`, `avaliaSelos` | direta |
 | H1, H2 | RF-14 | 14o | `t_importar_sugere_planejador` | `abreImportador` | direta |
 | H1, H3, H10 | RF-14 | 14p | `t_abas_legendas` | `desenha`, `renderLegenda`, `escalaDificuldade`, `renderProgresso` | direta |
 | H14 | [RF-17](REQUISITOS.md#rf-17--validação-dos-dados-de-referência-h14) | 17a–17e | `testes/referencia_casos.py` (80 casos sintéticos, inclusive gramática do horário, dígitos não ASCII, exceção sem uso e efeito recusado; e os dados reais) | `testes/referencia.py` | direta |
@@ -204,12 +219,13 @@ parte dele) ou *sem teste* (conferir na integração).
 | H1 a H4 | RNF-03 | 4.1.2 | `t_b9_aria` (abas com painel associado, setas, Home e End; sem `aria-selected` inválido) | abas (`js/app.js`, `index.html`) | direta |
 | H2 | RNF-03 | 3.3.1, 4.1.3 | `t_m3_mensagens` (falha de leitura do PDF em português, com orientação e sem dados do arquivo; BOA por extenso) | `js/app.js`, `js/siga.js` | direta |
 | H1, H2, H3, H10, H11 | RNF-03 | axe-core | `t_axe_recorte` (recorte de telas e estados, claro e escuro, 1440 e 320 px: sem ocorrência grave ou crítica) | `static/app.css`, `js/app.js` | parcial (o recorte não inclui perfil real, leitor de tela, Safari nem iPhone) |
-| H2, H7 | RNF-05 | — | `ferramentas/testar_paridade.sh`; `testes/importador.py` | `js/siga.js`, `gerar_perfil.py` | direta |
+| H2, H7 | RNF-05 | — | `ferramentas/testar_paridade.sh` (também com perfil anterior com aprovações registradas por você); `testes/importador.py` | `js/siga.js`, `gerar_perfil.py` | direta |
+| H13, H14 | RNF-07 | regras do cálculo | `node testes/progresso.js` (sem navegador) | `js/progresso.js`, `js/conquistas.js` | direta |
 | H10, H14 | RNF-08 | — | `t_rf08_rodape` | `js/database.js`, `js/horarios.js`, `js/guia.js` | parcial |
 | H13, H14, H15 | RNF-07 | P13, P14, P15 | processos descritos em [REQUISITOS.md](REQUISITOS.md#1-histórias-de-usuário), sem tela | [CONTRIBUTING.md](../CONTRIBUTING.md), [MANUTENCAO.md](MANUTENCAO.md), [AGENTS.md](../AGENTS.md) | por leitura |
 
 O estado de cada requisito (cumprido, parcial ou planejado) fica em [REQUISITOS.md](REQUISITOS.md). Itens
-**planejados** (RF-09, RF-15 a RF-19, RNF-11 a RNF-13) e a versão seguinte (01g) não têm teste nesta versão.
+**planejados** (RF-09, RF-15 a RF-18, RNF-11 a RNF-13) e a versão seguinte (01g) não têm teste nesta versão.
 
 ## 6. Limite do ambiente: WebKit
 

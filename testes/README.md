@@ -1,12 +1,13 @@
 # Testes da Grade ECI
 
-A verificação de uma versão reúne cinco suítes. O plano, a matriz de rastreabilidade e a lista de verificação estão em
+A verificação de uma versão reúne seis suítes. O plano, a matriz de rastreabilidade e a lista de verificação estão em
 [docs/PLANO-DE-TESTE.md](../docs/PLANO-DE-TESTE.md); os casos, em [docs/REQUISITOS.md](../docs/REQUISITOS.md).
 
 | Suíte | O que verifica | Arquivos | Como rodar | Resultado esperado |
 | --- | --- | --- | --- | --- |
 | Interface (matriz) | Os casos dos requisitos no navegador, com dados fictícios | `runner.py`, `fluxos.py`, `reimportacao.py`, `auditoria.py` | "Rodar a matriz", nos seis pares | 126 cenários por `file://` e 127 por HTTP, sem evento inesperado |
-| Paridade do importador | Que o importador em JavaScript e o em Python geram o mesmo perfil | `../ferramentas/testar_paridade.sh` | "Rodar a paridade do importador" | As quatro combinações iguais |
+| Regras do cálculo (Node) | Montagem dos registros, fontes, aprovações registradas por você, requisitos, fase, selos e previsão de formatura, sem navegador | `progresso.js` (sobre `../js/progresso.js` e `../js/conquistas.js`) | `node testes/progresso.js` | Todos os casos OK |
+| Paridade do importador | Que o importador em JavaScript e o em Python geram o mesmo perfil | `../ferramentas/testar_paridade.sh` | "Rodar a paridade do importador" | As quatro combinações iguais, também com o perfil com aprovações registradas por você |
 | Oráculos do importador | Que as duas saídas batem com perfis esperados escritos à mão | `importador.py`, `fixtures/oraculos.json` | `python -B testes/importador.py` | Todos os cenários verdes |
 | Validador dos dados de referência (RF-17) | Formato, códigos e duplicatas de `js/horarios.js` e `js/guia.js` | `referencia_casos.py`, `referencia.py`, `fixtures/excecoes-referencia.json` | "Validar os dados de referência" | Todos os casos verdes |
 | Acessibilidade (axe-core) | Regras WCAG A e AA, contraste, alvos e papéis ARIA, no recorte de telas | casos de `fluxos.py` que usam o axe | Dentro da matriz; "Axe-core" | Sem ocorrência grave ou crítica |
@@ -101,6 +102,19 @@ A gramática do horário é estrita (`seg|ter|qua|qui|sex HH-HH`, só dígitos A
 espaço sobrando nem LF final). Exceção sem uso numa fonte gera aviso por fonte e não
 falha; o efeito `entra-no-calculo` não vale para nome sem código.
 
+## Rodar as regras do cálculo (Node)
+
+Na raiz do repositório, com Node (não precisa do Python nem dos navegadores):
+
+```powershell
+node testes/progresso.js
+```
+
+Carrega `js/progresso.js`, `js/conquistas.js` e os dados públicos do curso, e roda casos fictícios: montagem dos
+registros, fontes de cada aprovação, aprovações registradas por você (formato, confirmação pelo SIGA, divergência,
+conflito, semestre ausente, equivalência e bloco de transferidas), requisitos, fase do curso nas fronteiras, um caso
+por selo e a previsão de formatura. Termina com "N/N casos OK" e código diferente de zero se algum falhar.
+
 ## Rodar a paridade do importador
 
 Para comparar o mesmo commit, confirme que o checkout dos importadores
@@ -117,6 +131,9 @@ bash ferramentas/testar_paridade.sh "$hist"
 bash ferramentas/testar_paridade.sh "$hist" "$boa"
 bash ferramentas/testar_paridade.sh "$hist" "$perfil"
 bash ferramentas/testar_paridade.sh "$hist" "$boa" "$perfil"
+declaradas='testes/fixtures/perfil-com-declaradas.json'
+bash ferramentas/testar_paridade.sh "$hist" "$declaradas"
+bash ferramentas/testar_paridade.sh "$hist" "$boa" "$declaradas"
 ```
 
 O script compara o perfil JS e o Python no mesmo texto e com extrações
