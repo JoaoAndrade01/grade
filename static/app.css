@@ -198,8 +198,25 @@ code { background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
 
 /* destaque de requisitos */
 .card.hl-req { outline: 2.5px solid var(--req); outline-offset: 1px; }
+.card.hl-coreq { outline: 2.5px dashed var(--req); outline-offset: 1px; }
 .card.hl-dep { outline: 2.5px solid var(--dep); outline-offset: 1px; }
 .card.hl-self { outline: 2.5px solid var(--text); outline-offset: 1px; }
+.card.hl-dep.hl-coreq { outline-style: dashed; }
+/* Destaque Em foco na Grade: o resto esmaece (fundo neutro e texto atenuado, sem baixar o contraste do texto abaixo de
+   4,5:1); o que ela libera ganha a etiqueta "libera" (a distinção não depende da cor) */
+.painel.destacando .card:not(.hl-req, .hl-coreq, .hl-dep, .hl-self) {
+  background: var(--surface); border-color: var(--border); box-shadow: none; filter: saturate(.15); }
+.painel.destacando .card:not(.hl-req, .hl-coreq, .hl-dep, .hl-self) :is(.nome, .meta, .nota, .sub) { color: var(--muted); }
+.painel.destacando .card.hl-self { outline-width: 3px; }
+.painel.destacando .card.hl-dep::after {
+  content: "libera"; position: absolute; left: 4px; top: 3px; padding: 0 4px; border-radius: 5px; font-size: 10px; font-weight: 700;
+  line-height: 1.4; background: var(--dep); color: #111; }
+.leg-destaque { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: 12px; color: var(--muted); }
+.leg-destaque i { display: inline-block; font-style: normal; }
+.leg-destaque .l-pre, .leg-destaque .l-co { width: 18px; height: 12px; border-radius: 3px; border: 2.5px solid var(--req); }
+.leg-destaque .l-co { border-style: dashed; }
+.leg-destaque .l-libera { padding: 0 4px; border-radius: 5px; font-size: 10px; font-weight: 700; background: var(--dep); color: #111; }
+@media (prefers-reduced-motion: reduce) { .painel.destacando .card { transition: none; } }
 .modo-marcar .card[data-idx] { cursor: copy; }
 .modo-marcar .painel { box-shadow: inset 0 0 0 2px var(--cursando); border-radius: 12px; }
 
@@ -297,7 +314,7 @@ code { background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
   border: 1px solid var(--planejado); color: var(--planejado); background: transparent;
 }
 .mini-btn.on { background: var(--planejado); color: #fff; }
-.opt.hl-req { outline: 2.5px solid var(--req); } .opt.hl-dep { outline: 2.5px solid var(--dep); } .opt.hl-self { outline: 2.5px solid var(--text); }
+.opt.hl-req { outline: 2.5px solid var(--req); } .opt.hl-coreq { outline: 2.5px dashed var(--req); } .opt.hl-dep { outline: 2.5px solid var(--dep); } .opt.hl-self { outline: 2.5px solid var(--text); }
 
 /* Cronograma */
 .crono-topo { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
@@ -539,8 +556,6 @@ small.alerta, .alerta { color: var(--dep); }
   .vista-grade .card.bloco::before { display: none; }
   /* setas ligadas: vãos maiores para as curvas (cada curva usa até 24 px) e colunas com largura mínima legível;
      se não couber, a Grade rola de lado na própria região, nunca a página */
-  .painel.vista-grade.com-setas { gap: 28px; grid-auto-columns: minmax(112px, 1fr); overflow-x: auto; }
-  .vista-grade.com-setas .col-cards { gap: 14px; }
 }
 
 /* paleta flutuante */
@@ -576,8 +591,6 @@ small.alerta, .alerta { color: var(--dep); }
   .vista-grade .coluna { flex: none; width: 100%; }
   .vista-grade .col-topo { display: flex; justify-content: space-between; align-items: center; }
   .vista-grade .col-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .painel.vista-grade.com-setas { gap: 18px; }
-  .vista-grade.com-setas .col-cards { gap: 14px 18px; }
   .vista-grade .card { min-height: 56px; }
   .vista-grade .card .nome { font-size: 13px; }
   .paleta { bottom: 8px; width: calc(100vw - 16px); }
@@ -742,16 +755,13 @@ dialog.dlg:modal { overscroll-behavior: contain; }
 /* setas de requisitos (SVG sobre a grade; não recebe cliques) */
 .painel { position: relative; }
 .setas { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; }
-.setas-foco, .setas-demo { z-index: 3; }
-.setas-todas { z-index: 0; }
+.setas-demo { z-index: 3; }
 .vista-grade .card { z-index: 1; }
 .setas .halo { fill: none; stroke: var(--surface); stroke-width: 5; opacity: .9; }
-.setas-todas .halo { display: none; }
 .setas .seta { fill: none; stroke: var(--muted); stroke-width: 1.6; }
 .setas .seta.coreq { stroke-dasharray: 6 4; }
 .setas .seta.entra { stroke: var(--req); stroke-width: 2.4; }
 .setas .seta.sai { stroke: var(--alerta); stroke-width: 2.4; }
-.setas-todas .seta { opacity: .55; }
 .setas .ponta-neutra path { fill: var(--muted); }
 .setas .ponta-entra path { fill: var(--req); }
 .setas .ponta-sai path { fill: var(--alerta); }

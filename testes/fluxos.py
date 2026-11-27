@@ -1882,72 +1882,80 @@ def t_aviso_pdf(b):
     foto(pg, "36-aviso-pdfs")
     ctx.close()
 
-def caminhos(pg): return pg.locator("#painel > svg.setas path.seta").count()
-@caso("Setas: Ocultas por padrão; foco por mouse, teclado e toque; contínua × tracejada; Todas; alinhamento ao redimensionar; cartões clicáveis")
-def t_setas(b):
-    ctx, pg = abre(b, perfil=PERFIL, nome="setas")
-    completo(pg, "grade")
-    assert pg.locator('input[name="setas"][value="ocultas"]').is_checked() and pg.locator("svg.setas").count() == 0
-    pg.locator('.card[data-code="MAC128"]').hover(); assert pg.locator("svg.setas").count() == 0
-    pg.check('input[name="setas"][value="foco"]'); assert ls(pg, "exibir")["setas"] == "foco"
+def destaque(pg):
+    return pg.evaluate("""() => { const q = (c) => [...document.querySelectorAll(`#painel .card.${c}[data-code]`)].map((e) => e.dataset.code).sort();
+        return { self: q('hl-self'), pre: q('hl-req'), co: q('hl-coreq'), libera: q('hl-dep'), ativo: document.querySelector('#painel').classList.contains('destacando') }; }""")
+def esmaecido(pg, code):
+    """Esmaecido: fundo neutro e texto atenuado (o contraste do texto continua acima de 4,5:1; o axe confere)."""
+    pg.evaluate("Promise.all(document.getAnimations().map((a) => a.finished.catch(() => 0)))")     # transição terminada
+    return pg.locator(f'#painel .card[data-code="{code}"]').evaluate("""e => { const m = getComputedStyle(document.body).getPropertyValue('--muted');
+        const t = document.createElement('i'); t.style.color = m; document.body.append(t); const cor = getComputedStyle(t).color; t.remove();
+        return getComputedStyle(e.querySelector('.nome')).color === cor; }""")
+def contorno(pg, code): return pg.locator(f'#painel .card[data-code="{code}"]').evaluate("e => getComputedStyle(e).outlineStyle")
+
+@caso("Destaque Em foco (padrão): pré-requisito contínuo, co-requisito tracejado, 'libera' no dependente; o resto esmaece; mouse, teclado e detalhes; Desligado")
+def t_destaque(b):
+    ctx, pg = abre(b, perfil=PERFIL, extra={"modoClassico": False, "vista": "grade"}, nome="destaque")
+    expect(pg.get_by_role("radiogroup", name="Destaque de requisitos")).to_be_visible()
+    expect(pg.get_by_role("radio", name="Em foco", exact=True)).to_be_checked()
+    assert pg.locator("#painel svg.setas").count() == 0                       # a Grade não desenha mais setas
     pg.locator('.card[data-code="MAC128"]').hover()
-    entra = pg.locator("svg.setas path.seta.entra"); sai = pg.locator("svg.setas path.seta.sai")
-    assert entra.count() == 1 and sai.count() == 3, (entra.count(), sai.count())   # MAC118 → MAC128; MAC128 → MAC238, MAC248, FIM230
-    # a ponta da seta encosta na disciplina que exige o requisito
-    d = entra.first.get_attribute("d"); fim = [float(x) for x in re.findall(r"-?\d+\.?\d*", d)[-2:]]
-    box = pg.evaluate("""() => { const p = document.querySelector('#painel').getBoundingClientRect(), c = document.querySelector('.card[data-code="MAC128"]').getBoundingClientRect();
-                         return [c.left - p.left + document.querySelector('#painel').scrollLeft, c.top - p.top + c.height / 2]; }""")
-    assert abs(fim[0] - (box[0] - 2)) < 1.5 and abs(fim[1] - box[1]) < 1.5, (fim, box)
+    d = destaque(pg)
+    assert d == {"self": ["MAC128"], "pre": ["MAC118"], "co": [], "libera": ["FIM230", "MAC238", "MAC248"], "ativo": True}, d
+    assert contorno(pg, "MAC118") == "solid"
+    assert pg.locator('.card[data-code="MAC238"]').evaluate("e => getComputedStyle(e, '::after').content") == '"libera"'
+    assert esmaecido(pg, "COS110") and not esmaecido(pg, "MAC118")                 # o resto esmaece
+    assert "libera" in pg.locator(".leg-destaque").inner_text()                   # legenda explica sem depender da cor
+    foto(pg, "destaque-em-foco")
+    pg.mouse.move(5, 5)                                                            # o mouse limpa ao sair
+    assert destaque(pg)["self"] == [] and not destaque(pg)["ativo"] and not esmaecido(pg, "COS110")
+    pg.locator('.card[data-code="COS110"]').focus(); pg.keyboard.press("Tab")    # teclado: o destaque acompanha o foco
+    foco = pg.evaluate("document.activeElement.dataset.code")
+    assert destaque(pg)["self"] == [foco], (foco, destaque(pg))
+    pg.locator('.card[data-code="COS231"]').focus()
+    d = destaque(pg); assert d["self"] == ["COS231"] and len(d["co"]) == 1 and d["pre"], d
+    assert contorno(pg, d["co"][0]) == "dashed" and contorno(pg, d["pre"][0]) == "solid"
+    pg.locator("#btn-config").focus()                                             # o foco sai da Grade: o destaque some
+    assert destaque(pg)["self"] == []
+    pg.locator('.card[data-code="COS231"]').click(); expect(pg.locator("#detalhes")).to_be_visible()
     pg.mouse.move(5, 5)
-    pg.locator('.card[data-code="COS231"]').focus()                   # teclado
-    assert pg.locator("svg.setas path.seta.coreq").count() == 1 and pg.locator("svg.setas path.seta.req").count() >= 3
-    assert pg.locator("svg.setas path.seta.coreq").evaluate("e => getComputedStyle(e).strokeDasharray") != "none"
-    assert pg.locator("svg.setas path.seta.req").first.evaluate("e => getComputedStyle(e).strokeDasharray") == "none"
-    antes = pg.locator("svg.setas path.seta.coreq").get_attribute("d")
-    pg.set_viewport_size({"width": 1180, "height": 900}); pg.wait_for_timeout(300)
-    assert pg.locator("svg.setas path.seta.coreq").get_attribute("d") != antes          # redesenhou ao redimensionar
-    pg.locator('.card[data-code="COS231"]').click()                    # cartões continuam clicáveis por baixo do SVG
-    expect(pg.locator("#detalhes")).to_be_visible(); assert "Estruturas de Dados" in pg.locator("#detalhes").inner_text()
+    assert destaque(pg)["self"] == ["COS231"]                                     # com os detalhes abertos, fica na consultada
     pg.keyboard.press("Escape")
-    pg.check('input[name="setas"][value="todas"]'); n = caminhos(pg)
-    total = pg.evaluate("""() => { let n = 0; for (const c of window.courses[1]) n += (c.requirements || []).length + (c.corequirements || []).length; return n; }""")
-    assert n == total, (n, total)
-    foto(pg, "37-setas-todas")
+    pg.get_by_role("radio", name="Desligado", exact=True).check(); assert ls(pg, "exibir")["destaque"] == "desligado"
+    assert pg.evaluate("document.activeElement.value") == "desligado"
+    pg.locator('.card[data-code="MAC128"]').hover()
+    assert destaque(pg) == {"self": [], "pre": [], "co": [], "libera": [], "ativo": False} and not esmaecido(pg, "COS110")
+    abre_config(pg); assert pg.locator('#dlg-config input[name="destaque"][value="desligado"]').is_checked()
+    pg.check('#dlg-config input[name="destaque"][value="foco"]'); pg.keyboard.press("Escape")
+    expect(pg.get_by_role("radio", name="Em foco", exact=True)).to_be_checked()
     ctx.close()
-    ctx, pg = abre(b, vp=C, perfil=PERFIL, extra={"exibir": {"codigo": True, "setas": "foco"}, "modoClassico": False, "vista": "grade"}, nome="setas-toque", toque=True)
-    pg.locator('.card[data-code="MAC238"]').tap(); assert pg.locator("svg.setas path.seta.entra").count() == 1
-    expect(pg.locator("#detalhes")).to_be_visible()
-    pg.locator("#detalhes .fechar").tap()
-    pg.locator('.card[data-code="MAC238"]').scroll_into_view_if_needed(); foto(pg, "38-setas-toque-celular")
+    # toque: o primeiro toque consulta (e destaca), o segundo pinta; Clássico, 320 px e tema escuro
+    ctx, pg = abre(b, vp=C320, perfil=PERFIL, nome="destaque-toque", toque=True, esquema="dark")
+    assert pg.locator("#modo-classico").is_checked()
+    pg.locator('.card[data-code="MAC248"]').tap()
+    expect(pg.locator("#consulta")).to_be_visible(); assert "MAC248" not in (ls(pg, "marcacoes") or {})
+    d = destaque(pg); assert d["self"] == ["MAC248"] and d["pre"] == ["MAC128"] and d["ativo"], d
+    foto(pg, "destaque-toque-320-escuro")
+    pg.locator('.card[data-code="MAC248"]').tap(); assert "MAC248" in ls(pg, "marcacoes")
+    assert pg.evaluate("document.documentElement.scrollWidth - innerWidth") <= 1
     ctx.close()
 
-def medidas_grade(pg):
-    return pg.evaluate("""() => { const p = document.querySelector('#painel'), cs = getComputedStyle(p), c = document.querySelector('#painel .col-cards');
-        const nomes = [...document.querySelectorAll('#painel .card .nome')].map((n) => parseFloat(getComputedStyle(n).fontSize));
-        const cards = [...document.querySelectorAll('#painel .card[data-code]')].map((k) => k.getBoundingClientRect().width);
-        const svg = p.querySelector(':scope > svg.setas');
-        return { col: parseFloat(cs.columnGap) || parseFloat(cs.rowGap), cartao: parseFloat(getComputedStyle(c).rowGap),
-                 pagina: document.documentElement.scrollWidth - innerWidth, rola: p.scrollWidth - p.clientWidth, overflowX: cs.overflowX,
-                 fonte: Math.min(...nomes), largura: Math.min(...cards), svg: svg ? +svg.getAttribute('width') : null, total: p.scrollWidth }; }""")
-
-@caso("Setas: ligadas, a Grade abre espaço entre colunas e cartões; leitura e rolagem em tela larga e estreita")
-def t_setas_espaco(b):
-    observado = {}
-    for nome, vp in (("larga", D), ("media", {"width": 1180, "height": 900}), ("estreita", C)):
-        ctx, pg = abre(b, vp=vp, perfil=PERFIL, extra={"modoClassico": False, "vista": "grade"}, nome=f"setas-espaco-{nome}")
-        sem = medidas_grade(pg)
-        pg.evaluate("() => { const e = JSON.parse(localStorage.getItem('gradeECI.v2.exibir') || '{}'); e.setas = 'todas'; localStorage.setItem('gradeECI.v2.exibir', JSON.stringify(e)); }")
-        pg.reload(); pg.wait_for_load_state("load"); pronto(pg, f"setas-espaco-{nome}")
-        com = medidas_grade(pg)
-        assert com["col"] > sem["col"] and com["cartao"] > sem["cartao"], (nome, sem, com)
-        assert com["pagina"] <= 1 and sem["pagina"] <= 1, (nome, sem, com)                  # a página não rola de lado
-        assert com["fonte"] >= 10 and com["largura"] >= 96, (nome, com)                     # nomes legíveis
-        if com["rola"] > 0:                                                                  # se a Grade não cabe, rola na própria região
-            assert com["overflowX"] in ("auto", "scroll") and com["svg"] == com["total"], (nome, com)
-        observado[nome] = (com["col"] >= 24 if nome != "estreita" else com["cartao"] >= 12, com["rola"] > 0)
-        foto(pg, f"setas-espaco-{nome}")
+@caso("Destaque: Ocultas migra para Desligado; Disciplina em foco e Todas para Em foco; a chave antiga sai; outras preferências ficam")
+def t_destaque_migracao(b):
+    for antigo, novo in (("ocultas", "desligado"), ("foco", "foco"), ("todas", "foco"), (None, "foco")):
+        exibir = {"codigo": False, "notas": True} | ({"setas": antigo} if antigo else {})
+        ctx, pg = abre(b, perfil=PERFIL, extra={"modoClassico": False, "vista": "grade", "exibir": exibir}, nome=f"destaque-migracao-{antigo}")
+        salvo = ls(pg, "exibir")
+        if antigo: assert salvo == {"codigo": False, "notas": True, "presenca": False, "dificuldade": False, "destaque": novo}, salvo
+        expect(pg.locator(f'#ferramentas input[name="destaque"][value="{novo}"]')).to_be_checked()
+        assert not pg.locator('#ferramentas [data-exibir="codigo"]').is_checked() and pg.locator('#ferramentas [data-exibir="notas"]').is_checked()
+        pg.locator('.card[data-code="MAC128"]').hover()
+        assert destaque(pg)["ativo"] == (novo == "foco"), antigo
         ctx.close()
-    assert observado == {"larga": (True, False), "media": (True, True), "estreita": (True, False)}, observado
+    # a escolha nova prevalece sobre a chave antiga que sobrou
+    ctx, pg = abre(b, perfil=PERFIL, extra={"modoClassico": False, "vista": "grade", "exibir": {"setas": "todas", "destaque": "desligado"}}, nome="destaque-migracao-ambos")
+    assert ls(pg, "exibir")["destaque"] == "desligado" and "setas" not in ls(pg, "exibir")
+    ctx.close()
 
 ANTIGAS_TAGS = [{"id": "aprovada", "nome": "Aprovada", "cor": "#16a34a", "status": "aprovado"},
                 {"id": "aprov-esperada", "nome": "Aprovação esperada", "cor": "#84cc16", "status": "previsto"},
@@ -2077,7 +2085,7 @@ def t_tags_barra_teclado(b):
     ctx.close()
     assert (foco, depois, de_novo) == ("0", "1", "0"), (foco, depois, de_novo)
 
-@caso("Cadeado: só ícone com nome acessível, começa desligado e lembra; protege cursadas e aprovadas do perfil; detalhes e setas continuam")
+@caso("Cadeado: só ícone com nome acessível, começa desligado e lembra; protege cursadas e aprovadas do perfil; detalhes e destaque continuam")
 def t_cadeado(b):
     ctx, pg = abre(b, perfil=PERFIL, nome="cadeado")
     cad = pg.locator("#cadeado")
@@ -2101,12 +2109,12 @@ def t_cadeado(b):
     assert pg.locator("#detalhes [data-settag]").first.is_disabled()
     foto(pg, "39-cadeado-ligado")
     pg.locator('.card[data-code="EEL871"]').click(); assert ls(pg, "marcacoes")["EEL871"] == ""   # não protegida: a borracha funciona
-    pg.keyboard.press("Escape"); completo(pg, "grade"); pg.check('input[name="setas"][value="foco"]')
-    pg.locator('.card[data-code="COS110"]').hover(); assert pg.locator("svg.setas path.seta").count() > 0
+    pg.keyboard.press("Escape"); completo(pg, "grade"); pg.check('input[name="destaque"][value="foco"]')
+    pg.locator('.card[data-code="COS110"]').hover(); assert pg.locator("#painel .card.hl-self").count() == 1
     ctx.close()
 
 
-CASOS2 = [t_plano_preservado, t_aviso_pdf, t_setas, t_setas_espaco, t_tags, t_tags_nao_conta, t_barra_quatro_trechos, t_tags_barra_teclado, t_cadeado]
+CASOS2 = [t_plano_preservado, t_aviso_pdf, t_destaque, t_destaque_migracao, t_tags, t_tags_nao_conta, t_barra_quatro_trechos, t_tags_barra_teclado, t_cadeado]
 
 # ================================================================== rodada 3
 PLANOS2 = {"titulo": "Grade ECI", "nome": "Caio", "curso": 1, "periodos": [
@@ -2264,19 +2272,19 @@ def t_modo(b):
     assert pg.locator("#seletor-modo").is_visible() and pg.locator("#modo-classico").is_checked()
     ctx.close()
 
-@caso("Configurações sincroniza Grade → Exibir, setas e o cadeado da paleta, nos dois sentidos; preferências antigas preservadas")
+@caso("Configurações sincroniza Grade → Exibir, destaque e o cadeado da paleta, nos dois sentidos; preferências antigas preservadas")
 def t_sync(b):
     ctx, pg = abre(b, perfil=PERFIL, extra={"modoClassico": False, "vista": "grade", "exibir": {"codigo": False, "notas": True, "setas": "foco"},
                                             "tags": [{"id": "minha", "nome": "Quero fazer", "cor": "#0891b2", "status": "planejado"}]}, nome="sync")
     abre_config(pg)
     assert not pg.locator('#dlg-config [data-exibir="codigo"]').is_checked() and pg.locator('#dlg-config [data-exibir="notas"]').is_checked()
-    assert pg.locator('#dlg-config input[name="setas"][value="foco"]').is_checked()
-    pg.check('#dlg-config [data-exibir="dificuldade"]'); pg.check('#dlg-config input[name="setas"][value="todas"]'); pg.check("#cfg-cadeado")
+    assert pg.locator('#dlg-config input[name="destaque"][value="foco"]').is_checked()            # setas "foco" antiga → Em foco
+    pg.check('#dlg-config [data-exibir="dificuldade"]'); pg.check('#dlg-config input[name="destaque"][value="desligado"]'); pg.check("#cfg-cadeado")
     pg.keyboard.press("Escape")
-    assert pg.locator('#ferramentas [data-exibir="dificuldade"]').is_checked() and pg.locator('#ferramentas input[name="setas"][value="todas"]').is_checked()
+    assert pg.locator('#ferramentas [data-exibir="dificuldade"]').is_checked() and pg.locator('#ferramentas input[name="destaque"][value="desligado"]').is_checked()
     assert pg.locator("#cadeado").get_attribute("aria-pressed") == "true"
-    pg.click("#cadeado"); pg.check('#ferramentas input[name="setas"][value="ocultas"]')
-    abre_config(pg); assert not pg.locator("#cfg-cadeado").is_checked() and pg.locator('#dlg-config input[name="setas"][value="ocultas"]').is_checked()
+    pg.click("#cadeado"); pg.check('#ferramentas input[name="destaque"][value="foco"]')
+    abre_config(pg); assert not pg.locator("#cfg-cadeado").is_checked() and pg.locator('#dlg-config input[name="destaque"][value="foco"]').is_checked()
     pg.keyboard.press("Escape")
     assert pg.locator("#paleta").inner_text().strip().startswith("Detalhes") and "Quero fazer" in pg.locator("#paleta").inner_text()   # tags personalizadas
     ctx.close()

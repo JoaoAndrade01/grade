@@ -1,6 +1,6 @@
 /*
  * "A ECI por trás da Grade" — experiências curtas que mostram o que se estuda no curso por trás de recursos deste site.
- * Também exporta desenhaSetas(), usado pelas setas de requisitos da aba Grade.
+ * Também exporta desenhaSetas(), usado pelas setas didáticas destas experiências.
  *
  * Disciplinas com experiência (as outras ficam no backlog; COS231 · Estruturas de Dados, com o choque de horários,
  * é a próxima etapa):
@@ -397,7 +397,7 @@ para cada linha do PDF:
     se cor[p] = branco: visita(p)
   cor[v] ← preto
 cadeia(v) = maior cadeia(p) dos pré-requisitos + [v]   (com memória)</pre>
-        <p><b>Onde está:</b> requisitos em <code>js/database.js</code>; <code>montaModelo</code> e <code>arestasDe</code> em <code>js/app.js</code> (setas da Grade);
+        <p><b>Onde está:</b> requisitos em <code>js/database.js</code>; <code>montaModelo</code> e <code>destaca</code> em <code>js/app.js</code> (destaque de requisitos da Grade);
           esta análise em <code>analisaGrafo</code>, <code>js/eci.js</code>.</p>
         <p><b>Caso de borda:</b> um ciclo. A busca marca quem está “em visita” (cinza); voltar a um vértice cinza é um ciclo, e ela para ali em vez de girar para sempre.
           Co-requisito não entra na cadeia: pode ser cursado junto.</p>`)}

@@ -335,7 +335,6 @@
   } catch (e) { /* armazenamento indisponível: a conversão vale só nesta visita */ }
   let pincel = null;                 // id da tag selecionada para pintar (null = clique abre detalhes)
   let cadeado = load("cadeado", false, (v) => typeof v === "boolean"); // protege as cursadas contra alterações manuais
-  let focoSetas = null;              // disciplina em foco para as setas de requisitos
   // Barra do topo: atalhos fixados em Configurações (todos começam desafixados) e o seletor de modo.
   const ATALHOS = ["perfil", "importar", "tema", "privacidade", "referencias", "tags"];
   let atalhos = load("atalhos", [], (v) => listaDe(v, (x) => ATALHOS.includes(x)));
@@ -343,8 +342,14 @@
   let celTab = null;                 // célula do cronograma que entra na ordem de Tab (foco móvel)
   let consultado = null;             // toque: cartão consultado, à espera do segundo toque que marca
   let seletorECI = false;            // paleta "ECI por trás" (só nesta visita): destaca os cartões com experiência
-  let exibir = Object.assign({ codigo: true, notas: false, dificuldade: false, presenca: false, setas: "ocultas" }, load("exibir", {}));
-  if (!["ocultas", "foco", "todas"].includes(exibir.setas)) exibir.setas = "ocultas";
+  // Destaque de requisitos na Grade: "foco" (Em foco, padrão) ou "desligado". Substitui as setas: a preferência antiga
+  // `setas` migra (Ocultas → Desligado; Disciplina em foco e Todas → Em foco) e sai do objeto salvo.
+  let exibir = Object.assign({ codigo: true, notas: false, dificuldade: false, presenca: false, destaque: "foco" }, load("exibir", {}));
+  if (Object.prototype.hasOwnProperty.call(exibir, "setas")) {
+    if (!["desligado", "foco"].includes(load("exibir", {}).destaque)) exibir.destaque = exibir.setas === "ocultas" ? "desligado" : "foco";
+    delete exibir.setas; save("exibir", exibir);
+  }
+  if (!["desligado", "foco"].includes(exibir.destaque)) exibir.destaque = "foco";
   let filtroNivel = load("filtroNivel", [], (v) => listaDe(v, numero));   // níveis de dificuldade em destaque (vazio = todos)
   let progressoAberto = load("progressoAberto", false);
   let infoLivreAberta = false;      // explicação dos números da livre escolha (ⓘ do detalhamento), só nesta visita
@@ -1012,6 +1017,9 @@
     ${seletorECI ? `<p class="dica-eci" id="dica-eci">Escolha um cartão destacado para abrir a experiência. As outras disciplinas ficam inativas até você desligar “ECI por trás”.</p>` : ""}`;
   }
 
+  const DESTAQUE = [["desligado", "Desligado", "○"], ["foco", "Em foco", "⇢"]];
+  // A distinção não depende da cor: contorno contínuo, tracejado e a etiqueta "libera".
+  const LEGENDA_DESTAQUE = `<span class="leg-destaque"><i class="l-pre"></i>pré-requisito <i class="l-co"></i>co-requisito <i class="l-libera">libera</i>o que ela libera</span>`;
   const EXIBIR = [["codigo", "Código e créditos", "#"], ["notas", "Notas", "★"], ["dificuldade", "Dificuldade", "●"], ["presenca", "Presença", "✓"]];
   /** Opções de exibição e filtro (só no Planejador, aba Grade). */
   function renderFerramentas() {
@@ -1021,10 +1029,10 @@
           `<label class="check ctl" title="${n}"><input type="checkbox" data-exibir="${k}" ${exibir[k] ? "checked" : ""}> ${rotulo(glifo(g), n)}</label>`).join("")}
         ${exibir.dificuldade ? escalaDificuldade() : ""}
       </div>
-      <div class="ferr-grupo" role="radiogroup" aria-label="Setas de requisitos"><span class="ferr-rot">${icone("setas", 14)} Setas</span>
-        ${[["ocultas", "Ocultas"], ["foco", "Disciplina em foco"], ["todas", "Todas"]].map(([v, n]) =>
-          `<label class="check"><input type="radio" name="setas" value="${v}" ${exibir.setas === v ? "checked" : ""}> ${n}</label>`).join("")}
-        ${exibir.setas !== "ocultas" ? `<span class="leg-setas"><i class="l-req"></i>pré-requisito <i class="l-coreq"></i>co-requisito</span>` : ""}
+      <div class="ferr-grupo" role="radiogroup" aria-label="Destaque de requisitos"><span class="ferr-rot ctl" aria-hidden="true">${rotulo(glifo("⇢"), "Destaque")}</span>
+        ${DESTAQUE.map(([v, n, g]) =>
+          `<label class="check ctl" title="Destaque: ${n}"><input type="radio" name="destaque" value="${v}" ${exibir.destaque === v ? "checked" : ""}> ${rotulo(glifo(g), n)}</label>`).join("")}
+        ${exibir.destaque === "foco" ? LEGENDA_DESTAQUE : ""}
       </div>
       ${niveis.length ? `<div class="ferr-grupo"><span class="ferr-rot">Dificuldade</span>
         ${niveis.map((k) => `<button type="button" class="chip chip-btn${filtroNivel.includes(+k) ? " on" : ""}" data-nivel="${k}" title="${esc(M.guia.niveis[k].nome)}">${M.guia.niveis[k].emoji}</button>`).join("")}
@@ -1940,8 +1948,8 @@
           ${[["codigo", "Código e créditos"], ["notas", "Notas"], ["dificuldade", "Dificuldade"], ["presenca", "Presença"]].map(([k, n]) =>
             `<label class="opcao"><input type="checkbox" data-exibir="${k}"${exibir[k] ? " checked" : ""}> ${n}</label>`).join("")}
         </fieldset>
-        <fieldset class="opcoes"><legend>Setas de requisitos</legend>
-          ${radio("setas", "ocultas", "Ocultas", exibir.setas === "ocultas")}${radio("setas", "foco", "Disciplina em foco", exibir.setas === "foco")}${radio("setas", "todas", "Todas", exibir.setas === "todas")}
+        <fieldset class="opcoes"><legend>Destaque de requisitos</legend>
+          ${radio("destaque", "desligado", "Desligado", exibir.destaque === "desligado")}${radio("destaque", "foco", "Em foco: requisitos e o que ela libera acendem, o resto esmaece", exibir.destaque === "foco")}
         </fieldset>
         <label class="opcao"><input type="checkbox" id="cfg-cadeado"${cadeado ? " checked" : ""}> Proteger as disciplinas cursadas (cadeado da paleta)</label>
         ${linhaAtalho("tags")}
@@ -2082,16 +2090,13 @@
       <button type="button" class="link" id="descartar-importado">${perfilArquivo ? "Voltar ao perfil/perfil.js" : "Descartar perfil salvo"}</button>`;
     const painel = $("#painel");
     const scroll = painel.dataset.vista === vista ? { x: painel.scrollLeft, y: window.scrollY } : null;
-    // Com as setas de requisitos ligadas, a Grade abre espaço entre colunas e cartões para as setas não se tocarem.
-    const comSetas = vista === "grade" && !modoClassico && exibir.setas !== "ocultas";
-    painel.className = `painel vista-${vista}${comSetas ? " com-setas" : ""}`;
+    painel.className = `painel vista-${vista}`;
     painel.dataset.vista = vista;
     const foco = document.activeElement && document.activeElement.id === "busca-opt" ? document.activeElement.selectionStart : null;
     const fn = { timeline: renderTimeline, optativas: renderOptativas, cronograma: renderCronograma, pedidos: renderPedidos,
       eci: () => window.ECI.renderSecao(contextoECI()) }[vista] || renderGrade;
     painel.innerHTML = fn();
     if (vista === "eci") window.ECI.montado(painel, contextoECI());
-    desenhaSetas();
     if (scroll) { painel.scrollLeft = scroll.x; window.scrollTo(0, scroll.y); }
     else {
       painel.scrollLeft = 0;
@@ -2256,8 +2261,8 @@
   }
   /** Clique com o pincel: aplica a tag; clicar de novo com a mesma tag tira a tag. */
   function pinta(code) {
-    if (protegida(code)) {   // o clique continua mostrando os detalhes e as setas
-      destaca(code); defineFoco(code); abreDetalhes({ code });
+    if (protegida(code)) {   // o clique continua mostrando os detalhes e o destaque
+      destaca(code); abreDetalhes({ code });
       anuncia(`${code} está protegida pelo cadeado. Desligue o cadeado na paleta para alterar.`);
       return;
     }
@@ -2790,46 +2795,32 @@
   }
 
   // ---------- Destaque de requisitos ----------
+  // Pré-requisito com contorno contínuo, co-requisito tracejado e o que ela libera com a etiqueta "libera". Na Grade
+  // (Clássico e Planejador) segue Exibir → Destaque: Em foco esmaece o resto; Desligado não destaca. Nas outras telas,
+  // só os contornos. As setas didáticas de "A ECI por trás da Grade" ficam em js/eci.js.
   function destaca(code) {
     limpaDestaque();
     if (!code) return;
     const i = M.info(code); if (!i) return;
-    const marca = (c, cls) => document.querySelectorAll(`.painel [data-code="${CSS.escape(c)}"]`).forEach((el) => el.classList.add(cls));
-    i.req.concat(i.coreq).forEach((r) => marca(r, "hl-req"));
+    const painel = $("#painel"), naGrade = painel.classList.contains("vista-grade");
+    if (naGrade && exibir.destaque !== "foco") return;
+    const marca = (c, cls) => painel.querySelectorAll(`[data-code="${CSS.escape(c)}"]`).forEach((el) => el.classList.add(cls));
+    i.req.forEach((r) => marca(r, "hl-req"));
+    i.coreq.forEach((r) => marca(r, "hl-coreq"));
     (M.deps[code] || []).forEach((d) => marca(d, "hl-dep"));
+    // quem a exige como co-requisito também é liberado por ela, com o contorno tracejado do co-requisito
+    Object.keys(M.curr).filter((c) => M.info(c).coreq.includes(code)).forEach((d) => { marca(d, "hl-dep"); marca(d, "hl-coreq"); });
     marca(code, "hl-self");
+    painel.classList.toggle("destacando", naGrade);
   }
   function limpaDestaque() {
-    document.querySelectorAll(".hl-req,.hl-dep,.hl-self").forEach((el) => el.classList.remove("hl-req", "hl-dep", "hl-self"));
+    document.querySelectorAll(".hl-req,.hl-coreq,.hl-dep,.hl-self").forEach((el) => el.classList.remove("hl-req", "hl-coreq", "hl-dep", "hl-self"));
+    $("#painel").classList.remove("destacando");
   }
-
-  // ---------- Setas de requisitos (Grade → Exibir) ----------
-  // A seta parte do requisito e aponta para a disciplina que o exige: contínua = pré-requisito, tracejada = co-requisito.
-  function arestasDe(code) {
-    const i = M.info(code); if (!i) return [];
-    const out = i.req.map((r) => ({ de: r, para: code, tipo: "req" })).concat(i.coreq.map((r) => ({ de: r, para: code, tipo: "coreq" })));
-    Object.keys(M.curr).forEach((c) => {
-      const j = M.info(c);
-      if (j.req.includes(code)) out.push({ de: code, para: c, tipo: "req" });
-      if (j.coreq.includes(code)) out.push({ de: code, para: c, tipo: "coreq" });
-    });
-    return out;
-  }
-  const todasArestas = () => Object.keys(M.curr).flatMap((c) => {
-    const i = M.info(c);
-    return i.req.map((r) => ({ de: r, para: c, tipo: "req" })).concat(i.coreq.map((r) => ({ de: r, para: c, tipo: "coreq" })));
-  });
-  function defineFoco(code) {
-    if (focoSetas === code) return;
-    focoSetas = code;
-    if (exibir.setas === "foco") desenhaSetas();
-  }
-  function desenhaSetas() {
-    const painel = $("#painel");
-    const ativo = !modoClassico && vistaAtual === "grade" && exibir.setas !== "ocultas";
-    const arestas = !ativo ? [] : exibir.setas === "todas" ? todasArestas() : focoSetas ? arestasDe(focoSetas) : [];
-    window.ECI.desenhaSetas(painel, arestas, (code) => painel.querySelector(`.card[data-code="${CSS.escape(code)}"]`),
-      { classe: `setas-grade setas-${exibir.setas}`, destaque: exibir.setas === "foco" ? focoSetas : null, vao: exibir.setas !== "todas" });
+  /** Sem o mouse e sem o foco na Grade: o destaque fica na disciplina com os detalhes abertos, ou some. */
+  function destaqueEmRepouso() {
+    const aberto = !$("#detalhes").hidden && ($("#detalhes").dataset.alvo || "").startsWith("c:") ? $("#detalhes").dataset.alvo.slice(2) : null;
+    if (aberto) destaca(aberto); else limpaDestaque();
   }
 
   // ---------- Eventos ----------
@@ -2839,7 +2830,7 @@
   const porToque = () => Date.now() - toqueEm < 1200;
   function consulta(code) {
     consultado = code;
-    destaca(code); defineFoco(code);
+    destaca(code);
     $("#paleta").innerHTML = renderPaleta();
     const so = situacaoOrigem(code);
     anuncia(`${code}: ${so.rot}, ${so.origem || "sem marcação"}. Toque de novo para aplicar a tag.`);
@@ -2974,7 +2965,6 @@
         consultado = null; return pinta(el.dataset.code);
       }
       destaca(el.dataset.code);
-      if (el.dataset.code) defineFoco(el.dataset.code);
       abrePainel(ev, () => abreDetalhes(el.dataset.code ? { code: el.dataset.code, periodo: el.dataset.periodo || null, reg: el.dataset.reg != null ? +el.dataset.reg : null,
         status: el.dataset.status || null, transferida: el.hasAttribute("data-transferida") } : { idx: el.dataset.idx }));
     });
@@ -3024,23 +3014,19 @@
         return;
       }
       const el = ev.target.closest(".card[data-code], .opt[data-code]");
-      if (el) { destaca(el.dataset.code); defineFoco(el.dataset.code); }
+      if (el) destaca(el.dataset.code);
     });
-    // teclado: o foco num cartão mostra as ligações dele
+    // teclado: o foco num cartão mostra as ligações dele; ao sair da Grade, o destaque volta ao repouso
     painel.addEventListener("focusin", (ev) => {
       const el = ev.target.closest(".card[data-code]");
-      if (el) { destaca(el.dataset.code); defineFoco(el.dataset.code); }
+      if (el) destaca(el.dataset.code);
     });
-    // as setas acompanham a grade quando a janela muda de tamanho
-    if (window.ResizeObserver) new ResizeObserver(() => desenhaSetas()).observe(painel);
+    painel.addEventListener("focusout", (ev) => {
+      if (ev.relatedTarget && !painel.contains(ev.relatedTarget) && !painel.matches(":hover")) destaqueEmRepouso();
+    });
     document.addEventListener("mouseup", () => { arrasto = null; });
-    painel.addEventListener("mouseleave", () => {
-      limpaDestaque();
-      // com o painel de detalhes aberto (ex.: toque), as setas continuam na disciplina aberta
-      const aberto = !$("#detalhes").hidden && ($("#detalhes").dataset.alvo || "").startsWith("c:") ? $("#detalhes").dataset.alvo.slice(2) : null;
-      defineFoco(aberto);
-      if (aberto) destaca(aberto);
-    });
+    // o mouse limpa o destaque ao sair; com os detalhes abertos (ex.: toque), ele fica na disciplina consultada
+    painel.addEventListener("mouseleave", destaqueEmRepouso);
 
     painel.addEventListener("input", (ev) => {
       if (ev.target.id === "busca-opt") { filtros.busca = ev.target.value; save("filtros", filtros); render(); }
@@ -3143,9 +3129,9 @@
       if (t.id === "cfg-seletor") { ocultarSeletor = !t.checked; save("ocultarSeletor", ocultarSeletor); renderAtalhos(); return atualizaConfig(); }
       if (t.id === "cfg-cadeado") { cadeado = t.checked; save("cadeado", cadeado); render(); return atualizaConfig(); }
       if (t.dataset.exibir) { exibir[t.dataset.exibir] = t.checked; save("exibir", exibir); render(); atualizaConfig(); }
-      if (t.name === "setas") {
-        exibir.setas = t.value; save("exibir", exibir); render(); atualizaConfig();
-        if (!t.closest("dialog")) document.querySelector(`#ferramentas input[name="setas"][value="${t.value}"]`)?.focus();
+      if (t.name === "destaque") {
+        exibir.destaque = t.value; save("exibir", exibir); render(); atualizaConfig();
+        if (!t.closest("dialog")) document.querySelector(`#ferramentas input[name="destaque"][value="${t.value}"]`)?.focus();
       }
       if (t.name === "aparencia" && window.TEMA) { window.TEMA.defineAparencia(t.value); ferrAberto = false; render(); atualizaConfig(); }
       if (t.name === "tema" && window.TEMA) window.TEMA.define(t.value === "sistema" ? null : t.value);
