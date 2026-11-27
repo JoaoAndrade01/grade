@@ -759,8 +759,7 @@ def t_cr01_manual(b):
     pg.locator('.card[data-code="FIT112"]').click()
     expect(pg.locator("#detalhes .det-status")).to_contain_text("marcação manual (pincel)")
     pg.keyboard.press("Escape")
-    pg.click("#bg-detalhes")
-    legenda = pg.locator("#legenda").inner_text() if pg.locator("#legenda").is_visible() else ""
+    legenda = legenda_do_progresso(pg)                             # PC-02/03: a identificação fica no detalhamento
     ctx.close()
 
     ctx, pg = abre(b, perfil={"periodos": [{"nome": "2027/1", "planejado": True, "disciplinas": ["MAC128"]}]},

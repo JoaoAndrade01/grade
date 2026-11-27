@@ -515,7 +515,8 @@ small.alerta, .alerta { color: var(--dep); }
 :root .seletor-modo.so-icones .ico { display: inline-block; }   /* só ícones vale mesmo com "Somente texto" na aparência */
 
 /* modo clássico: só a grade, o resto some */
-.classico .abas, .classico #subtitulo, .classico .rodape-dica, .classico .rodape-extra, .classico .bg-legenda { display: none; }
+/* O Clássico segue a Grade: a barra mantém a linha de percentuais e o botão de Detalhes. */
+.classico .abas, .classico #subtitulo, .classico .rodape-dica, .classico .rodape-extra { display: none; }
 .classico .topo { padding-top: 10px; padding-bottom: 4px; }
 .classico .titulo h1 { font-size: 18px; }
 .classico .logo { width: 36px; height: 36px; }
