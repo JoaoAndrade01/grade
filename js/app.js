@@ -132,6 +132,9 @@
    */
   const glifo = (g) => `<span class="ico ico-g" aria-hidden="true">${g}</span>`;
   const rotulo = (ico, txt) => `${ico}<span class="rot">${txt}</span>`;
+  /** Aparência Minimalista: cartões só com o nome e o ícone de estado; ferramentas atrás do ⋯; sem detalhamento. */
+  const minimalista = () => !!window.TEMA && window.TEMA.aparencia() === "minimalista";
+  let ferrAberto = false;            // painel ⋯ das ferramentas (Minimalista), só nesta visita
   const focaTitulo = (el) => { if (!el) return null; el.tabIndex = -1; return el; };
   const objeto = (v) => v != null && typeof v === "object" && !Array.isArray(v);
   const texto = (v) => typeof v === "string";
@@ -953,13 +956,16 @@
     const trechos = [["ok", ok, "Concluída", "aprovado"], ["prev", prev, "Prevista", "previsto"], ["cur", cur, "Cursando", "cursando"],
       ["plan", pl, "Planejada", "planejado"], ["resto", resto, "Não planejada", null]];
     const T5 = t[5];
+    const mini = minimalista();
+    const numeros = `${trechos.map(([, v, nome]) => `${nome} ${pc(v).toFixed(0)}%`).join(", ")}. ${fmt(ok)} de ${fmt(total)} cr${T5.total ? `. Extensão/ACE ${fmt(T5.ok)} de ${fmt(T5.total)} h` : ""}`;
+    // No Minimalista a linha de números some da tela, mas continua lida: a barra recebe foco (e toque) e diz os números.
     $("#barra-geral").innerHTML = `
-      <div class="bg-barra">${trechos.map(([cls, v, nome, st]) =>
+      <div class="bg-barra"${mini ? ` tabindex="0" role="img" aria-label="Progresso geral: ${esc(numeros)}" title="Toque ou foque para ver os números"` : ""}>${trechos.map(([cls, v, nome, st]) =>
         `<span class="seg-${cls}" style="width:${pc(v)}%;${st ? cor(st) : ""}" title="${nome}: ${fmt(v)} cr (${pc(v).toFixed(0)}%)"></span>`).join("")}</div>
-      <div class="bg-legenda">
+      <div class="bg-legenda"${mini ? ' aria-hidden="true"' : ""}>
         ${trechos.map(([cls, v, nome, st]) => `<span><i class="seg-${cls}"${st && cor(st) ? ` style="${cor(st)}"` : ""}></i>${nome} <b>${pc(v).toFixed(0)}%</b></span>`).join("")}
         <span class="bg-total">${fmt(ok)} de ${fmt(total)} cr${T5.total ? ` · Extensão/ACE ${fmt(T5.ok)}/${fmt(T5.total)} h${T5.aConfirmar ? ` ${textoAConfirmar(T5)}` : ""}` : ""}</span>
-        <button type="button" class="link" id="bg-detalhes">${progressoAberto ? "ocultar detalhes ▴" : "detalhes ▾"}</button>
+        ${mini ? "" : `<button type="button" class="link" id="bg-detalhes">${progressoAberto ? "ocultar detalhes ▴" : "detalhes ▾"}</button>`}
       </div>`;
   }
 
@@ -2052,14 +2058,19 @@
     const comProgresso = !!perfil && (vista === "grade" || vista === "timeline");
     $("#barra-geral").hidden = !comProgresso;
     if (comProgresso) renderBarraGeral();
-    const detalhado = comProgresso && progressoAberto;
+    const mini = minimalista();
+    document.body.classList.toggle("minimalista", mini);
+    // O Minimalista não tem o detalhamento do progresso (nem a soma da lista do BOA, PC-04): volta ao sair dele.
+    const detalhado = comProgresso && progressoAberto && !mini;
     $("#progresso").hidden = !detalhado;
-    const mostraLegenda = vista === "timeline" || (modoClassico && exibir.dificuldade && !!M.guia);
+    const mostraLegenda = vista === "timeline" || (modoClassico && exibir.dificuldade && !!M.guia && !mini);
     $("#legenda").hidden = !mostraLegenda;
     if (detalhado) renderProgresso();
     if (mostraLegenda) renderLegenda(vista);
     $("#ferramentas").hidden = vista !== "grade" || modoClassico;
-    if (vista === "grade" && !modoClassico) $("#ferramentas").innerHTML = renderFerramentas();
+    if (vista === "grade" && !modoClassico) $("#ferramentas").innerHTML = mini ? `
+      <button type="button" class="btn btn-icone ferr-mais" id="ferr-mais" aria-expanded="${ferrAberto}" aria-controls="ferr-painel" title="Ferramentas">${glifo("⋯")}<span class="sr">Ferramentas</span></button>
+      <div class="ferr-painel" id="ferr-painel" role="group" aria-label="Ferramentas"${ferrAberto ? "" : " hidden"}>${renderFerramentas()}</div>` : renderFerramentas();
     $("#paleta").hidden = vista !== "grade";
     if (vista === "grade") $("#paleta").innerHTML = renderPaleta();
     const imp = $("#aviso-importado");
@@ -3070,6 +3081,7 @@
         $("#livre-info").hidden = !infoLivreAberta; $("#livre-info-btn").setAttribute("aria-expanded", String(infoLivreAberta));
         return;
       }
+      if (t.id === "ferr-mais") { ferrAberto = !ferrAberto; return render(); }
       if (t.id === "bg-detalhes") { progressoAberto = !progressoAberto; save("progressoAberto", progressoAberto); return render(); }
       if (t.dataset.pincel != null) { consultado = null; pincel = t.dataset.pincel === "__detalhes" ? null : t.dataset.pincel; seletorECI = false; return render(); }
       if (t.id === "pal-eci") {
@@ -3135,7 +3147,7 @@
         exibir.setas = t.value; save("exibir", exibir); render(); atualizaConfig();
         if (!t.closest("dialog")) document.querySelector(`#ferramentas input[name="setas"][value="${t.value}"]`)?.focus();
       }
-      if (t.name === "aparencia" && window.TEMA) { window.TEMA.defineAparencia(t.value); atualizaConfig(); }
+      if (t.name === "aparencia" && window.TEMA) { window.TEMA.defineAparencia(t.value); ferrAberto = false; render(); atualizaConfig(); }
       if (t.name === "tema" && window.TEMA) window.TEMA.define(t.value === "sistema" ? null : t.value);
     });
 
@@ -3272,6 +3284,20 @@
     // Tema: o atalho sol/lua mostra a ação disponível; Configurações acompanha a escolha.
     if (window.TEMA) window.TEMA.aoMudar(() => { renderAtalhos(); atualizaConfig(); });
 
+    // Painel ⋯ (Minimalista): Esc fecha e devolve o foco ao ⋯; clicar fora fecha.
+    $("#ferramentas").addEventListener("keydown", (ev) => {
+      if (ev.key !== "Escape" || !ferrAberto) return;
+      ev.stopPropagation(); ferrAberto = false; render(); $("#ferr-mais")?.focus();
+    });
+    document.addEventListener("click", (ev) => {
+      if (ferrAberto && ev.target.isConnected && !$("#ferramentas").contains(ev.target)) { ferrAberto = false; render(); }
+    });
+    // Números da barra no Minimalista: o toque mostra e esconde (o foco também mostra).
+    document.addEventListener("click", (ev) => {
+      const naBarra = ev.target.closest && ev.target.closest(".bg-barra");
+      $("#barra-geral").classList.toggle("ver-numeros", !!naBarra && minimalista() && !$("#barra-geral").classList.contains("ver-numeros"));
+    });
+    document.addEventListener("keydown", (ev) => { if (ev.key === "Escape") $("#barra-geral").classList.remove("ver-numeros"); });
     document.addEventListener("keydown", (ev) => {
       if (ev.key !== "Escape") return;
       if (document.querySelector("dialog[open]")) return;   // o próprio <dialog> trata o Esc

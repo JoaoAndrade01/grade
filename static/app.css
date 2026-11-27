@@ -686,6 +686,28 @@ dialog.dlg:modal { overscroll-behavior: contain; }
 .ico-g { display: inline-block; min-width: 1.1em; text-align: center; font-style: normal; line-height: 1; vertical-align: 0; }
 :root:is([data-aparencia="icone"], [data-aparencia="minimalista"]) .ctl .rot {
   position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+/* Minimalista: barras com o nome e o ícone de estado (sem código, créditos, notas e legendas) */
+.minimalista .vista-grade .card :is(.meta, .nota, .sub) { display: none; }
+.minimalista .vista-grade .card { min-height: 40px; }
+.minimalista .vista-grade .card.limpo { min-height: 38px; padding-block: 6px; }
+/* números da barra: escondidos na tela, aparecem com foco, mouse ou toque na barra (o nome acessível os traz sempre) */
+.minimalista .barra-geral { position: relative; }
+.minimalista .bg-barra { cursor: help; }
+.minimalista .bg-barra:focus-visible { outline: 2px solid var(--foco); outline-offset: 3px; }
+.minimalista .bg-legenda { display: none; }
+.minimalista .barra-geral:is(:focus-within, :hover, .ver-numeros) .bg-legenda {
+  display: flex; position: absolute; z-index: 15; left: 16px; right: 16px; top: 100%; margin: 4px 0 0; padding: 8px 12px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow); pointer-events: none; }
+/* ferramentas atrás do ⋯: o painel tem ícone e texto; Esc fecha e devolve o foco */
+.ferramentas:has(.ferr-mais) { position: relative; padding-top: 6px; }
+.ferr-mais { min-width: 36px; justify-content: center; font-size: 18px; font-weight: 700; }
+.ferr-painel { position: absolute; z-index: 16; left: 24px; top: calc(100% + 4px); max-width: min(560px, calc(100vw - 32px));
+  display: flex; flex-direction: column; align-items: flex-start; gap: 10px; padding: 12px 14px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 12px 32px rgb(0 0 0 / .18); }
+.ferr-painel[hidden] { display: none; }
+:root[data-aparencia="minimalista"] .ferr-painel .ctl .rot { position: static; width: auto; height: auto; overflow: visible; clip-path: none; white-space: normal; }
+@media (max-width: 640px) { .ferr-painel { left: 12px; right: 12px; } }
+
 .check.desabilitado { opacity: .55; cursor: not-allowed; }
 .optativas.acesas .opt-inativa { opacity: 1; }
 

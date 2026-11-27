@@ -3022,7 +3022,56 @@ def t_todas_acesas(b):
     foto(pg, "todas-acesas-320-escuro")
     ctx.close()
 
-CASOS5 = [t_controles_icones, t_todas_acesas]
+@caso("Minimalista: cartão com nome e ícone de estado; ferramentas atrás do botão Ferramentas (Esc devolve o foco); números da barra por foco e toque; detalhamento volta ao sair")
+def t_minimalista(b):
+    ctx, pg = abre(b, perfil=PERFIL, extra={"modoClassico": False, "vista": "grade", "aparencia": "minimalista", "progressoAberto": True,
+                                            "exibir": {"codigo": True, "notas": True, "dificuldade": True}}, nome="minimalista")
+    visiveis = lambda sel: pg.locator(sel).evaluate_all("es => es.filter((e) => e.getClientRects().length).length")
+    assert visiveis("#painel .card .meta") == 0 and visiveis("#painel .card .nota") == 0
+    expect(pg.locator('.card[data-code="MAC128"] .estado')).to_be_visible()                 # ícone de estado
+    expect(pg.get_by_role("button", name=re.compile(r"^Cálculo II, Cursando · perfil"))).to_have_count(1)   # nome acessível com situação e origem
+    # detalhamento e "detalhes" fora do Minimalista
+    assert pg.locator("#bg-detalhes").count() == 0 and pg.locator("#progresso").is_hidden()
+    # ⋯: o painel tem ícone e texto; Esc fecha e devolve o foco
+    mais = pg.get_by_role("button", name="Ferramentas", exact=True)
+    expect(mais).to_have_attribute("aria-expanded", "false"); assert pg.locator("[data-exibir]").first.is_hidden()
+    mais.focus(); pg.keyboard.press("Enter")
+    expect(mais).to_have_attribute("aria-expanded", "true"); expect(pg.locator("#ferr-painel")).to_be_visible()
+    assert larg_rot(pg.locator('#ferr-painel label:has([data-exibir="notas"])')) > 4                    # ícone e texto no painel
+    pg.keyboard.press("Tab"); assert foco_em(pg, "#ferr-painel *"), descreve_foco(pg)
+    pg.keyboard.press("Space")                                                                           # liga/desliga sem fechar o painel
+    expect(pg.locator("#ferr-painel")).to_be_visible(); assert foco_em(pg, "#ferr-painel *"), descreve_foco(pg)
+    foto(pg, "minimalista-painel")
+    pg.keyboard.press("Escape")
+    expect(pg.locator("#ferr-painel")).to_be_hidden(); assert foco_em(pg, "#ferr-mais"), descreve_foco(pg)
+    mais.click(); expect(pg.locator("#ferr-painel")).to_be_visible()
+    pg.locator(".rodape").click(); expect(pg.locator("#ferr-painel")).to_be_hidden()                     # clicar fora fecha
+    # números da barra: escondidos, lidos pelo nome acessível e mostrados com foco
+    barra = pg.locator("#barra-geral .bg-barra")
+    assert re.search(r"Concluída \d+%.*de \d+ cr", barra.get_attribute("aria-label")), barra.get_attribute("aria-label")
+    assert pg.locator(".bg-legenda").is_hidden()
+    barra.focus(); expect(pg.locator(".bg-legenda")).to_be_visible()
+    foto(pg, "minimalista-barra-foco")
+    # ao sair do Minimalista, tudo volta
+    abre_config(pg); pg.check('#dlg-config input[name="aparencia"][value="icone-texto"]'); pg.keyboard.press("Escape")
+    expect(pg.locator("#bg-detalhes")).to_be_visible(); expect(pg.locator("#progresso")).to_be_visible()
+    expect(pg.locator('.card[data-code="COS110"] .meta')).to_be_visible(); assert pg.locator("#ferr-mais").count() == 0
+    expect(pg.locator("[data-exibir]").first).to_be_visible(); assert pg.locator("#barra-geral .bg-barra").get_attribute("tabindex") is None
+    ctx.close()
+    # toque, 320 px e tema escuro; Clássico também fica minimalista
+    ctx, pg = abre(b, vp=C320, perfil=PERFIL, extra={"aparencia": "minimalista"}, nome="minimalista-toque", toque=True, esquema="dark")
+    assert pg.locator("#modo-classico").is_checked()
+    assert visiveis("#painel .card .meta") == 0 and pg.locator(".bg-legenda").is_hidden()
+    pg.locator("#barra-geral .bg-barra").tap(); expect(pg.locator(".bg-legenda")).to_be_visible()
+    assert pg.evaluate("document.documentElement.scrollWidth - innerWidth") <= 1
+    foto(pg, "minimalista-320-escuro")
+    completo(pg, "grade"); pg.get_by_role("button", name="Ferramentas", exact=True).tap()
+    expect(pg.locator("#ferr-painel")).to_be_visible()
+    r = pg.locator("#ferr-painel").bounding_box(); assert r["x"] >= 0 and r["x"] + r["width"] <= 320 + 0.5, r
+    foto(pg, "minimalista-320-painel")
+    ctx.close()
+
+CASOS5 = [t_controles_icones, t_todas_acesas, t_minimalista]
 CASOS += CASOS5
 
 
