@@ -1569,7 +1569,7 @@ def t_rf08_rodape(b):
             if modo == "completo": alterna_modo(pg)
             rodape = pg.locator(".rodape")
             rodape.scroll_into_view_if_needed()
-            expect(pg.locator("#versao")).to_be_visible(); assert pg.locator("#versao").inner_text() == "v2.0.0"
+            expect(pg.locator("#versao")).to_be_visible(); assert pg.locator("#versao").inner_text() == "v2.1.0"
             consultado = pg.evaluate("() => window.curriculoSIGA[1].consultado")
             assert re.fullmatch(r"\d{4}-\d{2}-\d{2}", consultado), consultado
             assert pg.locator("#curriculo-conferido").inner_text() == f"Currículo conferido no SIGA em {consultado}", (rotulo, modo)
