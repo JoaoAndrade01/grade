@@ -94,26 +94,64 @@
   }
 
   /**
-   * REGRA ÚNICA da pedida de uma equivalência deferida, a partir do CONJUNTO de origens (a ordem não muda nada):
-   * - status: aprovada se todas as origens estão aprovadas; senão, prevista (alguma prevista ou em curso, as outras
-   *   cumpridas). Origem ausente também deixa a pedida prevista.
-   * - fonte: a mais fraca. Declarada se alguma origem for declarada (A1); prevista se a pedida ficou prevista.
-   * - data efetiva: a mais tardia entre as origens, pelo tempo de cada uma (tempoDaOrigem). No empate, a exata vence o
-   *   limite. Se alguma origem não tem data, a pedida também não tem.
-   * - requisito: a pedida cumpre num semestre quando TODAS as origens cumprem (registroCumpre), o que é o mesmo que
-   *   comparar com a mais tardia e respeita o critério de cada uma (D-08 para o bloco, A7 para a declarada sem semestre).
-   * - previsão e selos: a pedida não cumprida entra no plano no semestre efetivo; a fonte segue fonteDaAprovacao.
-   * @returns registro da pedida: { pi, status, origens, semestreEfetivo, exata, origem?, semestreDeclarado?, registradoEm? }
+   * Base do PRAZO de cinco anos (D-03) de um registro: o intervalo [de, ate] de semestres em que a aprovação vale para o
+   * prazo. É outra data que a dos requisitos (tempoDaOrigem):
+   *   importada, prevista ou em curso -> o semestre do período
+   *   transferida (bloco)             -> o ano do bloco, mesmo com aprovadaEm (D-03; aprovadaEm vale só para requisitos)
+   *   declarada com semestre          -> o semestre informado; declarada sem semestre -> null (data não confirmada)
+   *   pedida de equivalência          -> a origem mais tardia ([maior de, maior ate]); sem data em alguma, null
+   * @returns {{ de, ate, ano, declarado } | null}  ano: o ano, quando só ele é conhecido
    */
-  function pedidaDaEquivalencia(origens, periodos) {
-    const status = origens.every((r) => r && r.status === "aprovado") ? "aprovado" : "previsto";
+  function prazoDoRegistro(r, periodos) {
+    if (!r) return null;
+    if (r.origens) {
+      const ps = r.origens.map((o) => prazoDoRegistro(o, periodos));
+      if (!ps.length || ps.some((x) => !x)) return null;
+      const de = Math.max(...ps.map((x) => x.de)), ate = Math.max(...ps.map((x) => x.ate));
+      return { de, ate, ano: ate > de ? Math.floor(ate / 2) : null, declarado: r.origem === "declarado" || ps.some((x) => x.declarado) };
+    }
+    const p = periodos[r.pi];
+    if (r.origem === "declarado") { const s = semIdx(r.semestreDeclarado); return s == null ? null : { de: s, ate: s, ano: null, declarado: true }; }
+    if (p && p.semestre != null) return { de: p.semestre, ate: p.semestre, ano: null, declarado: false };
+    const ano = p ? anoDoBloco(p.nome) : null;
+    return ano == null ? null : { de: ano * 2, ate: ano * 2 + 1, ano, declarado: false };
+  }
+
+  /**
+   * REGRA ÚNICA da pedida de uma equivalência deferida, a partir do CONJUNTO de origens (a ordem não muda nada):
+   * - status: aprovada se todas as origens estão aprovadas; prevista se as que faltam estão previstas ou em curso;
+   *   pendente se alguma origem está ausente ou reprovada (sem fonte, sem plano e sem selo).
+   * - fonte: a mais fraca. Declarada se alguma origem for declarada (A1); prevista se a pedida ficou prevista.
+   * - data dos REQUISITOS: a mais tardia entre as origens, pelo tempo de cada uma (tempoDaOrigem). No empate, a exata
+   *   vence o limite. Se alguma origem não tem data, a pedida também não tem. A pedida cumpre um requisito num semestre
+   *   quando TODAS as origens cumprem (registroCumpre), cada uma pelo próprio critério (D-08 no bloco, A7 na declarada).
+   * - data do PRAZO de cinco anos: a de D-03 (prazoDoRegistro), nunca aprovadaEm.
+   * - plano (previsão e selo do Notion): a pedida prevista entra no plano na data efetiva só quando as origens que
+   *   faltam estão previstas ou em curso no período atual ou num futuro (noPlano). Num período passado, não cobre nada.
+   * - período exibido: o da origem que dá a data. No empate, período real do Histórico ou do plano > bloco de
+   *   transferidas > pedida > declarada; persistindo, a origem de menor código. Assim a exibição não depende da ordem.
+   * @param {Array} origens   registro escolhido de cada cursada (ou undefined, se não há)
+   * @param {Array} codigos   código de cada cursada, na mesma ordem (desempate)
+   * @returns registro da pedida: { pi, status, origens, semestreEfetivo, exata, noPlano, origem?, semestreDeclarado?, registradoEm? }
+   */
+  function pedidaDaEquivalencia(origens, periodos, codigos = []) {
+    const ok = (r) => !!r && r.status === "aprovado";
+    const andamento = (r) => !!r && (r.status === "previsto" || emCurso(r.status));
+    const status = origens.every(ok) ? "aprovado" : origens.every((r) => ok(r) || andamento(r)) ? "previsto" : "pendente";
     const declarada = origens.some((r) => r && r.origem === "declarado");
-    const tempos = origens.map((r) => tempoDaOrigem(r, periodos));
-    const det = tempos.every(Boolean)
-      ? tempos.reduce((a, b) => (b.v > a.v || (b.v === a.v && !a.exata && b.exata) ? b : a)) : null;
+    const tipo = (t) => {
+      const p = periodos[t.r.pi];
+      const base = p && p.semestre != null && !p.declarado ? 0 : p && anoDoBloco(p.nome) != null ? 1 : t.r.origens ? 2 : 3;
+      return (t.exata ? 0 : 10) + base;
+    };
+    const tempos = origens.map((r, i) => { const t = tempoDaOrigem(r, periodos); return t && { ...t, codigo: codigos[i] || "" }; });
+    const antes = (a, b) => a.v !== b.v ? a.v > b.v : tipo(a) !== tipo(b) ? tipo(a) < tipo(b) : a.codigo < b.codigo;
+    const det = tempos.every(Boolean) && tempos.length ? tempos.reduce((a, b) => (antes(b, a) ? b : a)) : null;
+    const elegivel = (r) => ok(r) || (r.origens ? !!r.noPlano : ["atual", "planejado"].includes((periodos[r.pi] || {}).tipo));
     return {
       pi: det ? det.r.pi : null, status, origens: origens.slice(),
       semestreEfetivo: det ? det.v : null, exata: !!det && det.exata,
+      noPlano: status === "previsto" && origens.every(elegivel),
       ...(declarada ? { origem: "declarado",
         semestreDeclarado: det && det.exata && det.r.origem === "declarado" ? det.r.semestreDeclarado || null : null,
         registradoEm: det && !det.exata && det.r.origem === "declarado" ? det.r.registradoEm || null : null } : {}),
@@ -324,7 +362,7 @@
           return origens.find((r) => r.status === "aprovado")
             || origens.find((r) => r.status === "previsto" || emCurso(r.status));
         });
-        registra(e.pedida, { ...pedidaDaEquivalencia(registros, periodos), nota: "E", via: `equivalência deferida: ${cs.map((c) => c.code).join(" + ")}` });
+        registra(e.pedida, { ...pedidaDaEquivalencia(registros, periodos, cs.map((c) => c.code)), nota: "E", via: `equivalência deferida: ${cs.map((c) => c.code).join(" + ")}` });
         cs.forEach((c) => consumidas.add(c.code));
       } else if (pendente(e)) {
         if (cs.some((c) => dispensou[c.code] || usosDeferidos.has(c.code) || usosPendentes.get(c.code) > 1)) {
@@ -419,7 +457,7 @@
     ? r.origens.some((o) => limiteEm(o, periodos, semestre)) && r.origens.every((o) => limiteEm(o, periodos, semestre) || cumpreUm(o, periodos, semestre, false))
     : limiteEm(r, periodos, semestre)));
 
-  return { FORCA, NOME_DECL, tempoDaOrigem, pedidaDaEquivalencia, dataValida, semestreDaData, nomeDoSemestre, semestreDoHistorico, erroDeclarada, normalizaDeclaradas,
+  return { FORCA, NOME_DECL, tempoDaOrigem, prazoDoRegistro, pedidaDaEquivalencia, dataValida, semestreDaData, nomeDoSemestre, semestreDoHistorico, erroDeclarada, normalizaDeclaradas,
     classificaDeclaradas, registroCumpre, declaradaSemSemestreEm, statusDosRegistros, fonteDaAprovacao, semestreValido, semIdx, anoDoBloco, emCurso, parseHorarios, cursadasDe, pendente, semestreDoRegistro,
     montaRegistros };
 });

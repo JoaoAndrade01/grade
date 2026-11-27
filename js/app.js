@@ -1216,12 +1216,10 @@
   function baseDoPrazo(code) {
     const r = (M.regs[code] || []).filter((x) => x.status === "aprovado").pop();
     if (!r) return null;
-    const nome = M.periodos[r.pi]?.nome;
-    const declarado = r.origem === "declarado";
-    const i = semestreDoRegistro(r), ano = i == null && !declarado ? anoDoBloco(nome) : null;
-    if (i == null && ano == null) return null;      // declarada sem semestre: "Data de aprovação não confirmada" (sem idade)
-    const de = i != null ? i : ano * 2, ate = i != null ? i : ano * 2 + 1;
-    return { ano, min: (semAtual() - ate) / 2, max: (semAtual() - de) / 2, aprovadaEm: r.aprovadaEm || null, declarado };
+    // D-03 (js/progresso.js): transferida pelo ano do bloco; declarada sem semestre sem data; pedida pela origem mais tardia.
+    const b = window.PROGRESSO.prazoDoRegistro(r, M.periodos);
+    if (!b) return null;      // declarada sem semestre: "Data de aprovação não confirmada" (sem idade)
+    return { ano: b.ano, min: (semAtual() - b.ate) / 2, max: (semAtual() - b.de) / 2, aprovadaEm: r.origens ? null : r.aprovadaEm || null, declarado: !!b.declarado };
   }
   /**
    * Os dois números da livre escolha (D-02, PC-04): o da Grade e a soma da lista "Cursadas e Não Explicitadas" do BOA.
@@ -1855,7 +1853,7 @@
     // plano no semestre da origem, sem contar como cumprida.
     // A data é a efetiva da regra única (a mais tardia entre as origens), não o período de uma delas.
     Object.entries(M.regs).forEach(([code, rs]) => rs.forEach((r) => {
-      if (!r.origens || r.status === "aprovado" || cumprida(code)) return;
+      if (!r.origens || !r.noPlano || cumprida(code)) return;   // só a prevista com as origens no atual ou no futuro
       const i = M.info(code); if (!i) return;
       itens.push({ code, grupo: String(i.category), valor: valorCat(i), semestre: r.semestreEfetivo });
     }));

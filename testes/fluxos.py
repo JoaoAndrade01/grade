@@ -3793,8 +3793,44 @@ def t_previsao_equivalencia_prevista(b):
                        [{"status": "deferido", "pedida": pedida, "cursadas": ordem}], f"declarada-{sem_decl.replace('/', '-')}-{ordem[0]}", decl)
             assert r == ("previsao", "2026/2", "obtido", "previsto"), (sem_decl, ordem, r)
 
+@caso("Equivalência na tela: prevista em período passado, origem ausente ou reprovada e pedido a pedir não cobrem o plano nem dão selo; prazo pela regra do bloco; período exibido igual nas duas ordens")
+def t_equivalencia_vizinhos(b):
+    ctx, pg = abre(b, perfil={"periodos": []}, nome="eq-vizinhos-obr", relogio=HOJE); obr = [c for c, _, _ in obrigatorias(pg)]; ctx.close()
+    pedida, outra = obr[:2]
+    def previsao(tipo):
+        origem = {"code": "XYZ202", "credits": 4, "category": 3, "status": "previsto"}
+        hist = obr[2:] + [{"code": "XYZ201", "credits": 40, "category": 2}, {"code": "XYZ301", "credits": 8, "category": 3}, {"code": "XYZ401", "credits": 4, "category": 4}]
+        if tipo == "passado": hist.append(origem)
+        if tipo == "reprovada": hist.append({**origem, "status": "reprovado"})
+        atual = [outra] + ([origem] if tipo in ("a pedir", "deferido") else [])
+        perfil = {"periodos": [{"nome": "2025/1", "disciplinas": hist}, {"nome": "2026/2", "atual": True, "disciplinas": atual}],
+                  "equivalencias": [{"status": "a pedir" if tipo == "a pedir" else "deferido", "pedida": pedida, "cursadas": ["XYZ202"]}],
+                  "extensao": [{"nome": "Projeto fictício", "horas": 405, "periodo": "2025/1", "status": "validada"}]}
+        ctx, pg = abre(b, perfil=perfil, extra={"modoClassico": False, "vista": "grade", "foco": True}, nome=f"eq-vizinhos-{tipo.replace(' ', '-')}", relogio=HOJE)
+        m = motivacao(pg)
+        r = (pg.evaluate("(c) => GradeInterativa.fonte(c)", pedida), m["previsao"]["estado"], next(x for x in m["selos"] if x["id"] == "notion")["estado"])
+        ctx.close(); return r
+    assert previsao("deferido") == ("previsto", "previsao", "obtido")
+    assert previsao("passado") == ("previsto", "pendente", "falta"), previsao("passado")       # prevista num período passado não cobre
+    for tipo in ("reprovada", "ausente", "a pedir"):
+        r = previsao(tipo); assert r == (None, "pendente", "falta"), (tipo, r)                      # sem fonte, sem plano, sem selo
+    # prazo (D-03): a pedida que vem de uma transferida usa o ano do bloco, não a aprovação original de 2019/2
+    def pedidos(perfil, nome):
+        ctx, pg = abre(b, perfil=perfil, extra={"modoClassico": False, "vista": "pedidos"}, nome=nome, relogio=HOJE)
+        t = pg.locator("tr.eq-a-pedir").inner_text(); ctx.close(); return t
+    t = pedidos({"periodos": [{"nome": "2024 (transferidas)", "disciplinas": [{"code": "XYZ201", "aprovadaEm": "2019/2", "name": "Transferida fictícia"}]},
+                              {"nome": "2026/2", "atual": True, "disciplinas": []}],
+                 "equivalencias": [{"status": "deferido", "pedida": obr[0], "cursadas": ["XYZ201"]}, {"status": "a pedir", "pedida": obr[1], "cursadas": [obr[0]]}]}, "eq-vizinhos-prazo")
+    assert "só o ano 2024" in t and "anos: pode exigir" not in t and "mais de 5 anos" not in t, t
+    # empate: o período exibido não depende da ordem das origens (vence o período real)
+    rows = [pedidos({"periodos": [{"nome": "2025 (transferidas)", "disciplinas": [{"code": "XYZ201", "aprovadaEm": "2024/2", "name": "Transferida fictícia"}]},
+                                  {"nome": "2024/2", "disciplinas": [{"code": "XYZ202", "name": "Importada fictícia"}]}],
+                     "equivalencias": [{"status": "deferido", "pedida": obr[0], "cursadas": ordem}, {"status": "a pedir", "pedida": obr[1], "cursadas": [obr[0]]}]},
+                    f"eq-vizinhos-empate-{n}") for n, ordem in enumerate((["XYZ201", "XYZ202"], ["XYZ202", "XYZ201"]))]
+    assert rows[0] == rows[1] and "2024/2" in rows[0], rows
+
 CASOS5 = [t_controles_icones, t_todas_acesas, t_minimalista, t_plano_na_grade, t_declaradas_modelo, t_declaradas_prazo_ace, t_declaradas_arquivo, t_declaradas_reimportar,
-          t_registrar_sem_perfil, t_registrar_com_perfil, t_declaradas_detalhe, t_declaradas_gestao, t_declarada_cursando, t_foco, t_motivacao, t_conquistas_estante, t_declaradas_lote_foco, t_foco_ajustes, t_ace_origem, t_previsao_cobertura, t_perfil_troca_declaradas, t_previsao_equivalencia_prevista]
+          t_registrar_sem_perfil, t_registrar_com_perfil, t_declaradas_detalhe, t_declaradas_gestao, t_declarada_cursando, t_foco, t_motivacao, t_conquistas_estante, t_declaradas_lote_foco, t_foco_ajustes, t_ace_origem, t_previsao_cobertura, t_perfil_troca_declaradas, t_previsao_equivalencia_prevista, t_equivalencia_vizinhos]
 CASOS += CASOS5
 
 

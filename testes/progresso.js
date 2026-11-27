@@ -338,6 +338,96 @@ caso("Pedida de equivalência: os casos das reconferências, nas duas ordens", (
   }
 });
 
+// ---------- Varredura de vizinhos da pedida de equivalência (prazo × requisito, período, status do pedido, desempate)
+const eqModelo = ({ periodos = [], declaradas = [], pedidos }) => P.montaRegistros({ grade: [], catalogo: [], periodos, declaradas, pedidos });
+const defere = (pedida, cursadas, status = "deferido") => ({ status, pedida, cursadas });
+const ORIGEM = {
+  importada:     { periodos: [{ nome: "2025/1", disciplinas: ["XYZ101"] }] },
+  transfComData: { periodos: [{ nome: "2024 (transferidas)", disciplinas: [{ code: "XYZ101", aprovadaEm: "2019/2" }] }] },
+  transfSemData: { periodos: [{ nome: "2024 (transferidas)", disciplinas: ["XYZ101"] }] },
+  declDatada:    { declaradas: [{ code: "XYZ101", semestre: "2026/1", registradoEm: "2026-07-01" }] },
+  declSemData:   { declaradas: [{ code: "XYZ101", registradoEm: "2024-11-27" }] },
+};
+// Prazo (D-03) esperado de cada tipo: [de, ate] em semestres; null = data não confirmada. Requisito: primeiro semestre do pré.
+const PRAZO = { importada: ["2025/1", "2025/1"], transfComData: ["2024/1", "2024/2"], transfSemData: ["2024/1", "2024/2"], declDatada: ["2026/1", "2026/1"], declSemData: null };
+const PRIMEIRO_PRE = { importada: "2025/2", transfComData: "2020/1", transfSemData: "2025/1", declDatada: "2026/2", declSemData: "2025/1" };
+
+caso("Varredura: prazo (D-03) × requisito (D-08, A7) para cada tipo de origem, direto e numa pedida usada como origem de outra", () => {
+  for (const [tipo, base] of Object.entries(ORIGEM)) {
+    const m = eqModelo({ ...base, pedidos: [defere("XYZ201", ["XYZ101"]), defere("XYZ301", ["XYZ201"])] });
+    for (const code of ["XYZ201", "XYZ301"]) {                              // pedida e pedida de pedida
+      const r = m.regs[code].find((x) => x.status === "aprovado");
+      const b = P.prazoDoRegistro(r, m.periodos);
+      const esperado = PRAZO[tipo] && PRAZO[tipo].map(sem);
+      assert.deepEqual(b && [b.de, b.ate], esperado, `${tipo} ${code} prazo`);
+      const primeiro = SEMS.find((n) => P.registroCumpre(m.regs[code], m.periodos, sem(n))) ?? (P.registroCumpre(m.regs[code], m.periodos, sem("2020/1")) ? "2020/1" : null);
+      const pre20201 = P.registroCumpre(m.regs[code], m.periodos, sem("2020/1"));
+      assert.equal(pre20201 ? "2020/1" : primeiro, PRIMEIRO_PRE[tipo], `${tipo} ${code} requisito`);
+    }
+  }
+});
+
+caso("Varredura: origem prevista ou em curso em período passado, atual e futuro: prevista; só entra no plano no atual ou no futuro", () => {
+  const per = { passado: { nome: "2025/1" }, atual: { nome: "2026/2", atual: true }, futuro: { nome: "2027/1", planejado: true } };
+  for (const [quando, p] of Object.entries(per)) for (const st of ["previsto", "cursando"]) {
+    const m = eqModelo({ periodos: [{ ...p, disciplinas: [{ code: "XYZ101", status: quando === "futuro" && st === "cursando" ? "planejado" : st }] }], pedidos: [defere("XYZ201", ["XYZ101"])] });
+    const r = m.regs.XYZ201[0];
+    assert.equal(r.status, "previsto", `${quando} ${st}`);
+    assert.equal(P.fonteDaAprovacao(m.regs.XYZ201), "previsto");
+    assert.equal(r.noPlano, quando !== "passado", `${quando} ${st} no plano`);
+    assert.equal(r.semestreEfetivo, sem(p.nome));
+  }
+});
+
+caso("Varredura: deferido, a pedir e em análise com origem aprovada, ausente e reprovada: só deferido com origem aprovada dá aprovação", () => {
+  const origem = { aprovada: ["XYZ101"], ausente: [], reprovada: [{ code: "XYZ101", status: "reprovado" }] };
+  for (const [tipo, disc] of Object.entries(origem)) for (const st of ["deferido", "a pedir", "em análise"]) {
+    const m = eqModelo({ periodos: [{ nome: "2025/1", disciplinas: disc }], pedidos: [defere("XYZ201", ["XYZ101"], st)] });
+    const fonte = P.fonteDaAprovacao(m.regs.XYZ201), status = P.statusDosRegistros(m.regs.XYZ201, !!m.pendEq.XYZ201);
+    if (st === "deferido" && tipo === "aprovada") assert.deepEqual([status, fonte], ["aprovado", "importado"], `${st} ${tipo}`);
+    else if (st === "deferido") {
+      assert.deepEqual([status, fonte], ["pendente", null], `${st} ${tipo}`);           // sem selo, sem plano
+      assert.ok(!(m.regs.XYZ201 || []).some((r) => r.noPlano));
+    } else assert.deepEqual([status, fonte], ["analise", null], `${st} ${tipo}`);
+  }
+});
+
+caso("Varredura: desempate de exibição determinístico (período real > bloco > pedida > declarada; depois o menor código), em todas as permutações", () => {
+  const periodos = [{ nome: "2025 (transferidas)", disciplinas: [{ code: "XYZ101", aprovadaEm: "2024/2" }] }, { nome: "2024/2", disciplinas: ["XYZ102"] }];
+  const declaradas = [{ code: "XYZ103", semestre: "2024/2", registradoEm: "2026-11-27" }];
+  const perms = (a) => a.length < 2 ? [a] : a.flatMap((x, i) => perms(a.filter((_, j) => j !== i)).map((p) => [x, ...p]));
+  for (const conj of [["XYZ101", "XYZ102"], ["XYZ101", "XYZ103"], ["XYZ101", "XYZ102", "XYZ103"]]) {
+    const vistos = new Set();
+    for (const ordem of perms(conj)) {
+      const m = eqModelo({ periodos, declaradas, pedidos: [defere("XYZ201", ordem)] });
+      const r = m.regs.XYZ201[0];
+      vistos.add(JSON.stringify([m.periodos[r.pi]?.nome, r.semestreEfetivo, r.semestreDeclarado ?? null, P.semestreDoRegistro(r, m.periodos)]));
+    }
+    assert.equal(vistos.size, 1, `${conj}: ${[...vistos]}`);
+    const [nome] = JSON.parse([...vistos][0]);
+    assert.equal(nome, conj.includes("XYZ102") ? "2024/2" : "2025 (transferidas)", conj.join("+"));
+  }
+});
+
+caso("Varredura: três origens (bloco, limite e datada) nas seis permutações dão a mesma pedida", () => {
+  const periodos = [{ nome: "2024 (transferidas)", disciplinas: [{ code: "XYZ101", aprovadaEm: "2023/2" }] }];
+  const declaradas = [{ code: "XYZ102", registradoEm: "2024-11-27" }, { code: "XYZ103", semestre: "2024/2", registradoEm: "2026-11-27" }];
+  const perms = (a) => a.length < 2 ? [a] : a.flatMap((x, i) => perms(a.filter((_, j) => j !== i)).map((p) => [x, ...p]));
+  const vistos = new Set();
+  for (const ordem of perms(["XYZ101", "XYZ102", "XYZ103"])) {
+    const m = eqModelo({ periodos, declaradas, pedidos: [defere("XYZ201", ordem)] });
+    vistos.add(JSON.stringify(resumoPedidaDe(m, "XYZ201")));
+  }
+  assert.equal(vistos.size, 1, [...vistos].join("\n"));
+});
+function resumoPedidaDe(m, code) {
+  const rs = m.regs[code], r = rs[0];
+  return { status: P.statusDosRegistros(rs), fonte: P.fonteDaAprovacao(rs), semestre: P.semestreDoRegistro(r, m.periodos), efetivo: r.semestreEfetivo,
+    periodo: m.periodos[r.pi]?.nome ?? null, prazo: P.prazoDoRegistro(r, m.periodos),
+    pre: SEMS.map((n) => P.registroCumpre(rs, m.periodos, sem(n))), co: SEMS.map((n) => P.registroCumpre(rs, m.periodos, sem(n), true)),
+    aviso: SEMS.map((n) => P.declaradaSemSemestreEm(rs, m.periodos, sem(n))) };
+}
+
 // ---------- Fase, conquistas e previsão (js/conquistas.js)
 const C = require(path.join(RAIZ, "js", "conquistas.js"));
 const GUIA = {}; vm.runInNewContext(fs.readFileSync(path.join(RAIZ, "js", "guia.js"), "utf8"), { window: GUIA });
