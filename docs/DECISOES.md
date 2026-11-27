@@ -207,7 +207,7 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
 
 ### PC-08 · Ícone de estado no cartão e legendas por aba
 
-- **Estado:** aceita em 2026-11-27 (decisão M2 do João e tabela de abas da segunda rodada da v2.0.0). Atualiza
+- **Estado:** aceita em 2026-11-27. Atualiza
   [PC-02 e PC-03](#pc-02-e-pc-03--tag-aprovada-do-pincel) e o caso 14i.
 - **Contexto:** o texto "Aprovada · perfil" ou "Cursada · marcação" embaixo do nome ocupava espaço em todos os
   cartões. A barra, os "detalhes" e as legendas apareciam em abas que não usam o progresso, como Optativas.
