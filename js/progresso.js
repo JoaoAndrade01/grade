@@ -281,15 +281,21 @@
         const declarada = registros.some((r) => r?.origem === "declarado");
         // A data é a da origem que a determina (a mais recente), pelo próprio registro: as declaradas dividem o mesmo
         // período virtual. Uma declarada sem semestre leva o limite de registradoEm (e A7) para a pedida.
-        const semData = registros.filter((r) => r && r.origem === "declarado" && semestreDe(r) == null);
+        // Vale a origem mais tardia: o semestre datado contra o limite de registradoEm das declaradas sem semestre.
+        // No empate, a datada (é exata); quando o limite é o mais tardio, a pedida leva o limite (e A7).
+        const tempos = registros.map((r) => {
+          if (!r) return null;
+          const s = semestreDe(r);
+          if (s != null) return { r, v: s, limite: false };
+          const l = r.origem === "declarado" ? semestreDaData(r.registradoEm) : null;
+          return l == null ? null : { r, v: l, limite: true };
+        });
         let pi = null, data = {};
-        if (semData.length) {
-          pi = semData[0].pi;
-          data = { semestreDeclarado: null, registradoEm: semData.map((r) => r.registradoEm).filter(Boolean).sort().pop() || null };
-        } else if (registros.every((r) => r && semestreDe(r) != null)) {
-          const det = registros.slice().sort(maisRecentePrimeiro)[0];
-          pi = det.pi;
-          if (det.origem === "declarado") data = { semestreDeclarado: det.semestreDeclarado, registradoEm: det.registradoEm || null };
+        if (tempos.every(Boolean)) {
+          const det = tempos.reduce((a, b) => (b.v > a.v || (b.v === a.v && a.limite && !b.limite) ? b : a));
+          pi = det.r.pi;
+          if (det.limite) data = { semestreDeclarado: null, registradoEm: det.r.registradoEm };
+          else if (det.r.origem === "declarado") data = { semestreDeclarado: det.r.semestreDeclarado, registradoEm: det.r.registradoEm || null };
         }
         registra(e.pedida, { pi, status, nota: "E", via: `equivalência deferida: ${cs.map((c) => c.code).join(" + ")}`,
           ...(declarada ? { origem: "declarado", semestreDeclarado: null, ...data } : {}) });

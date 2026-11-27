@@ -231,6 +231,26 @@ caso("B3: equivalência com duas origens declaradas usa a origem que determina a
   assert.ok(!P.registroCumpre(c.regs.XYZ201, c.periodos, sem("2025/1")) && P.registroCumpre(c.regs.XYZ201, c.periodos, sem("2025/2")));
 });
 
+caso("B3 (misto): a data da equivalência é a mais tardia entre a origem datada e o limite de registradoEm da sem semestre, nas duas ordens", () => {
+  const eq = (decl) => P.montaRegistros({ grade: [], catalogo: [], periodos: [], declaradas: decl,
+    pedidos: [{ status: "deferido", pedida: "XYZ201", cursadas: decl.map((d) => d.code) }] });
+  const datada = { code: "XYZ101", semestre: "2026/1", registradoEm: "2026-07-01" }, semData = { code: "XYZ102", registradoEm: "2024-11-27" };
+  for (const ordem of [[datada, semData], [semData, datada]]) {           // 2026/1 contra o limite 2024/2: vale 2026/1
+    const m = eq(ordem);
+    assert.equal(P.semestreDoRegistro(m.regs.XYZ201[0], m.periodos), sem("2026/1"));
+    assert.ok(!P.registroCumpre(m.regs.XYZ201, m.periodos, sem("2025/1")) && !P.registroCumpre(m.regs.XYZ201, m.periodos, sem("2024/2"), true));
+    assert.ok(P.registroCumpre(m.regs.XYZ201, m.periodos, sem("2026/2")));
+  }
+  const tarde = { code: "XYZ102", registradoEm: "2027-08-10" };            // limite 2027/2, mais tardio que 2026/1: valem o limite e A7
+  for (const ordem of [[datada, tarde], [tarde, datada]]) {
+    const m = eq(ordem);
+    assert.equal(P.semestreDoRegistro(m.regs.XYZ201[0], m.periodos), null);
+    assert.equal(m.regs.XYZ201[0].registradoEm, "2027-08-10");
+    assert.ok(!P.registroCumpre(m.regs.XYZ201, m.periodos, sem("2027/2")) && P.registroCumpre(m.regs.XYZ201, m.periodos, sem("2027/2"), true));
+    assert.ok(P.registroCumpre(m.regs.XYZ201, m.periodos, sem("2028/1")));
+  }
+});
+
 caso("B4: equivalência importada aprovada confirma também a declarada que estava em conflito com uma reprovação", () => {
   const m = P.montaRegistros({ grade: [], catalogo: [],
     periodos: [{ nome: "2025/1", disciplinas: ["XYZ101", { code: "XYZ201", status: "reprovado" }] }],
