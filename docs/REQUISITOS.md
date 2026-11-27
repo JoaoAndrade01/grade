@@ -23,7 +23,7 @@ Como rodar os testes: [testes/README.md](../testes/README.md).
 - **Relógio fixo em 2026-11-26** (semestre 2026/2) em todo caso que dependa de data.
 - **Aviso de requisito** é o texto `Requisito <código> não cumprido antes deste período` no cartão da
   disciplina. **Sugestão** é um item da lista de sugestões do Cronograma para o semestre indicado.
-- **Casos de regressão (CR-01 a CR-04)** vêm de erros encontrados antes da v2.0.0. Ficam no kit como casos
+- **Casos de regressão (CR-01 a CR-05)** vêm de erros encontrados antes da v2.0.0 (CR-05, logo depois). Ficam no kit como casos
   permanentes. A história desses erros está em [DECISOES.md](DECISOES.md).
 - **Verificações do importador.** *Paridade* (RNF-05): as versões JavaScript e Python geram o mesmo perfil;
   detecta divergência entre elas, não erro compartilhado. *Oráculo independente*: um perfil esperado, escrito
@@ -63,7 +63,7 @@ Disciplinas, por Pull Request revisado por uma pessoa.
 | H4 | 02a–02i, 07a–07e, 10a–10e | [RF-02](#rf-02--requisitos-e-co-requisitos-ra-03-ra-04), [RF-07](#rf-07--aviso-de-oferta-e-horários-de-referência-ra-20), [RF-10](#rf-10--planejamento-de-períodos-e-choques-de-horário-h4) |
 | H5 | 03a–03h, 03j, 04a–04e | [RF-03](#rf-03--análise-de-um-pedido-de-equivalência-ra-07-ra-09-ra-11-ra-12-ra-21), [RF-04](#rf-04--a-mesma-origem-não-conta-duas-vezes-ra-08) |
 | H6 | 05a–05h | [RF-05](#rf-05--créditos-de-um-pedido-deferido-ra-13-d-02) |
-| H7 | 03i, 06h–06m | [RF-03](#rf-03--análise-de-um-pedido-de-equivalência-ra-07-ra-09-ra-11-ra-12-ra-21), [RF-06](#rf-06--importação-do-siga-ra-05-ra-06-ra-17-ra-19-ra-21) |
+| H7 | 02k–02o, 03i, 06h–06m | [RF-03](#rf-03--análise-de-um-pedido-de-equivalência-ra-07-ra-09-ra-11-ra-12-ra-21), [RF-06](#rf-06--importação-do-siga-ra-05-ra-06-ra-17-ra-19-ra-21) |
 | H8 | 01c–01f, 06m (01g na versão seguinte) | [RF-01](#rf-01--progresso-por-grupo-ra-01-ra-05-ra-06-ra-16), [RF-06](#rf-06--importação-do-siga-ra-05-ra-06-ra-17-ra-19-ra-21) |
 | H9 | 11a–11d | [RF-11](#rf-11--optativas-guia-e-oferta-h9) |
 | H10 | 08a–08l, 14g | [RF-08](#rf-08--aviso-de-que-a-grade-não-é-oficial-versão-e-relato-d-06), [RF-14](#rf-14--marcação-manual-aparência-tags-e-referências-h1-h3-h10) |
@@ -208,6 +208,11 @@ lista.
 | 02h · co-requisito | EEL670 aprovada em 2026/1; EEL418 em 2027/2; COS231 em 2028/1; ordem natural e permutada | Abrir a linha do tempo | Aviso de co-requisito COS231 em EEL418, nas duas ordens |
 | 02i · sem data | MAC118 **cursando** no período "atual" **sem data**; MAC128 planejada em 2027/1 | Abrir a linha do tempo | Aviso de requisito MAC118 em MAC128: período sem data não conta como anterior |
 | 02j · sem data | MAC118 com tag "aprovada" e em nenhum período; MAC128 planejada em 2027/1 | Abrir a linha do tempo | Sem aviso. O detalhe de MAC128 indica que o requisito foi satisfeito por marcação manual (PC-03) |
+| 02k · CR-05 | MAC128 no bloco "2025 (transferidas)" com aprovação original em 2020/2; MAC238 cursando em 2026/2 | Abrir a linha do tempo | Nenhum aviso de requisito MAC128 em MAC238 (D-08) |
+| 02l · CR-05 | MAC128 no bloco com aprovação original em 2026/1; MAC238 planejada em 2026/1 e, depois, em 2026/2 | Abrir a linha do tempo | Aviso em 2026/1; nenhum em 2026/2. Vale a ordem pelo semestre original |
+| 02m · CR-05 | MAC128 no bloco "2025 (transferidas)" ou "2025/0", sem semestre original; MAC238 planejada em 2025/2 e, depois, em 2026/1 | Abrir a linha do tempo | Aviso em 2025/2 (mesmo ano do bloco); nenhum em 2026/1 |
+| 02n · CR-05 · co-requisito | COS231 no bloco de 2025 sem semestre original, com EEL418 em 2025/2 e em 2026/1; e COS231 no bloco de 2026 com original em 2026/1, com EEL418 em 2026/1 | Abrir a linha do tempo | Aviso de co-requisito só em 2025/2; o semestre original aceita o mesmo semestre |
+| 02o · CR-05 · dois históricos | Importação de reingresso (06h, antigo → atual): MAC118 no bloco de 2025 com original em 2020/1; MAC128 em 2020/2 | Abrir a linha do tempo | Nenhum aviso de requisito MAC118 em MAC128 |
 
 ### RF-03 · Análise de um pedido de equivalência (RA-07, RA-09, RA-11, RA-12, RA-21)
 

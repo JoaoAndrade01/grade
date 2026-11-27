@@ -438,6 +438,70 @@ def t_cr01_equivalencia(b):
         ctx.close()
     assert observado == {"2026/2": False, "2028/1": True, "atual": True}, observado
 
+@caso("CR-05: transferida cumpre requisito pelo semestre original; sem ele, só depois do ano do bloco")
+def t_cr05_transferida_requisito(b):
+    def avisos_de(periodos, consultas, nome):
+        ctx, pg = abre(b, perfil={"periodos": periodos}, nome=nome)
+        r = {(c, p): pg.evaluate("([c, p]) => window.GradeInterativa.avisos(c, p)", [c, p]) for c in consultas for p in consultas[c]}
+        return ctx, pg, r
+    tem = lambda lista, req: any(req in x for x in lista)
+    observado = {}
+    # Com semestre original (aprovadaEm 2020/2): MAC238 cursando em 2026/2 não recebe aviso de MAC128.
+    ctx, pg, r = avisos_de([
+        {"nome": "2025 (transferidas)", "disciplinas": [{"code": "MAC118", "aprovadaEm": "2020/1"}, {"code": "MAC128", "aprovadaEm": "2020/2"}]},
+        {"nome": "2026/2", "atual": True, "disciplinas": [{"code": "MAC238", "status": "cursando"}]},
+    ], {"MAC238": ["2026/2"]}, "cr05-original")
+    observado["original"] = tem(r["MAC238", "2026/2"], "Requisito MAC128")
+    completo(pg, "timeline")
+    observado["original-card"] = "Requisito MAC128 não cumprido" in pg.locator('.card[data-code="MAC238"]').get_attribute("title")
+    ctx.close()
+    # Ordem pelo semestre original: aprovada em 2026/1 não cumpre pré-requisito no próprio 2026/1.
+    ctx, pg, r = avisos_de([
+        {"nome": "2025 (transferidas)", "disciplinas": [{"code": "MAC128", "aprovadaEm": "2026/1"}]},
+        {"nome": "2026/1", "planejado": True, "disciplinas": ["MAC238"]},
+        {"nome": "2026/2", "planejado": True, "disciplinas": []},
+    ], {"MAC238": ["2026/1", "2026/2"]}, "cr05-ordem")
+    observado["ordem-mesmo"] = tem(r["MAC238", "2026/1"], "Requisito MAC128")
+    observado["ordem-depois"] = tem(r["MAC238", "2026/2"], "Requisito MAC128")
+    ctx.close()
+    # Sem semestre original: conta só a partir do ano seguinte ao do bloco (AAAA (transferidas) e AAAA/0).
+    for bloco in ("2025 (transferidas)", "2025/0"):
+        ctx, pg, r = avisos_de([
+            {"nome": bloco, "disciplinas": ["MAC128"]},
+            {"nome": "2025/2", "planejado": True, "disciplinas": ["MAC238"]},
+            {"nome": "2026/1", "planejado": True, "disciplinas": []},
+        ], {"MAC238": ["2025/2", "2026/1"]}, f"cr05-sem-original-{bloco[:4]}{bloco[4:6].strip()}")
+        observado[bloco, "mesmo-ano"] = tem(r["MAC238", "2025/2"], "Requisito MAC128")
+        observado[bloco, "ano-seguinte"] = tem(r["MAC238", "2026/1"], "Requisito MAC128")
+        ctx.close()
+    # Co-requisito: COS231 transferida sem data aceita EEL418 só no ano seguinte; com data, aceita o mesmo semestre.
+    ctx, pg, r = avisos_de([
+        {"nome": "2025 (transferidas)", "disciplinas": ["COS231"]},
+        {"nome": "2025/2", "planejado": True, "disciplinas": ["EEL418"]},
+        {"nome": "2026/1", "planejado": True, "disciplinas": []},
+    ], {"EEL418": ["2025/2", "2026/1"]}, "cr05-co-sem-original")
+    observado["co-mesmo-ano"] = tem(r["EEL418", "2025/2"], "Co-requisito COS231")
+    observado["co-ano-seguinte"] = tem(r["EEL418", "2026/1"], "Co-requisito COS231")
+    ctx.close()
+    ctx, pg, r = avisos_de([
+        {"nome": "2026 (transferidas)", "disciplinas": [{"code": "COS231", "aprovadaEm": "2026/1"}]},
+        {"nome": "2026/1", "planejado": True, "disciplinas": ["EEL418"]},
+    ], {"EEL418": ["2026/1"]}, "cr05-co-original")
+    observado["co-original-mesmo-semestre"] = tem(r["EEL418", "2026/1"], "Co-requisito COS231")
+    ctx.close()
+    # Dois históricos (importação): MAC118 vai para o bloco de 2025 com aprovadaEm 2020/1 e cumpre MAC128 em 2020/2.
+    ctx, pg = importa_cenario(b, "reingresso-antigo-atual", "cr05-dois-historicos")
+    pg.click("#siga-usar")
+    observado["dois-historicos"] = tem(pg.evaluate("window.GradeInterativa.avisos('MAC128', '2020/2')"), "Requisito MAC118")
+    ctx.close()
+    assert observado == {
+        "original": False, "original-card": False, "ordem-mesmo": True, "ordem-depois": False,
+        ("2025 (transferidas)", "mesmo-ano"): True, ("2025 (transferidas)", "ano-seguinte"): False,
+        ("2025/0", "mesmo-ano"): True, ("2025/0", "ano-seguinte"): False,
+        "co-mesmo-ano": True, "co-ano-seguinte": False, "co-original-mesmo-semestre": False,
+        "dois-historicos": False,
+    }, observado
+
 @caso("PC-02/03: aprovação pelo pincel conta crédito e identifica a simulação")
 def t_cr01_manual(b):
     perfil = {"periodos": [
@@ -1712,7 +1776,7 @@ CASOS3 = [t_fecha_durante_leitura, t_previa_confirmacao, t_previa_download, t_fo
 CASOS = [
     t_descartar_salvo, t_tema, t_tema_abas, t_sem_perfil, t_criar_perfil, t_perfil_conflito,
     t_compat, t_siga, t_siga_sem_boa, t_excluir, t_oferta, t_mac,
-    t_cr01_pre, t_cr01_co, t_cr01_sugestoes, t_cr01_proposta, t_cr01_equivalencia, t_cr01_manual,
+    t_cr01_pre, t_cr01_co, t_cr01_sugestoes, t_cr01_proposta, t_cr01_equivalencia, t_cr05_transferida_requisito, t_cr01_manual,
     t_cr03_historico, t_cr03_lista,
     t_cr04_reingresso, t_cr04_ordem_dos_arquivos, t_cr04_escolha_sem_datas, t_pc05_datas_ausentes, t_cr04_troca_recalcula_planos, t_cr04_ace_duas_ocorrencias, t_cr04_controles, t_pc05_perfil_antigo_duvida, t_cr04_papel, t_cr04_fronteira,
     t_cr02_pedidos, t_cr02_duas_dispensas, t_cr02_dispensa_unica, t_cr02_alvo_fora_do_catalogo,

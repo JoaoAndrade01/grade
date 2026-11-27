@@ -79,6 +79,8 @@
   const TITULO = "Grade ECI";
   const semestreValido = (v) => typeof v === "string" && /^\d{4}\/[12]$/.test(v);
   const semIdx = (nome) => semestreValido(nome) ? Number(nome.slice(0, 4)) * 2 + Number(nome[5]) - 1 : null;
+  // Bloco de transferidas: "AAAA (transferidas)" ou "AAAA/0" (só o ano, sem semestre real).
+  const anoDoBloco = (nome) => { const m = /^(\d{4})(?: \(transferidas\)|\/0)$/.exec(nome || ""); return m ? +m[1] : null; };
   const concluido = (s) => s === "aprovado" || s === "previsto";
   const emCurso = (s) => s === "planejado" || s === "cursando";
 
@@ -514,12 +516,19 @@
 
   // A marcação manual simula aprovação mesmo sem uma data no histórico.
   /** O registro do perfil (com data) cumpre o requisito neste semestre, sem contar a marcação manual. */
+  // Transferida (D-08): vale o semestre original (`aprovadaEm`); sem ele, só períodos de anos posteriores ao do bloco.
   function registroCumpre(code, semestre, aceitaMesmoSemestre = false) {
     if (semestre == null) return false;
     return (M.regs[code] || []).some((r) => {
-      const origem = M.periodos[r.pi]?.semestre;
-      return origem != null && FORCA[r.status] >= FORCA.planejado
-        && (origem < semestre || (aceitaMesmoSemestre && origem === semestre));
+      const p = M.periodos[r.pi];
+      if (!p || FORCA[r.status] < FORCA.planejado) return false;
+      let origem = p.semestre;
+      if (origem == null && r.status === "aprovado") {
+        origem = semIdx(r.aprovadaEm);
+        const ano = anoDoBloco(p.nome);
+        if (origem == null) return ano != null && Math.floor(semestre / 2) > ano;
+      }
+      return origem != null && (origem < semestre || (aceitaMesmoSemestre && origem === semestre));
     });
   }
   function requisitoCumprido(code, semestre, aceitaMesmoSemestre = false) {
@@ -1161,9 +1170,8 @@
 
   // ---------- Vista: Equivalências & Extensão ----------
   const semAtual = () => { const d = new Date(); return d.getFullYear() * 2 + (d.getMonth() < 6 ? 0 : 1); };
-  // Base do prazo de 5 anos (CR-04): semestre real, ou só o ano de um bloco de transferidos ("AAAA (transferidas)"
-  // ou "AAAA/0"). Com só o ano, a idade fica entre `min` e `max`; `aprovadaEm` (data original) só informa.
-  const anoDoBloco = (nome) => { const m = /^(\d{4})(?: \(transferidas\)|\/0)$/.exec(nome || ""); return m ? +m[1] : null; };
+  // Base do prazo de 5 anos (CR-04): semestre real, ou só o ano de um bloco de transferidos (`anoDoBloco`).
+  // Com só o ano, a idade fica entre `min` e `max`; `aprovadaEm` (data original) só informa o prazo (D-03).
   // Perfis antigos podem trazer historicoAtual "duvida"; os gerados agora nunca gravam esse valor (PC-05).
   const papelEmDuvida = () => !!(perfil && perfil.fonte && perfil.fonte.historicoAtual === "duvida");
   function baseDoPrazo(code) {

@@ -19,6 +19,7 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
 | [D-05](#d-05--prazos-do-pedido-e-de-integralização-não-avisados) | Prazos não avisados |
 | [D-06](#d-06--faixa-e-notas-de-estimativa) | Faixa e notas de estimativa |
 | [D-07](#d-07--origem-de-dispensa-não-soma-créditos) | Origem de dispensa não soma |
+| [D-08](#d-08--transferida-e-requisitos) | Transferida e requisitos |
 | [PC-01](#pc-01--identidade-de-uma-ocorrência-de-extensão) | Identidade de ocorrência de extensão |
 | [PC-02 e PC-03](#pc-02-e-pc-03--tag-aprovada-do-pincel) | Tag "aprovada" do pincel |
 | [PC-04](#pc-04--número-do-boa-na-livre-escolha) | Número do BOA |
@@ -63,7 +64,8 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
 
 ### D-03 · Reingresso e prazo de 5 anos
 
-- **Estado:** aceita. Regras: RA-09, RA-21. A interpretação da CEG art. 47 para reingresso está pendente.
+- **Estado:** aceita para o prazo de 5 anos. Regras: RA-09, RA-21. A interpretação da CEG art. 47 para reingresso
+  está pendente. Para pré e co-requisitos, ver [D-08](#d-08--transferida-e-requisitos).
 - **Contexto:** quem reingressa (ENEM ou transferência interna) tem o histórico do curso atual com um bloco de
   disciplinas transferidas, só com o ano, e um histórico antigo com os semestres originais. Usar a aprovação
   original gerava alertas diferentes dos produzidos pelo ano do bloco; contar só pelo atual deixava
@@ -109,6 +111,18 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
   de novo em nenhum grupo, e há um aviso quando a origem aparece em duas ou mais dispensas. A regra vale
   também para uma única dispensa, sem aviso: a mesma disciplina não vale duas vezes.
 - **Consequências:** casos 04b a 04e. O alvo fora do catálogo conta os créditos do histórico. Consulta 6.
+
+### D-08 · Transferida e requisitos
+
+- **Estado:** aceita em 2026-11-26. Complementa D-03, que continua valendo para o prazo de 5 anos.
+- **Contexto:** a disciplina do bloco "AAAA (transferidas)" não tinha semestre e nunca cumpria pré ou
+  co-requisito. Quem reingressou via, por exemplo, "Requisito MAC128 não cumprido" em MAC238, com MAC128
+  aprovada no curso anterior.
+- **Decisão:** a transferida cumpre requisito pelo semestre original (`aprovadaEm`), quando ele existe. Sem o
+  semestre original, cumpre só em períodos de anos posteriores ao do bloco; no mesmo ano do bloco, não cumpre.
+  O prazo de 5 anos segue D-03 (ano do bloco).
+- **Consequências:** casos 02k a 02o. Uma transferida sem semestre original pode gerar aviso num período do ano do
+  bloco, mesmo que tenha sido aprovada antes; o aviso orienta, não confirma.
 
 ## Produto e importação
 
