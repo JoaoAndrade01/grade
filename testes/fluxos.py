@@ -1912,11 +1912,11 @@ def esmaecido(pg, code):
         return getComputedStyle(e.querySelector('.nome')).color === cor; }""")
 def contorno(pg, code): return pg.locator(f'#painel .card[data-code="{code}"]').evaluate("e => getComputedStyle(e).outlineStyle")
 
-@caso("Destaque Em foco (padrão): pré-requisito contínuo, co-requisito tracejado, 'libera' no dependente; o resto esmaece; mouse, teclado e detalhes; Desligado")
+@caso("Trilha Ao passar o mouse (o antigo Em foco): pré-requisito contínuo, co-requisito tracejado, 'libera' no dependente; o resto esmaece; mouse, teclado e detalhes; Desligado")
 def t_destaque(b):
-    ctx, pg = abre(b, perfil=PERFIL, extra={"modoClassico": False, "vista": "grade"}, nome="destaque")
-    expect(pg.get_by_role("radiogroup", name="Destaque de requisitos")).to_be_visible()
-    expect(pg.get_by_role("radio", name="Em foco", exact=True)).to_be_checked()
+    ctx, pg = abre(b, perfil=PERFIL, extra={"modoClassico": False, "vista": "grade", "exibir": {"destaque": "foco"}}, nome="destaque")
+    expect(pg.get_by_role("group", name="Trilha dos requisitos")).to_be_visible()
+    expect(pg.get_by_role("button", name="Ao passar o mouse", exact=True)).to_have_attribute("aria-pressed", "true")
     assert pg.locator("#painel svg.setas").count() == 0                       # a Grade não desenha mais setas
     pg.locator('.card[data-code="MAC128"]').hover()
     d = destaque(pg)
@@ -1942,16 +1942,16 @@ def t_destaque(b):
     pg.mouse.move(5, 5)
     assert destaque(pg)["self"] == ["COS231"]                                     # com os detalhes abertos, fica na consultada
     pg.keyboard.press("Escape")
-    pg.get_by_role("radio", name="Desligado", exact=True).check(); assert ls(pg, "exibir")["destaque"] == "desligado"
-    assert pg.evaluate("document.activeElement.value") == "desligado"
+    pg.get_by_role("button", name="Desligado", exact=True).click(); assert ls(pg, "exibir")["destaque"] == "desligado"
+    expect(pg.get_by_role("button", name="Desligado", exact=True)).to_have_attribute("aria-pressed", "true")
     pg.locator('.card[data-code="MAC128"]').hover()
     assert destaque(pg) == {"self": [], "pre": [], "co": [], "libera": [], "ativo": False} and not esmaecido(pg, "COS110")
     abre_config(pg); assert pg.locator('#dlg-config input[name="destaque"][value="desligado"]').is_checked()
     pg.check('#dlg-config input[name="destaque"][value="foco"]'); pg.keyboard.press("Escape")
-    expect(pg.get_by_role("radio", name="Em foco", exact=True)).to_be_checked()
+    expect(pg.get_by_role("button", name="Ao passar o mouse", exact=True)).to_have_attribute("aria-pressed", "true")
     ctx.close()
     # toque: o primeiro toque consulta (e destaca), o segundo pinta; Clássico, 320 px e tema escuro
-    ctx, pg = abre(b, vp=C320, perfil=PERFIL, nome="destaque-toque", toque=True, esquema="dark", modo="classico")
+    ctx, pg = abre(b, vp=C320, perfil=PERFIL, extra={"exibir": {"destaque": "foco"}}, nome="destaque-toque", toque=True, esquema="dark", modo="classico")
     assert pg.locator("#modo-classico").is_checked()
     pg.locator('.card[data-code="MAC248"]').tap()
     expect(pg.locator("#consulta")).to_be_visible(); assert "MAC248" not in (ls(pg, "marcacoes") or {})
@@ -1963,7 +1963,7 @@ def t_destaque(b):
     ctx.close()
     # Planejador com pincel escolhido: o primeiro toque só consulta e acende o destaque; a etiqueta não cobre o nome
     for esquema in ("dark", "light"):
-        ctx, pg = abre(b, vp=C320, perfil=PERFIL, extra={"modoClassico": False, "vista": "grade"}, nome=f"destaque-pincel-{esquema}", toque=True, esquema=esquema)
+        ctx, pg = abre(b, vp=C320, perfil=PERFIL, extra={"modoClassico": False, "vista": "grade", "exibir": {"destaque": "foco"}}, nome=f"destaque-pincel-{esquema}", toque=True, esquema=esquema)
         pg.locator('#paleta [data-pincel="cursando"]').tap()
         expect(pg.locator('#paleta [data-pincel="cursando"]')).to_have_attribute("aria-pressed", "true")
         pg.locator('.card[data-code="COS231"]').tap()
@@ -1974,14 +1974,15 @@ def t_destaque(b):
         pg.locator('.card[data-code="COS231"]').tap(); assert ls(pg, "marcacoes").get("COS231") == "cursando"   # o segundo toque marca
         ctx.close()
 
-@caso("Destaque: Ocultas migra para Desligado; Disciplina em foco e Todas para Em foco; a chave antiga sai; outras preferências ficam")
+@caso("Trilha: setas Ocultas migra para Desligado; Disciplina em foco e Todas para Ao passar o mouse; sem chave, Ao segurar; a chave antiga sai; outras preferências ficam")
 def t_destaque_migracao(b):
-    for antigo, novo in (("ocultas", "desligado"), ("foco", "foco"), ("todas", "foco"), (None, "foco")):
+    for antigo, novo in (("ocultas", "desligado"), ("foco", "foco"), ("todas", "foco"), (None, "segurar")):
         exibir = {"codigo": False, "notas": True} | ({"setas": antigo} if antigo else {})
         ctx, pg = abre(b, perfil=PERFIL, extra={"modoClassico": False, "vista": "grade", "exibir": exibir}, nome=f"destaque-migracao-{antigo}")
         salvo = ls(pg, "exibir")
         if antigo: assert "setas" not in salvo and salvo["destaque"] == novo and salvo["codigo"] is False and salvo["notas"] is True, salvo
-        expect(pg.locator(f'#ferramentas input[name="destaque"][value="{novo}"]')).to_be_checked()
+        expect(pg.locator(f'#ferramentas [data-trilha="{novo}"]')).to_have_attribute("aria-pressed", "true")
+        assert pg.locator('#ferramentas [data-trilha][aria-pressed="true"]').count() == 1
         assert not aceso(pg.locator('#ferramentas [data-exibir="codigo"]')) and aceso(pg.locator('#ferramentas [data-exibir="notas"]'))
         pg.locator('.card[data-code="MAC128"]').hover()
         assert destaque(pg)["ativo"] == (novo == "foco"), antigo
@@ -2143,7 +2144,7 @@ def t_cadeado(b):
     assert pg.locator("#detalhes [data-settag]").first.is_disabled()
     foto(pg, "39-cadeado-ligado")
     pg.locator('.card[data-code="EEL871"]').click(); assert ls(pg, "marcacoes")["EEL871"] == ""   # não protegida: a borracha funciona
-    pg.keyboard.press("Escape"); completo(pg, "grade"); pg.check('input[name="destaque"][value="foco"]')
+    pg.keyboard.press("Escape"); completo(pg, "grade"); pg.click('#ferramentas [data-trilha="foco"]')
     pg.locator('.card[data-code="COS110"]').hover(); assert pg.locator("#painel .card.hl-self").count() == 1
     ctx.close()
 
@@ -2322,12 +2323,12 @@ def t_sync(b):
                                             "tags": [{"id": "minha", "nome": "Quero fazer", "cor": "#0891b2", "status": "planejado"}]}, nome="sync")
     abre_config(pg)
     assert not pg.locator('#dlg-config [data-exibir="codigo"]').is_checked() and pg.locator('#dlg-config [data-exibir="notas"]').is_checked()
-    assert pg.locator('#dlg-config input[name="destaque"][value="foco"]').is_checked()            # setas "foco" antiga → Em foco
+    assert pg.locator('#dlg-config input[name="destaque"][value="foco"]').is_checked()            # setas "foco" antiga → Ao passar o mouse
     pg.check('#dlg-config [data-exibir="dificuldade"]'); pg.check('#dlg-config input[name="destaque"][value="desligado"]'); pg.check("#cfg-cadeado")
     pg.keyboard.press("Escape")
-    assert aceso(pg.locator('#ferramentas [data-exibir="dificuldade"]')) and pg.locator('#ferramentas input[name="destaque"][value="desligado"]').is_checked()
+    assert aceso(pg.locator('#ferramentas [data-exibir="dificuldade"]')) and aceso(pg.locator('#ferramentas [data-trilha="desligado"]'))
     assert pg.locator("#cadeado").get_attribute("aria-pressed") == "true"
-    pg.click("#cadeado"); pg.check('#ferramentas input[name="destaque"][value="foco"]')
+    pg.click("#cadeado"); pg.click('#ferramentas [data-trilha="foco"]')
     abre_config(pg); assert not pg.locator("#cfg-cadeado").is_checked() and pg.locator('#dlg-config input[name="destaque"][value="foco"]').is_checked()
     pg.keyboard.press("Escape")
     assert pg.locator("#paleta").inner_text().strip().startswith("Detalhes") and "Quero fazer" in pg.locator("#paleta").inner_text()   # tags personalizadas
@@ -4113,6 +4114,130 @@ def t_classico_so_pintar(b):
         assert pg.evaluate("document.documentElement.scrollWidth - innerWidth") <= 1
         foto(pg, f"classico-so-pintar-320-{esq}")
         ctx.close()
+
+# Trilha Ao segurar: pressão por toque sintética (PointerEvent), igual em Chromium e WebKit; o clique que o navegador
+# geraria ao soltar é simulado com el.click() para conferir que ele é consumido.
+TOQUE_JS = """([code, tipo]) => { const el = document.querySelector(`#painel .card[data-code="${code}"]`); const r = el.getBoundingClientRect();
+    el.dispatchEvent(new PointerEvent(tipo, { bubbles: true, cancelable: true, composed: true, pointerId: 7, pointerType: 'touch', isPrimary: true,
+        button: 0, buttons: tipo === 'pointerdown' ? 1 : 0, clientX: r.x + r.width / 2, clientY: r.y + r.height / 2 })); }"""
+def toque(pg, code, tipo): pg.evaluate(TOQUE_JS, [code, tipo])
+def segura_mouse(pg, code, ms=650):
+    pg.locator(f'#painel .card[data-code="{code}"]').hover(); pg.mouse.down(); pg.wait_for_timeout(ms)
+APAGADO = {"self": [], "pre": [], "co": [], "libera": [], "ativo": False}
+
+@v210
+@caso("Trilha Ao segurar (padrão): mouse, teclado e toque mostram ao segurar e apagam ao soltar; marcações e Detalhes intactos; o clique curto seguinte funciona; cancela ao rolar e ao sair")
+def t_trilha_segurar(b):
+    ctx, pg = abre(b, perfil=PERFIL, extra={"vista": "grade"}, nome="trilha-segurar")
+    grupo = pg.get_by_role("group", name="Trilha dos requisitos"); expect(grupo).to_be_visible()
+    for nome, on in (("Desligado", "false"), ("Ao segurar", "true"), ("Ao passar o mouse", "false")):
+        bt = grupo.get_by_role("button", name=nome, exact=True); expect(bt).to_have_attribute("aria-pressed", on)
+        assert bt.locator("svg.ico").count() == 1
+    assert pg.locator("#ferramentas input[name=destaque]").count() == 0 and "libera" in pg.locator(".leg-destaque").inner_text()
+    marc = ls(pg, "marcacoes")
+    pg.locator('#painel .card[data-code="MAC128"]').hover(); assert destaque(pg) == APAGADO     # passar o mouse não acende
+    # mouse: segurar acende; soltar apaga, sem abrir Detalhes
+    segura_mouse(pg, "MAC128")
+    d = destaque(pg); assert d["self"] == ["MAC128"] and d["pre"] == ["MAC118"] and d["ativo"], d
+    foto(pg, "trilha-segurando-mac128")
+    pg.mouse.up(); assert destaque(pg) == APAGADO
+    expect(pg.locator("#detalhes")).to_be_hidden(); assert ls(pg, "marcacoes") == marc
+    pg.locator('#painel .card[data-code="MAC128"]').click(); expect(pg.locator("#detalhes")).to_be_visible()   # o clique curto seguinte abre
+    assert destaque(pg) == APAGADO                                                             # abrir Detalhes não acende
+    # soltar apaga mesmo com Detalhes aberto
+    segura_mouse(pg, "COS231"); assert destaque(pg)["self"] == ["COS231"]; pg.mouse.up(); assert destaque(pg) == APAGADO
+    pg.keyboard.press("Escape")
+    # mover mais de 10 px antes de 400 ms cancela
+    pg.locator('#painel .card[data-code="MAC128"]').hover(); pg.mouse.down(); pg.mouse.move(400, 400, steps=4); pg.wait_for_timeout(600)
+    assert destaque(pg) == APAGADO; pg.mouse.up()
+    # pincel: a pressão longa não pinta; o clique curto pinta
+    pg.click('#paleta [data-pincel="cursando"]')
+    segura_mouse(pg, "MAC248"); pg.mouse.up(); assert "MAC248" not in (ls(pg, "marcacoes") or {})
+    pg.locator('#painel .card[data-code="MAC248"]').click(); assert ls(pg, "marcacoes").get("MAC248") == "cursando"
+    pg.click('#paleta [data-pincel="__detalhes"]')
+    # teclado: Espaço segurado mostra; soltar apaga; Espaço curto continua ativando
+    card = pg.locator('#painel .card[data-code="MAC128"]'); card.focus(); assert destaque(pg) == APAGADO   # o foco não acende
+    pg.keyboard.down(" "); pg.wait_for_timeout(650)
+    assert destaque(pg)["self"] == ["MAC128"]; pg.keyboard.up(" ")
+    assert destaque(pg) == APAGADO; expect(pg.locator("#detalhes")).to_be_hidden()
+    card.focus(); pg.keyboard.press(" "); expect(pg.locator("#detalhes")).to_be_visible()
+    pg.keyboard.press("Escape")
+    # perder o foco durante o Espaço cancela
+    card.focus(); pg.keyboard.down(" "); pg.evaluate("document.activeElement.blur()"); pg.wait_for_timeout(600); pg.keyboard.up(" ")
+    assert destaque(pg) == APAGADO
+    ctx.close()
+    # toque (Chromium e WebKit com hasTouch), Clássico, 390 px: segurar mostra; soltar apaga sem pintar; o toque curto seguinte consulta
+    if b.browser_type.name in ("chromium", "webkit"):
+        ctx, pg = abre(b, vp=C, perfil=PERFIL, nome="trilha-toque", toque=True, modo="classico")
+        toque(pg, "MAC248", "pointerdown"); pg.wait_for_timeout(650)
+        assert destaque(pg)["self"] == ["MAC248"]
+        foto(pg, "trilha-toque-classico-390")
+        toque(pg, "MAC248", "pointerup"); pg.locator('#painel .card[data-code="MAC248"]').evaluate("e => e.click()")
+        assert destaque(pg) == APAGADO and "MAC248" not in (ls(pg, "marcacoes") or {}) and pg.locator("#consulta").count() == 0
+        pg.locator('#painel .card[data-code="MAC248"]').tap(); expect(pg.locator("#consulta")).to_be_visible()
+        assert "MAC248" not in (ls(pg, "marcacoes") or {})
+        pg.locator('#painel .card[data-code="MAC248"]').tap(); assert ls(pg, "marcacoes").get("MAC248") == "aprovada"
+        # rolar durante a pressão cancela (a página continua rolando)
+        y0 = pg.evaluate("scrollY")
+        toque(pg, "COS231", "pointerdown"); pg.evaluate("window.scrollBy(0, 60)"); pg.wait_for_timeout(650)
+        assert destaque(pg) == APAGADO and pg.evaluate("scrollY") > y0
+        toque(pg, "COS231", "pointerup")
+        assert pg.evaluate("getComputedStyle(document.querySelector('#painel .card')).touchAction") != "none"
+        ctx.close()
+
+@v210
+@caso("Trilha: tabela de 3 modos × gatilhos (mouse, foco, Detalhes, ir para, segurar) na Grade; Linha do tempo continua com o destaque ao passar o mouse; setas de A ECI por trás da Grade continuam")
+def t_trilha_modos(b):
+    esperado = {"desligado": dict(hover=False, foco=False, detalhes=False, ir=False, segurar=False),
+                "segurar": dict(hover=False, foco=False, detalhes=False, ir=False, segurar=True),
+                "foco": dict(hover=True, foco=True, detalhes=True, ir=True, segurar=True)}
+    observado = {}
+    for modo in esperado:
+        ctx, pg = abre(b, perfil=PERFIL, extra={"vista": "grade", "exibir": {"destaque": modo}}, nome=f"trilha-{modo}")
+        o = {}
+        pg.locator('#painel .card[data-code="MAC128"]').hover(); o["hover"] = destaque(pg)["ativo"]; pg.mouse.move(2, 2)
+        pg.locator('#painel .card[data-code="COS231"]').focus(); o["foco"] = destaque(pg)["ativo"]; pg.locator("#btn-config").focus()
+        pg.locator('#painel .card[data-code="MAC128"]').click(); pg.mouse.move(2, 2); o["detalhes"] = destaque(pg)["ativo"]
+        pg.locator("#detalhes [data-ir]").first.click(); pg.mouse.move(2, 2); o["ir"] = destaque(pg)["ativo"]
+        pg.keyboard.press("Escape"); pg.mouse.move(2, 2)
+        segura_mouse(pg, "MAC128"); o["segurar"] = destaque(pg)["ativo"]; pg.mouse.up()
+        observado[modo] = o
+        if modo == "segurar":
+            # Linha do tempo: o destaque ao passar o mouse continua como antes
+            pg.click('[data-vista="timeline"]'); pg.locator('#painel .card[data-code="MAC128"]').last.hover()
+            assert destaque(pg)["self"], "Linha do tempo sem destaque ao passar o mouse"
+            # A ECI por trás da Grade: o grafo continua com as setas
+            pg.click('[data-vista="eci"]'); pg.locator('[data-eci-abrir="COS242"]').press("Enter")
+            expect(pg.locator("#eci-grafo svg.setas")).to_have_count(1); pg.keyboard.press("Escape")
+        ctx.close()
+    assert observado == esperado, observado
+
+@v210
+@caso("Trilha: migração pela regra literal nas cinco origens (sem chave, foco, desligado, setas ocultas, setas foco/todas); recarregar duas vezes não muda nada; vale no Clássico")
+def t_trilha_migracao(b):
+    casos = [(None, "segurar", None), ({"destaque": "foco"}, "foco", {"destaque": "foco"}), ({"destaque": "desligado"}, "desligado", {"destaque": "desligado"}),
+             ({"setas": "ocultas"}, "desligado", {"destaque": "desligado"}), ({"setas": "foco"}, "foco", {"destaque": "foco"}), ({"setas": "todas"}, "foco", {"destaque": "foco"})]
+    for salvo, modo, gravado in casos:
+        extra = {"vista": "grade"} | ({"exibir": salvo} if salvo else {})
+        ctx, pg = abre(b, perfil=PERFIL, extra=extra, nome=f"trilha-migra-{modo}")
+        guardado = ls(pg, "exibir")
+        for _ in range(2):
+            expect(pg.locator(f'#ferramentas [data-trilha="{modo}"]')).to_have_attribute("aria-pressed", "true")
+            assert pg.locator('#ferramentas [data-trilha][aria-pressed="true"]').count() == 1, salvo
+            atual = ls(pg, "exibir")
+            assert (atual is None if gravado is None else {k: atual.get(k) for k in gravado} == gravado and "setas" not in atual), (salvo, atual)
+            assert atual == guardado, (salvo, atual, guardado)
+            pg.reload(); pronto(pg, "trilha-migra")
+        ctx.close()
+    # a escolha feita no Planejador vale no Clássico
+    ctx, pg = abre(b, perfil=PERFIL, extra={"vista": "grade"}, nome="trilha-classico")
+    pg.click('#ferramentas [data-trilha="foco"]'); assert ls(pg, "exibir")["destaque"] == "foco"
+    alterna_modo(pg); pg.locator('#painel .card[data-code="MAC128"]').hover(); assert destaque(pg)["ativo"]
+    alterna_modo(pg); pg.click('#ferramentas [data-trilha="segurar"]'); alterna_modo(pg)
+    pg.locator('#painel .card[data-code="MAC128"]').hover(); assert not destaque(pg)["ativo"]
+    segura_mouse(pg, "MAC128"); assert destaque(pg)["self"] == ["MAC128"]; pg.mouse.up()
+    assert "MAC128" not in (ls(pg, "marcacoes") or {})                                         # segurar no Clássico não pinta
+    ctx.close()
 
 CASOS += CASOS6
 

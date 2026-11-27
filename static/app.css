@@ -1054,3 +1054,6 @@ body:has(.paleta:not([hidden])) .detalhes {
 .dlg-x .ico, .fechar .ico { vertical-align: 0; }
 .ferr-mais .ico { vertical-align: 0; }
 .mini-btn .ico, #bg-detalhes .ico, .hor .ico { vertical-align: -2px; }
+
+/* Trilha Ao segurar: o toque longo não seleciona texto nem abre o menu do sistema (a rolagem continua: sem touch-action) */
+.painel.vista-grade .card { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }

@@ -339,14 +339,17 @@
   let celTab = null;                 // célula do cronograma que entra na ordem de Tab (foco móvel)
   let consultado = null;             // toque: cartão consultado, à espera do segundo toque que marca
   let seletorECI = false;            // paleta "ECI por trás" (só nesta visita): destaca os cartões com experiência
-  // Destaque de requisitos na Grade: "foco" (Em foco, padrão) ou "desligado". Substitui as setas: a preferência antiga
-  // `setas` migra (Ocultas → Desligado; Disciplina em foco e Todas → Em foco) e sai do objeto salvo.
-  let exibir = Object.assign({ codigo: true, notas: false, dificuldade: false, presenca: false, plano: false, situacao: true, destaque: "foco" }, load("exibir", {}));
+  // Trilha dos requisitos na Grade (chave `destaque`): "segurar" (Ao segurar, padrão), "foco" (Ao passar o mouse, o antigo
+  // "Em foco") ou "desligado". Migração pela regra literal: sem a chave, vale "segurar" (nada é gravado); "foco" e
+  // "desligado" salvos continuam. A cadeia antiga `setas` migra (Ocultas → Desligado; Disciplina em foco e Todas → "foco")
+  // e sai do objeto salvo.
+  const TRILHAS = ["desligado", "segurar", "foco"];
+  let exibir = Object.assign({ codigo: true, notas: false, dificuldade: false, presenca: false, plano: false, situacao: true, destaque: "segurar" }, load("exibir", {}));
   if (Object.prototype.hasOwnProperty.call(exibir, "setas")) {
-    if (!["desligado", "foco"].includes(load("exibir", {}).destaque)) exibir.destaque = exibir.setas === "ocultas" ? "desligado" : "foco";
+    if (!TRILHAS.includes(load("exibir", {}).destaque)) exibir.destaque = exibir.setas === "ocultas" ? "desligado" : "foco";
     delete exibir.setas; save("exibir", exibir);
   }
-  if (!["desligado", "foco"].includes(exibir.destaque)) exibir.destaque = "foco";
+  if (!TRILHAS.includes(exibir.destaque)) exibir.destaque = "segurar";
   let filtroNivel = load("filtroNivel", [], (v) => listaDe(v, numero));   // níveis de dificuldade em destaque (vazio = todos)
   let progressoAberto = load("progressoAberto", false);
   // Foco (Planejador): ficam Grade, Linha do tempo e Cronograma; o concluído some e aparecem a fase e as conquistas.
@@ -921,7 +924,7 @@
     ${seletorECI ? `<p class="dica-eci" id="dica-eci">Escolha um cartão destacado para abrir a experiência. As outras disciplinas ficam inativas até você desligar “ECI por trás”.</p>` : ""}`;
   }
 
-  const DESTAQUE = [["desligado", "Desligado", "olho-fechado"], ["foco", "Em foco", "ponteiro"]];
+  const TRILHA = [["desligado", "Desligado", "olho-fechado"], ["segurar", "Ao segurar", "mao"], ["foco", "Ao passar o mouse", "ponteiro"]];
   // A distinção não depende da cor: contorno contínuo, tracejado e a etiqueta "libera".
   const LEGENDA_DESTAQUE = `<span class="leg-destaque"><i class="l-pre"></i>pré-requisito <i class="l-co"></i>co-requisito <i class="l-libera">libera</i>o que ela libera</span>`;
   const EXIBIR = [["codigo", "Código e créditos", "hash"], ["notas", "Notas", "estrela"], ["dificuldade", "Dificuldade", "medidor"],
@@ -939,10 +942,9 @@
         ${EXIBIR.map(([k, n, ic]) => botaoAceso(`data-exibir="${k}"`, exibir[k], ic, n)).join("")}
         ${exibir.dificuldade ? escalaDificuldade() : ""}
       </div>
-      <div class="ferr-grupo" role="radiogroup" aria-label="Destaque de requisitos"><span class="ferr-rot ctl" aria-hidden="true">${rotulo(icone("setas", 14), "Destaque")}</span>
-        ${DESTAQUE.map(([v, n, ic]) =>
-          `<label class="check ctl" title="Destaque: ${n}"><input type="radio" name="destaque" value="${v}" ${exibir.destaque === v ? "checked" : ""}> ${rotulo(icone(ic, 16), n)}</label>`).join("")}
-        ${exibir.destaque === "foco" ? LEGENDA_DESTAQUE : ""}
+      <div class="ferr-grupo" role="group" aria-label="Trilha dos requisitos"><span class="ferr-rot ctl" aria-hidden="true">${rotulo(icone("setas", 14), "Trilha")}</span>
+        ${TRILHA.map(([v, n, ic]) => botaoAceso(`data-trilha="${v}"`, exibir.destaque === v, ic, n, `Trilha: ${n}`)).join("")}
+        ${exibir.destaque !== "desligado" ? LEGENDA_DESTAQUE : ""}
       </div>
       ${niveis.length ? `<div class="ferr-grupo"><span class="ferr-rot">Dificuldade</span>
         ${niveis.map((k) => `<button type="button" class="chip chip-btn${filtroNivel.includes(+k) ? " on" : ""}" data-nivel="${k}" title="${esc(M.guia.niveis[k].nome)}">${M.guia.niveis[k].emoji}</button>`).join("")}
@@ -2093,8 +2095,9 @@
           ${EXIBIR.map(([k, n]) =>
             `<label class="opcao"><input type="checkbox" data-exibir="${k}"${exibir[k] ? " checked" : ""}> ${n}</label>`).join("")}
         </fieldset>
-        <fieldset class="opcoes"><legend>Destaque de requisitos</legend>
-          ${radio("destaque", "desligado", "Desligado", exibir.destaque === "desligado")}${radio("destaque", "foco", "Em foco: requisitos e o que ela libera acendem, o resto esmaece", exibir.destaque === "foco")}
+        <fieldset class="opcoes"><legend>Trilha dos requisitos</legend>
+          ${radio("destaque", "desligado", "Desligado", exibir.destaque === "desligado")}${radio("destaque", "segurar", "Ao segurar: clique e segure (ou toque e segure) numa disciplina; soltar apaga", exibir.destaque === "segurar")}${radio("destaque", "foco", "Ao passar o mouse: ao passar o mouse ou focar, os requisitos e o que ela libera acendem", exibir.destaque === "foco")}
+          <p class="dica">Vale na Grade, no Clássico e no Planejador.</p>
         </fieldset>
         <label class="opcao"><input type="checkbox" id="cfg-cadeado"${cadeado ? " checked" : ""}> Proteger as disciplinas cursadas (cadeado da paleta)</label>
         ${linhaAtalho("tags")}
@@ -2211,6 +2214,7 @@
     return preservaFoco(desenha, () => focaTitulo($("#painel")));
   }
   function desenha() {
+    if (pressao) { clearTimeout(pressao.timer); pressao = null; }   // troca de tela cancela a pressão longa
     // Modo clássico: força a aba Grade e mantém um pincel sempre ativo
     document.body.classList.toggle("classico", modoClassico);
     $("#modo-classico").checked = modoClassico; $("#modo-planejador").checked = !modoClassico;
@@ -3202,16 +3206,18 @@
     fechaDetalhes();
   }
 
-  // ---------- Destaque de requisitos ----------
+  // ---------- Destaque de requisitos (Trilha) ----------
   // Pré-requisito com contorno contínuo, co-requisito tracejado e o que ela libera com a etiqueta "libera". Na Grade
-  // (Clássico e Planejador) segue Exibir → Destaque: Em foco esmaece o resto; Desligado não destaca. Nas outras telas,
-  // só os contornos. As setas didáticas de "A ECI por trás da Grade" ficam em js/eci.js.
-  function destaca(code) {
+  // (Clássico e Planejador) segue a Trilha: Ao segurar, só a pressão longa (`segurando`) acende e soltar apaga; Ao passar
+  // o mouse, mouse, foco, detalhes e "ir para" acendem e o resto esmaece; Desligado não destaca. Nas outras telas
+  // (Linha do tempo, Optativas), só os contornos, como antes. As setas de "A ECI por trás da Grade" ficam em js/eci.js.
+  function destaca(code, segurando = false) {
+    const painel = $("#painel"), naGrade = painel.classList.contains("vista-grade");
+    if (naGrade && exibir.destaque === "segurar" && !segurando) return;   // nenhum outro gatilho acende nem apaga
     limpaDestaque();
     if (!code) return;
     const i = M.info(code); if (!i) return;
-    const painel = $("#painel"), naGrade = painel.classList.contains("vista-grade");
-    if (naGrade && exibir.destaque !== "foco") return;
+    if (naGrade && exibir.destaque === "desligado") return;
     const marca = (c, cls) => painel.querySelectorAll(`[data-code="${CSS.escape(c)}"]`).forEach((el) => el.classList.add(cls));
     i.req.forEach((r) => marca(r, "hl-req"));
     i.coreq.forEach((r) => marca(r, "hl-coreq"));
@@ -3238,6 +3244,9 @@
   // Toque: não há hover nem `title`. A primeira ativação de um cartão só consulta (situação e origem em texto,
   // no próprio painel da paleta); a segunda, no mesmo cartão, aplica o pincel. Mouse e teclado marcam de uma vez.
   let toqueEm = 0;
+  // Trilha Ao segurar (T6): pressão longa num cartão da Grade. { code, el, x, y, id, timer, ativa }
+  let pressao = null;
+  let semCliqueAte = 0;   // carimbo: o clique que fecha uma pressão longa não pinta nem abre Detalhes
   const porToque = () => Date.now() - toqueEm < 1200;
   function consulta(code) {
     consultado = code;
@@ -3422,6 +3431,55 @@
       painel.querySelectorAll('.cel[tabindex="0"]').forEach((x) => { x.tabIndex = -1; });
       alvo.tabIndex = 0; celTab = destino; alvo.focus();
     });
+    // Trilha Ao segurar: clicar e segurar (mouse), tocar e segurar (~400 ms) ou segurar Espaço num cartão da Grade mostra
+    // a trilha; soltar apaga. Cancela com movimento > 10 px, rolagem, saída do alvo, perda de foco, pointercancel ou troca
+    // de tela. O clique curto continua igual (pincel: primeiro toque consulta, segundo pinta); a pressão longa consome a
+    // ativação, sem pintar nem abrir Detalhes. A rolagem da página continua (sem touch-action: none).
+    const SEGURAR_MS = 400, TOLERANCIA = 10;
+    const segurarAtivo = () => painel.classList.contains("vista-grade") && exibir.destaque === "segurar";
+    function encerraPressao() {
+      if (!pressao) return;
+      clearTimeout(pressao.timer);
+      if (pressao.ativa) { limpaDestaque(); semCliqueAte = Date.now() + 700; }
+      pressao = null;
+    }
+    function iniciaPressao(el, x, y, id) {
+      encerraPressao();
+      const p = pressao = { code: el.dataset.code, el, x, y, id, ativa: false };
+      p.timer = setTimeout(() => { if (pressao !== p) return; p.ativa = true; destaca(p.code, true); }, SEGURAR_MS);
+    }
+    painel.addEventListener("pointerdown", (ev) => {
+      if (!segurarAtivo() || ev.button !== 0) return;
+      const el = ev.target.closest(".card[data-code]"); if (!el || el.inert) return;
+      iniciaPressao(el, ev.clientX, ev.clientY, ev.pointerId);
+    });
+    document.addEventListener("pointermove", (ev) => {
+      if (pressao && pressao.id === ev.pointerId && Math.hypot(ev.clientX - pressao.x, ev.clientY - pressao.y) > TOLERANCIA) encerraPressao();
+    });
+    document.addEventListener("pointerup", (ev) => { if (pressao && pressao.id === ev.pointerId) encerraPressao(); });
+    document.addEventListener("pointercancel", encerraPressao);
+    document.addEventListener("pointerout", (ev) => {
+      if (pressao && pressao.id === ev.pointerId && ev.target === pressao.el && !pressao.el.contains(ev.relatedTarget)) encerraPressao();
+    });
+    window.addEventListener("scroll", encerraPressao, { capture: true, passive: true });
+    window.addEventListener("blur", encerraPressao);
+    document.addEventListener("visibilitychange", encerraPressao);
+    // O menu do sistema (toque longo) fica bloqueado só durante a pressão.
+    document.addEventListener("contextmenu", (ev) => { if (pressao && pressao.el.contains(ev.target)) ev.preventDefault(); });
+    // Teclado: Espaço curto continua ativando (o clique nativo sai no keyup); Espaço segurado mostra a trilha.
+    painel.addEventListener("keydown", (ev) => {
+      if (ev.key !== " " || !segurarAtivo()) return;
+      const el = ev.target.closest && ev.target.closest(".card[data-code]"); if (!el) return;
+      if (ev.repeat) return;
+      iniciaPressao(el, 0, 0, "teclado");
+    });
+    painel.addEventListener("keyup", (ev) => { if (ev.key === " " && pressao && pressao.id === "teclado") encerraPressao(); });
+    painel.addEventListener("focusout", (ev) => { if (pressao && pressao.id === "teclado" && ev.target === pressao.el) encerraPressao(); });
+    // O clique que termina uma pressão longa é consumido (fase de captura): não pinta, não consulta, não abre Detalhes.
+    document.addEventListener("click", (ev) => {
+      if (Date.now() >= semCliqueAte || !(ev.target.closest && ev.target.closest(".card"))) return;
+      semCliqueAte = 0; ev.preventDefault(); ev.stopImmediatePropagation();
+    }, true);
     painel.addEventListener("mouseover", (ev) => {
       const cel = ev.target.closest(".cel");
       if (cel && arrasto && cronoSel) {
@@ -3482,6 +3540,9 @@
         return;
       }
       if (t.id === "ferr-mais") { ferrAberto = !ferrAberto; return render(); }
+      if (t.dataset.trilha && TRILHAS.includes(t.dataset.trilha)) {   // Trilha: um modo ativo por vez
+        exibir.destaque = t.dataset.trilha; save("exibir", exibir); limpaDestaque(); render(); return atualizaConfig();
+      }
       if (t.dataset.exibir != null && !t.closest("dialog")) {   // Exibir: botões que acendem (Configurações usa caixas nativas)
         exibir[t.dataset.exibir] = !exibir[t.dataset.exibir]; save("exibir", exibir); render(); return atualizaConfig();
       }
@@ -3552,10 +3613,7 @@
       if (t.id === "cfg-seletor") { ocultarSeletor = !t.checked; save("ocultarSeletor", ocultarSeletor); renderAtalhos(); return atualizaConfig(); }
       if (t.id === "cfg-cadeado") { cadeado = t.checked; save("cadeado", cadeado); render(); return atualizaConfig(); }
       if (t.dataset.exibir) { exibir[t.dataset.exibir] = t.checked; save("exibir", exibir); render(); atualizaConfig(); }
-      if (t.name === "destaque") {
-        exibir.destaque = t.value; save("exibir", exibir); render(); atualizaConfig();
-        if (!t.closest("dialog")) document.querySelector(`#ferramentas input[name="destaque"][value="${t.value}"]`)?.focus();
-      }
+      if (t.name === "destaque" && TRILHAS.includes(t.value)) { exibir.destaque = t.value; save("exibir", exibir); render(); atualizaConfig(); }
       if (t.name === "aparencia" && window.TEMA) { window.TEMA.defineAparencia(t.value); ferrAberto = false; render(); atualizaConfig(); }
       if (t.name === "tema" && window.TEMA) window.TEMA.define(t.value === "sistema" ? null : t.value);
       if (t.name === "tom") { tom = t.value; save("tom", tom); render(); atualizaConfig(); }
