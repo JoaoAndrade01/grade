@@ -163,6 +163,55 @@
     return cand.reduce((m, s) => (!m || peso(s) > peso(m) ? s : m), null);
   }
 
+  // ---------- Cobertura do que falta pelo plano (previsão de formatura e selo do Notion) ----------
+  /**
+   * O cumprido vem só das fontes registradas (importado e registrado por você); créditos manuais, pincel e prevista
+   * não entram. O que falta é coberto pelo plano elegível (período atual e planejados), em ordem cronológica: cada
+   * disciplina conta uma vez, na primeira ocorrência, e as horas de ACE planejadas contam no semestre delas.
+   * @param {object} e
+   * @param {object} e.grupos         grupo ("1" a "4" em cr, "5" ACE em h) -> { nome, un, total, cumprido }
+   * @param {Array} e.obrigatorias    obrigatórias que ainda faltam: [{ code, nome }]
+   * @param {Array} e.itens           itens do plano: [{ code, grupo, valor, semestre }] (semestre null = sem data)
+   * @param {Array} e.horasAce        extensão planejada: [{ horas, semestre }]
+   * @returns {{ grupos, semPlano, primeiro, semData, disciplinasPlanejadas, concluido }}
+   *   primeiro: o primeiro semestre em que tudo fica coberto (null se não fica); semData: só fica com itens sem data
+   */
+  function coberturaDoPlano({ grupos, obrigatorias, itens, horasAce }) {
+    const falta = {}; Object.entries(grupos).forEach(([k, g]) => { falta[k] = Math.max(0, g.total - g.cumprido); });
+    const ordem = (a, b) => (a.semestre ?? Infinity) - (b.semestre ?? Infinity);
+    const vistos = new Set(), plano = [];
+    itens.slice().sort(ordem).forEach((it) => {
+      if (it.code && vistos.has(it.code)) return;
+      if (it.code) vistos.add(it.code);
+      plano.push(it);
+    });
+    (horasAce || []).forEach((h) => plano.push({ grupo: "5", valor: h.horas, semestre: h.semestre }));
+    const precisa = new Set(obrigatorias.map((o) => o.code));
+    const cobreAte = (lim) => {
+      const acc = {}, ob = new Set();
+      plano.forEach((it) => {
+        if (lim !== "tudo" && (it.semestre == null || it.semestre > lim)) return;
+        acc[it.grupo] = (acc[it.grupo] || 0) + (it.valor || 0);
+        if (precisa.has(it.code)) ob.add(it.code);
+      });
+      return { acc, ob };
+    };
+    const coberto = ({ acc, ob }, grupoOk = () => true) => ob.size === precisa.size
+      && Object.keys(falta).filter(grupoOk).every((k) => (acc[k] || 0) >= falta[k]);
+    const total = cobreAte("tudo");
+    const semestres = [...new Set(plano.map((it) => it.semestre).filter((s) => s != null))].sort((a, b) => a - b);
+    const primeiro = semestres.find((s) => coberto(cobreAte(s))) ?? null;
+    const saida = {};
+    Object.entries(grupos).forEach(([k, g]) => { saida[k] = { nome: g.nome, un: g.un, falta: falta[k], planejado: total.acc[k] || 0 }; });
+    return {
+      grupos: saida,
+      semPlano: obrigatorias.filter((o) => !total.ob.has(o.code)).map((o) => o.nome),
+      primeiro, semData: primeiro == null && coberto(total),
+      disciplinasPlanejadas: coberto(total, (k) => k !== "5"),
+      concluido: !precisa.size && Object.values(falta).every((f) => f <= 0),
+    };
+  }
+
   // ---------- Previsão de formatura (C4) ----------
   /**
    * Só aparece quando o Cronograma cobre tudo o que falta: créditos de cada grupo, obrigatórias (com Projeto de
@@ -187,10 +236,10 @@
       const nomes = ob.length > 5 ? [...ob.slice(0, 5), `e mais ${ob.length - 5} obrigatórias`] : ob;
       return { estado: "pendente", cr, texto: `${cr ? `Planeje os ${fmtN(cr)} cr que faltam` : "Planeje o que falta"}: ${[...nomes, ...pend].join(", ")}.` };
     }
-    if (e.semDataNecessaria || e.ultimoSemestre == null) return { estado: "indisponivel", texto: "Um período do plano não tem semestre: não dá para calcular a previsão." };
+    if (e.semDataNecessaria || e.ultimoSemestre == null) return { estado: "indisponivel", texto: "Algo necessário no plano está sem semestre (um período ou horas de ACE): não dá para calcular a previsão." };
     return { estado: "previsao", semestre: e.nomeDoSemestre(e.ultimoSemestre), texto: `No seu plano, você forma em ${e.nomeDoSemestre(e.ultimoSemestre)} (estimativa).` };
   }
   const fmtN = (n) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
 
-  return { FONTES, fase, faseDoCurso, percentual, avaliaSelos, proximoMarco, previsaoFormatura, GRUPOS, PG, ESTAGIO };
+  return { FONTES, fase, faseDoCurso, percentual, avaliaSelos, proximoMarco, coberturaDoPlano, previsaoFormatura, GRUPOS, PG, ESTAGIO };
 });

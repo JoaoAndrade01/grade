@@ -376,6 +376,34 @@ caso("Previsão (C4): sem perfil e sem período atual explicam; pendência concr
   assert.equal(sd.estado, "indisponivel");
 });
 
+caso("B1 e B2: cobertura pelo plano: primeiro semestre com tudo coberto, sem repetir disciplina, com o semestre das horas de ACE", () => {
+  const G = (o = {}) => ({ 1: { nome: "Obrigatórias", un: "cr", total: 174, cumprido: 166 }, 2: { nome: "Optativas", un: "cr", total: 40, cumprido: 0 },
+    5: { nome: "Extensão / ACE", un: "h", total: 405, cumprido: 0 }, ...o });
+  const ob = [{ code: "EEWU00", nome: "Estágio Obrigatório" }, { code: "EEWX00", nome: "Projeto de Graduação" }];
+  const base = [{ code: "EEWX00", grupo: "1", valor: 4, semestre: sem("2026/2") }, { code: "EEWU00", grupo: "1", valor: 4, semestre: sem("2027/1") },
+    { code: "XYZ201", grupo: "2", valor: 40, semestre: sem("2027/1") }];
+  const ace = (s) => [{ horas: 405, semestre: s }];
+  const c = (itens, horas, grupos = G()) => C.coberturaDoPlano({ grupos, obrigatorias: ob, itens, horasAce: horas });
+  assert.equal(c(base, ace(sem("2027/1"))).primeiro, sem("2027/1"));
+  // B2: repetir a optativa em 2030/2 não muda (cada disciplina conta uma vez, na primeira ocorrência)
+  assert.equal(c(base.concat([{ code: "XYZ201", grupo: "2", valor: 40, semestre: sem("2030/2") }]), ace(sem("2027/1"))).primeiro, sem("2027/1"));
+  // B2: as horas de ACE terminam em 2029/2: é o primeiro semestre com tudo coberto
+  assert.equal(c(base, ace(sem("2029/2"))).primeiro, sem("2029/2"));
+  // B2: horas necessárias sem semestre: indisponível, não um semestre
+  const sd = c(base, ace(null)); assert.equal(sd.primeiro, null); assert.equal(sd.semData, true);
+  // B1: sem nada no plano para as optativas, falta e o selo do Notion não sai (créditos simulados não entram no cumprido)
+  const b1 = c(base.slice(0, 2), ace(sem("2027/1")));
+  assert.equal(b1.primeiro, null); assert.equal(b1.grupos[2].falta, 40); assert.equal(b1.grupos[2].planejado, 0); assert.equal(b1.disciplinasPlanejadas, false);
+  // o selo do Notion não depende de ACE
+  assert.equal(c(base, []).disciplinasPlanejadas, true);
+  const p = C.previsaoFormatura({ perfil: true, temAtual: true, grupos: b1.grupos, obrigatoriasSemPlano: b1.semPlano, ultimoSemestre: b1.primeiro, semDataNecessaria: b1.semData, nomeDoSemestre: P.nomeDoSemestre });
+  assert.equal(p.estado, "pendente"); assert.match(p.texto, /40 cr de Optativas/);
+  // tudo cumprido pelo registrado: concluído
+  const feito = C.coberturaDoPlano({ grupos: G({ 1: { nome: "Obrigatórias", un: "cr", total: 174, cumprido: 174 }, 2: { nome: "Optativas", un: "cr", total: 40, cumprido: 40 },
+    5: { nome: "Extensão / ACE", un: "h", total: 405, cumprido: 405 } }), obrigatorias: [], itens: [], horasAce: [] });
+  assert.equal(feito.concluido, true);
+});
+
 let falhas = 0;
 for (const [nome, f] of casos) {
   try { f(); console.log("OK   ", nome); }

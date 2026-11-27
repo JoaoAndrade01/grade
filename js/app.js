@@ -1826,31 +1826,33 @@
       return rs.some((a) => a.status === "aprovado" && semDe(a) != null && rs.some((r) => r.status === "reprovado" && semDe(r) != null && semDe(r) < semDe(a)));
     });
     const fenixDeclarado = Object.entries(M.declaradas.notas).some(([code, n]) => n.tipo === "reprovacao-antes" && fonteDe(code) === "declarado");
-    const cob = coberturaDoPlano();
+    const cob = coberturaDoPlano(creditos, ace);
     return { fonte: fonteDe, codigos, nivel: (code) => { const g = guiaDe(code); return g ? g.nivel : null; }, deps: M.deps, grade: M.grade,
       creditos, totais: TOTAIS_CR(), ace, aceTotal: M.grade.filter((c) => c.category == 5).reduce((a, c) => a + c.credits, 0) || 405,
       historico, fenix: { importado: fenixImportado, declarado: fenixDeclarado }, planejamentoCompleto: cob.disciplinasPlanejadas,
       nomeDe: (code) => (M.info(code) || {}).name || code, semestres: historico.filter((p) => p.itens.length).length, cobertura: cob };
   }
-  /** O que falta e o que o Cronograma cobre (cada disciplina uma vez, pelo status efetivo). */
-  function coberturaDoPlano() {
-    const t = totais();
+  /**
+   * O que falta e o que o plano cobre (js/conquistas.js). O cumprido é só o registrado (importado e registrado por
+   * você); a barra continua com a simulação (pincel e créditos manuais), mas a previsão e o selo do Notion não.
+   */
+  function coberturaDoPlano(creditos, ace) {
+    const reg = (o) => (o.importado || 0) + (o.declarado || 0);
     const grupos = {};
     Object.keys(CATS).forEach((k) => {
-      const T = t[k]; if (!T.total) return;
-      const falta = k === "5" ? Math.max(0, T.total - T.ok) : Math.max(0, T.total - T.ok - T.prev);
-      grupos[k] = { nome: CATS[k].nome, un: CATS[k].un, falta, planejado: T.plan };
+      const total = M.grade.filter((c) => String(c.category) === k).reduce((a, c) => a + c.credits, 0);
+      if (total) grupos[k] = { nome: CATS[k].nome, un: CATS[k].un, total, cumprido: k === "5" ? reg(ace) : reg(creditos[k] || {}) };
     });
-    const obrig = M.grade.filter((c) => c.code && c.category === 1 && !concluido(statusDe(c.code)));
-    const semPlano = obrig.filter((c) => !emCurso(statusDe(c.code))).map((c) => c.name);
-    // Último período com algo necessário: item não reprovado de uma disciplina que ainda não foi concluída.
-    let ultimo = null, semData = false;
-    M.periodos.filter((p) => p.tipo === "atual" || p.tipo === "planejado").forEach((p) => {
-      if (!p.itens.some((it) => it.status !== "reprovado" && !concluido(statusDe(it.alvo)))) return;
-      if (p.semestre == null) semData = true; else ultimo = ultimo == null ? p.semestre : Math.max(ultimo, p.semestre);
-    });
-    const disciplinasPlanejadas = !semPlano.length && Object.entries(grupos).every(([k, g]) => k === "5" || g.falta <= g.planejado);
-    return { grupos, semPlano, ultimo, semData, disciplinasPlanejadas, t };
+    const cumprida = (code) => ["importado", "declarado"].includes(fonteDe(code));
+    const obrigatorias = M.grade.filter((c) => c.code && c.category === 1 && !cumprida(c.code)).map((c) => ({ code: c.code, nome: c.name }));
+    const itens = [];
+    M.periodos.filter((p) => (p.tipo === "atual" || p.tipo === "planejado") && !p.declarado).forEach((p) => p.itens.forEach((it) => {
+      if (it.status === "reprovado" || cumprida(it.alvo) || M.consumidas.has(it.alvo)) return;
+      const cat = String(it.category);
+      itens.push({ code: it.alvo, grupo: cat, valor: cat === "5" ? (it.horas ?? it.credits) : it.credits, semestre: p.semestre });
+    }));
+    const horasAce = getExt().filter((a) => a.status !== "validada" && Number(a.horas) > 0).map((a) => ({ horas: Number(a.horas), semestre: semIdx(a.periodo) }));
+    return CQ().coberturaDoPlano({ grupos, obrigatorias, itens, horasAce });
   }
   function calculaMotivacao() {
     const c = contextoConquistas();
@@ -1858,7 +1860,7 @@
     const fase = CQ().faseDoCurso({ pctImportado, pctComDeclaradas, semestres: c.semestres });
     const selos = CQ().avaliaSelos(c);
     const previsao = CQ().previsaoFormatura({ perfil: !!perfil, temAtual: M.periodos.some((p) => p.tipo === "atual"), grupos: c.cobertura.grupos,
-      obrigatoriasSemPlano: c.cobertura.semPlano, ultimoSemestre: c.cobertura.ultimo, semDataNecessaria: c.cobertura.semData,
+      obrigatoriasSemPlano: c.cobertura.semPlano, ultimoSemestre: c.cobertura.primeiro, semDataNecessaria: c.cobertura.semData,
       nomeDoSemestre: window.PROGRESSO.nomeDoSemestre });
     return { fase, selos, proximo: CQ().proximoMarco(selos), previsao, semestres: c.semestres, pctImportado, pctComDeclaradas, totalCr: Object.values(c.totais).reduce((a, b) => a + b, 0) };
   }

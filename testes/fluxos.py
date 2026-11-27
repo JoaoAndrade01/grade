@@ -3706,8 +3706,34 @@ def t_ace_origem(b):
     assert s["extensao"] == ("obtido", False) and s["acabou"] == ("obtido", False), s
     ctx.close()
 
+@caso("Previsão e selo do Notion só com o registrado e o plano: créditos manuais não cumprem; primeiro semestre coberto, sem repetir disciplina, com o semestre das horas de ACE")
+def t_previsao_cobertura(b):
+    ctx, pg = abre(b, perfil={"periodos": []}, nome="previsao-cobertura-obr", relogio=HOJE); obr = [c for c, _, _ in obrigatorias(pg)]; ctx.close()
+    it = lambda code, cr, cat: {"code": code, "name": "Disciplina fictícia " + code, "credits": cr, "category": cat}
+    base = {"periodos": [{"nome": "2025/1", "disciplinas": obr}, {"nome": "2026/2", "atual": True, "disciplinas": []},
+                         {"nome": "2027/1", "planejado": True, "disciplinas": [it("XYZ201", 40, 2), it("XYZ301", 8, 3), it("XYZ401", 4, 4)]}],
+            "extensao": [{"nome": "Projeto fictício", "horas": 405, "periodo": "2027/1", "status": "planejada"}]}
+    def resumo(perfil, extra=None, nome=""):
+        ctx, pg = abre(b, perfil=perfil, extra={"modoClassico": False, "vista": "grade", "foco": True, **(extra or {})}, nome=f"previsao-cobertura-{nome}", relogio=HOJE)
+        m = motivacao(pg); r = (m["previsao"]["estado"], m["previsao"].get("semestre"), next(s for s in m["selos"] if s["id"] == "notion")["estado"], m["previsao"]["texto"])
+        barra = pg.locator("#barra-geral .bg-total").inner_text(); ctx.close(); return r, barra
+    r, _ = resumo(base, nome="base"); assert r[:3] == ("previsao", "2027/1", "obtido"), r
+    x = json.loads(json.dumps(base)); x["periodos"].append({"nome": "2030/2", "planejado": True, "disciplinas": [it("XYZ201", 40, 2)]})
+    r, _ = resumo(x, nome="repetida"); assert r[:2] == ("previsao", "2027/1"), r                     # repetir mais tarde não muda
+    x = json.loads(json.dumps(base)); x["extensao"][0]["periodo"] = "2029/2"
+    r, _ = resumo(x, nome="ace-tarde"); assert r[:3] == ("previsao", "2029/2", "obtido"), r          # as horas terminam em 2029/2
+    x = json.loads(json.dumps(base)); x["extensao"][0].pop("periodo")
+    r, _ = resumo(x, nome="ace-sem-data"); assert r[0] == "indisponivel" and "sem semestre" in r[3], r
+    x = json.loads(json.dumps(base)); x["periodos"].pop(); x["extensao"][0]["status"] = "validada"
+    r, barra = resumo(x, {"creditos": {"2": 40, "3": 8, "4": 4}}, nome="manuais")                    # B1: créditos manuais simulam
+    assert r[0] == "pendente" and r[2] == "falta" and "Planeje os 52 cr que faltam" in r[3], r
+    assert barra.startswith("226 de 226 cr"), barra                                                  # a barra continua com a simulação
+    ctx, pg = abre(b, perfil=x, extra={"modoClassico": False, "vista": "grade", "foco": True, "creditos": {"2": 40, "3": 8, "4": 4}}, nome="previsao-cobertura-tela", relogio=HOJE)
+    expect(pg.locator("#motivacao .previsao")).to_contain_text("Planeje os 52 cr que faltam"); expect(pg.locator("#motivacao .previsao")).not_to_contain_text("Você já cumpriu")
+    ctx.close()
+
 CASOS5 = [t_controles_icones, t_todas_acesas, t_minimalista, t_plano_na_grade, t_declaradas_modelo, t_declaradas_prazo_ace, t_declaradas_arquivo, t_declaradas_reimportar,
-          t_registrar_sem_perfil, t_registrar_com_perfil, t_declaradas_detalhe, t_declaradas_gestao, t_declarada_cursando, t_foco, t_motivacao, t_conquistas_estante, t_declaradas_lote_foco, t_foco_ajustes, t_ace_origem]
+          t_registrar_sem_perfil, t_registrar_com_perfil, t_declaradas_detalhe, t_declaradas_gestao, t_declarada_cursando, t_foco, t_motivacao, t_conquistas_estante, t_declaradas_lote_foco, t_foco_ajustes, t_ace_origem, t_previsao_cobertura]
 CASOS += CASOS5
 
 
