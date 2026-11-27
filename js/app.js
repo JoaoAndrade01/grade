@@ -329,6 +329,7 @@
   const ATALHOS = ["perfil", "importar", "tema", "privacidade", "referencias", "tags"];
   let atalhos = load("atalhos", [], (v) => listaDe(v, (x) => ATALHOS.includes(x)));
   let ocultarSeletor = load("ocultarSeletor", false, (v) => typeof v === "boolean");
+  let seletorIcones = load("seletorIcones", false, (v) => typeof v === "boolean");   // seletor de modo só com ícones
   let celTab = null;                 // célula do cronograma que entra na ordem de Tab (foco móvel)
   let consultado = null;             // toque: cartão consultado, à espera do segundo toque que marca
   let seletorECI = false;            // paleta "ECI por trás" (só nesta visita): destaca os cartões com experiência
@@ -337,13 +338,13 @@
   let filtroNivel = load("filtroNivel", [], (v) => listaDe(v, numero));   // níveis de dificuldade em destaque (vazio = todos)
   let progressoAberto = load("progressoAberto", false);
   // Modo clássico (padrão ao abrir): só a grade inteira numa tela e a paleta para pintar.
-  // Desligado = modo completo, com as abas (linha do tempo, optativas, cronograma, pedidos).
+  // Desligado = modo Planejador, com as abas (linha do tempo, optativas, cronograma, pedidos).
   const abrirNoModoClassico = new URLSearchParams(window.location.search).get("modo") === "classico";
   let modoClassico = abrirNoModoClassico || load("modoClassico", true);
   let creditosManuais = load("creditos", {}, (v) => objeto(v)
     && Object.entries(v).every(([k, n]) => Object.hasOwn(CATS, k) && numero(n))); // categoria -> créditos extras
   let plano = { periodos: {}, novos: [], ...load("plano", {}, planoValido) }; // edições de planejamento
-  let vistaAtual = load("vista", perfil ? "timeline" : "grade");   // aba do modo completo
+  let vistaAtual = load("vista", perfil ? "timeline" : "grade");   // aba do Planejador
   let filtros = Object.assign({ busca: "", grupo: "2", prefixo: "", liberadas: false, ocultarFeitas: true, cabe: false, alvo: "", ativas: true }, load("filtros", {}));
   let cronoPeriodo = load("cronoPeriodo", null);
   let cronoSel = null;
@@ -945,7 +946,7 @@
 
   /**
    * Paleta flutuante (fixa embaixo da tela): escolhe a tag do pincel.
-   * No modo clássico sempre há um pincel ativo (clique = pintar). No modo completo existe a opção
+   * No modo clássico sempre há um pincel ativo (clique = pintar). No Planejador existe a opção
    * "Detalhes" (pincel nulo): o clique abre o painel da disciplina.
    */
   function renderPaleta() {
@@ -978,7 +979,7 @@
     ${seletorECI ? `<p class="dica-eci" id="dica-eci">Escolha um cartão destacado para abrir a experiência. As outras disciplinas ficam inativas até você desligar “ECI por trás”.</p>` : ""}`;
   }
 
-  /** Opções de exibição e filtro (só no modo completo, aba Grade). */
+  /** Opções de exibição e filtro (só no Planejador, aba Grade). */
   function renderFerramentas() {
     const niveis = M.guia ? Object.keys(M.guia.niveis) : [];
     return `<div class="ferr-grupo"><span class="ferr-rot">${icone("exibir", 14)} Exibir</span>
@@ -1806,6 +1807,7 @@
   /** Atalhos visíveis: os fixados e, sem perfil válido, "Criar perfil" e "Importar do SIGA". */
   function renderAtalhos() {
     $("#seletor-modo").hidden = ocultarSeletor;
+    $("#seletor-modo").classList.toggle("so-icones", seletorIcones);
     const vis = ATALHOS.filter((id) => atalhos.includes(id) || (!perfil && (id === "perfil" || id === "importar")));
     const box = $("#atalhos");
     const chave = `${vis.join(",")}|${!!perfil}|${temaAtual()}`;
@@ -1847,8 +1849,9 @@
           ${linhaAtalho("tema", "Botão sol/lua na barra")}
         </fieldset>
         <fieldset class="opcoes"><legend>Modo</legend>
-          ${radio("modo", "classico", "Clássico: só a grade e a paleta", modoClassico)}${radio("modo", "completo", "Completo: com as abas", !modoClassico)}
+          ${radio("modo", "classico", "Clássico: só a grade e a paleta", modoClassico)}${radio("modo", "completo", "Planejador: com as abas", !modoClassico)}
           <label class="opcao"><input type="checkbox" id="cfg-seletor"${ocultarSeletor ? "" : " checked"}> Mostrar o seletor de modo no topo</label>
+          <label class="opcao"><input type="checkbox" id="cfg-seletor-icones"${seletorIcones ? " checked" : ""}> Mostrar só ícones no seletor</label>
         </fieldset>
       </section>
       <section class="cfg-sec" aria-labelledby="cfg-h-grade"><h2 id="cfg-h-grade">Grade</h2>
@@ -1885,7 +1888,7 @@
   function defineModo(classico) {
     consultado = null;
     modoClassico = classico; save("modoClassico", modoClassico);
-    if (!modoClassico) pincel = null;   // no modo completo o clique volta a abrir detalhes
+    if (!modoClassico) pincel = null;   // no Planejador o clique volta a abrir detalhes
     seletorECI = false;
     fechaDetalhes(); render();
   }
@@ -1931,7 +1934,7 @@
   function desenha() {
     // Modo clássico: força a aba Grade e mantém um pincel sempre ativo
     document.body.classList.toggle("classico", modoClassico);
-    $("#modo-classico").checked = modoClassico;
+    $("#modo-classico").checked = modoClassico; $("#modo-planejador").checked = !modoClassico;
     if (modoClassico) { if (pincel === null) pincel = (tags[0] || {}).id || ""; }
     const vista = modoClassico ? "grade" : vistaAtual;
     renderCabecalho();
@@ -2278,6 +2281,9 @@
     const box = $("#detalhes");
     box.innerHTML = `<header><span class="cat-pill">Importar</span><button type="button" class="fechar" aria-label="Fechar">×</button></header>
       <h3>Importar do SIGA</h3>
+      ${modoClassico ? `<p class="sugere-planejador" id="sugere-planejador">${icone("linha-do-tempo", 16)}
+        <span>No <b>Planejador</b>, o que você importar aparece na linha do tempo, nas optativas e no cronograma.</span>
+        <button type="button" class="btn btn-sm" id="ir-planejador">Trocar para o Planejador</button></p>` : ""}
       <ol class="passos">
         <li>No SIGA, baixe em PDF o <b>Histórico</b> (e o do curso anterior, se você mudou de curso) e o <b>BOA</b> (Boletim de Orientação Acadêmica).</li>
         <li>Escolha os PDFs abaixo (pode selecionar todos de uma vez).</li>
@@ -2978,8 +2984,9 @@
     });
     document.addEventListener("change", (ev) => {
       const t = ev.target;
-      if (t.id === "modo-classico") return defineModo(t.checked);
+      if (t.name === "modo-topo") return defineModo(t.value === "classico");
       if (t.name === "modo") { defineModo(t.value === "classico"); return atualizaConfig(); }
+      if (t.id === "cfg-seletor-icones") { seletorIcones = t.checked; save("seletorIcones", seletorIcones); renderAtalhos(); return atualizaConfig(); }
       if (t.id === "cfg-seletor") { ocultarSeletor = !t.checked; save("ocultarSeletor", ocultarSeletor); renderAtalhos(); return atualizaConfig(); }
       if (t.id === "cfg-cadeado") { cadeado = t.checked; save("cadeado", cadeado); render(); return atualizaConfig(); }
       if (t.dataset.exibir) { exibir[t.dataset.exibir] = t.checked; save("exibir", exibir); render(); atualizaConfig(); }
@@ -2994,6 +3001,12 @@
     $("#detalhes").addEventListener("click", (ev) => {
       const t = ev.target.closest("button"); if (!t) return;
       if (t.classList.contains("fechar")) return fechaDetalhes();
+      if (t.closest("#ir-planejador")) {   // troca de modo sem fechar o importador nem perder os PDFs escolhidos
+        consultado = null; seletorECI = false; pincel = null;
+        modoClassico = false; save("modoClassico", false); render();
+        $("#sugere-planejador").remove(); $("#siga-pdfs").focus();
+        return anuncia("Modo Planejador ligado. O importador continua aberto.");
+      }
       // editor de tags
       if (t.dataset.tagdel != null) {
         const k = +t.dataset.tagdel, id = tags[k].id;
@@ -3171,7 +3184,7 @@
     if (el === painelRef || !el.matches(":focus-visible")) return;
     requestAnimationFrame(() => {
       if (!el.isConnected || document.activeElement !== el) return;
-      const alvo = el.matches(".interruptor input") && el.nextElementSibling ? el.nextElementSibling : el;
+      const alvo = el.matches(".seletor-modo input") ? el.closest("label") : el;
       const r = alvo.getBoundingClientRect();
       const topo = faixa ? faixa.getBoundingClientRect().bottom + 8 : 0;
       const base = paletaEl && !paletaEl.hidden && paletaEl.offsetHeight ? paletaEl.getBoundingClientRect().top - 8 : innerHeight;

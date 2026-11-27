@@ -499,16 +499,17 @@ small.alerta, .alerta { color: var(--dep); }
 .ico { flex: 0 0 auto; vertical-align: -3px; }
 .btn-icone { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; }
 
-/* interruptor (switch) sem texto */
-.interruptor { position: relative; display: inline-flex; align-items: center; cursor: pointer; }
-.interruptor input { position: absolute; opacity: 0; width: 1px; height: 1px; }
-.interruptor .trilho { width: 46px; height: 26px; border-radius: 99px; background: var(--border); position: relative; transition: background .2s; }
-.interruptor .trilho::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%;
-  background: var(--surface); box-shadow: 0 1px 3px rgb(0 0 0 / .3); transition: transform .2s; }
-.interruptor input:checked + .trilho { background: var(--aprovado); }
-.interruptor input:checked + .trilho::after { transform: translateX(20px); }
-.interruptor input:focus-visible + .trilho { outline: 2px solid var(--cursando); outline-offset: 2px; }
-@media (prefers-reduced-motion: reduce) { .interruptor .trilho, .interruptor .trilho::after { transition: none; } }
+/* seletor de modo no topo: Clássico | Planejador (rádios nativos; setas trocam, o nome acessível vem do .rot) */
+.seletor-modo { display: inline-flex; gap: 2px; padding: 3px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); }
+.modo-op { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 34px; padding: 0 12px;
+  border-radius: 8px; font-size: 14px; color: var(--text); cursor: pointer; white-space: nowrap; }
+.modo-op input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; pointer-events: none; }
+.modo-op:hover { background: color-mix(in srgb, var(--text) 8%, transparent); }
+.modo-op:has(input:checked) { background: var(--text); color: var(--bg); font-weight: 600; }
+.modo-op:has(input:focus-visible) { outline: 2px solid var(--foco); outline-offset: 2px; }
+.seletor-modo.so-icones .rot { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.seletor-modo.so-icones .modo-op { padding: 0 10px; min-width: 40px; }
+:root .seletor-modo.so-icones .ico { display: inline-block; }   /* só ícones vale mesmo com "Somente texto" na aparência */
 
 /* modo clássico: só a grade, o resto some */
 .classico .abas, .classico #subtitulo, .classico .rodape-dica, .classico .rodape-extra, .classico .bg-legenda { display: none; }
@@ -586,7 +587,6 @@ small.alerta, .alerta { color: var(--dep); }
 /* foco visível em tudo o que é interativo (teclado) */
 :where(button, a, input, select, textarea, summary, label.btn):focus-visible { outline: 2px solid var(--foco); outline-offset: 2px; }
 .card:focus-visible, .pal-btn:focus-visible { outline-color: var(--foco); }
-.interruptor input:focus-visible + .trilho { outline-color: var(--foco); }
 
 /* avisos em âmbar com contraste ≥ 4,5:1 nos dois temas (o laranja de destaque fica para contornos) */
 small.alerta, .alerta, .crono-pick small.alerta, .chip-alerta, .aviso-edicao, .ref-linha, .opt-breve .sit,
@@ -636,6 +636,11 @@ dialog.dlg:modal { overscroll-behavior: contain; }
 .periodo-sugerido .campo { max-width: 160px; }
 #siga-usar:disabled { opacity: .5; cursor: not-allowed; }
 
+/* importador no modo clássico: sugestão de trocar para o Planejador */
+.sugere-planejador { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: 6px 0 10px; padding: 8px 10px;
+  font-size: 13px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); }
+.sugere-planejador span { flex: 1 1 180px; }
+
 /* cronograma: excluir período */
 .btn-perigo-ghost { color: var(--perigo); border-color: color-mix(in srgb, var(--perigo) 45%, var(--border)); box-shadow: none; background: transparent; }
 .btn-perigo-ghost:hover { border-color: var(--perigo); }
@@ -656,7 +661,7 @@ dialog.dlg:modal { overscroll-behavior: contain; }
   .classico .logo { width: 32px; height: 32px; }
   .titulo h1 { font-size: 18px; }
   .btn-icone, .btn-icone:not(:has(.rot)), .btn-atalho { min-height: 44px; min-width: 44px; }
-  .interruptor { min-height: 44px; }
+  .modo-op { min-height: 44px; min-width: 44px; }
   .dlg-acoes .btn { min-height: 44px; flex: 1 1 auto; }
   .dlg .campo { min-height: 44px; font-size: 16px; }
   .crono-topo .btn, .crono-topo .seg button { min-height: 40px; }

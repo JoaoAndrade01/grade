@@ -43,17 +43,17 @@
       </div>
     </div>
     <!-- Barra: atalhos fixados em Configurações (sem perfil, "Importar" e "Criar perfil" aparecem sempre),
-         a engrenagem (sempre) e o seletor de modo (pode ser ocultado em Configurações). -->
+         a engrenagem (sempre) e o seletor Clássico | Planejador (pode ser ocultado em Configurações). -->
     <nav class="acoes" aria-label="Atalhos">
       <div id="atalhos" class="atalhos"></div>
       <button type="button" id="btn-config" class="btn btn-icone btn-atalho" data-icone="configuracoes" title="Configurações"><span class="rot">Configurações</span></button>
-      <!-- interruptor do modo clássico (ligado ao abrir) -->
-      <label class="interruptor" id="seletor-modo" title="Modo clássico">
-        <input type="checkbox" id="modo-classico" role="switch" aria-label="Modo clássico" checked>
-        <span class="trilho" aria-hidden="true"></span>
-      </label>
+      <!-- seletor de modo: Clássico (só a grade, padrão ao abrir) | Planejador (com as abas). O nome acessível vem do .rot. -->
+      <div class="seletor-modo" id="seletor-modo" role="radiogroup" aria-label="Modo">
+        <label class="modo-op" title="Clássico: só a grade e a paleta"><input type="radio" name="modo-topo" id="modo-classico" value="classico" checked><span data-icone="grade"></span><span class="rot">Clássico</span></label>
+        <label class="modo-op" title="Planejador: linha do tempo, optativas, cronograma e pedidos"><input type="radio" name="modo-topo" id="modo-planejador" value="planejador"><span data-icone="linha-do-tempo"></span><span class="rot">Planejador</span></label>
+      </div>
     </nav>
-    <!-- abas: só aparecem com o modo clássico desligado -->
+    <!-- abas: só aparecem no modo Planejador -->
     <div class="seg abas" role="tablist" aria-label="Telas">
       <button type="button" id="aba-grade" data-vista="grade" role="tab" aria-controls="painel" data-icone="grade" title="Grade"><span class="rot">Grade</span></button>
       <button type="button" id="aba-timeline" data-vista="timeline" role="tab" aria-controls="painel" data-icone="linha-do-tempo" title="Linha do tempo"><span class="rot">Linha do tempo</span></button>

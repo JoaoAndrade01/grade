@@ -5,15 +5,15 @@ A verificação de uma versão reúne cinco suítes. O plano, a matriz de rastre
 
 | Suíte | O que verifica | Arquivos | Como rodar | Resultado esperado |
 | --- | --- | --- | --- | --- |
-| Interface (matriz) | Os casos dos requisitos no navegador, com dados fictícios | `runner.py`, `fluxos.py`, `reimportacao.py`, `auditoria.py` | "Rodar a matriz", nos seis pares | 93 cenários por `file://` e 94 por HTTP, sem evento inesperado |
+| Interface (matriz) | Os casos dos requisitos no navegador, com dados fictícios | `runner.py`, `fluxos.py`, `reimportacao.py`, `auditoria.py` | "Rodar a matriz", nos seis pares | 95 cenários por `file://` e 96 por HTTP, sem evento inesperado |
 | Paridade do importador | Que o importador em JavaScript e o em Python geram o mesmo perfil | `../ferramentas/testar_paridade.sh` | "Rodar a paridade do importador" | As quatro combinações iguais |
 | Oráculos do importador | Que as duas saídas batem com perfis esperados escritos à mão | `importador.py`, `fixtures/oraculos.json` | `python -B testes/importador.py` | Todos os cenários verdes |
 | Validador dos dados de referência (RF-17) | Formato, códigos e duplicatas de `js/horarios.js` e `js/guia.js` | `referencia_casos.py`, `referencia.py`, `fixtures/excecoes-referencia.json` | "Validar os dados de referência" | Todos os casos verdes |
 | Acessibilidade (axe-core) | Regras WCAG A e AA, contraste, alvos e papéis ARIA, no recorte de telas | casos de `fluxos.py` que usam o axe | Dentro da matriz; "Axe-core" | Sem ocorrência grave ou crítica |
 
-A matriz reúne 89 cenários de interface (`fluxos.py`) e os cinco do kit de reimportação. Os casos A a D testam a
+A matriz reúne 91 cenários de interface (`fluxos.py`) e os cinco do kit de reimportação. Os casos A a D testam a
 preservação de anotações e a igualdade entre baixar e aplicar; o caso P ensaia a publicação com HTTP estático sob
-`/grade/` e só roda por HTTP, por isso a contagem é 93 por `file://` e 94 por HTTP. Os casos de acessibilidade (foco,
+`/grade/` e só roda por HTTP, por isso a contagem é 95 por `file://` e 96 por HTTP. Os casos de acessibilidade (foco,
 nomes, contraste, refluxo, alvos, papéis ARIA, mensagens do PDF e o recorte do axe) e o de turmas sem código vêm da
 inspeção de experiência de uso e acessibilidade feita antes da publicação.
 

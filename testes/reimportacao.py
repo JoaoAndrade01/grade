@@ -76,7 +76,7 @@ def baixa_e_usa(pg, pasta, rotulo):
 
 def modo_classico(pg, ligar):
     chk = pg.locator("#modo-classico")
-    if chk.count() and chk.is_checked() != ligar: pg.locator(".interruptor").click(); pg.wait_for_timeout(150)
+    if chk.count() and chk.is_checked() != ligar: pg.locator("#seletor-modo label:has(input:not(:checked))").click(); pg.wait_for_timeout(150)
 
 def anota(pg, periodo, pasta):
     """Na interface: pinta MAC128 com o pincel e marca um horário de COS242 no cronograma do período atual.

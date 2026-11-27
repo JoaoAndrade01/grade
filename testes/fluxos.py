@@ -56,8 +56,11 @@ def abre(b, vp=D, esquema="light", perfil=None, extra=None, nome="", toque=False
 
 def foto(pg, nome, full=False): pg.wait_for_timeout(150); pg.screenshot(path=str(OUT / f"{nome}.png"), full_page=full)
 def ls(pg, k): return pg.evaluate("k => JSON.parse(localStorage.getItem(k))", CHAVE + k)
+def alterna_modo(pg):
+    """Seletor Clássico | Planejador do topo: escolhe a opção que não está marcada."""
+    pg.locator("#seletor-modo label:has(input:not(:checked))").click()
 def completo(pg, vista=None):
-    if pg.locator("#modo-classico").is_checked(): pg.locator(".interruptor").click()
+    if pg.locator("#modo-classico").is_checked(): alterna_modo(pg)
     if vista: pg.click(f'[data-vista="{vista}"]')
 
 # ------------------------------------------------------------------ tema
@@ -110,7 +113,7 @@ def t_tema_abas(b):
     ctx.close()
 
 # ------------------------------------------------------------------ primeira visita
-@caso("Primeira visita sem perfil: grade clássica, modo completo acessível, sem nome nem progresso, aba 'Grade ECI'")
+@caso("Primeira visita sem perfil: grade clássica, Planejador acessível, sem nome nem progresso, aba 'Grade ECI'")
 def t_sem_perfil(b):
     ctx, pg = abre(b, nome="sem-perfil", atalhos=False)
     assert pg.locator("#modo-classico").is_checked()
@@ -125,10 +128,49 @@ def t_sem_perfil(b):
     assert pg.locator("#btn-tema, #btn-privacidade, #btn-referencias, #btn-tags").count() == 0     # atalhos começam desafixados
     logo = pg.locator(".logo").evaluate("i => [i.naturalWidth, i.naturalHeight, i.getBoundingClientRect().width, i.getBoundingClientRect().height, i.alt]")
     assert logo[0] == 200 and abs(logo[2] - logo[3]) < 0.5 and logo[4], logo
-    pg.locator("#modo-classico").focus(); pg.keyboard.press("Space")
+    pg.locator("#modo-classico").focus(); pg.keyboard.press("ArrowRight")     # rádios: a seta escolhe o Planejador
     assert not pg.locator("#modo-classico").is_checked() and pg.locator(".abas").is_visible()
     pg.click('[data-vista="timeline"]'); assert "Criar perfil" in pg.locator(".sem-perfil").inner_text()
     foto(pg, "11-sem-perfil-modo-completo-linha-do-tempo")
+    ctx.close()
+
+@caso("Seletor Clássico | Planejador no topo: setas do teclado, nomes acessíveis; 'só ícones' preserva o nome; Configurações diz Planejador")
+def t_seletor_modo(b):
+    ctx, pg = abre(b, perfil=PERFIL, nome="seletor-modo")
+    sel = pg.locator("#seletor-modo"); expect(sel).to_be_visible()
+    assert sel.get_attribute("role") == "radiogroup" and sel.inner_text().split() == ["Clássico", "Planejador"], sel.inner_text()
+    classico, planejador = pg.get_by_role("radio", name="Clássico"), pg.get_by_role("radio", name="Planejador")
+    expect(classico).to_be_checked(); expect(planejador).not_to_be_checked()
+    classico.focus(); pg.keyboard.press("ArrowRight")
+    expect(planejador).to_be_checked(); expect(pg.locator(".abas")).to_be_visible(); assert ls(pg, "modoClassico") is False
+    assert pg.evaluate("document.activeElement.id") == "modo-planejador"
+    assert pg.evaluate("getComputedStyle(document.activeElement.closest('label')).outlineStyle") != "none"   # foco visível no rótulo
+    pg.keyboard.press("ArrowLeft"); expect(classico).to_be_checked(); expect(pg.locator(".abas")).to_be_hidden()
+    pg.locator("#seletor-modo label:has(#modo-planejador)").click(); expect(planejador).to_be_checked()
+    pg.click("#btn-config")
+    texto = pg.locator("#dlg-config").inner_text()
+    assert "Planejador: com as abas" in texto and "Completo" not in texto, texto
+    pg.check("#cfg-seletor-icones"); pg.keyboard.press("Escape")
+    assert ls(pg, "seletorIcones") is True
+    pg.reload(); pg.wait_for_load_state("load"); pronto(pg, "seletor-modo")
+    rotulos = pg.evaluate("[...document.querySelectorAll('#seletor-modo .rot')].map((r) => r.getBoundingClientRect().width)")
+    icones = pg.evaluate("[...document.querySelectorAll('#seletor-modo .ico')].map((r) => r.getBoundingClientRect().width)")
+    assert all(w <= 1 for w in rotulos) and len(icones) == 2 and all(w >= 12 for w in icones), (rotulos, icones)
+    expect(pg.get_by_role("radio", name="Planejador")).to_be_checked(); expect(pg.get_by_role("radio", name="Clássico")).to_have_count(1)
+    foto(pg, "seletor-modo-so-icones")
+    ctx.close()
+
+@caso("Importar do SIGA no Clássico sugere o Planejador; o botão troca o modo sem fechar o importador; no Planejador, sem sugestão")
+def t_importar_sugere_planejador(b):
+    ctx, pg = abre(b, nome="importar-sugere")
+    pg.click("#btn-importar")
+    sug = pg.locator("#sugere-planejador"); expect(sug).to_be_visible(); expect(sug).to_contain_text("Planejador")
+    pg.click("#ir-planejador")
+    expect(pg.locator("#modo-planejador")).to_be_checked(); expect(pg.locator(".abas")).to_be_visible()
+    expect(pg.locator("#detalhes")).to_be_visible(); assert pg.locator("#sugere-planejador").count() == 0
+    assert pg.evaluate("document.activeElement.id") == "siga-pdfs" and ls(pg, "modoClassico") is False
+    pg.keyboard.press("Escape"); pg.click("#btn-importar")
+    expect(pg.locator("#siga-pdfs")).to_be_visible(); assert pg.locator("#sugere-planejador").count() == 0
     ctx.close()
 
 # ------------------------------------------------------------------ criar perfil
@@ -1111,11 +1153,11 @@ def t_rf08_faixa(b):
             nome = f"{rotulo}/{'perfil' if com_perfil else 'sem perfil'}"
             confere_faixa(pg, nome + "/classico")
             pg.reload(); pg.wait_for_load_state("load"); confere_faixa(pg, nome + "/recarga")
-            pg.locator(".interruptor").click(); confere_faixa(pg, nome + "/completo")
+            alterna_modo(pg); confere_faixa(pg, nome + "/completo")
             for vista in ("grade", "timeline", "optativas", "cronograma", "pedidos", "eci"):
                 pg.click(f'[data-vista="{vista}"]'); confere_faixa(pg, f"{nome}/{vista}")
                 if vista == "eci" and pg.locator("#dlg-eci[open]").count(): pg.keyboard.press("Escape")
-            pg.locator(".interruptor").click(); confere_faixa(pg, nome + "/de volta ao classico")
+            alterna_modo(pg); confere_faixa(pg, nome + "/de volta ao classico")
             pg.evaluate("window.scrollBy(0, 600)"); pg.wait_for_timeout(150)      # mouse.wheel não existe no WebKit móvel
             assert pg.locator("#faixa-aviso").bounding_box()["y"] <= 1                  # continua no topo ao rolar
             if rotulo == "desktop" and com_perfil: foto(pg, "rf08-faixa-desktop")
@@ -1221,7 +1263,7 @@ def t_rf08_rodape(b):
     for rotulo, vp, toque in (("desktop", D, False), ("celular", C, True)):
         ctx, pg = abre(b, vp=vp, nome=f"rf08-rodape-{rotulo}", toque=toque)
         for modo in ("classico", "completo"):
-            if modo == "completo": pg.locator(".interruptor").click()
+            if modo == "completo": alterna_modo(pg)
             rodape = pg.locator(".rodape")
             rodape.scroll_into_view_if_needed()
             expect(pg.locator("#versao")).to_be_visible(); assert pg.locator("#versao").inner_text() == "v2.0.0"
@@ -1430,7 +1472,7 @@ def t_regressao(b):
 def t_a11y(b):
     for esq in ("light", "dark"):
         ctx, pg = abre(b, vp=C, esquema=esq, perfil=PERFIL, nome=f"a11y-{esq}", toque=True)
-        for sel in ["#btn-importar", "#btn-perfil", "#btn-privacidade", "#btn-tema", ".interruptor"]:
+        for sel in ["#btn-importar", "#btn-perfil", "#btn-privacidade", "#btn-tema", "#seletor-modo label >> nth=0", "#seletor-modo label >> nth=1"]:
             r = pg.locator(sel).bounding_box(); assert r["height"] >= 44 and r["width"] >= 44, (sel, r)
         completo(pg, "cronograma"); pg.click('[data-cperiodo="2027/1"]')
         razoes = pg.evaluate("""() => {
@@ -2002,7 +2044,7 @@ def t_fecha_durante_leitura(b):
 CASOS3 = [t_fecha_durante_leitura, t_previa_confirmacao, t_previa_download, t_formatos, t_atalhos, t_modo, t_sync, t_seletor_eci, t_experiencias, t_exp_com_perfil]
 
 CASOS = [
-    t_descartar_salvo, t_tema, t_tema_abas, t_sem_perfil, t_criar_perfil, t_perfil_conflito,
+    t_descartar_salvo, t_tema, t_tema_abas, t_sem_perfil, t_seletor_modo, t_importar_sugere_planejador, t_criar_perfil, t_perfil_conflito,
     t_compat, t_siga, t_siga_sem_boa, t_excluir, t_periodo_janela, t_config_fechar, t_oferta, t_mac,
     t_cr01_pre, t_cr01_co, t_cr01_sugestoes, t_cr01_proposta, t_cr01_equivalencia, t_cr05_transferida_requisito, t_timeline_detalhes_e_clique, t_timeline_transferidas, t_cr01_manual,
     t_cr03_historico, t_cr03_lista,
@@ -2194,7 +2236,7 @@ PONTO_OCULTO = """() => {
   const el = document.activeElement;
   if (!el || el === document.body) return null;     // o fim da ordem de Tab passa pelo documento (WebKit): não é cartão encoberto
   if (el.closest('.paleta, .faixa-aviso, #detalhes, dialog')) return null;
-  const alvo = el.matches('.interruptor input') ? el.nextElementSibling : el;    // o interruptor mostra o trilho
+  const alvo = el.matches('.seletor-modo input') ? el.closest('label') : el;    // o rádio do seletor fica oculto; o rótulo mostra o foco
   const r = alvo.getBoundingClientRect();
   if (!r.width || !r.height) return 'sem caixa: ' + el.outerHTML.slice(0, 70);
   const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
@@ -2422,11 +2464,11 @@ def t_b8_alvos(b):
         assert not axe_graves(pg, ["target-size"]), (nome, "cronograma", axe_graves(pg, ["target-size"]))
         pg.click('[data-vista="optativas"]')
         assert not axe_graves(pg, ["target-size"]), (nome, "optativas", axe_graves(pg, ["target-size"]))
-        pg.locator('.interruptor').click()          # clássico: aviso do perfil salvo
+        alterna_modo(pg)          # clássico: aviso do perfil salvo
         mede(pg, ["#baixar-importado", "#descartar-importado"], f"aviso-{nome}")
         assert not axe_graves(pg, ["target-size"]), (nome, "aviso", axe_graves(pg, ["target-size"]))
         if toque:
-            for s in ("#btn-importar", "#btn-perfil", ".interruptor", ".pal-btn"):
+            for s in ("#btn-importar", "#btn-perfil", "#seletor-modo label", ".pal-btn"):
                 for el in pg.locator(s).all():
                     r = el.bounding_box(); assert r["height"] >= 44 and r["width"] >= 44, (s, r)
         ctx.close()

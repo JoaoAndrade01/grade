@@ -348,7 +348,7 @@ def caso_17f(args):
             pg.reload()
             pg.wait_for_load_state("load")
             if pg.locator("#modo-classico").is_checked():
-                pg.locator(".interruptor").click()
+                pg.locator("#seletor-modo label:has(input:not(:checked))").click()
             pg.click('[data-vista="optativas"]')
             pg.click('[data-abrir="COC602"]')
             expect(pg.locator("#detalhes .guia")).to_be_visible()
