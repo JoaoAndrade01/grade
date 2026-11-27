@@ -682,6 +682,13 @@ dialog.dlg:modal { overscroll-behavior: contain; }
   position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 :root:is([data-aparencia="icone"], [data-aparencia="minimalista"]) .abas button { padding-inline: 12px; }
 
+/* Controles no padrão de ícones (Exibir, Destaque, filtros de Optativas, Cronograma): ícone + .rot */
+.ico-g { display: inline-block; min-width: 1.1em; text-align: center; font-style: normal; line-height: 1; vertical-align: 0; }
+:root:is([data-aparencia="icone"], [data-aparencia="minimalista"]) .ctl .rot {
+  position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.check.desabilitado { opacity: .55; cursor: not-allowed; }
+.optativas.acesas .opt-inativa { opacity: 1; }
+
 /* Configurações */
 .opcoes { border: 1px solid var(--border); border-radius: 10px; margin: 14px 0 0; padding: 8px 12px 10px; }
 .opcoes legend { font-weight: 600; font-size: 13px; padding: 0 4px; }

@@ -59,6 +59,7 @@
     5: { nome: "Extensão / ACE", un: "h" },
   };
   const GRUPOS_OPT = { 2: "Condicionada", 4: "Humanas", 5: "ACE (extensão)" };
+  const ICONE_GRUPO = { 2: "◧", 4: "📖", 5: "🌍" };
   const FORCA = { pendente: 0, reprovado: 1, analise: 1.5, planejado: 2, cursando: 3, previsto: 4, aprovado: 5 };
   const ROTULO = {
     aprovado: "Aprovada", previsto: "Aprovação prevista", cursando: "Cursando",
@@ -125,6 +126,12 @@
     }
     return r;
   }
+  /**
+   * Padrão de ícones dos controles (Aparência): ícone decorativo e o texto em `.rot`. Em Só ícones e no Minimalista o
+   * `.rot` some só visualmente; o nome acessível continua e o `title` mostra o nome ao passar o mouse.
+   */
+  const glifo = (g) => `<span class="ico ico-g" aria-hidden="true">${g}</span>`;
+  const rotulo = (ico, txt) => `${ico}<span class="rot">${txt}</span>`;
   const focaTitulo = (el) => { if (!el) return null; el.tabIndex = -1; return el; };
   const objeto = (v) => v != null && typeof v === "object" && !Array.isArray(v);
   const texto = (v) => typeof v === "string";
@@ -346,7 +353,7 @@
     && Object.entries(v).every(([k, n]) => Object.hasOwn(CATS, k) && numero(n))); // categoria -> créditos extras
   let plano = { periodos: {}, novos: [], ...load("plano", {}, planoValido) }; // edições de planejamento
   let vistaAtual = load("vista", perfil ? "timeline" : "grade");   // aba do Planejador
-  let filtros = Object.assign({ busca: "", grupo: "2", prefixo: "", liberadas: false, ocultarFeitas: true, cabe: false, alvo: "", ativas: true }, load("filtros", {}));
+  let filtros = Object.assign({ busca: "", grupo: "2", prefixo: "", liberadas: false, ocultarFeitas: true, cabe: false, alvo: "", ativas: true, acesas: false }, load("filtros", {}));
   let cronoPeriodo = load("cronoPeriodo", null);
   let cronoSel = null;
   let cronoSlot = null;   // célula escolhida para "busca por horário"
@@ -999,12 +1006,13 @@
     ${seletorECI ? `<p class="dica-eci" id="dica-eci">Escolha um cartão destacado para abrir a experiência. As outras disciplinas ficam inativas até você desligar “ECI por trás”.</p>` : ""}`;
   }
 
+  const EXIBIR = [["codigo", "Código e créditos", "#"], ["notas", "Notas", "★"], ["dificuldade", "Dificuldade", "●"], ["presenca", "Presença", "✓"]];
   /** Opções de exibição e filtro (só no Planejador, aba Grade). */
   function renderFerramentas() {
     const niveis = M.guia ? Object.keys(M.guia.niveis) : [];
-    return `<div class="ferr-grupo"><span class="ferr-rot">${icone("exibir", 14)} Exibir</span>
-        ${[["codigo", "Código e créditos"], ["notas", "Notas"], ["dificuldade", "Dificuldade"], ["presenca", "Presença"]].map(([k, n]) =>
-          `<label class="check"><input type="checkbox" data-exibir="${k}" ${exibir[k] ? "checked" : ""}> ${n}</label>`).join("")}
+    return `<div class="ferr-grupo" role="group" aria-label="Exibir"><span class="ferr-rot ctl" aria-hidden="true">${rotulo(icone("exibir", 14), "Exibir")}</span>
+        ${EXIBIR.map(([k, n, g]) =>
+          `<label class="check ctl" title="${n}"><input type="checkbox" data-exibir="${k}" ${exibir[k] ? "checked" : ""}> ${rotulo(glifo(g), n)}</label>`).join("")}
         ${exibir.dificuldade ? escalaDificuldade() : ""}
       </div>
       <div class="ferr-grupo" role="radiogroup" aria-label="Setas de requisitos"><span class="ferr-rot">${icone("setas", 14)} Setas</span>
@@ -1196,6 +1204,11 @@
       if (filtros.cabe && alvo) { const e = encaixe(i.code); if (!e.of || e.choques.length) return false; }
       return true;
     });
+    // "Todas acesas" só tira o esmaecimento das inativas: habilitado quando há uma inativa na lista (inclusive as
+    // cursadas e planejadas que "só ativas" mantém); desabilitado, a preferência fica guardada.
+    const temInativa = !!M.ref && itens.some((i) => !paridadesOferta(i.code).length);
+    const filtroOpt = (k, g, txt, desab = false, dica = txt) =>
+      `<label class="check ctl${desab ? " desabilitado" : ""}" title="${esc(dica)}"><input type="checkbox" data-fcheck="${k}" ${filtros[k] ? "checked" : ""}${desab ? " disabled" : ""}> ${rotulo(glifo(g), txt)}</label>`;
     const T = tot[filtros.grupo] || tot[2];
     const resumoPlan = futuros.map((p) => {
       const v = p.itens.filter((it) => it.category == filtros.grupo).reduce((a, it) => a + (filtros.grupo == 5 ? it.horas || 0 : it.credits), 0);
@@ -1228,16 +1241,18 @@
       </div>`;
     }).join("");
 
-    return `<div class="optativas">
+    return `<div class="optativas${M.ref && filtros.acesas ? " acesas" : ""}">
       <div class="filtros">
-        <div class="seg seg-sm" role="group" aria-label="Grupo de optativas">${Object.entries(GRUPOS_OPT).map(([k, n]) => `<button type="button" data-fgrupo="${k}" aria-pressed="${filtros.grupo == k}">${n}</button>`).join("")}</div>
+        <div class="seg seg-sm" role="group" aria-label="Grupo de optativas">${Object.entries(GRUPOS_OPT).map(([k, n]) => `<button type="button" class="ctl" data-fgrupo="${k}" aria-pressed="${filtros.grupo == k}" title="${n}">${rotulo(glifo(ICONE_GRUPO[k]), n)}</button>`).join("")}</div>
         <input type="search" class="campo busca" id="busca-opt" aria-label="Buscar optativas por nome ou código" placeholder="Buscar por nome ou código…" value="${esc(filtros.busca)}">
-        ${M.ref ? `<label class="check"><input type="checkbox" data-fcheck="ativas" ${filtros.ativas ? "checked" : ""}> só ativas</label>` : ""}
-        <label class="check"><input type="checkbox" data-fcheck="liberadas" ${filtros.liberadas ? "checked" : ""}> só liberadas</label>
-        <label class="check"><input type="checkbox" data-fcheck="ocultarFeitas" ${filtros.ocultarFeitas ? "checked" : ""}> ocultar cursadas</label>
-        ${futuros.length ? `<label class="check">horários de
+        ${M.ref ? filtroOpt("ativas", "⏻", "só ativas") : ""}
+        ${filtroOpt("liberadas", "🔓", "só liberadas")}
+        ${filtroOpt("ocultarFeitas", "◌", "ocultar cursadas")}
+        ${futuros.length ? `<label class="check ctl" title="Horários de ${esc(alvo)}">${rotulo(glifo("🕘"), "horários de")}
           <select class="campo campo-sm" data-falvo>${futuros.map((p) => `<option ${p.nome === alvo ? "selected" : ""}>${esc(p.nome)}</option>`).join("")}</select></label>
-          <label class="check"><input type="checkbox" data-fcheck="cabe" ${filtros.cabe ? "checked" : ""}> só as que cabem em ${esc(alvo)}</label>` : ""}
+          ${filtroOpt("cabe", "⊞", `só as que cabem em ${esc(alvo)}`)}` : ""}
+        ${M.ref ? filtroOpt("acesas", "☼", "todas acesas", !temInativa,
+          temInativa ? "Todas acesas: tira o esmaecimento das optativas inativas" : "Todas acesas: nenhuma optativa inativa na lista") : ""}
       </div>
       <div class="chips prefixos">
         <button type="button" class="chip chip-btn${!filtros.prefixo ? " on" : ""}" data-fprefixo="">todas</button>
@@ -1641,12 +1656,12 @@
     const abas = ps.map((x) => `<button type="button" data-cperiodo="${esc(x.nome)}" aria-pressed="${x.nome === cronoPeriodo}">${esc(x.nome)}${x.tipo === "atual" ? " · atual" : ""}</button>`).join("");
     const topo = `<div class="crono-topo">
         <div class="seg seg-sm" role="group" aria-label="Período">${abas}</div>
-        <button type="button" class="btn btn-sm" id="novo-periodo">+ Período</button>
+        <button type="button" class="btn btn-sm ctl" id="novo-periodo" title="Adicionar período" aria-label="Adicionar período">${rotulo(glifo("＋"), "Período")}</button>
         <span class="espaco"></span>
         ${temEdicoes() ? `<span class="chip chip-alerta">edições não exportadas</span>` : ""}
-        <button type="button" class="btn btn-sm" id="exportar" title="Baixar perfil.js com as edições">${icone("baixar", 14)} Exportar perfil.js</button>
+        <button type="button" class="btn btn-sm ctl" id="exportar" title="Exportar perfil.js: baixa o perfil com as edições">${rotulo(icone("baixar", 14), "Exportar perfil.js")}</button>
         ${p && p.editado && periodoDoPerfil(p.nome) ? `<button type="button" class="btn btn-sm btn-ghost" id="descartar" title="Volta ao conteúdo original do perfil">Descartar edições de ${esc(p.nome)}</button>` : ""}
-        ${p && p.tipo === "planejado" ? `<button type="button" class="btn btn-sm btn-perigo-ghost" id="excluir-periodo">${icone("lixeira", 14)} Excluir período</button>` : ""}
+        ${p && p.tipo === "planejado" ? `<button type="button" class="btn btn-sm btn-perigo-ghost ctl" id="excluir-periodo" title="Excluir período">${rotulo(icone("lixeira", 14), "Excluir período")}</button>` : ""}
       </div>`;
     if (!p) return `<div class="crono">${topo}<p class="dica">Crie um período para começar.</p></div>`;
 

@@ -2956,6 +2956,76 @@ CASOS4 = [t_axe_recorte, t_m3_mensagens, t_b9_aria, t_b8_alvos, t_b7_pedidos_320
 CASOS += CASOS4
 
 
+# ------------------------------------------------------------------ v2.0.0: Aparência, controles e destaque
+def larg_rot(loc): return loc.locator(".rot").evaluate("e => e.getBoundingClientRect().width")
+
+@caso("Controles com ícone: Exibir, filtros de Optativas, + Período, Exportar perfil.js e Excluir período; Só ícones mantém nome e title")
+def t_controles_icones(b):
+    ctx, pg = abre(b, perfil=PERFIL, extra={"modoClassico": False, "vista": "grade"}, nome="controles-icones")
+    def mede(ctls, nivel):
+        for c in ctls:
+            assert c.locator(".ico").count() == 1 and c.get_attribute("title"), c
+            w = larg_rot(c)
+            assert (w > 4) if nivel == "icone-texto" else (w <= 1), (nivel, w, c)
+    def confere(nivel):
+        for k, nome in (("codigo", "Código e créditos"), ("notas", "Notas"), ("dificuldade", "Dificuldade"), ("presenca", "Presença")):
+            expect(pg.get_by_role("checkbox", name=nome, exact=True)).to_have_count(1)
+            mede([pg.locator(f'#ferramentas label:has([data-exibir="{k}"])')], nivel)
+        completo(pg, "optativas")
+        for nome in ("só ativas", "só liberadas", "ocultar cursadas", "todas acesas"):
+            expect(pg.get_by_role("checkbox", name=nome, exact=True)).to_have_count(1)
+            mede([pg.locator(".filtros label.ctl").filter(has=pg.get_by_role("checkbox", name=nome, exact=True))], nivel)
+        for nome in ("Condicionada", "Humanas", "ACE (extensão)"):
+            mede([pg.get_by_role("button", name=nome, exact=True)], nivel)
+        completo(pg, "cronograma"); pg.locator('[data-cperiodo="2027/1"]').click()
+        for nome in ("Adicionar período", "Exportar perfil.js", "Excluir período"):
+            mede([pg.get_by_role("button", name=nome, exact=True)], nivel)
+        foto(pg, f"controles-{nivel}-cronograma")
+        completo(pg, "grade")
+    confere("icone-texto")
+    abre_config(pg); pg.check('#dlg-config input[name="aparencia"][value="icone"]'); pg.keyboard.press("Escape")
+    confere("icone")
+    completo(pg, "grade"); foto(pg, "controles-icone-grade")
+    ctx.close()
+
+@caso("Todas acesas: só tira o esmaecimento; habilitada com uma inativa visível, inclusive a exceção de Só ativas; preferência preservada")
+def t_todas_acesas(b):
+    ctx, pg = abre(b, perfil=PERFIL, extra={"modoClassico": False, "vista": "optativas"}, nome="todas-acesas")
+    acesas = pg.get_by_role("checkbox", name="todas acesas", exact=True)
+    ativas = pg.get_by_role("checkbox", name="só ativas", exact=True)
+    expect(ativas).to_be_checked()
+    n = pg.locator(".opt.opt-inativa").count()
+    assert acesas.is_disabled() == (n == 0), n
+    ativas.uncheck()
+    inativas = pg.locator(".opt.opt-inativa"); assert inativas.count() > 0
+    antes = pg.locator(".opt").count()
+    expect(acesas).to_be_enabled(); acesas.focus(); pg.keyboard.press("Space")          # teclado
+    expect(acesas).to_be_checked(); assert ls(pg, "filtros")["acesas"] is True
+    assert inativas.first.evaluate("e => getComputedStyle(e).opacity") == "1"
+    assert pg.locator(".opt").count() == antes                                           # não filtra nada
+    alvo = inativas.first.get_attribute("data-code")
+    acesas.uncheck(); assert float(inativas.first.evaluate("e => getComputedStyle(e).opacity")) < 1
+    acesas.check(); ativas.check()
+    if pg.locator(".opt.opt-inativa").count() == 0:
+        expect(acesas).to_be_disabled(); expect(acesas).to_be_checked()                 # desabilitada, a preferência fica
+    pg.reload(); pronto(pg, "todas-acesas"); assert ls(pg, "filtros")["acesas"] is True
+    ctx.close()
+    # a exceção de Só ativas: uma inativa planejada continua na lista e habilita o controle
+    perfil = json.loads(json.dumps(PERFIL)); perfil["periodos"][4]["disciplinas"].append(alvo)
+    ctx, pg = abre(b, vp=C320, perfil=perfil, extra={"modoClassico": False, "vista": "optativas"}, nome="todas-acesas-excecao", esquema="dark")
+    acesas = pg.get_by_role("checkbox", name="todas acesas", exact=True)
+    expect(pg.get_by_role("checkbox", name="só ativas", exact=True)).to_be_checked()
+    expect(pg.locator(f'.opt.opt-inativa[data-code="{alvo}"]')).to_have_count(1)
+    expect(acesas).to_be_enabled(); acesas.check()
+    assert pg.locator(f'.opt[data-code="{alvo}"]').evaluate("e => getComputedStyle(e).opacity") == "1"
+    assert pg.evaluate("document.documentElement.scrollWidth - innerWidth") <= 1
+    foto(pg, "todas-acesas-320-escuro")
+    ctx.close()
+
+CASOS5 = [t_controles_icones, t_todas_acesas]
+CASOS += CASOS5
+
+
 def rodar(navegador, url, pasta, fixtures_pdf, filtro=None):
     global URL, OUT, PDFS
     URL, OUT, PDFS = url, pasta, fixtures_pdf
