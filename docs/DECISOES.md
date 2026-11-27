@@ -303,8 +303,8 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
   próximo marco e "🧘 Calma, Calabreso. Período … com N matérias difíceis: dá para planejar." quando um período do
   plano tem duas ou mais 🟠/🔴. A previsão de formatura usa como cumprido só o registrado
   (importado e registrado por você; créditos manuais, pincel e previstas não cumprem) e só dá um semestre quando o plano
-  cobre créditos por grupo, obrigatórias (inclusive Projeto de Graduação e Estágio) e ACE em horas. O plano é lido em
-  ordem cronológica, contando cada disciplina uma vez, na primeira ocorrência, e as horas de ACE no semestre delas; o
+  cobre créditos por grupo, obrigatórias (inclusive Projeto de Graduação e Estágio) e ACE em horas. O plano (com as previstas diretas e as pedidas de
+  equivalências previstas, no semestre da origem) é lido em ordem cronológica, contando cada disciplina uma vez, na primeira ocorrência, e as horas de ACE no semestre delas; o
   semestre mostrado é o primeiro em que tudo fica coberto. Senão, mostra a pendência concreta ("Planeje os NN cr que faltam", ou só as horas) ou explica por
   que não dá (sem perfil, sem período atual, período sem semestre). Tudo cumprido mostra a conclusão.
 - **Consequências:** casos 19a a 19e e 20f a 20h.
@@ -350,7 +350,7 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
     opcional; semestre diferente é divergência informativa ("Vale o SIGA"). A declarada vence previsão e plano. Uma
     reprovação do SIGA no semestre declarado ou depois é conflito e a declarada não conta; sem semestre, o limite é o
     semestre de `registradoEm`. A equivalência deferida com origem declarada também é declarada, com a data da
-    origem que a determina (a mais recente; sem semestre, o limite de `registradoEm`). Uma equivalência importada
+    origem que a determina (a mais tardia, comparando o semestre datado com o limite de `registradoEm` das sem semestre; no empate, a datada). Uma equivalência importada
     aprovada confirma também a declarada que estava em conflito. O bloco de transferidas confirma; o semestre declarado
     só é comparado com `aprovadaEm`. Carregar outro perfil pergunta antes quando alguma declarada deste navegador não
     está no arquivo; descartar o perfil salvo tira também as declaradas do plano.

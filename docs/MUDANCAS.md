@@ -155,7 +155,7 @@ duplicatas de `js/horarios.js` e `js/guia.js`, e lista as turmas sem código. O 
 
 Documentação nova: visão, requisitos, regras acadêmicas, plano de teste, decisões, manutenção, privacidade, formato do
 perfil e guia de contribuição, além de instruções públicas para agentes de IA ([AGENTS.md](../AGENTS.md)) e modelo de
-Issue. O kit de interface tem 129 cenários por `file://` e 130 por HTTP, e as regras de progresso, fase e conquistas têm
+Issue. O kit de interface tem 130 cenários por `file://` e 131 por HTTP, e as regras de progresso, fase e conquistas têm
 testes diretos no Node (`node testes/progresso.js`) ([testes/README.md](../testes/README.md)). O cálculo do progresso e
 das conquistas fica em `js/progresso.js` e `js/conquistas.js`, sem DOM ([ARQUITETURA.md](ARQUITETURA.md)). O que
 está previsto para depois está em [MANUTENCAO.md](MANUTENCAO.md).
