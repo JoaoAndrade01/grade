@@ -1249,6 +1249,12 @@ def t_sobre(b):
         pg.keyboard.press("Escape")
         ctx.close()
 
+def folga_do_info(pg):
+    """Distância entre o fim do texto "Livre escolha" e a borda externa do contorno de foco do ⓘ (negativa = cobre o título)."""
+    return pg.evaluate("""() => { const b = document.querySelector('#progresso .cat-3 .info-btn'), s = b.closest('span');
+        const r = document.createRange(); r.selectNodeContents(s.firstChild); const fim = r.getBoundingClientRect().right;
+        const cs = getComputedStyle(b); return b.getBoundingClientRect().left - (parseFloat(cs.outlineOffset) + parseFloat(cs.outlineWidth || 2)) - fim; }""")
+
 ESTADOS = ["Aprovada", "Aprovação prevista", "Cursando", "Planejada", "Equivalência pedida", "Reprovada", "Pendente"]
 @caso("Detalhamento: ⓘ pequeno no título da livre escolha (mouse, teclado e toque); cartão no formato dos outros; sem a legenda de estados")
 def t_detalhamento_info(b):
@@ -1278,6 +1284,8 @@ def t_detalhamento_info(b):
     pg.locator("#progresso .cat-3 .info-btn").click(); expect(pg.locator("#progresso .cat-3 .livre-info")).to_be_hidden()
     pg.locator("#progresso .cat-3 .info-btn").focus(); pg.keyboard.press("Enter")       # teclado
     assert pg.evaluate("getComputedStyle(document.activeElement).outlineStyle") != "none"
+    assert pg.evaluate("parseFloat(getComputedStyle(document.activeElement).outlineOffset)") >= 2
+    assert folga_do_info(pg) >= 1, folga_do_info(pg)                                  # o contorno não encosta no título
     expect(pg.locator("#progresso .cat-3 .livre-info")).to_be_visible()
     pg.keyboard.press("Space"); expect(pg.locator("#progresso .cat-3 .livre-info")).to_be_hidden()
     legenda = pg.locator("#legenda").inner_text() if pg.locator("#legenda").is_visible() else ""
@@ -1294,6 +1302,13 @@ def t_detalhamento_info(b):
     completo(pg, "grade"); pg.locator("#bg-detalhes").tap()
     pg.locator("#progresso .cat-3 .info-btn").tap(); expect(pg.locator("#progresso .cat-3 .livre-info")).to_be_visible()
     r = pg.locator("#progresso .cat-3 .info-btn").bounding_box(); assert r["width"] >= 43.99 and r["height"] >= 43.99, r
+    assert folga_do_info(pg) >= 1, folga_do_info(pg)                                  # a área de toque não cobre o título
+    titulo = pg.evaluate("""() => { const s = document.querySelector('#progresso .cat-3 .prog-topo span'), r = document.createRange();
+        r.selectNodeContents(s.firstChild); const q = r.getBoundingClientRect(); return [q.right - 3, q.top + q.height / 2]; }""")
+    pg.locator("#progresso .cat-3 .info-btn").tap()                                    # fecha
+    pg.touchscreen.tap(*titulo)                                                       # toque no fim de "escolha" não abre o ⓘ
+    expect(pg.locator("#progresso .cat-3 .livre-info")).to_be_hidden()
+    pg.locator("#progresso .cat-3 .info-btn").tap()
     foto(pg, "detalhamento-info-celular")
     ctx.close()
 

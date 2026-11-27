@@ -883,13 +883,15 @@ dialog.dlg-eci:modal { overscroll-behavior: contain; }
 /* ---------- Detalhamento: livre escolha numa linha com ⓘ ---------- */
 /* ⓘ do tamanho do texto, sem borda; a área de toque vem do tamanho da caixa (24 px; 44 px em tela estreita), com margens
    negativas para não aumentar a linha do título */
-.info-btn { display: inline-grid; place-items: center; width: 24px; height: 24px; margin: -5px 0 -5px 1px; padding: 0;
+/* o ícone fica na borda esquerda da caixa e a caixa cresce só para a direita e na vertical: nem a área de toque nem o
+   contorno de foco cobrem o título */
+.info-btn { display: inline-grid; place-items: center start; width: 24px; height: 24px; margin: -5px -10px -5px 6px; padding: 0 0 0 1px;
   vertical-align: middle; font: inherit; line-height: 1; color: var(--muted); background: none; border: 0; border-radius: 6px; cursor: pointer; }
 .info-btn:hover, .info-btn[aria-expanded="true"] { color: var(--text); }
-.info-btn:focus-visible { outline: 2px solid var(--foco); outline-offset: 0; }
+.info-btn:focus-visible { outline: 2px solid var(--foco); outline-offset: 2px; }
 .livre-info { margin-top: 6px; padding: 6px 8px; border-radius: 8px; background: var(--surface-2); font-size: 12.5px; }
 .livre-info .livre-numeros { margin: 0; padding-left: 18px; }
-@media (max-width: 720px) { .info-btn { width: 44px; height: 44px; margin: -15px -10px -15px -8px; } }
+@media (max-width: 720px) { .info-btn { width: 44px; height: 44px; margin: -15px -30px -15px 6px; } }
 
 /* ---------- Aviso no rodapé (D-06, D-09), seção Sobre e notas de estimativa ---------- */
 .rodape .rodape-aviso { color: var(--text); }
