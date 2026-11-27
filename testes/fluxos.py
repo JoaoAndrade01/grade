@@ -3874,6 +3874,55 @@ CASOS5 = [t_controles_icones, t_todas_acesas, t_minimalista, t_plano_na_grade, t
 CASOS += CASOS5
 
 
+# ------------------------------------------------------------------ v2.1.0
+CASOS6 = []
+def v210(f): CASOS6.append(f); return f
+
+@v210
+@caso("Legenda da dificuldade: Ícone + texto com nomes e separadores; Só ícones só com as bolinhas, nome no title e no leitor de tela; foco e toque mostram os nomes sem mudar o filtro")
+def t_legenda_dificuldade(b):
+    base = {"vista": "grade", "exibir": {"codigo": True, "dificuldade": True}}
+    # Ícone + texto: "🟢 Trivial · 🔵 Só o básico · …"; o separador é só visual
+    ctx, pg = abre(b, perfil=PERFIL, extra=base, nome="legenda-texto")
+    escala = pg.locator("#ferramentas .escala-dificuldade"); expect(escala).to_be_visible()
+    assert escala.get_attribute("role") == "list" and escala.get_attribute("tabindex") is None
+    assert [t.split(" ", 1)[1] for t in escala.locator(".leg-niv").all_inner_texts()] == ESCALA
+    seps = escala.locator(".leg-niv").evaluate_all("es => es.map((e) => getComputedStyle(e, '::before').content)")
+    assert "·" not in seps[0] and all("·" in s for s in seps[1:]), seps
+    arvore = escala.aria_snapshot()
+    assert all(n in arvore for n in ESCALA) and "·" not in arvore, arvore
+    ctx.close()
+    # Só ícones: só as bolinhas; nomes no title, no .sr e na árvore de acessibilidade; foco mostra os nomes
+    ctx, pg = abre(b, perfil=PERFIL, extra={**base, "aparencia": "icone"}, nome="legenda-icones")
+    escala = pg.locator("#ferramentas .escala-dificuldade.so-icones"); expect(escala).to_be_visible()
+    assert escala.locator(".leg-niv").evaluate_all("es => es.map((e) => e.title)") == ESCALA
+    assert all(w <= 1 for w in escala.locator(".leg-niv .sr").evaluate_all("es => es.map((e) => e.getBoundingClientRect().width)"))
+    nomes = escala.locator(".leg-nomes"); expect(nomes).to_be_hidden()
+    arvore = escala.aria_snapshot()
+    assert all(n in arvore for n in ESCALA), arvore
+    escala.focus(); expect(nomes).to_be_visible()
+    assert nomes.inner_text() == "🟢 Trivial · 🔵 Só o básico · 🟡 Matéria de verdade · 🟠 Difícil · 🔴 Morte instantânea", nomes.inner_text()
+    assert escala.evaluate("e => getComputedStyle(e).outlineStyle") != "none" or not escala.evaluate("e => e.matches(':focus-visible')")
+    pg.locator("#titulo").evaluate("e => { e.tabIndex = -1; e.focus(); }"); pg.mouse.move(1, 1); expect(nomes).to_be_hidden()
+    # teclado: Tab chega à escala
+    pg.locator('#ferramentas [data-exibir="dificuldade"]').focus(); pg.keyboard.press("Tab")
+    assert pg.evaluate("document.activeElement.classList.contains('escala-dificuldade')"), descreve_foco(pg)
+    expect(nomes).to_be_visible()
+    ctx.close()
+    # toque a 320 px: tocar mostra os nomes e não muda o filtro de dificuldade; tocar fora esconde
+    ctx, pg = abre(b, vp=C320, perfil=PERFIL, extra={**base, "aparencia": "icone"}, nome="legenda-toque", toque=True, esquema="dark")
+    escala = pg.locator("#ferramentas .escala-dificuldade.so-icones"); nomes = escala.locator(".leg-nomes")
+    antes = ls(pg, "filtroNivel")
+    escala.locator(".leg-niv").nth(3).tap(); expect(nomes).to_be_visible()
+    assert ls(pg, "filtroNivel") == antes and pg.locator('#ferramentas [data-nivel].on').count() == 0
+    assert pg.evaluate("document.documentElement.scrollWidth - innerWidth") <= 1
+    foto(pg, "legenda-icones-toque-320-escuro")
+    pg.locator("#titulo").tap(); expect(nomes).to_be_hidden()
+    ctx.close()
+
+CASOS += CASOS6
+
+
 def rodar(navegador, url, pasta, fixtures_pdf, filtro=None):
     global URL, OUT, PDFS
     URL, OUT, PDFS = url, pasta, fixtures_pdf
