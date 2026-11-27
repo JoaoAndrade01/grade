@@ -496,6 +496,9 @@ small.alerta, .alerta { color: var(--dep); }
 .card.limpo.s-analise { outline: 2px dashed var(--analise); outline-offset: -4px; }
 .card.limpo .nota { position: static; align-self: center; margin-bottom: 2px; }
 .card.apagado { opacity: .25; }
+/* Exibir → Plano: primeiro semestre planejado e +N */
+.card .plano-flag { display: inline-block; margin-top: 2px; padding: 0 5px; border-radius: 6px; font-size: 10.5px; line-height: 1.5;
+  color: var(--text); background: var(--surface); border: 1px solid var(--borda-forte); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .pintando .card[data-code] { cursor: cell; }
 
 .tags-edit li { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: flex-start; }
@@ -700,7 +703,7 @@ dialog.dlg:modal { overscroll-behavior: contain; }
 :root:is([data-aparencia="icone"], [data-aparencia="minimalista"]) .ctl .rot {
   position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 /* Minimalista: barras com o nome e o ícone de estado (sem código, créditos, notas e legendas) */
-.minimalista .vista-grade .card :is(.meta, .nota, .sub) { display: none; }
+.minimalista .vista-grade .card :is(.meta, .nota, .sub, .plano-flag) { display: none; }
 .minimalista .vista-grade .card { min-height: 40px; }
 .minimalista .vista-grade .card.limpo { min-height: 38px; padding-block: 6px; }
 /* números da barra: escondidos na tela, aparecem com foco, mouse ou toque na barra (o nome acessível os traz sempre) */

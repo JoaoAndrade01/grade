@@ -1946,7 +1946,7 @@ def t_destaque_migracao(b):
         exibir = {"codigo": False, "notas": True} | ({"setas": antigo} if antigo else {})
         ctx, pg = abre(b, perfil=PERFIL, extra={"modoClassico": False, "vista": "grade", "exibir": exibir}, nome=f"destaque-migracao-{antigo}")
         salvo = ls(pg, "exibir")
-        if antigo: assert salvo == {"codigo": False, "notas": True, "presenca": False, "dificuldade": False, "destaque": novo}, salvo
+        if antigo: assert "setas" not in salvo and salvo["destaque"] == novo and salvo["codigo"] is False and salvo["notas"] is True, salvo
         expect(pg.locator(f'#ferramentas input[name="destaque"][value="{novo}"]')).to_be_checked()
         assert not pg.locator('#ferramentas [data-exibir="codigo"]').is_checked() and pg.locator('#ferramentas [data-exibir="notas"]').is_checked()
         pg.locator('.card[data-code="MAC128"]').hover()
@@ -3079,7 +3079,34 @@ def t_minimalista(b):
     foto(pg, "minimalista-320-painel")
     ctx.close()
 
-CASOS5 = [t_controles_icones, t_todas_acesas, t_minimalista]
+@caso("Exibir → Plano: o cartão mostra o primeiro semestre planejado e +N; a lista completa no nome acessível e nos detalhes; Clássico e Configurações")
+def t_plano_na_grade(b):
+    perfil = json.loads(json.dumps(PERFIL)); perfil["periodos"][5]["disciplinas"].append("COS360")      # COS360 em 2027/1 e 2027/2
+    ctx, pg = abre(b, perfil=perfil, extra={"modoClassico": False, "vista": "grade"}, nome="plano-grade")
+    assert pg.locator(".plano-flag").count() == 0                                   # desligado por padrão
+    pg.get_by_role("checkbox", name="Plano", exact=True).check(); assert ls(pg, "exibir")["plano"] is True
+    expect(pg.locator('.card[data-code="COS360"] .plano-flag')).to_have_text("📅 2027/1 +1")
+    expect(pg.locator('.card[data-code="EEL871"] .plano-flag')).to_have_text("📅 2027/1")
+    expect(pg.locator('.card[data-code="EEL873"] .plano-flag')).to_have_text("📅 2027/2")
+    assert pg.locator('.card[data-code="COS110"] .plano-flag').count() == 0          # sem plano, sem marca
+    expect(pg.get_by_role("button", name=re.compile(r"^Otimização, .*planejada em 2027.1, 2027.2$"))).to_have_count(1)
+    foto(pg, "plano-na-grade")
+    pg.locator('.card[data-code="COS360"]').click()
+    hist = pg.locator("#detalhes").inner_text()
+    assert "2027/1" in hist and "2027/2" in hist and hist.count("Planejada") >= 2, hist      # a lista completa nos detalhes
+    pg.keyboard.press("Escape")
+    abre_config(pg); assert pg.locator('#dlg-config [data-exibir="plano"]').is_checked(); pg.keyboard.press("Escape")
+    alterna_modo(pg); expect(pg.locator('.card[data-code="COS360"] .plano-flag')).to_have_text("📅 2027/1 +1")    # Clássico
+    ctx.close()
+    ctx, pg = abre(b, vp=C320, perfil=perfil, extra={"exibir": {"plano": True}}, nome="plano-grade-320", toque=True, esquema="dark")
+    c = pg.locator('.card[data-code="COS360"]'); c.scroll_into_view_if_needed()
+    expect(c.locator(".plano-flag")).to_be_visible()
+    r, f = c.bounding_box(), c.locator(".plano-flag").bounding_box()
+    assert f["x"] >= r["x"] and f["x"] + f["width"] <= r["x"] + r["width"] + 0.5, (r, f)          # cabe no cartão
+    foto(pg, "plano-na-grade-320-escuro")
+    ctx.close()
+
+CASOS5 = [t_controles_icones, t_todas_acesas, t_minimalista, t_plano_na_grade]
 CASOS += CASOS5
 
 

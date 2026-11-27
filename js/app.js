@@ -344,7 +344,7 @@
   let seletorECI = false;            // paleta "ECI por trás" (só nesta visita): destaca os cartões com experiência
   // Destaque de requisitos na Grade: "foco" (Em foco, padrão) ou "desligado". Substitui as setas: a preferência antiga
   // `setas` migra (Ocultas → Desligado; Disciplina em foco e Todas → Em foco) e sai do objeto salvo.
-  let exibir = Object.assign({ codigo: true, notas: false, dificuldade: false, presenca: false, destaque: "foco" }, load("exibir", {}));
+  let exibir = Object.assign({ codigo: true, notas: false, dificuldade: false, presenca: false, plano: false, destaque: "foco" }, load("exibir", {}));
   if (Object.prototype.hasOwnProperty.call(exibir, "setas")) {
     if (!["desligado", "foco"].includes(load("exibir", {}).destaque)) exibir.destaque = exibir.setas === "ocultas" ? "desligado" : "foco";
     delete exibir.setas; save("exibir", exibir);
@@ -927,6 +927,9 @@
     ].filter(Boolean).join(" · ");
     const prot = protegida(c.code);
     const exp = seletorECI && window.ECI.tem(c.code);
+    // Exibir → Plano: o primeiro semestre planejado e "+N" se houver outros; a lista completa vai no nome acessível e nos detalhes.
+    const planos = exibir.plano ? [...new Set(periodoDe(c.code, (st) => st === "planejado"))] : [];
+    const plano = planos.length ? `<span class="plano-flag" aria-hidden="true" title="Planejada em ${esc(planos.join(", "))}">📅 ${esc(planos[0])}${planos.length > 1 ? ` <b>+${planos.length - 1}</b>` : ""}</span><span class="sr">, planejada em ${esc(planos.join(", "))}</span>` : "";
     const so = situacaoOrigem(c.code);
     const estado = so.origem ? `${so.rot} · ${so.origem}` : "";
     const ico = !so.origem ? "" : so.origem === "marcação" ? ICONE_MARCACAO : ICONE_ESTADO[statusPerfil(c.code)] || "";
@@ -937,6 +940,7 @@
       ${nota != null ? `<span class="nota">${esc(typeof nota === "number" ? nota.toFixed(1) : nota)}</span>` : ""}
       ${nomeDoCartao(c.name, ico, estado)}
       ${extras ? `<span class="meta">${extras}</span>` : ""}
+      ${plano}
     </button>`;
   }
 
@@ -1020,7 +1024,7 @@
   const DESTAQUE = [["desligado", "Desligado", "○"], ["foco", "Em foco", "⇢"]];
   // A distinção não depende da cor: contorno contínuo, tracejado e a etiqueta "libera".
   const LEGENDA_DESTAQUE = `<span class="leg-destaque"><i class="l-pre"></i>pré-requisito <i class="l-co"></i>co-requisito <i class="l-libera">libera</i>o que ela libera</span>`;
-  const EXIBIR = [["codigo", "Código e créditos", "#"], ["notas", "Notas", "★"], ["dificuldade", "Dificuldade", "●"], ["presenca", "Presença", "✓"]];
+  const EXIBIR = [["codigo", "Código e créditos", "#"], ["notas", "Notas", "★"], ["dificuldade", "Dificuldade", "●"], ["presenca", "Presença", "✓"], ["plano", "Plano", "📅"]];
   /** Opções de exibição e filtro (só no Planejador, aba Grade). */
   function renderFerramentas() {
     const niveis = M.guia ? Object.keys(M.guia.niveis) : [];
@@ -1945,7 +1949,7 @@
       </section>
       <section class="cfg-sec" aria-labelledby="cfg-h-grade"><h2 id="cfg-h-grade">Grade</h2>
         <fieldset class="opcoes"><legend>Exibir nos cartões</legend>
-          ${[["codigo", "Código e créditos"], ["notas", "Notas"], ["dificuldade", "Dificuldade"], ["presenca", "Presença"]].map(([k, n]) =>
+          ${EXIBIR.map(([k, n]) =>
             `<label class="opcao"><input type="checkbox" data-exibir="${k}"${exibir[k] ? " checked" : ""}> ${n}</label>`).join("")}
         </fieldset>
         <fieldset class="opcoes"><legend>Destaque de requisitos</legend>
