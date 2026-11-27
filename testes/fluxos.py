@@ -61,6 +61,8 @@ def abre(b, vp=D, esquema="light", perfil=None, extra=None, nome="", toque=False
 def foto(pg, nome, full=False): pg.wait_for_timeout(150); pg.screenshot(path=str(OUT / f"{nome}.png"), full_page=full)
 def ls(pg, k): return pg.evaluate("k => JSON.parse(localStorage.getItem(k))", CHAVE + k)
 def aceso(loc): return loc.get_attribute("aria-pressed") == "true"   # botões que acendem (Exibir, filtros)
+def trilha(pg, v): return pg.locator(f'#ferramentas .seletor-trilha input[name="trilha"][value="{v}"]')   # chave segmentada da Trilha
+def escolhe_trilha(pg, v): pg.locator(f'#ferramentas .seletor-trilha label:has(input[value="{v}"])').click()
 def alterna_modo(pg):
     """Seletor Clássico | Planejador do topo: escolhe a opção que não está marcada."""
     pg.locator("#seletor-modo label:has(input:not(:checked))").click()
@@ -1915,8 +1917,8 @@ def contorno(pg, code): return pg.locator(f'#painel .card[data-code="{code}"]').
 @caso("Trilha Ao passar o mouse (o antigo Em foco): pré-requisito contínuo, co-requisito tracejado, 'libera' no dependente; o resto esmaece; mouse, teclado e detalhes; Desligado")
 def t_destaque(b):
     ctx, pg = abre(b, perfil=PERFIL, extra={"modoClassico": False, "vista": "grade", "exibir": {"destaque": "foco"}}, nome="destaque")
-    expect(pg.get_by_role("group", name="Trilha dos requisitos")).to_be_visible()
-    expect(pg.get_by_role("button", name="Ao passar o mouse", exact=True)).to_have_attribute("aria-pressed", "true")
+    expect(pg.get_by_role("radiogroup", name="Trilha dos requisitos")).to_be_visible()
+    expect(pg.get_by_role("radio", name="Ao passar o mouse", exact=True)).to_be_checked()
     assert pg.locator("#painel svg.setas").count() == 0                       # a Grade não desenha mais setas
     pg.locator('.card[data-code="MAC128"]').hover()
     d = destaque(pg)
@@ -1942,13 +1944,13 @@ def t_destaque(b):
     pg.mouse.move(5, 5)
     assert destaque(pg)["self"] == ["COS231"]                                     # com os detalhes abertos, fica na consultada
     pg.keyboard.press("Escape")
-    pg.get_by_role("button", name="Desligado", exact=True).click(); assert ls(pg, "exibir")["destaque"] == "desligado"
-    expect(pg.get_by_role("button", name="Desligado", exact=True)).to_have_attribute("aria-pressed", "true")
+    escolhe_trilha(pg, "desligado"); assert ls(pg, "exibir")["destaque"] == "desligado"
+    expect(pg.get_by_role("radio", name="Desligado", exact=True)).to_be_checked()
     pg.locator('.card[data-code="MAC128"]').hover()
     assert destaque(pg) == {"self": [], "pre": [], "co": [], "libera": [], "ativo": False} and not esmaecido(pg, "COS110")
     abre_config(pg); assert pg.locator('#dlg-config input[name="destaque"][value="desligado"]').is_checked()
     pg.check('#dlg-config input[name="destaque"][value="foco"]'); pg.keyboard.press("Escape")
-    expect(pg.get_by_role("button", name="Ao passar o mouse", exact=True)).to_have_attribute("aria-pressed", "true")
+    expect(pg.get_by_role("radio", name="Ao passar o mouse", exact=True)).to_be_checked()
     ctx.close()
     # toque: o primeiro toque consulta (e destaca), o segundo pinta; Clássico, 320 px e tema escuro
     ctx, pg = abre(b, vp=C320, perfil=PERFIL, extra={"exibir": {"destaque": "foco"}}, nome="destaque-toque", toque=True, esquema="dark", modo="classico")
@@ -1981,8 +1983,8 @@ def t_destaque_migracao(b):
         ctx, pg = abre(b, perfil=PERFIL, extra={"modoClassico": False, "vista": "grade", "exibir": exibir}, nome=f"destaque-migracao-{antigo}")
         salvo = ls(pg, "exibir")
         if antigo: assert "setas" not in salvo and salvo["destaque"] == novo and salvo["codigo"] is False and salvo["notas"] is True, salvo
-        expect(pg.locator(f'#ferramentas [data-trilha="{novo}"]')).to_have_attribute("aria-pressed", "true")
-        assert pg.locator('#ferramentas [data-trilha][aria-pressed="true"]').count() == 1
+        expect(trilha(pg, novo)).to_be_checked()
+        assert pg.locator('#ferramentas .seletor-trilha input:checked').count() == 1
         assert not aceso(pg.locator('#ferramentas [data-exibir="codigo"]')) and aceso(pg.locator('#ferramentas [data-exibir="notas"]'))
         pg.locator('.card[data-code="MAC128"]').hover()
         assert destaque(pg)["ativo"] == (novo == "foco"), antigo
@@ -2145,7 +2147,7 @@ def t_cadeado(b):
     assert pg.locator("#detalhes [data-settag]").first.is_disabled()
     foto(pg, "39-cadeado-ligado")
     pg.locator('.card[data-code="EEL871"]').click(); assert ls(pg, "marcacoes")["EEL871"] == ""   # não protegida: a borracha funciona
-    pg.keyboard.press("Escape"); completo(pg, "grade"); pg.click('#ferramentas [data-trilha="foco"]')
+    pg.keyboard.press("Escape"); completo(pg, "grade"); escolhe_trilha(pg, "foco")
     pg.locator('.card[data-code="COS110"]').hover(); assert pg.locator("#painel .card.hl-self").count() == 1
     ctx.close()
 
@@ -2327,9 +2329,9 @@ def t_sync(b):
     assert pg.locator('#dlg-config input[name="destaque"][value="foco"]').is_checked()            # setas "foco" antiga → Ao passar o mouse
     pg.check('#dlg-config [data-exibir="dificuldade"]'); pg.check('#dlg-config input[name="destaque"][value="desligado"]'); pg.check("#cfg-cadeado")
     pg.keyboard.press("Escape")
-    assert aceso(pg.locator('#ferramentas [data-exibir="dificuldade"]')) and aceso(pg.locator('#ferramentas [data-trilha="desligado"]'))
+    assert aceso(pg.locator('#ferramentas [data-exibir="dificuldade"]')) and trilha(pg, "desligado").is_checked()
     assert pg.locator("#cadeado").get_attribute("aria-pressed") == "true"
-    pg.click("#cadeado"); pg.click('#ferramentas [data-trilha="foco"]')
+    pg.click("#cadeado"); escolhe_trilha(pg, "foco")
     abre_config(pg); assert not pg.locator("#cfg-cadeado").is_checked() and pg.locator('#dlg-config input[name="destaque"][value="foco"]').is_checked()
     pg.keyboard.press("Escape")
     assert pg.locator("#paleta").inner_text().strip().startswith("Detalhes") and "Quero fazer" in pg.locator("#paleta").inner_text()   # tags personalizadas
@@ -3966,7 +3968,7 @@ def t_legenda_dificuldade(b):
 @caso("Botões que acendem: Exibir e filtros das Optativas sem caixa de marcar; Tab, Enter e Espaço; aria-pressed segue o salvo; Só ícones com nome; foco visível; axe nos dois temas; 320 px")
 def t_botoes_acesos(b):
     ctx, pg = abre(b, perfil=PERFIL, extra={"vista": "grade"}, nome="botoes-acesos")
-    caixas = "#ferramentas input[type=checkbox], #ferramentas input[type=radio]:not([name=destaque]), .filtros input[type=checkbox]"
+    caixas = "#ferramentas input[type=checkbox], #ferramentas input[type=radio]:not([name=trilha]), .filtros input[type=checkbox]"
     assert pg.locator(caixas).count() == 0
     notas = pg.locator('#ferramentas [data-exibir="notas"]')
     assert notas.evaluate("e => e.tagName") == "BUTTON" and not aceso(notas)
@@ -4001,6 +4003,9 @@ def t_botoes_acesos(b):
         bt = pg.get_by_role("button", name=nome, exact=True); expect(bt).to_have_count(1)
         assert bt.get_attribute("title") == nome and larg_rot(bt) <= 1 and bt.locator("svg.ico").count() == 1, k
         r = bt.bounding_box(); assert r["width"] >= 24 and r["height"] >= 24, (k, r)
+    for nome in ("Desligado", "Ao segurar", "Ao passar o mouse"):                                  # Trilha em Só ícones
+        r = pg.get_by_role("radio", name=nome, exact=True); expect(r).to_have_count(1)
+        assert r.evaluate("e => e.closest('label').querySelector('.rot').getBoundingClientRect().width") <= 1
     assert pg.evaluate("document.documentElement.scrollWidth - innerWidth") <= 1
     foto(pg, "botoes-acesos-icones-320-escuro")
     pg.click('[data-vista="optativas"]')
@@ -4146,11 +4151,20 @@ APAGADO = {"self": [], "pre": [], "co": [], "libera": [], "ativo": False}
 @caso("Trilha Ao segurar (padrão): mouse, teclado e toque mostram ao segurar e apagam ao soltar; marcações e Detalhes intactos; o clique curto seguinte funciona; cancela ao rolar e ao sair")
 def t_trilha_segurar(b):
     ctx, pg = abre(b, perfil=PERFIL, extra={"vista": "grade"}, nome="trilha-segurar")
-    grupo = pg.get_by_role("group", name="Trilha dos requisitos"); expect(grupo).to_be_visible()
-    for nome, on in (("Desligado", "false"), ("Ao segurar", "true"), ("Ao passar o mouse", "false")):
-        bt = grupo.get_by_role("button", name=nome, exact=True); expect(bt).to_have_attribute("aria-pressed", on)
-        assert bt.locator("svg.ico").count() == 1
-    assert pg.locator("#ferramentas input[name=destaque]").count() == 0 and "libera" in pg.locator(".leg-destaque").inner_text()
+    grupo = pg.get_by_role("radiogroup", name="Trilha dos requisitos"); expect(grupo).to_be_visible()
+    assert grupo.evaluate("e => e.classList.contains('seletor-modo')")                          # mesmo componente do seletor do topo
+    for nome, on in (("Desligado", False), ("Ao segurar", True), ("Ao passar o mouse", False)):
+        r = grupo.get_by_role("radio", name=nome, exact=True); assert r.is_checked() == on, nome
+        assert r.evaluate("e => e.closest('label').querySelectorAll('svg.ico').length") == 1
+        assert r.evaluate("e => getComputedStyle(e).opacity") == "0"                              # sem bolinha de rádio visível
+    assert pg.locator("#ferramentas [data-trilha]").count() == 0 and "libera" in pg.locator(".leg-destaque").inner_text()
+    # teclado: as setas alternam o segmento aceso; foco visível no rótulo
+    trilha(pg, "segurar").focus(); pg.keyboard.press("ArrowRight")
+    expect(trilha(pg, "foco")).to_be_checked(); assert ls(pg, "exibir")["destaque"] == "foco"
+    assert foco_em(pg, 'input[name="trilha"][value="foco"]'), descreve_foco(pg)
+    assert trilha(pg, "foco").evaluate("e => getComputedStyle(e.closest('label')).outlineStyle") != "none"
+    pg.keyboard.press("ArrowLeft"); expect(trilha(pg, "segurar")).to_be_checked()
+    assert pg.locator("#ferramentas .seletor-trilha input:checked").count() == 1
     marc = ls(pg, "marcacoes")
     pg.locator('#painel .card[data-code="MAC128"]').hover(); assert destaque(pg) == APAGADO     # passar o mouse não acende
     # mouse: segurar acende; soltar apaga, sem abrir Detalhes
@@ -4239,8 +4253,8 @@ def t_trilha_migracao(b):
         ctx, pg = abre(b, perfil=PERFIL, extra=extra, nome=f"trilha-migra-{modo}")
         guardado = ls(pg, "exibir")
         for _ in range(2):
-            expect(pg.locator(f'#ferramentas [data-trilha="{modo}"]')).to_have_attribute("aria-pressed", "true")
-            assert pg.locator('#ferramentas [data-trilha][aria-pressed="true"]').count() == 1, salvo
+            expect(trilha(pg, modo)).to_be_checked()
+            assert pg.locator('#ferramentas .seletor-trilha input:checked').count() == 1, salvo
             atual = ls(pg, "exibir")
             assert (atual is None if gravado is None else {k: atual.get(k) for k in gravado} == gravado and "setas" not in atual), (salvo, atual)
             assert atual == guardado, (salvo, atual, guardado)
@@ -4248,9 +4262,9 @@ def t_trilha_migracao(b):
         ctx.close()
     # a escolha feita no Planejador vale no Clássico
     ctx, pg = abre(b, perfil=PERFIL, extra={"vista": "grade"}, nome="trilha-classico")
-    pg.click('#ferramentas [data-trilha="foco"]'); assert ls(pg, "exibir")["destaque"] == "foco"
+    escolhe_trilha(pg, "foco"); assert ls(pg, "exibir")["destaque"] == "foco"
     alterna_modo(pg); pg.locator('#painel .card[data-code="MAC128"]').hover(); assert destaque(pg)["ativo"]
-    alterna_modo(pg); pg.click('#ferramentas [data-trilha="segurar"]'); alterna_modo(pg)
+    alterna_modo(pg); escolhe_trilha(pg, "segurar"); alterna_modo(pg)
     pg.locator('#painel .card[data-code="MAC128"]').hover(); assert not destaque(pg)["ativo"]
     segura_mouse(pg, "MAC128"); assert destaque(pg)["self"] == ["MAC128"]; pg.mouse.up()
     assert "MAC128" not in (ls(pg, "marcacoes") or {})                                         # segurar no Clássico não pinta

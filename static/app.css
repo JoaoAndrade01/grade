@@ -1092,3 +1092,9 @@ body:has(.paleta:not([hidden])) .detalhes {
 
 /* Optativas: espaço entre o ícone e o texto nos botões de grupo (Condicionada, Humanas, ACE) */
 .filtros .seg button.ctl { display: inline-flex; align-items: center; gap: 6px; }
+
+/* Trilha: chave segmentada igual ao seletor de modo (rádios nativos; setas trocam; um segmento aceso por vez).
+   Em Só ícones, só o ícone (o nome fica no .rot e no title); no painel ⋯ do Minimalista, ícone e texto. */
+.seletor-trilha .modo-op { font-size: 13px; min-height: 32px; }
+.seletor-trilha .modo-op .ico { flex: none; vertical-align: 0; }
+@media (max-width: 720px) { .seletor-trilha { flex-wrap: wrap; } }

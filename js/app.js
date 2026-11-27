@@ -946,8 +946,9 @@
         ${EXIBIR.map(([k, n, ic]) => botaoAceso(`data-exibir="${k}"`, exibir[k], ic, n)).join("")}
         ${exibir.dificuldade ? escalaDificuldade() : ""}
       </div>
-      <div class="ferr-grupo" role="group" aria-label="Trilha dos requisitos"><span class="ferr-rot ctl" aria-hidden="true">${rotulo(icone("setas", 14), "Trilha")}</span>
-        ${TRILHA.map(([v, n, ic]) => botaoAceso(`data-trilha="${v}"`, exibir.destaque === v, ic, n, `Trilha: ${n}`)).join("")}
+      <div class="ferr-grupo"><span class="ferr-rot ctl" aria-hidden="true">${rotulo(icone("setas", 14), "Trilha")}</span>
+        <div class="seletor-modo seletor-trilha" role="radiogroup" aria-label="Trilha dos requisitos">${TRILHA.map(([v, n, ic]) =>
+          `<label class="modo-op ctl" title="Trilha: ${n}"><input type="radio" name="trilha" value="${v}"${exibir.destaque === v ? " checked" : ""}>${icone(ic)}<span class="rot">${n}</span></label>`).join("")}</div>
         ${exibir.destaque !== "desligado" ? LEGENDA_DESTAQUE : ""}
       </div>
       ${niveis.length ? `<div class="ferr-grupo"><span class="ferr-rot">Dificuldade</span>
@@ -3641,9 +3642,6 @@
         return;
       }
       if (t.id === "ferr-mais") { ferrAberto = !ferrAberto; return render(); }
-      if (t.dataset.trilha && TRILHAS.includes(t.dataset.trilha)) {   // Trilha: um modo ativo por vez
-        exibir.destaque = t.dataset.trilha; save("exibir", exibir); limpaDestaque(); render(); return atualizaConfig();
-      }
       if (t.dataset.exibir != null && !t.closest("dialog")) {   // Exibir: botões que acendem (Configurações usa caixas nativas)
         exibir[t.dataset.exibir] = !exibir[t.dataset.exibir]; save("exibir", exibir); render(); return atualizaConfig();
       }
@@ -3718,7 +3716,8 @@
       if (t.id === "cfg-seletor") { ocultarSeletor = !t.checked; save("ocultarSeletor", ocultarSeletor); renderAtalhos(); return atualizaConfig(); }
       if (t.id === "cfg-cadeado") { cadeado = t.checked; save("cadeado", cadeado); render(); return atualizaConfig(); }
       if (t.dataset.exibir) { exibir[t.dataset.exibir] = t.checked; save("exibir", exibir); render(); atualizaConfig(); }
-      if (t.name === "destaque" && TRILHAS.includes(t.value)) { exibir.destaque = t.value; save("exibir", exibir); render(); atualizaConfig(); }
+      // Trilha: a chave segmentada da Grade (rádios, como o seletor de modo) e os rádios de Configurações
+      if ((t.name === "destaque" || t.name === "trilha") && TRILHAS.includes(t.value)) { exibir.destaque = t.value; save("exibir", exibir); limpaDestaque(); render(); atualizaConfig(); }
       if (t.name === "aparencia" && window.TEMA) { window.TEMA.defineAparencia(t.value); ferrAberto = false; render(); atualizaConfig(); }
       if (t.name === "tema" && window.TEMA) window.TEMA.define(t.value === "sistema" ? null : t.value);
       if (t.name === "tom") { tom = t.value; save("tom", tom); render(); atualizaConfig(); }
@@ -4011,7 +4010,7 @@
     if (el === painelRef || !el.matches(":focus-visible")) return;
     requestAnimationFrame(() => {
       if (!el.isConnected || document.activeElement !== el) return;
-      const alvo = el.matches(".seletor-modo input") ? el.closest("label") : el;
+      const alvo = el.matches(".seletor-modo input, .seletor-trilha input") ? el.closest("label") : el;
       const r = alvo.getBoundingClientRect();
       const topo = 0;
       const base = paletaEl && !paletaEl.hidden && paletaEl.offsetHeight ? paletaEl.getBoundingClientRect().top - 8 : innerHeight;
