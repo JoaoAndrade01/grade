@@ -79,10 +79,8 @@
     "COS111", "COS110", "EEL280", "EEL480", "EEL670", "COS231",                       // Computação e Engenharia
   ]);
   const TITULO = "Grade ECI";
-  const semestreValido = (v) => typeof v === "string" && /^\d{4}\/[12]$/.test(v);
-  const semIdx = (nome) => semestreValido(nome) ? Number(nome.slice(0, 4)) * 2 + Number(nome[5]) - 1 : null;
-  // Bloco de transferidas: "AAAA (transferidas)" ou "AAAA/0" (só o ano, sem semestre real).
-  const anoDoBloco = (nome) => { const m = /^(\d{4})(?: \(transferidas\)|\/0)$/.exec(nome || ""); return m ? +m[1] : null; };
+  // Regras puras do cálculo (sem DOM nem armazenamento): js/progresso.js.
+  const { semestreValido, semIdx, anoDoBloco, parseHorarios, cursadasDe, pendente, montaRegistros } = window.PROGRESSO;
   const concluido = (s) => s === "aprovado" || s === "previsto";
   const emCurso = (s) => s === "planejado" || s === "cursando";
 
@@ -227,17 +225,7 @@
     && (p.periodos === undefined || (objeto(p.periodos)
       && Object.entries(p.periodos).every(([nome, itens]) => nomePeriodo(nome) && listaDe(itens, disciplinaValida))));
 
-  // Horários: "ter 08-10" <-> células (dia*100 + hora)
-  function parseHorarios(lista) {
-    const cel = new Set();
-    (lista || []).forEach((s) => {
-      const m = /^\s*(seg|ter|qua|qui|sex)\w*\s+(\d{1,2})(?::\d\d)?h?\s*-\s*(\d{1,2})/i.exec(String(s));
-      if (!m) return;
-      const d = DIAS.indexOf(m[1].toLowerCase());
-      for (let h = +m[2]; h < +m[3]; h++) cel.add(d * 100 + h);
-    });
-    return cel;
-  }
+  // Horários: células (dia*100 + hora) -> "ter 08-10" (a leitura, parseHorarios, está em js/progresso.js)
   function formataHorarios(cel) {
     const out = [];
     const ord = [...cel].sort((a, b) => a - b);
@@ -370,11 +358,6 @@
 
   // Listas editáveis no app (o navegador guarda as edições até exportar)
   const getEq = () => plano.equivalencias || (perfil && perfil.equivalencias) || [];
-  // Um pedido pode juntar várias cursadas: [{code, papel: "conteudo" | "horas"}]
-  const cursadasDe = (e) => Array.isArray(e.cursadas)
-    ? e.cursadas.map((c) => (typeof c === "string" ? { code: c, papel: "conteudo" } : c)).filter((c) => c && c.code)
-    : (e.cursada ? [{ code: e.cursada, papel: "conteudo" }] : []);
-  const pendente = (e) => { const st = e.status || "a pedir"; return st === "a pedir" || st === "em análise"; };
   const getExt = () => plano.extensao || (perfil && perfil.extensao) || [];
   function setLista(chave, arr) { plano[chave] = arr; save("plano", plano); montaModelo(); render(); }
 
@@ -383,142 +366,19 @@
     const cursoId = perfil && perfil.curso != null ? perfil.curso : 1;
     const grade = ((window.courses || [])[cursoId] || []).map((c, i) =>
       Object.assign({}, c, { idx: i, category: c.category || 1 }));
-    const curr = {};
-    grade.forEach((c) => { if (c.code && !curr[c.code]) curr[c.code] = c; });
-    const catalogo = ((window.optativas || {})[cursoId] || []).filter((o) => !curr[o.code]);
-    const opt = {};
-    catalogo.forEach((o) => { opt[o.code] = o; });
-    const custom = {}; // disciplinas citadas no perfil que não estão nem no currículo nem no catálogo
-
-    const reqCodes = (c, campo) => (c[campo] || [])
-      .map((r) => (typeof r === "number" ? (grade[r] && grade[r].code) : r)).filter(Boolean);
-
-    function info(code) {
-      if (curr[code]) {
-        const c = curr[code];
-        return { code, name: c.name, credits: c.credits, category: c.category, workload: c.workload, semester: c.semester,
-          req: reqCodes(c, "requirements"), coreq: reqCodes(c, "corequirements"), fonte: "grade", idx: c.idx };
-      }
-      const o = opt[code] || custom[code];
-      if (!o) return null;
-      return { code, name: o.name || code, credits: o.credits || 0, horas: o.horas, category: o.category || 3, workload: o.workload,
-        req: o.requirements || [], coreq: o.corequirements || [], fonte: opt[code] ? "catalogo" : "perfil" };
-    }
-
-    const deps = {};
-    const addDeps = (code, i) => i && i.req.forEach((r) => (deps[r] = deps[r] || []).includes(code) || deps[r].push(code));
-    Object.keys(curr).forEach((c) => addDeps(c, info(c)));
-    Object.keys(opt).forEach((c) => addDeps(c, info(c)));
-
-    const regs = {};
-    const registra = (code, r) => (regs[code] = regs[code] || []).push(r);
-    const conhece = (o) => {
-      if (o.code && !curr[o.code] && !opt[o.code]) {
-        const anterior = custom[o.code] || {};
-        custom[o.code] = { name: anterior.name ?? o.name, credits: anterior.credits ?? o.credits,
-          category: anterior.category ?? o.category, horas: anterior.horas ?? o.horas };
-      }
-    };
-
+    const codigosGrade = new Set(grade.map((c) => c.code).filter(Boolean));
+    const catalogo = ((window.optativas || {})[cursoId] || []).filter((o) => !codigosGrade.has(o.code));
     const removidos = new Set(plano.removidos || []);
     const base = ((perfil && perfil.periodos) || []).filter((p) => !(p.planejado && removidos.has(p.nome))).map((p) => ({ ...p }));
     (plano.novos || []).forEach((n) => { if (!base.some((p) => p.nome === n.nome)) base.push({ disciplinas: [], ...n }); });
-
-    const periodos = base.map((p, pi) => {
-      const tipo = p.planejado ? "planejado" : p.atual ? "atual" : "cursado";
-      const padrao = { planejado: "planejado", atual: "cursando", cursado: "aprovado" }[tipo];
-      const editado = !!plano.periodos[p.nome];
-      const brutos = editado ? plano.periodos[p.nome] : (p.disciplinas || []);
-      const itens = brutos.map((raw) => {
-        const it = typeof raw === "string" ? { code: raw } : raw;
-        conhece(it);
-        const status = it.status || padrao;
-        const alvo = it.equivale || it.code;
-        const inf = info(it.code) || {};
-        const item = {
-          code: it.code, alvo, status, pi, nota: it.nota, equivale: it.equivale,
-          name: it.name || inf.name || it.code || "?",
-          credits: it.credits != null ? it.credits : inf.credits || 0,
-          category: it.category != null ? it.category : inf.category || 3,
-          horas: it.horas != null ? it.horas : inf.horas,
-          workload: inf.workload, cel: parseHorarios(it.horarios), dispensas: [], aprovadaEm: it.aprovadaEm || null,
-          ri: (regs[alvo] || []).length,   // posição do registro deste item em regs[alvo]: identifica a ocorrência
-        };
-        registra(alvo, { pi, status, nota: it.nota, horas: alvo === it.code ? it.horas : undefined,
-          via: it.equivale ? `equivalência: ${it.code} ${item.name}` : null, aprovadaEm: it.aprovadaEm || null });
-        (it.dispensa || []).forEach((d) => {
-          const dn = typeof d === "string" ? { code: d } : { category: 2, ...d };
-          conhece(dn);
-          if (status !== "reprovado") registra(dn.code, { pi, status, nota: "T", via: `dispensa por ${it.code}` });
-          item.dispensas.push(dn.code);
-        });
-        return item;
-      });
-      return { nome: p.nome, semestre: semIdx(p.nome), nota: p.nota, tipo, itens, pi, editado, deduzido: !!p.deduzido };
-    });
-
-    // Equivalências: deferida passa a valer como a disciplina pedida (e a cursada deixa de contar no grupo original);
-    // "a pedir" / "em análise" ficam numa faixa separada até a resposta.
-    const consumidas = new Set();
-    const pendEq = {};
-    const pendConsumo = new Set();
-    const dispensou = {};
-    periodos.forEach((p) => p.itens.forEach((it) => {
-      if (it.dispensas.length && it.status === "aprovado") dispensou[it.code] = (dispensou[it.code] || []).concat(it.dispensas);
-    }));
-    const pedidos = getEq();
-    const usosDeferidos = new Map();
-    pedidos.filter((e) => e.status === "deferido").forEach((e) => {
-      new Set(cursadasDe(e).map((c) => c.code)).forEach((code) => usosDeferidos.set(code, (usosDeferidos.get(code) || 0) + 1));
-    });
-    const usosPendentes = new Map();
-    pedidos.filter(pendente).forEach((e) => {
-      new Set(cursadasDe(e).map((c) => c.code)).forEach((code) => usosPendentes.set(code, (usosPendentes.get(code) || 0) + 1));
-    });
-    const pedidosComConflito = new Set();
-    pedidos.forEach((e) => {
-      const cs = e ? cursadasDe(e) : [];
-      if (!cs.length || !e.pedida) return;
-      const st = e.status || "a pedir";
-      if (st === "deferido") {
-        if (cs.some((c) => usosDeferidos.get(c.code) > 1 || dispensou[c.code])) {
-          pedidosComConflito.add(e);
-          return;
-        }
-        const semestreDoRegistro = (r) => periodos[r?.pi]?.semestre ?? null;
-        const maisRecentePrimeiro = (a, b) => (semestreDoRegistro(b) ?? -1) - (semestreDoRegistro(a) ?? -1);
-        const registros = cs.map((c) => {
-          const origens = (regs[c.code] || []).filter((r) => r.pi != null).sort(maisRecentePrimeiro);
-          return origens.find((r) => r.status === "aprovado")
-            || origens.find((r) => r.status === "previsto" || emCurso(r.status));
-        });
-        const pi = registros.every((r) => semestreDoRegistro(r) != null)
-          ? registros.sort(maisRecentePrimeiro)[0].pi : null;
-        const status = registros.every((r) => r?.status === "aprovado") ? "aprovado" : "previsto";
-        registra(e.pedida, { pi, status, nota: "E", via: `equivalência deferida: ${cs.map((c) => c.code).join(" + ")}` });
-        cs.forEach((c) => consumidas.add(c.code));
-      } else if (pendente(e)) {
-        if (cs.some((c) => dispensou[c.code] || usosDeferidos.has(c.code) || usosPendentes.get(c.code) > 1)) {
-          pedidosComConflito.add(e);
-          return;
-        }
-        pendEq[e.pedida] = e;
-        cs.forEach((c) => pendConsumo.add(c.code));
-      }
-    });
-
-    // D-07: os alvos contam como no histórico e a origem de uma dispensa não soma créditos em grupo nenhum.
-    // Duas ou mais dispensas pela mesma origem recebem aviso (CEG 01/2017, art. 46, II).
-    const origensDispensa = new Set(Object.keys(dispensou));
-    const reutilizadas = Object.entries(dispensou).map(([origem, alvos]) => ({ origem, alvos: [...new Set(alvos)] }))
-      .filter((x) => x.alvos.length > 1);
-
+    const r = montaRegistros({ grade, catalogo, periodos: base, editados: plano.periodos, pedidos: getEq() });
     const ref = (window.horarios || {})[cursoId] || null;
     const guia = (window.guia || {})[cursoId] || null;
     const boa = (perfil && perfil.boa) || null;
-    M = { grade, curr, opt, catalogo, info, deps, regs, periodos, cursoId, ref, consumidas, pendEq, pendConsumo, guia, dispensou, boa, pedidosComConflito,
-      origensDispensa, reutilizadas };
+    M = { grade, catalogo, cursoId, ref, guia, boa, ...r };
   }
+  /** Semestre real de um registro do modelo (js/progresso.js). */
+  const semestreDoRegistro = (r) => window.PROGRESSO.semestreDoRegistro(r, M.periodos);
 
   /** Status vindo só do perfil (histórico, período atual, planos e pedidos), sem as marcações do pincel. */
   function statusPerfil(code) {
@@ -561,7 +421,7 @@
     return (M.regs[code] || []).some((r) => {
       const p = M.periodos[r.pi];
       if (!p || FORCA[r.status] < FORCA.planejado) return false;
-      let origem = p.semestre;
+      let origem = semestreDoRegistro(r);
       if (origem == null && r.status === "aprovado") {
         origem = semIdx(r.aprovadaEm);
         const ano = anoDoBloco(p.nome);
@@ -579,7 +439,7 @@
    */
   function requisitosPorMarcacao(code) {
     const i = M.info(code); if (!i) return [];
-    const semestres = (M.regs[code] || []).map((r) => M.periodos[r.pi]?.semestre).filter((x) => x != null);
+    const semestres = (M.regs[code] || []).map(semestreDoRegistro).filter((x) => x != null);
     const so = (r, coreq) => aprovacaoManual(r) && (semestres.length
       ? semestres.some((sem) => !registroCumpre(r, sem, coreq)) : statusPerfil(r) !== "aprovado");
     return i.req.filter((r) => so(r, false)).concat(i.coreq.filter((r) => so(r, true)));
@@ -664,7 +524,7 @@
       }
       registros.forEach((r) => inclui({
         code, nome: info.name, horas: r.horas ?? valorCat(info),
-        semestre: M.periodos[r.pi]?.semestre ?? null, historico: true,
+        semestre: semestreDoRegistro(r), historico: true,
       }));
     });
     getExt().forEach((a) => {
@@ -1302,7 +1162,7 @@
     const r = (M.regs[code] || []).filter((x) => x.status === "aprovado").pop();
     if (!r) return null;
     const nome = M.periodos[r.pi]?.nome;
-    const i = semIdx(nome), ano = i == null ? anoDoBloco(nome) : null;
+    const i = semestreDoRegistro(r), ano = i == null ? anoDoBloco(nome) : null;
     if (i == null && ano == null) return null;
     const de = i != null ? i : ano * 2, ate = i != null ? i : ano * 2 + 1;
     return { ano, min: (semAtual() - ate) / 2, max: (semAtual() - de) / 2, aprovadaEm: r.aprovadaEm || null };

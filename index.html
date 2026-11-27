@@ -20,7 +20,8 @@
     Ordem de carga (ver docs/ARQUITETURA.md):
       1. Dados do curso (públicos, versionados): currículo, catálogo de optativas, horários e guia.
       2. eci.js: setas de requisitos e experiências didáticas.
-      3. app.js: modelo + telas. Só por file:// tenta carregar perfil/perfil.js (opcional, fora do git).
+      3. progresso.js: cálculo do progresso sem DOM (também roda no Node, nos testes).
+      4. app.js: modelo + telas. Só por file:// tenta carregar perfil/perfil.js (opcional, fora do git).
     siga.js e pdf.js são carregados ao ler PDFs, na importação ou nas experiências didáticas.
   -->
   <script src="js/icones.js" defer></script>
@@ -29,6 +30,7 @@
   <script src="js/horarios.js" defer></script>
   <script src="js/guia.js" defer></script>
   <script src="js/eci.js" defer></script>
+  <script src="js/progresso.js" defer></script>
   <script src="js/app.js" defer></script>
 </head>
 <body class="classico">
