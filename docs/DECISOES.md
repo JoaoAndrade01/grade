@@ -303,6 +303,8 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
   ([PC-12](#pc-12--fase-do-curso-e-previsão-de-formatura), [PC-13](#pc-13--conquistas)).
 - **Atualização (v2.1.0):** no Clássico, o botão do Foco fica oculto (a preferência continua salva) ([PC-15](#pc-15--clássico-só-para-pintar)). Com o Foco
   ligado, a quarta aba é **Conquistas**, que recebe o cartão da fase e a estante ([PC-19](#pc-19--aba-conquistas-no-foco)).
+- **Atualização (v2.1.0):** no Foco, as reprovações de períodos passados também somem da Linha do tempo; a disciplina
+  continua pendente na Grade. A reprovação esperada do período atual continua; totais e planejamento não mudam.
 
 ### PC-12 · Fase do curso e previsão de formatura
 

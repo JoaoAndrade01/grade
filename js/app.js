@@ -1081,10 +1081,14 @@
       if (col.p && col.p.semestre == null && anoDoBloco(col.p.nome) != null && !col.itens.length) return;
       if (col.p && col.p.declarado && !col.itens.length) return;
       // Foco: some o concluído (inclusive transferidas aprovadas, dispensas e declaradas) e a reprovação já superada;
-      // períodos passados sem nada elegível somem, inclusive o bloco; o período atual sempre aparece.
+      // nos períodos passados, some também a reprovação ainda não superada (a disciplina continua pendente na Grade).
+      // Períodos passados sem nada elegível somem, inclusive o bloco; o período atual sempre aparece, com a reprovação
+      // esperada; os planejados não mudam.
       if (focoAtivo()) {
-        col = { ...col, itens: col.itens.filter(({ it }) => it.status !== "aprovado" && !(it.status === "reprovado" && concluido(statusDe(it.alvo)))) };
-        if ((!col.p || col.p.tipo === "cursado") && !col.itens.length) return;
+        const passado = !col.p || col.p.tipo === "cursado";
+        col = { ...col, itens: col.itens.filter(({ it }) => it.status !== "aprovado"
+          && !(it.status === "reprovado" && (passado || concluido(statusDe(it.alvo))))) };
+        if (passado && !col.itens.length) return;
       }
       let cr = 0, temOferta = false;
       const cards = col.itens.map(({ it, bloco, decl }) => {

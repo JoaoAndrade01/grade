@@ -4692,6 +4692,27 @@ def t_conquistas_aviso_aba_fechada(b):
     ctx.close()
 
 @v210
+@caso("Foco: a Linha do tempo esconde também as reprovações de períodos passados (mesmo não superadas); o período passado vazio some; a reprovação esperada do atual fica; a Grade mantém a disciplina pendente; totais iguais")
+def t_foco_reprovacoes_passadas(b):
+    perfil = {"periodos": [{"nome": "2025/1", "disciplinas": ["COS110", {"code": "FIT112", "status": "reprovado"}]},
+                           {"nome": "2025/2", "disciplinas": [{"code": "FIS111", "status": "reprovado"}]},
+                           {"nome": "2026/2", "atual": True, "disciplinas": [{"code": "MAC118", "status": "reprovado"}, "COS111"]},
+                           {"nome": "2027/1", "planejado": True, "disciplinas": ["MAC128"]}]}
+    ctx, pg = abre(b, perfil=perfil, extra={"vista": "timeline"}, nome="foco-reprovacoes", relogio=HOJE)
+    assert "2025/1" in colunas(pg) and "2025/2" in colunas(pg)                                 # sem Foco, tudo aparece
+    totais = pg.evaluate("JSON.stringify(GradeInterativa.totais())")
+    pg.locator("#btn-foco").click(); expect(pg.locator("#btn-foco")).to_have_attribute("aria-pressed", "true")
+    pg.click('[data-vista="timeline"]')
+    cols = colunas(pg)
+    assert "2025/1" not in cols and "2025/2" not in cols and "2026/2" in cols and "2027/1" in cols, cols
+    assert pg.locator('#painel .card[data-code="FIT112"], #painel .card[data-code="FIS111"]').count() == 0
+    expect(pg.locator('#painel .col-atual .card[data-code="MAC118"]')).to_have_count(1)        # reprovação esperada do atual fica
+    pg.click('[data-vista="grade"]')
+    for code in ("FIT112", "FIS111"): expect(pg.locator(f'#painel .card[data-code="{code}"]')).to_have_count(1)   # pendentes na Grade
+    assert pg.evaluate("JSON.stringify(GradeInterativa.totais())") == totais
+    ctx.close()
+
+@v210
 @caso("Aviso do perfil salvo: aparece uma vez por perfil, com OK, entendi; fica fechado ao recarregar; volta com outro perfil carregado; Baixar e Descartar ficam em Configurações → Perfil e dados")
 def t_aviso_perfil_salvo(b):
     ctx, pg = abre(b, perfil=PERFIL, extra={"vista": "grade"}, nome="aviso-perfil")

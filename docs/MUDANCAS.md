@@ -35,6 +35,8 @@ como notas. Os perfis e as preferências salvos na v2.0.0 continuam valendo.
   avanço do período, próximo marco, o que destrava e previsão de formatura) e as conquistas em cartões por grupo, com o
   progresso de cada uma. O cartão da fase e a estante saíram da Grade e da Linha do tempo. Em Configurações →
   Conquistas, dá para mostrar a aba também fora do Foco.
+- **Foco mais limpo.** No Foco, a Linha do tempo esconde também as reprovações de períodos passados; a disciplina
+  continua pendente na Grade, para planejar.
 
 - **Aviso do perfil salvo uma vez.** "Usando o perfil importado do SIGA…" aparece uma vez por perfil, com o botão "OK,
   entendi", e só volta quando outro perfil for importado ou carregado. "Baixar perfil.js" e "Descartar perfil salvo" (ou
@@ -58,7 +60,7 @@ como notas. Os perfis e as preferências salvos na v2.0.0 continuam valendo.
 ### Para quem contribui
 
 O helper `abre()` dos testes ganhou `modo=` (padrão Planejador; os cenários do Clássico pedem `modo="classico"`). O kit
-de interface passa a 154 cenários por `file://` e 155 por HTTP ([testes/README.md](../testes/README.md)). As decisões
+de interface passa a 155 cenários por `file://` e 156 por HTTP ([testes/README.md](../testes/README.md)). As decisões
 novas são PC-15 a PC-19 ([DECISOES.md](DECISOES.md)).
 
 ---
