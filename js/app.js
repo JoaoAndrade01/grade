@@ -1097,8 +1097,10 @@
         const subs = bloco != null ? [`<span class="etq-transferida">transferida · bloco ${bloco}</span>`] : [];
         if (it.equivale && M.curr[it.equivale]) subs.push(`≡ ${esc(it.equivale)} ${esc(M.curr[it.equivale].name)}`);
         if (it.dispensas.length) subs.push("dispensa " + it.dispensas.map(esc).join(", "));
-        const aviso = p.tipo !== "cursado" && it.status !== "reprovado" ? avisos(it.alvo, p.semestre) : [];
-        const oferta = p.tipo === "planejado" && it.status !== "reprovado" ? avisoOferta(it.alvo, p.nome) : null;
+        // Alertas pelo tipo do registro de origem: a transferida é histórico aprovado, mesmo na coluna do atual ou de um plano.
+        const tipo = bloco != null ? "cursado" : p.tipo;
+        const aviso = tipo !== "cursado" && it.status !== "reprovado" ? avisos(it.alvo, p.semestre) : [];
+        const oferta = tipo === "planejado" && it.status !== "reprovado" ? avisoOferta(it.alvo, p.nome) : null;
         if (oferta) { temOferta = true; aviso.push(oferta.texto); subs.push(`<span class="aviso-oferta">${esc(oferta.curto)}</span>`); }
         return card({
           code: it.alvo, name: it.name, cat: it.category, status: it.status, nota: it.nota,
