@@ -27,6 +27,7 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
 | [PC-05](#pc-05--qual-é-o-histórico-do-curso-atual) | Histórico do curso atual |
 | [PC-06](#pc-06--fronteira-de-5-anos-com-só-o-ano) | Fronteira de 5 anos |
 | [PC-07](#pc-07--ace-no-reingresso-30-h-confirmadas-e-30-h-a-confirmar) | ACE no reingresso |
+| [PC-08](#pc-08--ícone-de-estado-no-cartão-e-legendas-por-aba) | Ícone de estado e legendas por aba |
 | [PUB-01](#pub-01--retirada-da-página-legada) | Página legada |
 | [PUB-02](#pub-02--valor-e-condições-para-publicar) | Valor e condições para publicar |
 | [PUB-03](#pub-03--ordem-de-publicação) | Ordem de publicação |
@@ -159,6 +160,8 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
 - **Decisão:** a tag satisfaz pré-requisitos e conta crédito, e é identificada como marcação manual no
   detalhe da disciplina e na legenda do progresso.
 - **Consequências:** casos 01b e 02j.
+- **Atualização (2026-11-27):** ver [PC-08](#pc-08--ícone-de-estado-no-cartão-e-legendas-por-aba). A identificação
+  continua no detalhe; a linha da legenda passou ao detalhamento do progresso, e o cartão marcado mostra o ícone ✎.
 
 ### PC-04 · Número do BOA na livre escolha
 
@@ -201,6 +204,22 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
   conferir no SIGA ou com a coordenação.
 - **Consequências:** o caso 06m descreve esse comportamento e muda se a regra da ACE no reingresso for decidida de
   outro modo. Marcar as atividades como distintas (01g) fica para uma versão seguinte.
+
+### PC-08 · Ícone de estado no cartão e legendas por aba
+
+- **Estado:** aceita em 2026-11-27 (decisão M2 do João e tabela de abas da segunda rodada da v2.0.0). Atualiza
+  [PC-02 e PC-03](#pc-02-e-pc-03--tag-aprovada-do-pincel) e o caso 14i.
+- **Contexto:** o texto "Aprovada · perfil" ou "Cursada · marcação" embaixo do nome ocupava espaço em todos os
+  cartões. A barra, os "detalhes" e as legendas apareciam em abas que não usam o progresso, como Optativas.
+- **Decisão:** o cartão mostra um ícone de estado, sem texto de situação: ✓ aprovada, ◐ cursando, ○ planejada,
+  … prevista e ✎ marcação manual. Reprovada (✗) e equivalência pedida (⇄) também têm ícone, para que nenhum estado
+  dependa só da cor (WCAG 1.4.1). A situação e a origem ficam no nome acessível, no primeiro toque (14h) e nos
+  detalhes. A barra e os "detalhes" do progresso ficam na Grade (também no Clássico) e na Linha do tempo; as outras
+  abas ficam sem barra e sem legendas. A legenda de categorias fica na Linha do tempo. A escala de dificuldade aparece
+  junto a Exibir → Dificuldade, quando ativa; no Clássico, onde Exibir fica em Configurações, aparece na faixa de
+  legenda. A aprovação pelo pincel é identificada no detalhamento do progresso. A soma da lista do BOA mantém o
+  rótulo de [PC-04](#pc-04--número-do-boa-na-livre-escolha).
+- **Consequências:** casos 14b, 14i e 14p.
 
 ## Publicação e processo
 

@@ -60,8 +60,8 @@ movimento: só transições curtas; respeita prefers-reduced-motion
 | Cadeado (`#cadeado`) | desligado · ligado (fundo escuro) | só ícone, `aria-label="Proteger disciplinas cursadas"` + `aria-pressed` |
 | Seletor "ECI por trás" (`#pal-eci`) | desligado · ligado: cartões com experiência contornados, os demais `inert` e atenuados | Esc desliga |
 | Experiência (`#dlg-eci`) | `<dialog>` em tela cheia | "Voltar" e Esc fecham; o foco volta ao cartão ou botão que abriu |
-| Barra geral (`.bg-barra`) | concluída · prevista (listrada) · cursando · planejada · não planejada | 8px no modo clássico; 14px com legenda no Planejador. Cada trecho pode usar a cor de uma tag ("Usar a cor desta tag na barra", uma por tipo) |
-| Detalhamento (`#progresso`) | recolhido · aberto ("detalhes ▾") | cartão "Livre escolha" no formato dos outros, com um ⓘ do tamanho do texto ao lado do título (`aria-expanded`; alvo de 24 px, 44 px em tela estreita) que mostra os dois números rotulados e a nota de RA-13; sem legenda de estados |
+| Barra geral (`.bg-barra`) | concluída · prevista (listrada) · cursando · planejada · não planejada | 8px no modo clássico, 14px no Planejador, sempre com a linha de percentuais e "detalhes"; só na Grade (e no Clássico) e na Linha do tempo. Cada trecho pode usar a cor de uma tag ("Usar a cor desta tag na barra", uma por tipo) |
+| Detalhamento (`#progresso`) | recolhido · aberto ("detalhes ▾") | cartão "Livre escolha" no formato dos outros, com um ⓘ do tamanho do texto ao lado do título (`aria-expanded`; alvo de 24 px, 44 px em tela estreita) que mostra os dois números rotulados e a nota de RA-13; sem legenda de estados; com aprovação pelo pincel, a linha "✎ Aprovação por marcação manual (pincel)" (PC-02) |
 | Painel lateral (`.detalhes`) | aberto · fechado | lateral no computador; folha inferior no celular; fica **acima da paleta** em qualquer largura. O foco entra no painel ao abrir e volta ao disparador ao fechar. Aberto por Configurações, o importador devolve o foco a Configurações, inclusive quando o atalho do topo some depois de Usar |
 | Abas (`.abas [role="tab"]`) | ativa · inativa · foco | `tablist` com painel associado (`aria-controls`, `aria-labelledby`); só a aba ativa entra no Tab; setas, Home e End movem e ativam |
 | Grade de horários (`.cel`) | livre · com disciplina · choque · foco | 45 células com nome ("Segunda 08h: livre"); uma só entra no Tab; setas movem, Espaço ou Enter marca, Home e End vão ao começo e ao fim; as linhas têm contraste de 3:1 |
@@ -81,7 +81,7 @@ decisão registrada em [DECISOES.md](DECISOES.md).
 | --- | --- | --- |
 | H1 · calouro, sem perfil | Na primeira tela, a pessoa vê a grade, o botão **Criar perfil** e o **Importar do SIGA**, e sabe que pode consultar sem alterar a Grade | Inspeção da primeira visita, nos dois modos e a 320 px |
 | H2 · importar | Os passos, o estado de leitura e o que foi reconhecido estão visíveis; um erro de leitura diz o que fazer e oferece o relato; **Cancelar** não muda nada | Casos 06a–06g e falhas do caso de uso |
-| H3 · progresso | O que falta em cada grupo aparece sem abrir outra tela; situação e origem da marcação aparecem **em texto**, não só em cor | Casos 01a–01b, 14a–14b e 14h–14i; teste de contraste e de pistas além da cor |
+| H3 · progresso | O que falta em cada grupo aparece sem abrir outra tela; o cartão tem um ícone de estado (✓ ◐ ○ … ✎) e a situação e a origem da marcação ficam **em texto** no nome acessível, no toque e nos detalhes, não só em cor | Casos 01a–01b, 14a–14b e 14h–14i; teste de contraste e de pistas além da cor |
 | H4 · planejar | Aviso de requisito e de choque diz **qual** disciplina e **por quê**; o horário é editável pelo teclado | Casos 02, 07 e 10 |
 | H5, H6 · pedidos | A carga horária aparece como orientação neutra; os dois números de livre escolha têm rótulo e nota | Casos 03d–03g e 05a |
 | H7 · reingresso | Quando há dúvida sobre o histórico atual, a prévia pede a escolha e explica por que as ações estão desativadas | Casos 06h–06k |
@@ -121,7 +121,7 @@ axe-core complementa o teclado e a inspeção visual. Leitor de tela real e o te
 | Refluxo a 320 px | Pedidos sem rolagem horizontal do documento; as tabelas rolam na própria região, que se alcança por teclado | `t_b7_pedidos_320` |
 | Alvos | 24 × 24 px nos botões de período, de usar e nos avisos de perfil; 44 px nos atalhos; sem ocorrência de `target-size` | `t_b8_alvos` |
 | Teclado | Foco entra no painel, segue ao resultado e volta ao disparador (importação, também quando aberta por Configurações e quando o atalho some depois de Usar; filtros e seleção do Cronograma); foco visível sob a faixa e a paleta, com Tab e Shift+Tab; grade de horários e "Escolher perfil" por teclado; abas com setas, Home e End | `t_b2_importacao`, `t_b2_foco_filtros`, `t_b2_foco_visivel`, `t_b4_grade_horarios`, `t_b5_escolher_perfil`, `t_b9_aria` |
-| Pistas além da cor | Situação e origem dos cartões em texto, em ambos os modos e a 320 px | `t_b1_estado_dos_cartoes` |
+| Pistas além da cor | Ícone de estado nos cartões; situação e origem no nome acessível, em ambos os modos e a 320 px | `t_b1_estado_dos_cartoes` |
 | Nomes e papéis | Nenhum controle sem nome nos fluxos de Pedidos, ACE e importação; abas com painel associado e sem `aria-selected` inválido | `t_b3_nomes`, `t_b9_aria` |
 
 **Não verificado.** Leitor de tela real (NVDA), Safari no Mac, iPhone real, axe com perfil real e teste com colegas. Os

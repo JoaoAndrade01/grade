@@ -30,13 +30,19 @@ acadêmicos só no navegador. A Grade orienta; não substitui o SIGA, o BOA nem 
   **Usar este perfil** e **Baixar perfil.js** depois da escolha.
 - **Transferidas cumprem requisito** (D-08). A disciplina do bloco "AAAA (transferidas)" vale pelo semestre original,
   quando o histórico do curso anterior o informa; sem ele, conta só a partir do ano seguinte ao do bloco. Na Linha do
-  tempo, ela aparece no semestre original, com a etiqueta "transferida · bloco AAAA", ou no bloco, sem ele.
+  tempo, ela aparece no semestre original, com a etiqueta "transferida · bloco AAAA", ou no bloco, sem ele. Se todas
+  foram ao semestre original, a coluna do bloco não aparece; o prazo continua pelo ano do bloco.
 - **Tags e barra de progresso.** "Não conta" é uma opção só (o antigo "Reprovação (não conta)" é convertido, no
   navegador e em perfis antigos) e só pinta o que você marcou. A barra tem quatro trechos: concluídas, previstas,
   cursando e planejadas; em cada tag que conta, "Usar a cor desta tag na barra" pinta o trecho do tipo dela.
 - **Carga horária como orientação.** A comparação deixa de usar ✓ e ✗ e aparece como dica neutra.
-- **Marcação manual identificada.** A disciplina aprovada pelo pincel é identificada como marcação manual no detalhe e na
-  legenda do progresso, e a disciplina que dela depende mostra que o requisito foi satisfeito por marcação manual.
+- **Marcação manual identificada.** A disciplina aprovada pelo pincel tem o ícone ✎ no cartão e é identificada como
+  marcação manual no detalhe e no detalhamento do progresso, e a disciplina que dela depende mostra que o requisito foi
+  satisfeito por marcação manual.
+- **Barra e legendas por aba.** A barra e os "detalhes" do progresso aparecem na Grade (também no Clássico) e na Linha do
+  tempo; as outras abas ficam sem barra e sem legendas. A legenda de categorias fica na Linha do tempo. A escala de
+  dificuldade (Trivial, Só o básico, Matéria de verdade, Difícil, Morte instantânea) aparece junto a Exibir →
+  Dificuldade, quando ativa.
 - **Horas de extensão "a confirmar".** Quando não dá para saber se duas entradas são a mesma atividade, a Grade confirma o
   maior valor e mostra o restante como "a confirmar", com aviso.
 - **Rodapé.** Aviso de que a Grade não é oficial, versão, data de conferência do currículo no SIGA e o link "Achou um
@@ -44,11 +50,12 @@ acadêmicos só no navegador. A Grade orienta; não substitui o SIGA, o BOA nem 
 - **Janelas e telas.** Configurações fecha pelo X no topo, por clique fora e por Esc, e o foco volta ao botão que abriu.
   "Adicionar período" usa a mesma janela central de "Excluir período", com validação do nome. Na Linha do tempo,
   "detalhes" recolhe o detalhamento e o clique num cartão abre os detalhes da disciplina. Com as setas de requisitos
-  ligadas, a Grade abre mais espaço entre colunas e cartões. O detalhamento não tem legenda de estados: o cartão já diz
-  a situação em texto.
+  ligadas, a Grade abre mais espaço entre colunas e cartões. O detalhamento não tem legenda de estados: o cartão tem um
+  ícone de estado. O cartão protegido pelo cadeado não mostra ícone; a proteção é anunciada e aparece nos detalhes.
 - **Acessibilidade.** Correções feitas depois de uma inspeção com axe-core e teclado:
-  - **Situação e origem em texto.** Cada cartão diz "Aprovada", "Aprovação prevista" ou "Planejada" e se vem do
-    "perfil" ou de uma "marcação", sem depender de cor nem de passar o mouse. A disciplina reprovada deixou de ficar
+  - **Ícone de estado no cartão.** ✓ aprovada, ◐ cursando, ○ planejada, … prevista e ✎ marcação manual (✗ reprovada e
+    ⇄ equivalência pedida), sem depender de cor nem de passar o mouse. A situação e a origem ("perfil" ou "marcação")
+    ficam no nome acessível, no primeiro toque e nos detalhes. A disciplina reprovada deixou de ficar
     esmaecida (borda pontilhada e texto riscado).
   - **Toque com o pincel.** No celular, o primeiro toque num cartão só consulta (mostra a situação e a origem, com o
     link "Detalhes") e o segundo toque marca. Mouse e teclado marcam com uma ativação.
@@ -66,7 +73,8 @@ acadêmicos só no navegador. A Grade orienta; não substitui o SIGA, o BOA nem 
     primeira menção.
   - **Não verificado.** Leitor de tela real, Safari no Mac e iPhone real (ver "Limitações conhecidas"); a Grade não
     declara conformidade integral com a WCAG.
-- **Página antiga retirada.** `classico.html` agora é uma página curta, sem script, que leva ao modo clássico do app. A
+- **Página antiga retirada.** `classico.html` agora é uma página curta, sem script, que leva ao modo clássico do app. O
+  link "versão antiga" do rodapé leva à Grade publicada pelo Grêmio (https://gremio-eci.github.io/grade/). A
   versão antiga fica guardada na tag `legado-classico` e no repositório do Grêmio. As cores que ela guardava em cookies
   não são migradas.
 
@@ -123,7 +131,7 @@ duplicatas de `js/horarios.js` e `js/guia.js`, e lista as turmas sem código. O 
 
 Documentação nova: visão, requisitos, regras acadêmicas, plano de teste, decisões, manutenção, privacidade, formato do
 perfil e guia de contribuição, além de instruções públicas para agentes de IA ([AGENTS.md](../AGENTS.md)) e modelo de
-Issue. O kit de interface tem 100 cenários por `file://` e 101 por HTTP ([testes/README.md](../testes/README.md)). O que
+Issue. O kit de interface tem 103 cenários por `file://` e 104 por HTTP ([testes/README.md](../testes/README.md)). O que
 está previsto para depois está em [MANUTENCAO.md](MANUTENCAO.md).
 
 ---

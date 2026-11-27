@@ -154,6 +154,7 @@ parte dele) ou *sem teste* (conferir na integração).
 | H10 | [RF-08](REQUISITOS.md#rf-08--aviso-de-que-a-grade-não-é-oficial-versão-e-relato-d-06) | 08a, 08b | `t_rf08_faixa` (aviso no rodapé, D-09) | `index.html`, `static/app.css` | direta |
 | H10 | RF-08 | 08m | `t_sobre` | `htmlSobre` | direta |
 | H10 | RF-08 | 08n | `t_detalhamento_info` | `htmlLivreCurta`, `renderLegenda` | direta |
+| H10 | RF-08 | 08o | `t_versao_antiga` | `index.html` (rodapé), `classico.html` | direta |
 | H10 | RF-08 | 08c, 08d | `t_rf08_notas_credito` | `notaHtml` (`js/app.js`) | direta |
 | H10 | RF-08 | 08e, 08f | `t_rf08_periodo_atual` | `perfilDaImportacao` | direta |
 | H10 | RF-08 | 08l | `t_rf08_deduzido_regras` | `perfilDaImportacao` | direta |
@@ -165,7 +166,7 @@ parte dele) ou *sem teste* (conferir na integração).
 | H4 | RF-10 | 10d–10e | `t_excluir` | `excluiPeriodo` | direta |
 | H4 | RF-10 | 10f | `t_periodo_janela` | `abreDialogoPeriodo`, `criaPeriodo` | direta |
 | H4 | RF-10 | 10g | `t_timeline_detalhes_e_clique` | `desenha`, clique dos cartões | direta |
-| H4, H7 | RF-10 | 10h | `t_timeline_transferidas`, `t_timeline_transferida_origem` | `colunasTimeline`, `renderTimeline` | direta |
+| H4, H7 | RF-10 | 10h | `t_timeline_transferidas`, `t_timeline_bloco_vazio`, `t_timeline_transferida_origem` | `colunasTimeline`, `renderTimeline` | direta |
 | H9 | [RF-11](REQUISITOS.md#rf-11--optativas-guia-e-oferta-h9) | 11a–11d | sem teste do resultado dos filtros e do guia (`t_regressao` cobre busca e foco; `t_b2_foco_filtros` cobre o foco ao filtrar) | `candidatos`, `js/horarios.js`, `js/guia.js` | sem teste |
 | H9 | RF-11, RF-17 | turmas sem código | `t_m6_somente_informativo` (lista informativa "cabe"/"choca", sem ação; fora das sugestões e dos cálculos) | `js/horarios.js`, `js/optativas.js` | direta |
 | H11 | [RF-12](REQUISITOS.md#rf-12--perfil-e-dados-locais-h11) | 12a | `t_criar_perfil` | `salvaPerfilCriado` | direta |
@@ -177,7 +178,7 @@ parte dele) ou *sem teste* (conferir na integração).
 | H1, H3, H10 | [RF-14](REQUISITOS.md#rf-14--marcação-manual-aparência-tags-e-referências-h1-h3-h10) | 14a–14b | `t_cr01_manual`, `t_pc02_manual_credito` | `marca`, `pinta`, `tagDe` | direta |
 | H1, H3 | RF-14 | 14c | `t_cadeado` | `protegida` | direta |
 | H1, H3 | RF-14 | 14d | `t_setas` | `arestasDe` | direta |
-| H1, H3, H10 | RF-14 | 14h, 14i | `t_b1_estado_dos_cartoes` (1º toque consulta e o 2º marca; situação e origem em texto) | rótulo de estado e linha de consulta (`js/app.js`, `static/app.css`) | direta |
+| H1, H3, H10 | RF-14 | 14h, 14i | `t_b1_estado_dos_cartoes` (1º toque consulta e o 2º marca; ícone de estado, situação e origem no nome acessível) | ícone de estado e linha de consulta (`js/app.js`, `static/app.css`) | direta |
 | H1, H3 | RF-14 | 14e | `t_tema`, `t_modo`, `t_atalhos`, `t_formatos` | `renderAtalhos`, `renderConfig` | parcial (anúncio ao desafixar: conferir) |
 | H1, H3 | RF-14 | 14f | `t_tags` | `renderConfig` (editor de tags) | parcial |
 | H10 | RF-14 | 14g | `t_atalhos` (Referências sem requisição externa) | `abreReferencias` | parcial |
@@ -187,6 +188,7 @@ parte dele) ou *sem teste* (conferir na integração).
 | H1, H3 | RF-14 | 14m | `t_config_fechar` | `abreConfiguracoes`, `fechaAoClicarFora` | direta |
 | H1 | RF-14 | 14n | `t_seletor_modo` | `#seletor-modo`, `renderConfig` | direta |
 | H1, H2 | RF-14 | 14o | `t_importar_sugere_planejador` | `abreImportador` | direta |
+| H1, H3, H10 | RF-14 | 14p | `t_abas_legendas` | `desenha`, `renderLegenda`, `escalaDificuldade`, `renderProgresso` | direta |
 | H14 | [RF-17](REQUISITOS.md#rf-17--validação-dos-dados-de-referência-h14) | 17a–17e | `testes/referencia_casos.py` (80 casos sintéticos, inclusive gramática do horário, dígitos não ASCII, exceção sem uso e efeito recusado; e os dados reais) | `testes/referencia.py` | direta |
 | H14 | RF-17 | 17f | `testes/referencia_casos.py --browser` | detalhe da optativa em `js/app.js` | direta (sem controle negativo) |
 | H11 | [RNF-01](REQUISITOS.md#5-requisitos-não-funcionais) | — | `t_siga` (o perfil salvo e a página não contêm o nome, o CPF nem o RG do cabeçalho); `testes/auditoria.py` (todas as requisições restritas à origem); `testes/reimportacao.py` (`classico.html` e o código sem referência externa). Arquivo exportado: sonda avulsa (seção 8) | CSP em `index.html` | parcial |
