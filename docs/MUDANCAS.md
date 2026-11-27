@@ -35,11 +35,15 @@ continua mostrando a versão anterior.
 ### Correções técnicas
 
 - Corrida ao reabrir Configurações logo depois de fechar: a janela podia abrir vazia.
+- Configurações devolve o foco ao botão também quando aberta pelo mouse no WebKit.
+- O editor de tags mantém o foco no controle ao salvar (antes, Tab saía do editor).
+- Com "ECI por trás" ligada, a Linha do tempo abre os detalhes, e não a experiência.
+- O link "Achou um erro?" do rodapé abre a escolha de modelo de Issue (`/issues/new/choose`).
 
 ### Testes
 
 - Novos cenários de interface: CR-05 (transferida e requisitos) e os casos 01h, 08m, 08n, 10f a 10h e 14j a 14o. A
-  matriz passa a ter 97 cenários por `file://` e 98 por HTTP ([testes/README.md](../testes/README.md)).
+  matriz passa a ter 100 cenários por `file://` e 101 por HTTP ([testes/README.md](../testes/README.md)).
 
 ## v2.0.0 — primeira versão pública
 

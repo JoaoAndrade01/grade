@@ -165,7 +165,7 @@ parte dele) ou *sem teste* (conferir na integração).
 | H4 | RF-10 | 10d–10e | `t_excluir` | `excluiPeriodo` | direta |
 | H4 | RF-10 | 10f | `t_periodo_janela` | `abreDialogoPeriodo`, `criaPeriodo` | direta |
 | H4 | RF-10 | 10g | `t_timeline_detalhes_e_clique` | `desenha`, clique dos cartões | direta |
-| H4, H7 | RF-10 | 10h | `t_timeline_transferidas` | `colunasTimeline` | direta |
+| H4, H7 | RF-10 | 10h | `t_timeline_transferidas`, `t_timeline_transferida_origem` | `colunasTimeline`, `renderTimeline` | direta |
 | H9 | [RF-11](REQUISITOS.md#rf-11--optativas-guia-e-oferta-h9) | 11a–11d | sem teste do resultado dos filtros e do guia (`t_regressao` cobre busca e foco; `t_b2_foco_filtros` cobre o foco ao filtrar) | `candidatos`, `js/horarios.js`, `js/guia.js` | sem teste |
 | H9 | RF-11, RF-17 | turmas sem código | `t_m6_somente_informativo` (lista informativa "cabe"/"choca", sem ação; fora das sugestões e dos cálculos) | `js/horarios.js`, `js/optativas.js` | direta |
 | H11 | [RF-12](REQUISITOS.md#rf-12--perfil-e-dados-locais-h11) | 12a | `t_criar_perfil` | `salvaPerfilCriado` | direta |
@@ -173,7 +173,7 @@ parte dele) ou *sem teste* (conferir na integração).
 | H11 | RF-12 | 12c | `t_compat` (carga por arquivo), `t_b5_escolher_perfil` (válido aplicado; inválido preserva o anterior). A mensagem de erro do inválido não é verificada | `erroPerfil` | parcial |
 | H11 | RF-12 | 12d | `t_descartar_salvo`, `t_regressao` ("Apagar tudo") | `js/app.js` | parcial |
 | H11 | RF-12 | 12e | inspeção heurística; `t_aviso_pdf` | — | parcial |
-| H12 | [RF-13](REQUISITOS.md#rf-13--a-eci-por-trás-da-grade-h12) | 13a–13c | `t_experiencias`, `t_exp_com_perfil`, `t_seletor_eci`, `t_fecha_durante_leitura` | `js/eci.js`, `js/demo-pdf.js` | direta |
+| H12 | [RF-13](REQUISITOS.md#rf-13--a-eci-por-trás-da-grade-h12) | 13a–13c | `t_experiencias`, `t_exp_com_perfil`, `t_seletor_eci`, `t_fecha_durante_leitura`, `t_eci_timeline` | `js/eci.js`, `js/demo-pdf.js` | direta |
 | H1, H3, H10 | [RF-14](REQUISITOS.md#rf-14--marcação-manual-aparência-tags-e-referências-h1-h3-h10) | 14a–14b | `t_cr01_manual`, `t_pc02_manual_credito` | `marca`, `pinta`, `tagDe` | direta |
 | H1, H3 | RF-14 | 14c | `t_cadeado` | `protegida` | direta |
 | H1, H3 | RF-14 | 14d | `t_setas` | `arestasDe` | direta |
@@ -182,7 +182,7 @@ parte dele) ou *sem teste* (conferir na integração).
 | H1, H3 | RF-14 | 14f | `t_tags` | `renderConfig` (editor de tags) | parcial |
 | H10 | RF-14 | 14g | `t_atalhos` (Referências sem requisição externa) | `abreReferencias` | parcial |
 | H1, H3 | RF-14 | 14j | `t_tags_nao_conta` | `normalizaTags`, `tagDe` | direta |
-| H1, H3 | RF-14 | 14k | `t_barra_quatro_trechos` | editor de tags, `renderBarraGeral` | direta |
+| H1, H3 | RF-14 | 14k | `t_barra_quatro_trechos`, `t_tags_barra_teclado` | editor de tags (`salvaTags`), `renderBarraGeral` | direta |
 | H1 | RF-14 | 14l | `t_setas_espaco` | `desenha` (classe `com-setas`), `static/app.css` | direta |
 | H1, H3 | RF-14 | 14m | `t_config_fechar` | `abreConfiguracoes`, `fechaAoClicarFora` | direta |
 | H1 | RF-14 | 14n | `t_seletor_modo` | `#seletor-modo`, `renderConfig` | direta |
