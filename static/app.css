@@ -1084,6 +1084,8 @@ body:has(.paleta:not([hidden])) .detalhes {
 
 /* Optativas: espaço entre o ícone e o texto nos botões de grupo (Condicionada, Humanas, ACE) */
 .filtros .seg button.ctl { display: inline-flex; align-items: center; gap: 6px; }
+/* tela estreita: menos espaço nos grupos e, se ainda faltar largura, quebra de linha (nunca rolagem lateral) */
+@media (max-width: 720px) { .filtros .seg { flex-wrap: wrap; max-width: 100%; } .filtros .seg button.ctl { gap: 4px; padding-inline: 8px; } }
 
 /* Trilha: chave segmentada igual ao seletor de modo (rádios nativos; setas trocam; um segmento aceso por vez).
    Em Só ícones, só o ícone (o nome fica no .rot e no title); no painel ⋯ do Minimalista, ícone e texto. */
