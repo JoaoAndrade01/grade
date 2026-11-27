@@ -19,7 +19,7 @@
   <!--
     Ordem de carga (ver docs/ARQUITETURA.md):
       1. Dados do curso (públicos, versionados): currículo, catálogo de optativas, horários e guia.
-      2. eci.js: setas de requisitos e experiências didáticas.
+      2. eci.js: experiências didáticas (com as setas de requisitos delas).
       3. progresso.js e conquistas.js: cálculo do progresso, da fase e dos selos sem DOM (também rodam no Node, nos testes).
       4. app.js: modelo + telas. Só por file:// tenta carregar perfil/perfil.js (opcional, fora do git).
     siga.js e pdf.js são carregados ao ler PDFs, na importação ou nas experiências didáticas.
@@ -147,7 +147,7 @@
   <footer class="rodape">
     <!-- D-06 e D-09: aviso de que a Grade não é oficial, numa linha do rodapé. Texto aprovado pela manutenção: não altere sem registrar a decisão em docs/DECISOES.md. -->
     <p id="aviso-rodape" class="rodape-aviso" role="note">Feita por alunos de ECI. Não substitui o SIGA, o BOA nem a coordenação.</p>
-    <p class="rodape-dica">Passe o mouse numa disciplina: <span class="tag-req">pré-requisitos</span> e <span class="tag-dep">o que ela libera</span> acendem.</p>
+    <p class="rodape-dica">Com Exibir → Destaque em foco, passe o mouse numa disciplina ou foque nela: <span class="tag-req">pré-requisitos</span> e <span class="tag-dep">o que ela libera</span> acendem.</p>
     <p class="rodape-info">
       <span id="versao">v2.0.0</span>
       · <span id="curriculo-conferido"></span>

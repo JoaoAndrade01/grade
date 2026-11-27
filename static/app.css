@@ -559,8 +559,6 @@ small.alerta, .alerta { color: var(--dep); }
   .vista-grade .card .meta, .vista-grade .card .sub { font-size: clamp(9px, .62vw, 11px); }
   .vista-grade .card.bloco { background: var(--surface); border: 1.5px dashed var(--border); text-align: center; align-items: center; justify-content: center; }
   .vista-grade .card.bloco::before { display: none; }
-  /* setas ligadas: vãos maiores para as curvas (cada curva usa até 24 px) e colunas com largura mínima legível;
-     se não couber, a Grade rola de lado na própria região, nunca a página */
 }
 
 /* paleta flutuante */
@@ -728,7 +726,7 @@ dialog.dlg:modal { overscroll-behavior: contain; }
 }
 
 /* =====================================================================
-   v6 — abas com ícone, Configurações, cadeado, setas de requisitos, "A ECI por trás da Grade"
+   v6 — abas com ícone, Configurações, cadeado, setas didáticas, "A ECI por trás da Grade"
    ===================================================================== */
 .abas button { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
 .abas button .ico { opacity: .85; }
@@ -795,7 +793,7 @@ dialog.dlg:modal { overscroll-behavior: contain; }
 .colisao-planos p { margin: 0 0 6px; }
 .colisao-planos .check { color: var(--text); }
 
-/* setas de requisitos (SVG sobre a grade; não recebe cliques) */
+/* setas de requisitos das experiências de "A ECI por trás da Grade" (SVG; não recebe cliques) */
 .painel { position: relative; }
 .setas { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; }
 .setas-demo { z-index: 3; }
