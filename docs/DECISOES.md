@@ -383,11 +383,6 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
       do período. Com dois blocos de transferidos, o prazo usa o mais recente, que é o do curso atual (D-03, PC-05).
     - *Dois itens do plano para a mesma disciplina no mesmo semestre:* conta a origem de menor código.
     - *Dois pedidos pendentes para a mesma pedida:* "em análise" vence "a pedir"; depois, o de menor pedida e cursadas.
-    - *Disciplina fora do catálogo repetida com dados diferentes* (por exemplo, 2 cr num período e 5 cr noutro): valem
-      os dados da ocorrência escolhida pela mesma ordem fixa dos registros, de preferência a aprovação mais recente; sem
-      aprovação, a ocorrência mais recente. Um dado que falta nela vem das outras, da mais recente para a mais antiga.
-      Com créditos diferentes, o detalhe da disciplina mostra "Créditos diferentes no perfil (2 e 5 cr): vale o da
-      aprovação mais recente."
   - **Semestre ausente:** requisito pelo limite de `registradoEm` (pré-requisito depois dele; co-requisito também nele),
     com aviso no próprio semestre; o prazo de cinco anos fica "Data de aprovação não confirmada", sem idade e sem data
     inventada. D-03 e D-08 não são reabertas.
