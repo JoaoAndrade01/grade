@@ -2317,21 +2317,28 @@ def descreve_foco(pg): return pg.evaluate("document.activeElement ? document.act
 
 
 
-@caso("B1: situação e origem dos cartões em texto, sem cor nem hover; no toque a primeira ativação só consulta")
+@caso("B1: ícone de estado no cartão (✓ ◐ ○ … ✎), situação e origem no nome acessível; no toque a primeira ativação só consulta")
 def t_b1_estado_dos_cartoes(b):
-    for nome, vp, toque in [("desktop", D, False), ("celular", C320, True)]:
-        ctx, pg = abre(b, vp=vp, perfil=PERFIL, extra={"marcacoes": {"MAC238": "aprovada"}}, nome=f"b1-{nome}", toque=toque)
-        textos = {c: pg.locator(f'.card[data-code="{c}"]').inner_text() for c in ("COS110", "MAC118", "COS360", "MAC238", "MAC248")}
-        assert "Aprovada" in textos["COS110"] and "perfil" in textos["COS110"], textos["COS110"]
-        assert "Aprovação prevista" in textos["MAC118"] and "perfil" in textos["MAC118"], textos["MAC118"]
-        assert "Planejada" in textos["COS360"] and "perfil" in textos["COS360"], textos["COS360"]
-        assert "Cursada" in textos["MAC238"] and "marcação" in textos["MAC238"], textos["MAC238"]
-        estados = [pg.locator(f'.card[data-code="{c}"] .estado').inner_text() for c in ("COS110", "MAC118", "COS360", "MAC238")]
-        assert len(set(estados)) == 4, estados                      # estados diferentes não repetem o mesmo texto
-        assert pg.locator('.card[data-code="MAC248"] .estado').count() == 0, textos["MAC248"]
-        # o texto vale também no Planejador (linha do tempo, cartões com a situação)
-        completo(pg, "timeline")
-        assert "Aprovada" in pg.locator('.card[data-code="COS110"]').first.inner_text()
+    # M2 e WCAG 1.4.1: o cartão mostra um ícone de estado, não o texto; situação e origem ficam no nome acessível.
+    esperado = {"COS110": ("✓", "Aprovada · perfil"), "MAC118": ("…", "Aprovação prevista · perfil"),
+                "MAC128": ("◐", "Cursando · perfil"), "COS360": ("○", "Planejada · perfil"), "MAC238": ("✎", "Cursada · marcação")}
+    visivel = """(el) => { const c = el.cloneNode(true); c.querySelectorAll('.sr').forEach((x) => x.remove()); return c.textContent; }"""
+    for nome, vp, toque, esquema in [("desktop", D, False, "light"), ("celular", C320, True, "dark")]:
+        ctx, pg = abre(b, vp=vp, esquema=esquema, perfil=PERFIL, extra={"marcacoes": {"MAC238": "aprovada"}}, nome=f"b1-{nome}", toque=toque)
+        for vista in ("grade", "timeline"):
+            if vista == "timeline": completo(pg, "timeline")
+            for code, (ico, texto) in esperado.items():
+                if vista == "timeline" and code == "MAC238": continue             # sem período: a marcação só aparece na Grade
+                cards = pg.locator(f'#painel .card[data-code="{code}"]'); card = cards.first if vista == "grade" else cards.last
+                est = card.locator(".estado")
+                assert est.inner_text() == ico and est.get_attribute("aria-hidden") == "true", (vista, code, est.inner_text())
+                rotulo = texto if vista == "grade" else texto.split(" · ")[0]
+                expect(card).to_have_accessible_name(re.compile(re.escape(rotulo)))
+                vis = card.evaluate(visivel)
+                assert rotulo.split(" · ")[0] not in vis and " · perfil" not in vis and " · marcação" not in vis, (vista, code, vis)
+            if vista == "grade":
+                assert pg.locator('#painel .card[data-code="MAC248"] .estado').count() == 0
+                foto(pg, f"b1-icones-{nome}")
         ctx.close()
     # toque, primeira visita: a 1ª ativação consulta (situação e origem em texto) e só a 2ª marca
     ctx, pg = abre(b, vp=C320, nome="b1-toque", toque=True, atalhos=False)
@@ -2344,7 +2351,8 @@ def t_b1_estado_dos_cartoes(b):
     r = consulta.bounding_box(); assert r["height"] > 0
     card.tap()
     assert ls(pg, "marcacoes") == {"MAC248": "aprovada"}, ls(pg, "marcacoes")
-    assert "Cursada" in card.inner_text() and "marcação" in card.inner_text()
+    assert card.locator(".estado").inner_text() == "✎"
+    expect(card).to_have_accessible_name(re.compile("Cursada · marcação"))
     ctx.close()
     # mouse e teclado continuam marcando com uma ativação
     ctx, pg = abre(b, nome="b1-mouse", atalhos=False)

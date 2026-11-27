@@ -848,6 +848,17 @@
     return s === "pendente" ? { rot: "Pendente", origem: null } : { rot: ROTULO[s], origem: "perfil" };
   }
 
+  /**
+   * Ícone de estado do cartão (decisão M2, WCAG 1.4.1): a situação não depende só da cor. O ícone é decorativo; a
+   * situação e a origem vão em texto no nome acessível (`.sr`), no primeiro toque (14h) e nos detalhes.
+   */
+  const ICONE_ESTADO = { aprovado: "✓", previsto: "…", cursando: "◐", planejado: "○", reprovado: "✗", analise: "⇄" };
+  const ICONE_MARCACAO = "✎";
+  function estadoHtml(ico) {
+    return ico ? `<span class="estado" aria-hidden="true">${ico}</span>` : "";
+  }
+  const estadoSr = (texto) => (texto ? `<span class="sr">, ${esc(texto)}</span>` : "");
+
   function card(o) {
     const temAviso = o.aviso && o.aviso.length;
     const attrs = [
@@ -862,8 +873,7 @@
     return `<button type="button" ${attrs}>
       ${nota != null ? `<span class="nota">${esc(nota)}</span>` : ""}
       ${temAviso ? `<span class="aviso" aria-label="aviso">!</span>` : ""}
-      <span class="nome">${esc(o.name)}</span>
-      ${o.status && o.status !== "pendente" && ROTULO[o.status] ? `<span class="estado">${esc(ROTULO[o.status])}</span>` : ""}
+      <span class="nome">${estadoHtml(ICONE_ESTADO[o.status])}${esc(o.name)}</span>${estadoSr(ICONE_ESTADO[o.status] && ROTULO[o.status])}
       ${o.sub ? `<span class="sub">${o.sub}</span>` : ""}
       <span class="meta">${o.code ? seloGuia(o.code, true) + " " : ""}${esc(o.meta)}</span>
     </button>`;
@@ -895,13 +905,13 @@
     const exp = seletorECI && window.ECI.tem(c.code);
     const so = situacaoOrigem(c.code);
     const estado = so.origem ? `${so.rot} · ${so.origem}` : "";
+    const ico = !so.origem ? "" : so.origem === "marcação" ? ICONE_MARCACAO : ICONE_ESTADO[statusPerfil(c.code)] || "";
     return `<button type="button" class="card limpo${tag ? " com-tag" : ""}${s === "analise" ? " s-analise" : ""}${apagado ? " apagado" : ""}${prot ? " protegida" : ""}${exp ? " com-eci" : ""}"
       data-code="${esc(c.code)}" ${tag ? `style="--tag:${esc(tag.cor)}"` : ""} title="${exp ? "Abrir a experiência: " + esc(window.ECI.tem(c.code).titulo) : esc(tag ? tag.nome : ROTULO[s]) + (prot ? " · protegida pelo cadeado" : "")}"
       ${seletorECI && !exp ? "inert" : ""}${exp ? ` aria-describedby="dica-eci"` : ""}>
       ${exp ? `<span class="selo-eci">${icone("eci", 12)} ECI por trás</span>` : ""}
       ${nota != null ? `<span class="nota">${esc(typeof nota === "number" ? nota.toFixed(1) : nota)}</span>` : ""}
-      <span class="nome">${esc(c.name)}</span>
-      ${estado ? `<span class="estado">${esc(estado)}</span>` : ""}
+      <span class="nome">${estadoHtml(ico)}${esc(c.name)}</span>${estadoSr(estado)}
       ${extras ? `<span class="meta">${extras}</span>` : ""}
     </button>`;
   }

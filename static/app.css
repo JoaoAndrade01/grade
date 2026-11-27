@@ -903,9 +903,9 @@ body:has(.paleta:not([hidden])) .rodape { padding-bottom: 84px; }
 .checks .orientacao-carga { color: var(--muted); }   /* D-01: orientação, sem estilo de aprovação ou falha */
 .papel-historico .alerta { color: var(--text); font-weight: 600; border-left: 3px solid var(--alerta); padding-left: 8px; }   /* ≥ 4,5:1 nos dois temas */
 
-/* ---------- situação e origem em texto, também no toque ---------- */
-.card .estado { font-size: 11px; font-weight: 600; line-height: 1.25; color: var(--text); overflow-wrap: anywhere; }
-.vista-grade .card .estado { font-size: clamp(9px, .62vw, 11px); }
+/* ---------- ícone de estado no cartão (M2); situação e origem em texto no nome acessível e no toque ---------- */
+.card .estado { display: inline-block; min-width: 1.1em; margin-right: 3px; font-weight: 700; color: var(--text);
+  font-variant-emoji: text; font-family: system-ui, "Segoe UI Symbol", sans-serif; }
 .paleta .consulta { margin: 0 0 6px; padding: 8px 12px; border-radius: 12px; font-size: 13px; line-height: 1.35;
   background: var(--surface); color: var(--text); border: 1px solid var(--border); box-shadow: 0 10px 30px rgb(0 0 0 / .18); }
 .paleta .consulta .btn { margin-left: 4px; min-height: 32px; }
