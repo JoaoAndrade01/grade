@@ -857,13 +857,21 @@
   function estadoHtml(ico) {
     return ico ? `<span class="estado" aria-hidden="true">${ico}</span>` : "";
   }
-  const estadoSr = (texto) => (texto ? `<span class="sr">, ${esc(texto)}</span>` : "");
+  /**
+   * Nome visível e nome acessível do cartão. Com situação, o nome visível fica fora da árvore de acessibilidade e um
+   * único texto oculto diz "Nome, Situação · origem" (dois elementos separados geravam "Nome , Situação").
+   */
+  function nomeDoCartao(nome, ico, texto) {
+    if (!texto) return `<span class="nome">${estadoHtml(ico)}${esc(nome)}</span>`;
+    return `<span class="nome" aria-hidden="true">${estadoHtml(ico)}${esc(nome)}</span><span class="sr">${esc(nome)}, ${esc(texto)}</span>`;
+  }
 
   function card(o) {
     const temAviso = o.aviso && o.aviso.length;
     const attrs = [
       `class="card s-${esc(o.status)} cat-${esc(o.cat)}${temAviso ? " tem-aviso" : ""}${o.classe ? " " + o.classe : ""}"`,
       o.code ? `data-code="${esc(o.code)}"` : "",
+      o.periodo ? `data-periodo="${esc(o.periodo)}"` : "",
       o.idx != null ? `data-idx="${o.idx}"` : "",
       o.inerte ? "inert" : "",
       o.fill ? `style="--ok:${o.fill.ok}%;--prev:${o.fill.prev}%;--plan:${o.fill.plan}%"` : "",
@@ -873,7 +881,7 @@
     return `<button type="button" ${attrs}>
       ${nota != null ? `<span class="nota">${esc(nota)}</span>` : ""}
       ${temAviso ? `<span class="aviso" aria-label="aviso">!</span>` : ""}
-      <span class="nome">${estadoHtml(ICONE_ESTADO[o.status])}${esc(o.name)}</span>${estadoSr(ICONE_ESTADO[o.status] && ROTULO[o.status])}
+      ${nomeDoCartao(o.name, ICONE_ESTADO[o.status], ICONE_ESTADO[o.status] && ROTULO[o.status] ? ROTULO[o.status] + (o.origem ? " · " + o.origem : "") : "")}
       ${o.sub ? `<span class="sub">${o.sub}</span>` : ""}
       <span class="meta">${o.code ? seloGuia(o.code, true) + " " : ""}${esc(o.meta)}</span>
     </button>`;
@@ -911,7 +919,7 @@
       ${seletorECI && !exp ? "inert" : ""}${exp ? ` aria-describedby="dica-eci"` : ""}>
       ${exp ? `<span class="selo-eci">${icone("eci", 12)} ECI por trás</span>` : ""}
       ${nota != null ? `<span class="nota">${esc(typeof nota === "number" ? nota.toFixed(1) : nota)}</span>` : ""}
-      <span class="nome">${estadoHtml(ico)}${esc(c.name)}</span>${estadoSr(estado)}
+      ${nomeDoCartao(c.name, ico, estado)}
       ${extras ? `<span class="meta">${extras}</span>` : ""}
     </button>`;
   }
@@ -1125,7 +1133,7 @@
         const oferta = tipo === "planejado" && it.status !== "reprovado" ? avisoOferta(it.alvo, p.nome) : null;
         if (oferta) { temOferta = true; aviso.push(oferta.texto); subs.push(`<span class="aviso-oferta">${esc(oferta.curto)}</span>`); }
         return card({
-          code: it.alvo, name: it.name, cat: it.category, status: it.status, nota: it.nota,
+          code: it.alvo, name: it.name, cat: it.category, status: it.status, nota: it.nota, origem: "perfil", periodo: col.nome,
           meta: metaDe(it.code, it.category == 5 ? it.horas : it.credits, it.category), sub: subs.join("<br>"), aviso,
           ...(bloco != null ? { classe: "transferida", titulo: `transferida do curso anterior (bloco ${bloco})` } : {}),
         });
@@ -2089,12 +2097,17 @@
       const ds = M.deps[code] || [];
       const fonte = i.fonte === "grade" ? `${i.semester}º período recomendado` : i.fonte === "catalogo" ? (GRUPOS_OPT[i.category] || "optativa") : "fora do currículo";
       const futuros = periodosFuturos();
+      // Cartão da Linha do tempo: primeiro o semestre, a situação e a origem dessa ocorrência; depois, o resumo.
+      const regs = M.regs[code] || [];
+      const oc = alvo.periodo ? regs.find((r) => M.periodos[r.pi]?.nome === alvo.periodo) || regs.find((r) => r.aprovadaEm === alvo.periodo) : null;
+      const blocoOc = oc && M.periodos[oc.pi]?.nome !== alvo.periodo ? M.periodos[oc.pi]?.nome : null;
       html = `
         <header><span class="cat-pill cat-${i.category}">${CATS[i.category] ? CATS[i.category].nome : ""}</span>
           <button type="button" class="fechar" aria-label="Fechar">×</button></header>
         <h3>${esc(i.name)}</h3>
+        ${oc ? `<p class="det-ocorrencia s-${oc.status}"><b>${esc(alvo.periodo)}</b>: ${ROTULO[oc.status]} · perfil${oc.nota != null ? ` · nota ${esc(oc.nota)}` : ""}${blocoOc ? ` (transferida, ${esc(blocoOc)})` : ""}</p>` : ""}
         <p class="det-meta">${esc(metaDe(code, valorCat(i), i.category))}${i.workload ? ` · ${i.workload} h` : ""} · ${esc(fonte)}</p>
-        <p class="det-status s-${s}"><i class="dot s-${s}"></i>${ROTULO[s]}${aprovacaoManual(code) ? " por marcação manual (pincel), não é registro importado"
+        <p class="det-status s-${s}"><i class="dot s-${s}"></i>${oc ? "Na disciplina: " : ""}${ROTULO[s]}${aprovacaoManual(code) ? " por marcação manual (pincel), não é registro importado"
           : Object.prototype.hasOwnProperty.call(marcacoes, code) ? " (marcada com o pincel)" : ""}</p>
         ${(() => {
           const por = requisitosPorMarcacao(code);
@@ -2130,6 +2143,7 @@
           <button type="button" class="chip chip-btn" data-settag="${esc(code)}" data-tag=""${protegida(code) ? " disabled" : ""}>sem tag</button></div>
         ${Object.prototype.hasOwnProperty.call(marcacoes, code) && !protegida(code) ? `<button type="button" class="btn btn-ghost" data-reset="${esc(code)}">Voltar ao que o perfil diz</button>` : ""}`;
       box.dataset.alvo = "c:" + code;
+      box.dataset.periodo = oc ? alvo.periodo : "";
     } else if (alvo.idx != null) {
       const c = M.grade[+alvo.idx];
       const f = preenchimentoBlocos()[c.idx] || { nomes: [] };
@@ -2181,7 +2195,7 @@
     if (box.dataset.alvo === "privacidade") return abrePrivacidade();
     if (box.dataset.alvo === "referencias") return abreReferencias();
     const t = box.dataset.alvo.slice(0, 1), v = box.dataset.alvo.slice(2);
-    abreDetalhes(t === "c" ? { code: v } : { idx: v });
+    abreDetalhes(t === "c" ? { code: v, periodo: box.dataset.periodo || null } : { idx: v });
   }
 
   /** Cadeado ligado: aprovadas pelo perfil ou marcadas como Cursada (tag que conta como concluída) não mudam. */
@@ -2925,7 +2939,7 @@
       }
       destaca(el.dataset.code);
       if (el.dataset.code) defineFoco(el.dataset.code);
-      abrePainel(ev, () => abreDetalhes(el.dataset.code ? { code: el.dataset.code } : { idx: el.dataset.idx }));
+      abrePainel(ev, () => abreDetalhes(el.dataset.code ? { code: el.dataset.code, periodo: el.dataset.periodo || null } : { idx: el.dataset.idx }));
     });
 
     // Horários: mouse e toque (mousedown, com arrasto) e teclado (Espaço/Enter, que chegam como clique sem detalhe).

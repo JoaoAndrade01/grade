@@ -713,6 +713,52 @@ def t_versao_antiga(b):
     expect(pg.locator("#modo-classico")).to_be_checked()
     ctx.close()
 
+def cartao_na_coluna(pg, periodo, code):
+    return pg.locator(f'#painel .coluna:has(> header h2:text-is("{periodo}")) .card[data-code="{code}"]')
+
+@caso("Linha do tempo: cada ocorrência diz situação e origem no nome acessível; clique, toque e Enter abrem os detalhes dessa ocorrência")
+def t_timeline_ocorrencia(b):
+    # MAC118 reprovada em 2025/1 e com aprovação prevista em 2026/2 (perfil fictício).
+    esperado = {"2025/1": "Reprovada · perfil", "2026/2": "Aprovação prevista · perfil"}
+    def ocorrencia(pg):
+        det = pg.locator("#detalhes")
+        expect(det).to_be_visible()
+        primeiro = det.locator(".det-ocorrencia")
+        ordem = det.evaluate("""(d) => { const o = d.querySelector('.det-ocorrencia'), s = d.querySelector('.det-status');
+            return !!o && !!s && !!(o.compareDocumentPosition(s) & Node.DOCUMENT_POSITION_FOLLOWING); }""")
+        texto = primeiro.inner_text() if primeiro.count() else ""
+        pg.keyboard.press("Escape")
+        return texto, ordem
+    observado = {}
+    for nome, vp, toque in (("desktop", D, False), ("celular", C, True)):
+        ctx, pg = abre(b, vp=vp, perfil=PERFIL, extra={"modoClassico": False, "vista": "timeline"}, nome=f"timeline-ocorrencia-{nome}", toque=toque)
+        for periodo, texto in esperado.items():
+            card = cartao_na_coluna(pg, periodo, "MAC118")
+            nomeac = card.evaluate("(c) => c.querySelector('.sr') ? c.querySelector('.sr').textContent : ''")
+            observado[nome, periodo, "nome"] = nomeac
+            card.scroll_into_view_if_needed()
+            if toque: card.tap()
+            else: card.click()
+            observado[nome, periodo, "clique"] = ocorrencia(pg)
+            if not toque:
+                card.focus(); pg.keyboard.press("Enter")
+                observado[nome, periodo, "enter"] = ocorrencia(pg)
+        ctx.close()
+    for (nome, periodo, via), v in observado.items():
+        if via == "nome":
+            assert v == f"Cálculo I, {esperado[periodo]}", (nome, periodo, v)
+        else:
+            texto, ordem = v
+            assert texto.startswith(periodo) and esperado[periodo] in texto and ordem, (nome, periodo, via, v)
+
+@caso("Cartões: nome acessível sem espaço antes da vírgula, na Grade e na Linha do tempo")
+def t_nome_sem_espaco(b):
+    ctx, pg = abre(b, perfil=PERFIL, nome="nome-sem-espaco")
+    expect(pg.locator('#painel .card[data-code="COS110"]')).to_have_accessible_name(re.compile(r"Algoritmos e Programação, Aprovada · perfil"))
+    completo(pg, "timeline")
+    expect(cartao_na_coluna(pg, "2025/1", "COS110")).to_have_accessible_name(re.compile(r"Algoritmos e Programação, Aprovada · perfil"))
+    ctx.close()
+
 ACE_REPETIDA = {"code": "ACE901", "name": "Atividade fictícia repetida", "category": 5, "horas": 30}
 @caso("Linha do tempo: cada transferida vai ao próprio semestre original; transferida aprovada não recebe alerta na coluna de destino")
 def t_timeline_transferida_origem(b):
@@ -2298,7 +2344,7 @@ CASOS3 = [t_fecha_durante_leitura, t_previa_confirmacao, t_previa_download, t_fo
 CASOS = [
     t_descartar_salvo, t_tema, t_tema_abas, t_sem_perfil, t_seletor_modo, t_importar_sugere_planejador, t_criar_perfil, t_perfil_conflito,
     t_compat, t_siga, t_siga_sem_boa, t_excluir, t_periodo_janela, t_config_fechar, t_oferta, t_mac,
-    t_cr01_pre, t_cr01_co, t_cr01_sugestoes, t_cr01_proposta, t_cr01_equivalencia, t_cr05_transferida_requisito, t_timeline_detalhes_e_clique, t_timeline_transferidas, t_timeline_bloco_vazio, t_timeline_transferida_origem, t_eci_timeline, t_cr01_manual,
+    t_cr01_pre, t_cr01_co, t_cr01_sugestoes, t_cr01_proposta, t_cr01_equivalencia, t_cr05_transferida_requisito, t_timeline_detalhes_e_clique, t_timeline_transferidas, t_timeline_bloco_vazio, t_timeline_ocorrencia, t_nome_sem_espaco, t_timeline_transferida_origem, t_eci_timeline, t_cr01_manual,
     t_cr03_historico, t_cr03_lista,
     t_cr04_reingresso, t_cr04_ordem_dos_arquivos, t_cr04_escolha_sem_datas, t_pc05_datas_ausentes, t_cr04_troca_recalcula_planos, t_cr04_ace_duas_ocorrencias, t_cr04_controles, t_pc05_perfil_antigo_duvida, t_cr04_papel, t_cr04_fronteira,
     t_cr02_pedidos, t_cr02_duas_dispensas, t_cr02_dispensa_unica, t_cr02_alvo_fora_do_catalogo,
