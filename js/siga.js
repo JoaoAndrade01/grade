@@ -338,7 +338,8 @@
     // 1) Junta registros de todos os históricos. Um mesmo (código, situação, grau) que aparece num
     //    bloco de "créditos transferidos" (período só com ano, ou AAAA/0) e também num semestre real
     //    fica só no semestre real, com uma exceção (D-03): o bloco do histórico do curso atual vale
-    //    para o prazo de 5 anos e o semestre real do outro histórico vira só informação (`aprovadaEm`).
+    //    para o prazo de 5 anos e o semestre real do outro histórico vira `aprovadaEm`, que não conta para o
+    //    prazo, mas rege pré e co-requisitos e a posição na Linha do tempo no app (D-08).
     const papel = papelHistoricos(a.historicos || [], a.atualIdx);
     const todos = [];
     (a.historicos || []).forEach((h, i) => (h.registros || []).forEach((r) => todos.push(Object.assign({}, r, { _h: i }))));

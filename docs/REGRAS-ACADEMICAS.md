@@ -66,7 +66,7 @@ coordenação.
 | RA-18 | Prazo máximo de integralização | [SIGA]; [CEG-10] arts. 2 e 3; [CEG] art. 53, § 2º | Não aplicado | Não modelada |
 | RA-19 | Período atual deduzido na importação | Nenhuma | O período seguinte ao último do histórico, com as disciplinas "cursando" do BOA, aparece na prévia com nota de estimativa. Um BOA só com ACE não cria período atual | Heurística local, estimativa |
 | RA-20 | Horários de referência e aviso de oferta por semestre par ou ímpar | [NOTION], não oficial | Aviso só para ECI e obrigatórias fora do ciclo básico. Sem promessa de vaga | Heurística local, estimativa |
-| RA-21 | Reingresso: para o prazo de 5 anos vale o ano do bloco do histórico do curso atual | Decisão local ([DECISOES.md](DECISOES.md)); [CASO]. A relação com o [CEG] art. 47 **está pendente de interpretação** pela coordenação | O ano do bloco de transferidos do histórico atual rege o prazo; a data original aparece só como informação. Em dúvida sobre qual é o histórico atual, a Grade pergunta | Regra local, interpretação normativa pendente |
+| RA-21 | Reingresso: para o prazo de 5 anos vale o ano do bloco do histórico do curso atual | Decisão local ([DECISOES.md](DECISOES.md)); [CASO]. A relação com o [CEG] art. 47 **está pendente de interpretação** pela coordenação | O ano do bloco de transferidos do histórico atual rege o prazo; a data original (`aprovadaEm`) não conta para o prazo, mas rege pré e co-requisitos e a posição na Linha do tempo (D-08). Em dúvida sobre qual é o histórico atual, a Grade pergunta | Regra local, interpretação normativa pendente |
 
 **Políticas locais fora da tabela**
 

@@ -14,7 +14,8 @@ continua mostrando a versão anterior.
 - **Transferidas cumprem requisito** (D-08). A disciplina do bloco "AAAA (transferidas)" vale pelo semestre original,
   quando o histórico do curso anterior o informa. Sem ele, conta só a partir do ano seguinte ao do bloco. Antes, ela
   nunca cumpria pré ou co-requisito (por exemplo, "Requisito MAC128 não cumprido" em Cálculo III de quem reingressou).
-  O prazo de 5 anos continua pelo ano do bloco (D-03).
+  O prazo de 5 anos continua pelo ano do bloco (D-03). A data original da aprovação deixa de ser só informação, como
+  era na v2.0.0: passa a reger pré e co-requisitos e a posição na Linha do tempo.
 - **Linha do tempo.** A transferida aparece no semestre original, com a etiqueta "transferida · bloco AAAA" e listras
   discretas; sem ele, fica no bloco. "detalhes" volta a recolher. O clique num cartão abre os detalhes da disciplina,
   mesmo com uma tag escolhida no pincel da Grade (antes, pintava e podia mandar a cursada para "A alocar").
