@@ -195,15 +195,15 @@ def t_criar_perfil(b):
     expect(pg.locator("#btn-perfil")).to_have_text("Editar perfil")
     assert "com-tag" in pg.locator('.card[data-code="COS110"]').get_attribute("class")
     # semestre inválido: mensagem, aria-invalid e diálogo continua aberto
-    pg.click("#btn-perfil"); pg.fill("#perfil-nome", "João"); pg.fill("#perfil-semestre", "2026/3"); pg.press("#perfil-semestre", "Enter")
+    pg.click("#btn-perfil"); pg.fill("#perfil-nome", "Beatriz"); pg.fill("#perfil-semestre", "2026/3"); pg.press("#perfil-semestre", "Enter")
     expect(dlg).to_be_visible(); expect(pg.locator("#perfil-semestre")).to_have_attribute("aria-invalid", "true")
     assert "AAAA/1" in pg.locator("#perfil-semestre-msg").inner_text()
     foto(pg, "13-dialogo-perfil-semestre-invalido")
     pg.fill("#perfil-semestre", "2026/2"); pg.press("#perfil-nome", "Enter")   # Enter salva (não cancela)
     expect(dlg).to_be_hidden()
-    assert pg.locator("#titulo").inner_text().strip() == "Grade ECI — João", pg.locator("#titulo").inner_text()
+    assert pg.locator("#titulo").inner_text().strip() == "Grade ECI — Beatriz", pg.locator("#titulo").inner_text()
     assert pg.title() == "Grade ECI"
-    p = ls(pg, "perfilImportado"); assert p["nome"] == "João" and p["periodos"][0] == {"nome": "2026/2", "atual": True, "disciplinas": []}, p
+    p = ls(pg, "perfilImportado"); assert p["nome"] == "Beatriz" and p["periodos"][0] == {"nome": "2026/2", "atual": True, "disciplinas": []}, p
     foto(pg, "14-perfil-criado-com-nome-classico")
     ctx.close()
 
@@ -1837,7 +1837,7 @@ def t_descartar_salvo(b):
     assert ls(pg, "perfilImportado") is None
     ctx.close()
 
-# ================================================================== rodada 2
+# ================================================================== cenários do segundo kit de revisão
 PLANO = json.loads((FX / "perfil-com-plano-2026-2.json").read_text(encoding="utf-8"))
 def snapshot(pg): return pg.evaluate("K => Object.fromEntries(Object.keys(localStorage).filter((k) => k.startsWith(K)).sort().map((k) => [k, localStorage.getItem(k)]))", CHAVE)
 
@@ -2140,7 +2140,7 @@ def t_cadeado(b):
 
 CASOS2 = [t_plano_preservado, t_aviso_pdf, t_destaque, t_destaque_migracao, t_tags, t_tags_nao_conta, t_barra_quatro_trechos, t_tags_barra_teclado, t_cadeado]
 
-# ================================================================== rodada 3
+# ================================================================== cenários do terceiro kit de revisão
 PLANOS2 = {"titulo": "Grade ECI", "nome": "Caio", "curso": 1, "periodos": [
     {"nome": "2025/1", "disciplinas": ["COS110", "COS111"]},
     {"nome": "2025/2", "planejado": True, "disciplinas": [{"code": "EEL670", "horarios": ["seg 10-12"]}]},
@@ -2521,7 +2521,7 @@ def descreve_foco(pg): return pg.evaluate("document.activeElement ? document.act
 
 @caso("B1: ícone de estado no cartão (✓ ◐ ○ … ✎), situação e origem no nome acessível; no toque a primeira ativação só consulta")
 def t_b1_estado_dos_cartoes(b):
-    # M2 e WCAG 1.4.1: o cartão mostra um ícone de estado, não o texto; situação e origem ficam no nome acessível.
+    # PC-08 e WCAG 1.4.1: o cartão mostra um ícone de estado, não o texto; situação e origem ficam no nome acessível.
     esperado = {"COS110": ("✓", "Aprovada · perfil"), "MAC118": ("…", "Aprovação prevista · perfil"),
                 "MAC128": ("◐", "Cursando · perfil"), "COS360": ("○", "Planejada · perfil"), "MAC238": ("✎", "Cursada · marcação")}
     visivel = """(el) => { const c = el.cloneNode(true); c.querySelectorAll('.sr').forEach((x) => x.remove()); return c.textContent; }"""
