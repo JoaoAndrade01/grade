@@ -366,11 +366,18 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
       semestre conhecido vence o limite. Sem data em alguma origem, a pedida fica sem data.
     - *requisito:* a pedida cumpre num semestre quando todas as origens cumprem, cada uma pelo próprio critério.
     - *prazo de cinco anos:* outra data, a de D-03: a transferida conta pelo ano do bloco, nunca por `aprovadaEm`; a
-      declarada sem semestre fica sem data; a pedida usa a origem mais tardia.
+      declarada sem semestre fica sem data; a pedida usa a origem mais tardia. O texto diz de onde vem a data: registro
+      do SIGA, bloco de transferidos ou semestre informado por você (no empate, o registro do SIGA).
     - *previsão e selos:* a pedida prevista entra no plano na data efetiva só quando as origens que faltam estão previstas
       ou em curso no período atual ou num futuro; num período passado não cobre nada. A fonte decide o selo e a fase.
     - *período exibido:* o da origem que dá a data. No empate, período real do Histórico ou do plano, depois o bloco de
-      transferidas, a pedida e a declarada; persistindo, a origem de menor código.
+      transferidas, a pedida (também a de outra equivalência, mesmo que ela venha de um período real) e a declarada;
+      persistindo, a origem de menor código.
+    - *pedidos encadeados:* um pedido que usa a pedida de outro é resolvido depois dele, seja qual for a ordem da lista;
+      entre pedidos independentes, a ordem é fixa (pela pedida e pelas cursadas). Pedidos em ciclo (A usa a pedida de B e
+      B a de A) ficam em conflito, sinalizados, e não registram nada; os demais seguem.
+    - *consumo:* a cursada ou a pedida usada por um pedido deferido é consumida: não soma créditos no próprio grupo nem
+      entra de novo no plano. Só a pedida final conta.
   - **Semestre ausente:** requisito pelo limite de `registradoEm` (pré-requisito depois dele; co-requisito também nele),
     com aviso no próprio semestre; o prazo de cinco anos fica "Data de aprovação não confirmada", sem idade e sem data
     inventada. D-03 e D-08 não são reabertas.

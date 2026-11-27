@@ -75,7 +75,9 @@ bloco de transferidas, equivalência com origem declarada); pedida de equivalên
 transferida com e sem `aprovadaEm`, declarada com e sem semestre, prevista e em curso, nas duas ordens, com pré e
 co-requisito em oito semestres; prazo × requisito por tipo de origem, direto e em pedida de pedida; prevista e em curso em
 período passado, atual e futuro; pedido deferido, a pedir e em análise com origem aprovada, ausente e reprovada; desempate
-do período exibido em todas as permutações de duas e três origens).
+do período exibido em todas as permutações de duas e três origens); invariância: o mesmo resultado (status, fontes,
+datas, prazo, período, cobertura, previsão e selos) em 24 embaralhamentos de pedidos, origens, itens de período e
+declaradas, com pedidos encadeados, ciclo, plano no passado e registros repetidos da mesma origem).
 
 **Lacunas conhecidas** (também marcadas na matriz): os casos 11a–11d (resultado dos filtros e do guia nas
 optativas) e o 06n (atividade em curso desconhecida) **não têm teste automatizado**; os casos 12c a 12e e 14e a 14g
@@ -198,7 +200,7 @@ parte dele) ou *sem teste* (conferir na integração).
 | H1, H9 | RF-14 | 14r, 14s | `t_controles_icones`, `t_todas_acesas` | `rotulo`, `glifo`, `renderOptativas` | direta |
 | H1, H4 | RF-14 | 14t | `t_plano_na_grade` | `cardLimpo` | direta |
 | H1 | RF-14 | 14u | `t_aparencia_migracao`, `t_destaque_migracao`, `t_sync` | `migraAparencia` (`js/tema.js`), migração de `exibir` | direta |
-| H4 | [RF-19](REQUISITOS.md#rf-19--previsão-de-formatura-calculada-h4) | 19a–19g | `t_motivacao`, `t_previsao_cobertura`, `t_previsao_equivalencia_prevista`, `t_equivalencia_vizinhos`; `node testes/progresso.js` (previsão e cobertura) | `previsaoFormatura`, `coberturaDoPlano` (`js/conquistas.js`), `coberturaDoPlano` de `js/app.js` | direta |
+| H4 | [RF-19](REQUISITOS.md#rf-19--previsão-de-formatura-calculada-h4) | 19a–19i | `t_motivacao`, `t_previsao_cobertura`, `t_previsao_equivalencia_prevista`, `t_equivalencia_vizinhos`, `t_equivalencia_encadeada`; `node testes/progresso.js` (previsão, cobertura e invariância) | `previsaoFormatura`, `coberturaDoPlano` (`js/conquistas.js`), `itensDoPlano` (`js/progresso.js`), `coberturaDoPlano` de `js/app.js` | direta |
 | H3, H4 | [RF-20](REQUISITOS.md#rf-20--modo-foco-fase-do-curso-e-conquistas-h3-h4) | 20a–20e | `t_foco`, `t_foco_ajustes` | `alternaFoco`, `renderBotaoFoco`, `desenha`, `renderGrade`, `renderTimeline` | direta |
 | H3 | RF-20 | 20f–20h | `t_motivacao`, `t_foco_ajustes`; `node testes/progresso.js` (fronteiras, P5, R27) | `fase`, `faseDoCurso`, `percentual` (`js/conquistas.js`), `htmlCartaoFase` | direta |
 | H3 | RF-20 | 20i–20l | `t_conquistas_estante`, `t_foco_ajustes`, `t_ace_origem`, `t_previsao_cobertura`; `node testes/progresso.js` (um caso por selo) | `avaliaSelos`, `proximoMarco` (`js/conquistas.js`), `htmlEstante`, `idDoPerfil` | direta |
