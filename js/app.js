@@ -3571,14 +3571,22 @@
     // O menu do sistema (toque longo) fica bloqueado só durante a pressão.
     document.addEventListener("contextmenu", (ev) => { if (pressao && pressao.el.contains(ev.target)) ev.preventDefault(); });
     // Teclado: Espaço curto continua ativando (o clique nativo sai no keyup); Espaço segurado mostra a trilha.
-    document.addEventListener("keydown", (ev) => { if (!ev.repeat) { semCliqueAte = 0; if (consumir === "teclado") consumir = null; } }, true);
+    // Só um gesto novo de teclado limpa a marca: Espaço ou Enter sem repetição, depois de soltar o Espaço anterior.
+    // Outras teclas (Shift, Ctrl, Alt, Tab, setas, Esc) durante o Espaço segurado não liberam a ativação.
+    let espacoPressionado = false;
+    document.addEventListener("keydown", (ev) => {
+      if (ev.repeat || (ev.key !== " " && ev.key !== "Enter") || espacoPressionado) return;
+      semCliqueAte = 0; if (consumir === "teclado") consumir = null;
+      if (ev.key === " ") espacoPressionado = true;
+    }, true);
+    window.addEventListener("blur", () => { espacoPressionado = false; });
     painel.addEventListener("keydown", (ev) => {
       if (ev.key !== " " || !segurarAtivo()) return;
       const el = ev.target.closest && ev.target.closest(".card[data-code]"); if (!el) return;
       if (ev.repeat) return;
       iniciaPressao(el, 0, 0, "teclado");
     });
-    document.addEventListener("keyup", (ev) => { if (ev.key === " ") soltou("teclado"); });
+    document.addEventListener("keyup", (ev) => { if (ev.key === " ") { espacoPressionado = false; soltou("teclado"); } });
     painel.addEventListener("focusout", (ev) => { if (pressao && pressao.id === "teclado" && ev.target === pressao.el) encerraPressao(); });
     // O clique que termina uma pressão longa é consumido (fase de captura): não pinta, não consulta, não abre Detalhes.
     document.addEventListener("click", (ev) => {

@@ -4443,6 +4443,34 @@ def t_trilha_soltar_tarde(b):
         ctx.close()
 
 @v210
+@caso("Trilha Ao segurar pelo teclado: outras teclas durante o Espaço segurado (Shift, Ctrl, Alt, Tab, setas, Esc, repetição), com e sem a trilha apagar, não liberam a ativação; soltar fora do cartão não ativa; o Espaço curto seguinte ativa")
+def t_trilha_teclado_modificadores(b):
+    ctx, pg = abre(b, vp={"width": 1000, "height": 600}, nome="trilha-teclado", modo="classico")
+    card = pg.locator('#painel .card[data-code="MAC248"]')
+    def segura(tecla, apaga):
+        pg.evaluate("window.scrollTo(0, 0)"); card.focus(); pg.wait_for_timeout(100)
+        pg.keyboard.down(" "); pg.wait_for_timeout(650)
+        assert destaque(pg)["self"] == ["MAC248"], (tecla, apaga)
+        if apaga == "rolagem":
+            y = pg.evaluate("scrollY"); pg.evaluate("window.scrollBy(0, 50)"); pg.wait_for_timeout(100)
+            assert pg.evaluate("scrollY") - y >= 40, "a página não rolou"
+        if apaga == "foco": pg.evaluate("document.activeElement.blur()"); pg.wait_for_timeout(100)
+        if apaga: assert not destaque(pg)["ativo"], (tecla, apaga)          # a trilha apagou antes da outra tecla
+        if tecla == "repeat": pg.keyboard.down(" ")            # a mesma tecla de novo, com repeat
+        elif tecla: pg.keyboard.press(tecla)
+        pg.keyboard.up(" "); pg.wait_for_timeout(150)
+        if pg.locator("#dlg-config[open]").count(): pg.keyboard.press("Escape")
+    for apaga in (None, "rolagem", "foco"):
+        for tecla in ("Shift", "Control", "Alt", "Tab", "ArrowRight", "ArrowDown", "Escape", "repeat", None):
+            segura(tecla, apaga)
+            assert (ls(pg, "marcacoes") or {}) == {}, (tecla, apaga, ls(pg, "marcacoes"))
+            expect(pg.locator("#detalhes")).to_be_hidden()
+    # o Espaço curto seguinte continua ativando (pinta com a tag padrão)
+    pg.evaluate("window.scrollTo(0, 0)"); card.focus(); pg.keyboard.press(" ")
+    assert ls(pg, "marcacoes") == {"MAC248": "aprovada"}, ls(pg, "marcacoes")
+    ctx.close()
+
+@v210
 @caso("Trilha Ao segurar com o mouse: uma rolagem pequena da página (menor que a tolerância) não cancela; rolar de verdade cancela")
 def t_trilha_rolagem_pequena(b):
     ctx, pg = abre(b, vp={"width": 1440, "height": 700}, perfil=PERFIL, extra={"vista": "grade"}, nome="trilha-rolagem")
