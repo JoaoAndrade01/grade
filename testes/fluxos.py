@@ -3937,6 +3937,12 @@ def t_legenda_dificuldade(b):
     assert foco_em(pg, '[data-nivel="4"]'), descreve_foco(pg)
     assert pg.locator("#painel .card.apagado").count() > 0                                               # as outras disciplinas esmaecem
     pg.reload(); pronto(pg, "dificuldade-texto"); expect(pg.locator('#ferramentas [data-nivel="4"]')).to_have_attribute("aria-pressed", "true")
+    # Exibir → Dificuldade desligado: a fileira some (fora do Tab e da árvore), o filtro salvo fica e nada esmaece
+    pg.click('#ferramentas [data-exibir="dificuldade"]')
+    assert pg.locator("#ferramentas [data-nivel], #ferramentas .filtro-nivel").count() == 0
+    assert "Morte instantânea" not in pg.locator("#ferramentas").aria_snapshot()
+    assert ls(pg, "filtroNivel") == [4] and pg.locator("#painel .card.apagado").count() == 0
+    pg.click('#ferramentas [data-exibir="dificuldade"]'); expect(pg.locator('#ferramentas [data-nivel="4"]')).to_have_attribute("aria-pressed", "true")
     pg.locator('#ferramentas [data-nivel="4"]').focus(); pg.keyboard.press("Space")
     expect(pg.locator('#ferramentas [data-nivel="4"]')).to_have_attribute("aria-pressed", "false"); assert ls(pg, "filtroNivel") == []
     ctx.close()

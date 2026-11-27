@@ -825,7 +825,8 @@
     const tag = tagDe(c.code), s = statusDe(c.code);
     const g = guiaDe(c.code);
     const ver = modoClassico ? {} : exibir;
-    const apagado = !modoClassico && filtroNivel.length && !(g && filtroNivel.includes(g.nivel));
+    // O filtro por dificuldade só vale com Exibir → Dificuldade ligado (a fileira fica visível); a escolha salva não muda.
+    const apagado = !modoClassico && exibir.dificuldade && filtroNivel.length && !(g && filtroNivel.includes(g.nivel));
     const nota = ver.notas ? notaDe(c.code) : null;
     const extras = [
       ver.codigo ? esc(metaDe(c.code, c.credits, c.category)) : "",
@@ -953,7 +954,7 @@
           `<label class="modo-op ctl" title="Trilha: ${n}"><input type="radio" name="trilha" value="${v}"${exibir.destaque === v ? " checked" : ""}>${icone(ic)}<span class="rot">${n}</span></label>`).join("")}</div>
         ${exibir.destaque !== "desligado" ? LEGENDA_DESTAQUE : ""}
       </div>
-      ${niveis.length ? `<div class="ferr-grupo filtro-nivel" role="group" aria-label="Dificuldade"><span class="ferr-rot" aria-hidden="true">Dificuldade</span>
+      ${niveis.length && exibir.dificuldade ? `<div class="ferr-grupo filtro-nivel" role="group" aria-label="Dificuldade"><span class="ferr-rot" aria-hidden="true">Dificuldade</span>
         ${niveis.map((k) => {   // o filtro por nível é também a legenda: bolinha e nome (Só ícones: só a bolinha; nome no title)
           const n = M.guia.niveis[k];
           return `<button type="button" class="ctl aceso nivel" data-nivel="${k}" aria-pressed="${filtroNivel.includes(+k)}" title="${esc(n.nome)}"><span class="nivel-emoji" aria-hidden="true">${n.emoji}</span><span class="rot">${esc(n.nome)}</span></button>`;
