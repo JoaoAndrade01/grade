@@ -213,6 +213,24 @@ caso("semestreDoHistorico: só o período do Histórico vale para as regras de m
   assert.equal(P.semestreDoRegistro(m.regs.MAC128[0], m.periodos), sem("2025/1"));
 });
 
+caso("B3: equivalência com duas origens declaradas usa a origem que determina a data; sem semestre, preserva registradoEm e A7", () => {
+  const eq = (s1, s2, reg2 = "2026-11-27") => P.montaRegistros({ grade: [], catalogo: [], periodos: [],
+    declaradas: [{ code: "XYZ101", registradoEm: "2026-11-27", ...(s1 ? { semestre: s1 } : {}) }, { code: "XYZ102", registradoEm: reg2, ...(s2 ? { semestre: s2 } : {}) }],
+    pedidos: [{ status: "deferido", pedida: "XYZ201", cursadas: ["XYZ101", "XYZ102"] }] });
+  const a = eq("2024/1", "2026/1");
+  assert.equal(P.semestreDoRegistro(a.regs.XYZ201[0], a.periodos), sem("2026/1"));       // a mais recente determina a data
+  assert.ok(!P.registroCumpre(a.regs.XYZ201, a.periodos, sem("2025/1")));                  // não libera antes da segunda origem
+  assert.ok(P.registroCumpre(a.regs.XYZ201, a.periodos, sem("2026/2")));
+  assert.equal(P.fonteDaAprovacao(a.regs.XYZ201), "declarado");
+  const b = eq(null, null);                                                               // ambas sem semestre, registradas em 2026/2
+  assert.equal(b.regs.XYZ201[0].registradoEm, "2026-11-27");
+  assert.ok(!P.registroCumpre(b.regs.XYZ201, b.periodos, sem("2026/2")));                  // pré-requisito só depois do registro
+  assert.ok(P.registroCumpre(b.regs.XYZ201, b.periodos, sem("2026/2"), true));             // A7: co-requisito no mesmo
+  assert.ok(P.registroCumpre(b.regs.XYZ201, b.periodos, sem("2027/1")));
+  const c = eq("2024/1", null, "2025-03-10");                                             // uma com semestre, outra só com o limite 2025/1
+  assert.ok(!P.registroCumpre(c.regs.XYZ201, c.periodos, sem("2025/1")) && P.registroCumpre(c.regs.XYZ201, c.periodos, sem("2025/2")));
+});
+
 // ---------- Fase, conquistas e previsão (js/conquistas.js)
 const C = require(path.join(RAIZ, "js", "conquistas.js"));
 const GUIA = {}; vm.runInNewContext(fs.readFileSync(path.join(RAIZ, "js", "guia.js"), "utf8"), { window: GUIA });

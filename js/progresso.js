@@ -276,14 +276,23 @@
           return origens.find((r) => r.status === "aprovado")
             || origens.find((r) => r.status === "previsto" || emCurso(r.status));
         });
-        const pi = registros.every((r) => r && (semestreDe(r) != null || r.origem === "declarado"))
-          ? registros.slice().sort(maisRecentePrimeiro)[0].pi : null;
         const status = registros.every((r) => r?.status === "aprovado") ? "aprovado" : "previsto";
         // A1: com uma origem declarada, a pedida também é declarada (nunca importada).
         const declarada = registros.some((r) => r?.origem === "declarado");
-        const sd = declarada && pi != null && periodos[pi]?.declarado ? registros.find((r) => r?.pi === pi)?.semestreDeclarado : undefined;
+        // A data é a da origem que a determina (a mais recente), pelo próprio registro: as declaradas dividem o mesmo
+        // período virtual. Uma declarada sem semestre leva o limite de registradoEm (e A7) para a pedida.
+        const semData = registros.filter((r) => r && r.origem === "declarado" && semestreDe(r) == null);
+        let pi = null, data = {};
+        if (semData.length) {
+          pi = semData[0].pi;
+          data = { semestreDeclarado: null, registradoEm: semData.map((r) => r.registradoEm).filter(Boolean).sort().pop() || null };
+        } else if (registros.every((r) => r && semestreDe(r) != null)) {
+          const det = registros.slice().sort(maisRecentePrimeiro)[0];
+          pi = det.pi;
+          if (det.origem === "declarado") data = { semestreDeclarado: det.semestreDeclarado, registradoEm: det.registradoEm || null };
+        }
         registra(e.pedida, { pi, status, nota: "E", via: `equivalência deferida: ${cs.map((c) => c.code).join(" + ")}`,
-          ...(declarada ? { origem: "declarado", semestreDeclarado: sd ?? null } : {}) });
+          ...(declarada ? { origem: "declarado", semestreDeclarado: null, ...data } : {}) });
         cs.forEach((c) => consumidas.add(c.code));
       } else if (pendente(e)) {
         if (cs.some((c) => dispensou[c.code] || usosDeferidos.has(c.code) || usosPendentes.get(c.code) > 1)) {
