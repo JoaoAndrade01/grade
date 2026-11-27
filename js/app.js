@@ -1924,7 +1924,7 @@
         .map(([v, t]) => `<li>${v ? "☑" : "☐"} ${t}<span class="sr">${v ? ": feito" : ": a fazer"}</span></li>`).join("")}</ul>`);
     } else if (fase.fase === "meio") {
       const cursando = cursandoAgora(), ganho = ganhoDoPeriodo(m);
-      if (ganho > 0) partes.push(`<h4>${z ? "Bora, academia 💪" : "Andamento do período"}</h4><p>Passando em tudo, você avança +${pctTela(ganho)}: ${pctTela(fase.pct)} → ${pctTela(Math.min(1, fase.pct + ganho))} no fim do período (estimativa).</p>`);
+      if (ganho > 0) partes.push(`<h4>Andamento do período</h4><p>Passando em tudo, você avança +${pctTela(ganho)}: ${pctTela(fase.pct)} → ${pctTela(Math.min(1, fase.pct + ganho))} no fim do período (estimativa).</p>`);
       const d = maisDestrava(cursando);
       if (d && d[1].length) partes.push(`<h4>O que você destrava</h4><p>Passando em <b>${esc(M.info(d[0]).name)}</b>:</p><p class="chips">${htmlLibera(d[1])}</p>`);
       const alvo = fase.pct < 0.5 ? 0.5 : 0.75;

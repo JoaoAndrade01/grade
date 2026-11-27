@@ -4557,6 +4557,9 @@ def t_aba_conquistas(b):
     obt = pg.locator("#painel .selo.s-obtido .selo-barra i").first
     if obt.count(): assert obt.evaluate("e => e.style.width") == "100%"
     expect(pg.locator("#painel .cq-cabeca")).to_have_text("Bora, Ana 💪")                       # o perfil fictício chama Ana
+    # avanço do período: o mesmo título nos dois tons (sem "Bora, academia"); o "Bora, Ana" fica só no cabeçalho
+    expect(pg.locator("#painel .cartao-fase h4", has_text="Andamento do período")).to_have_count(1)
+    expect(pg.locator("#painel .cartao-fase")).not_to_contain_text("Bora")
     for esq in ("light", "dark"):
         pg.emulate_media(color_scheme=esq); foto(pg, f"aba-conquistas-1440-{esq}", full=True)
         graves = axe_graves(pg, contexto="#painel"); assert not graves, (esq, graves[:3])
