@@ -511,9 +511,8 @@ small.alerta, .alerta { color: var(--dep); }
 .modo-op:has(input:checked) { background: var(--text); color: var(--bg); font-weight: 600; }
 /* :focus, e não :focus-visible: no WebKit o rádio focado pelas setas não casa :focus-visible e o contorno sumia */
 .modo-op:has(input:focus) { outline: 2px solid var(--foco); outline-offset: 2px; }
-.seletor-modo.so-icones .rot { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-.seletor-modo.so-icones .modo-op { padding: 0 10px; min-width: 40px; }
-:root .seletor-modo.so-icones .ico { display: inline-block; }   /* só ícones vale mesmo com "Somente texto" na aparência */
+/* Só ícones e Minimalista: o seletor fica com os quadradinhos (o nome continua no .rot, escondido só visualmente) */
+:root:is([data-aparencia="icone"], [data-aparencia="minimalista"]) .seletor-modo .modo-op { padding: 0 10px; min-width: 40px; }
 
 /* modo clássico: só a grade, o resto some */
 /* O Clássico segue a Grade: a barra mantém a linha de percentuais e o botão de Detalhes. */
@@ -677,11 +676,11 @@ dialog.dlg:modal { overscroll-behavior: contain; }
    ===================================================================== */
 .abas button { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
 .abas button .ico { opacity: .85; }
-/* Aparência das abas e da barra (Configurações → Aparência). O nome acessível vem sempre do .rot. */
-:root[data-aparencia="texto"] :is(.abas, .acoes) .ico { display: none; }
-:root[data-aparencia="icone"] :is(.abas, .acoes) .rot {
+/* Aparência (Configurações → Aparência): Ícone + texto (padrão), Só ícones e Minimalista. O nome acessível vem
+   sempre do .rot, escondido só visualmente; o title mostra o nome ao passar o mouse. */
+:root:is([data-aparencia="icone"], [data-aparencia="minimalista"]) :is(.abas, .acoes) .rot {
   position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-:root[data-aparencia="icone"] .abas button { padding-inline: 12px; }
+:root:is([data-aparencia="icone"], [data-aparencia="minimalista"]) .abas button { padding-inline: 12px; }
 
 /* Configurações */
 .opcoes { border: 1px solid var(--border); border-radius: 10px; margin: 14px 0 0; padding: 8px 12px 10px; }

@@ -6,8 +6,15 @@
  *   Com escolha salva   "claro" ou "escuro" em localStorage (gradeECI.v2.tema): vale para a página e para os
  *                       controles nativos (color-scheme), mesmo que o sistema mude depois.
  *
- * Aparência das abas e da barra ("Ícone e texto", "Somente texto" ou "Somente ícone", em Configurações): gradeECI.v2.aparencia, aplicada aqui
- * também, como data-aparencia no <html>, para não piscar.
+ * Aparência (Configurações): "icone-texto" (padrão, sem chave), "icone" (Só ícones) ou "minimalista", em
+ * gradeECI.v2.aparencia. Vale para a barra do topo, o seletor de modo, as abas e os controles com ícone. É lida,
+ * migrada e aplicada aqui (data-aparencia no <html>), antes da primeira pintura, para não piscar.
+ *
+ * Migração das chaves antigas (uma vez, ao carregar):
+ *   seletorIcones true          → "icone"; false → "icone-texto"
+ *   aparencia "icone"           → continua "icone" (mesmo com seletorIcones false)
+ *   aparencia "texto"           → "icone-texto" (o nível "Somente texto" deixou de existir; o texto continua visível)
+ * A chave seletorIcones só é removida depois que a nova preferência foi gravada.
  *
  * O botão sol/lua do cabeçalho chama window.TEMA.alterna(); Configurações usa define() e defineAparencia().
  */
@@ -19,6 +26,8 @@
   var ouvintes = [];
   var naMemoria = null; // escolha desta visita quando o navegador não deixa salvar
   var CHAVE_AP = "gradeECI.v2.aparencia";
+  var CHAVE_SELETOR = "gradeECI.v2.seletorIcones";   // chave antiga: "Mostrar só ícones no seletor"
+  var NIVEIS = ["icone-texto", "icone", "minimalista"];
   var aparenciaMemoria = null;
 
   function salvo() {
@@ -54,18 +63,42 @@
     aplica();
   }
 
+  function lerJSON(k) {
+    try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; }
+  }
   function aparencia() {
-    try { var v = JSON.parse(localStorage.getItem(CHAVE_AP)); if (v === "texto" || v === "icone") return v; } catch (e) { /* padrão */ }
+    var v = lerJSON(CHAVE_AP);
+    if (v === "icone" || v === "minimalista") return v;
     return aparenciaMemoria || "icone-texto";
   }
   function aplicaAparencia() { raiz.setAttribute("data-aparencia", aparencia()); }
-  function defineAparencia(v) {
-    aparenciaMemoria = v === "texto" || v === "icone" ? v : "icone-texto";
-    try { if (aparenciaMemoria !== "icone-texto") localStorage.setItem(CHAVE_AP, JSON.stringify(aparenciaMemoria)); else localStorage.removeItem(CHAVE_AP); } catch (e) { /* só nesta visita */ }
-    aplicaAparencia();
+  /** Grava o nível ("icone-texto" é o padrão: sem chave). Devolve false se o navegador não deixou salvar. */
+  function gravaAparencia(v) {
+    aparenciaMemoria = NIVEIS.indexOf(v) >= 0 ? v : "icone-texto";
+    try {
+      if (aparenciaMemoria !== "icone-texto") localStorage.setItem(CHAVE_AP, JSON.stringify(aparenciaMemoria));
+      else localStorage.removeItem(CHAVE_AP);
+      return true;
+    } catch (e) { return false; /* só nesta visita */ }
+  }
+  function defineAparencia(v) { gravaAparencia(v); aplicaAparencia(); }
+  /** Converte as preferências antigas (seletor só com ícones e "Somente texto") no nível novo. */
+  function migraAparencia() {
+    var ap = lerJSON(CHAVE_AP), seletor = lerJSON(CHAVE_SELETOR);
+    var temSeletor = false;
+    try { temSeletor = localStorage.getItem(CHAVE_SELETOR) !== null; } catch (e) { return; }
+    if (ap === "icone" || ap === "minimalista") {
+      if (temSeletor) try { localStorage.removeItem(CHAVE_SELETOR); } catch (e) { /* fica para a próxima visita */ }
+      return;
+    }
+    if (!temSeletor && ap == null) return;
+    if (gravaAparencia(seletor === true ? "icone" : "icone-texto") && temSeletor) {
+      try { localStorage.removeItem(CHAVE_SELETOR); } catch (e) { /* fica para a próxima visita */ }
+    }
   }
 
   aplica();
+  migraAparencia();
   aplicaAparencia();
   if (midia) {
     var mudou = function () { if (!salvo()) aplica(); };

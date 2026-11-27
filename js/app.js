@@ -22,9 +22,9 @@
  *    tema             "claro" | "escuro": escolha do botão sol/lua (js/tema.js); sem ela, segue o sistema
  *    modoClassico     seletor Clássico | Planejador do topo (padrão: Clássico = só a grade e a paleta)
  *    ocultarSeletor   esconde o seletor de modo (o modo continua o escolhido; troca em Configurações)
- *    seletorIcones    seletor Clássico | Planejador só com ícones (o nome acessível continua)
  *    atalhos          atalhos fixados na barra: perfil, importar, tema, privacidade, referencias, tags (começa vazio)
- *    aparencia        "texto" | "icone" (sem a chave = ícone e texto), aplicada por js/tema.js
+ *    aparencia        "icone" (Só ícones) | "minimalista" (sem a chave = Ícone + texto); lida, migrada (da chave
+ *                     antiga seletorIcones) e aplicada por js/tema.js
  *    cadeado          protege as cursadas contra alterações manuais
  *    vista, filtros, exibir, filtroNivel, cronoPeriodo, progressoAberto   preferências de tela
  *
@@ -330,7 +330,6 @@
   const ATALHOS = ["perfil", "importar", "tema", "privacidade", "referencias", "tags"];
   let atalhos = load("atalhos", [], (v) => listaDe(v, (x) => ATALHOS.includes(x)));
   let ocultarSeletor = load("ocultarSeletor", false, (v) => typeof v === "boolean");
-  let seletorIcones = load("seletorIcones", false, (v) => typeof v === "boolean");   // seletor de modo só com ícones
   let celTab = null;                 // célula do cronograma que entra na ordem de Tab (foco móvel)
   let consultado = null;             // toque: cartão consultado, à espera do segundo toque que marca
   let seletorECI = false;            // paleta "ECI por trás" (só nesta visita): destaca os cartões com experiência
@@ -1869,7 +1868,6 @@
   /** Atalhos visíveis: os fixados e, sem perfil válido, "Criar perfil" e "Importar do SIGA". */
   function renderAtalhos() {
     $("#seletor-modo").hidden = ocultarSeletor;
-    $("#seletor-modo").classList.toggle("so-icones", seletorIcones);
     const vis = ATALHOS.filter((id) => atalhos.includes(id) || (!perfil && (id === "perfil" || id === "importar")));
     const box = $("#atalhos");
     const chave = `${vis.join(",")}|${!!perfil}|${temaAtual()}`;
@@ -1903,8 +1901,9 @@
           <span class="dica">Apaga marcações, planos e o perfil salvo neste navegador.</span></div>
       </section>
       <section class="cfg-sec" aria-labelledby="cfg-h-ap"><h2 id="cfg-h-ap">Aparência</h2>
-        <fieldset class="opcoes"><legend>Abas e barra</legend>
-          ${radio("aparencia", "icone-texto", "Ícone e texto", ap === "icone-texto")}${radio("aparencia", "texto", "Somente texto", ap === "texto")}${radio("aparencia", "icone", "Somente ícone", ap === "icone")}
+        <fieldset class="opcoes"><legend>Aparência</legend>
+          ${radio("aparencia", "icone-texto", "Ícone + texto", ap === "icone-texto")}${radio("aparencia", "icone", "Só ícones", ap === "icone")}${radio("aparencia", "minimalista", "Minimalista", ap === "minimalista")}
+          <p class="dica">Vale para a barra do topo, o seletor de modo, as abas e os controles. Só ícones mantém o nome ao passar o mouse e no leitor de tela.</p>
         </fieldset>
         <fieldset class="opcoes"><legend>Tema</legend>
           ${radio("tema", "sistema", "Igual ao sistema", te === "sistema")}${radio("tema", "claro", "Claro", te === "claro")}${radio("tema", "escuro", "Escuro", te === "escuro")}
@@ -1913,7 +1912,6 @@
         <fieldset class="opcoes"><legend>Modo</legend>
           ${radio("modo", "classico", "Clássico: só a grade e a paleta", modoClassico)}${radio("modo", "completo", "Planejador: com as abas", !modoClassico)}
           <label class="opcao"><input type="checkbox" id="cfg-seletor"${ocultarSeletor ? "" : " checked"}> Mostrar o seletor de modo no topo</label>
-          <label class="opcao"><input type="checkbox" id="cfg-seletor-icones"${seletorIcones ? " checked" : ""}> Mostrar só ícones no seletor</label>
         </fieldset>
       </section>
       <section class="cfg-sec" aria-labelledby="cfg-h-grade"><h2 id="cfg-h-grade">Grade</h2>
@@ -3115,7 +3113,6 @@
       const t = ev.target;
       if (t.name === "modo-topo") return defineModo(t.value === "classico");
       if (t.name === "modo") { defineModo(t.value === "classico"); return atualizaConfig(); }
-      if (t.id === "cfg-seletor-icones") { seletorIcones = t.checked; save("seletorIcones", seletorIcones); renderAtalhos(); return atualizaConfig(); }
       if (t.id === "cfg-seletor") { ocultarSeletor = !t.checked; save("ocultarSeletor", ocultarSeletor); renderAtalhos(); return atualizaConfig(); }
       if (t.id === "cfg-cadeado") { cadeado = t.checked; save("cadeado", cadeado); render(); return atualizaConfig(); }
       if (t.dataset.exibir) { exibir[t.dataset.exibir] = t.checked; save("exibir", exibir); render(); atualizaConfig(); }

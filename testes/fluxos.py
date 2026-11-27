@@ -134,7 +134,7 @@ def t_sem_perfil(b):
     foto(pg, "11-sem-perfil-modo-completo-linha-do-tempo")
     ctx.close()
 
-@caso("Seletor Clássico | Planejador no topo: setas do teclado, nomes acessíveis; 'só ícones' preserva o nome; Configurações diz Planejador")
+@caso("Seletor Clássico | Planejador no topo: setas do teclado, nomes acessíveis; Aparência 'Só ícones' preserva o nome; Configurações diz Planejador")
 def t_seletor_modo(b):
     ctx, pg = abre(b, perfil=PERFIL, nome="seletor-modo")
     sel = pg.locator("#seletor-modo"); expect(sel).to_be_visible()
@@ -150,8 +150,9 @@ def t_seletor_modo(b):
     pg.click("#btn-config")
     texto = pg.locator("#dlg-config").inner_text()
     assert "Planejador: com as abas" in texto and "Completo" not in texto, texto
-    pg.check("#cfg-seletor-icones"); pg.keyboard.press("Escape")
-    assert ls(pg, "seletorIcones") is True
+    assert pg.locator("#cfg-seletor-icones").count() == 0                     # a opção antiga virou o nível Só ícones
+    pg.check('#dlg-config input[name="aparencia"][value="icone"]'); pg.keyboard.press("Escape")
+    assert ls(pg, "aparencia") == "icone" and ls(pg, "seletorIcones") is None
     pg.reload(); pg.wait_for_load_state("load"); pronto(pg, "seletor-modo")
     rotulos = pg.evaluate("[...document.querySelectorAll('#seletor-modo .rot')].map((r) => r.getBoundingClientRect().width)")
     icones = pg.evaluate("[...document.querySelectorAll('#seletor-modo .ico')].map((r) => r.getBoundingClientRect().width)")
@@ -2165,31 +2166,60 @@ def t_previa_download(b):
 def abre_config(pg):
     pg.click("#btn-config"); expect(pg.locator("#dlg-config")).to_be_visible()
 
-@caso("Navegação: Ícone e texto (padrão), Somente texto e Somente ícone nas abas e atalhos; nomes acessíveis, aba ativa e foco; desktop e celular")
+@caso("Aparência: Ícone + texto (padrão), Só ícones e Minimalista nas abas e atalhos; nomes acessíveis, aba ativa e foco; desktop e celular")
 def t_formatos(b):
     for vp, toque, nome in [(D, False, "desktop"), (C, True, "celular")]:
         ctx, pg = abre(b, vp=vp, perfil=PERFIL, extra={"modoClassico": False, "vista": "timeline"}, nome=f"formatos-{nome}", toque=toque)
         tab = pg.locator('[data-vista="timeline"]'); atal = pg.locator("#btn-privacidade")
         vis = lambda el, s: el.locator(s).evaluate("e => { const r = e.getBoundingClientRect(); return getComputedStyle(e).display !== 'none' && r.width > 2; }")
         assert vis(tab, ".ico") and vis(tab, ".rot") and vis(atal, ".ico") and vis(atal, ".rot")
-        abre_config(pg); pg.check('#dlg-config input[name="aparencia"][value="texto"]'); pg.keyboard.press("Escape")
-        assert not vis(tab, ".ico") and vis(tab, ".rot") and not vis(atal, ".ico") and vis(atal, ".rot")
-        assert ls(pg, "aparencia") == "texto"
-        abre_config(pg); pg.check('#dlg-config input[name="aparencia"][value="icone"]'); pg.keyboard.press("Escape")
-        assert vis(tab, ".ico") and not vis(tab, ".rot") and vis(atal, ".ico") and not vis(atal, ".rot")
-        expect(pg.get_by_role("tab", name="Linha do tempo")).to_have_attribute("aria-selected", "true")
-        expect(pg.get_by_role("button", name="Privacidade")).to_be_visible()
-        expect(pg.get_by_role("button", name="Configurações")).to_be_visible()
-        pg.get_by_role("tab", name="Optativas").focus(); pg.keyboard.press("Shift+Tab"); pg.keyboard.press("Tab")
-        assert pg.evaluate("getComputedStyle(document.activeElement).outlineStyle") == "solid"
-        if toque:
-            for el in pg.locator(".acoes .btn, .abas button").all():
-                r = el.bounding_box(); assert r["height"] >= 44 and r["width"] >= 44, r
-        foto(pg, f"52-somente-icone-{nome}")
-        pg.reload(); assert pg.evaluate("document.documentElement.dataset.aparencia") == "icone"
-        abre_config(pg); assert pg.locator('#dlg-config input[name="aparencia"][value="icone"]').is_checked()
+        abre_config(pg)
+        rotulos = pg.locator('#dlg-config input[name="aparencia"]').evaluate_all("es => es.map((e) => e.closest('label').textContent.trim())")
+        assert rotulos == ["Ícone + texto", "Só ícones", "Minimalista"], rotulos
+        for nivel in ("icone", "minimalista"):
+            if not pg.locator("#dlg-config").is_visible(): abre_config(pg)
+            pg.check(f'#dlg-config input[name="aparencia"][value="{nivel}"]'); pg.keyboard.press("Escape")
+            assert ls(pg, "aparencia") == nivel
+            assert vis(tab, ".ico") and not vis(tab, ".rot") and vis(atal, ".ico") and not vis(atal, ".rot"), nivel
+            expect(pg.get_by_role("tab", name="Linha do tempo")).to_have_attribute("aria-selected", "true")
+            expect(pg.get_by_role("button", name="Privacidade")).to_be_visible()
+            expect(pg.get_by_role("button", name="Configurações")).to_be_visible()
+            assert pg.get_by_role("tab", name="Optativas").get_attribute("title") == "Optativas"      # o nome aparece ao passar o mouse
+            pg.get_by_role("tab", name="Optativas").focus(); pg.keyboard.press("Shift+Tab"); pg.keyboard.press("Tab")
+            assert pg.evaluate("getComputedStyle(document.activeElement).outlineStyle") == "solid"
+            if toque:
+                for el in pg.locator(".acoes .btn, .abas button").all():
+                    r = el.bounding_box(); assert r["height"] >= 44 and r["width"] >= 44, r
+            foto(pg, f"52-{nivel}-{nome}")
+        pg.reload(); assert pg.evaluate("document.documentElement.dataset.aparencia") == "minimalista"
+        abre_config(pg); assert pg.locator('#dlg-config input[name="aparencia"][value="minimalista"]').is_checked()
         pg.check('#dlg-config input[name="aparencia"][value="icone-texto"]'); assert ls(pg, "aparencia") is None
+        pg.keyboard.press("Escape"); assert vis(tab, ".rot") and vis(atal, ".rot")
         ctx.close()
+
+@caso("Aparência legada: seletor só com ícones ligado vira Só ícones; desligado e 'Somente texto' viram Ícone + texto; a chave antiga sai depois de salvar")
+def t_aparencia_migracao(b):
+    casos = [({"seletorIcones": True}, "icone", "icone"), ({"seletorIcones": False}, None, "icone-texto"),
+             ({"seletorIcones": False, "aparencia": "icone"}, "icone", "icone"), ({"aparencia": "texto"}, None, "icone-texto"),
+             ({"seletorIcones": True, "aparencia": "texto"}, "icone", "icone")]
+    for extra, salvo, aplicado in casos:
+        ctx, pg = abre(b, perfil=PERFIL, extra=extra, nome="aparencia-migracao")
+        assert ls(pg, "seletorIcones") is None, extra                                   # removida depois de gravar a nova
+        assert ls(pg, "aparencia") == salvo, (extra, ls(pg, "aparencia"))
+        assert pg.evaluate("document.documentElement.dataset.aparencia") == aplicado, extra
+        rot = pg.locator("#seletor-modo .rot").first.evaluate("e => e.getBoundingClientRect().width")
+        assert (rot <= 1) == (aplicado == "icone"), (extra, rot)                           # o seletor segue o nível
+        expect(pg.get_by_role("radio", name="Clássico")).to_have_count(1)                  # nome acessível preservado
+        abre_config(pg); assert pg.locator(f'#dlg-config input[name="aparencia"][value="{aplicado}"]').is_checked(), extra
+        ctx.close()
+    # sem poder gravar, a chave antiga fica e o nível vale nesta visita
+    ctx, pg = abre(b, perfil=PERFIL, extra={"seletorIcones": True}, nome="aparencia-migracao-sem-gravar")
+    pg.evaluate("""() => { localStorage.removeItem('gradeECI.v2.aparencia'); localStorage.setItem('gradeECI.v2.seletorIcones', 'true'); }""")
+    pg.add_init_script("""Storage.prototype.setItem = function () { throw new Error('cheio'); };""")
+    pg.reload(); pg.wait_for_load_state("load"); pronto(pg, "aparencia-migracao-sem-gravar")
+    assert pg.evaluate("document.documentElement.dataset.aparencia") == "icone"
+    assert pg.evaluate("localStorage.getItem('gradeECI.v2.seletorIcones')") == "true"
+    ctx.close()
 
 @caso("Atalhos: todos começam desafixados; fixar/desafixar persiste; acesso continua em Configurações; Referências sem requisição externa")
 def t_atalhos(b):
@@ -2392,7 +2422,7 @@ def t_fecha_durante_leitura(b):
     pg.click('[data-acao="ler"]'); pg.wait_for_selector("[data-linha]", timeout=30000)
     ctx.close()
 
-CASOS3 = [t_fecha_durante_leitura, t_previa_confirmacao, t_previa_download, t_formatos, t_atalhos, t_modo, t_sync, t_seletor_eci, t_experiencias, t_exp_com_perfil]
+CASOS3 = [t_fecha_durante_leitura, t_previa_confirmacao, t_previa_download, t_formatos, t_aparencia_migracao, t_atalhos, t_modo, t_sync, t_seletor_eci, t_experiencias, t_exp_com_perfil]
 
 CASOS = [
     t_descartar_salvo, t_tema, t_tema_abas, t_sem_perfil, t_seletor_modo, t_importar_sugere_planejador, t_criar_perfil, t_perfil_conflito,
