@@ -1027,12 +1027,19 @@ def p5(boa="padrao", cursando=False, categoria=3, periodo_sem_data=False):
     if boa is not None: perfil["boa"] = boa
     return perfil
 
+def abre_info_livre(pg):
+    """No detalhamento, a explicação dos números da livre escolha fica atrás do botão ⓘ."""
+    btn = pg.locator("#progresso .cat-3 .info-btn")
+    if btn.get_attribute("aria-expanded") != "true": btn.click()
+    expect(pg.locator("#progresso .cat-3 .livre-info")).to_be_visible()
+
 def numeros_livre(pg):
     """Textos dos dois números, nos Pedidos e no progresso detalhado da Grade."""
     completo(pg, "pedidos")
     pedidos = pg.locator(".pedidos .livre-numeros li").all_inner_texts()
     completo(pg, "grade")
     if pg.locator("#progresso").is_hidden(): pg.click("#bg-detalhes")
+    abre_info_livre(pg)
     progresso = pg.locator("#progresso .cat-3 .livre-numeros li").all_inner_texts()
     assert pedidos == progresso, (pedidos, progresso)
     assert len(pedidos) == 2, pedidos
@@ -1196,6 +1203,34 @@ def t_sobre(b):
         pg.keyboard.press("Escape")
         ctx.close()
 
+ESTADOS = ["Aprovada", "Aprovação prevista", "Cursando", "Planejada", "Equivalência pedida", "Reprovada", "Pendente"]
+@caso("Detalhamento: livre escolha numa linha curta com ⓘ (mouse, teclado e toque); sem a legenda de estados")
+def t_detalhamento_info(b):
+    ctx, pg = abre(b, perfil=p5(), nome="detalhamento-info")
+    completo(pg, "grade"); pg.click("#bg-detalhes")
+    curta = pg.locator("#progresso .cat-3 .livre-curta"); expect(curta).to_be_visible()
+    assert re.search(r"Grade \d+ cr · BOA \d+ cr", curta.inner_text()), curta.inner_text()
+    btn, info = curta.locator(".info-btn"), pg.locator("#progresso .cat-3 .livre-info")
+    expect(btn).to_have_attribute("aria-expanded", "false"); expect(info).to_be_hidden()
+    assert btn.get_attribute("aria-label") and btn.get_attribute("aria-controls") == info.get_attribute("id")
+    btn.click(); expect(info).to_be_visible(); expect(btn).to_have_attribute("aria-expanded", "true")
+    expect(info).to_contain_text("BOA, soma das não explicitadas"); expect(info).to_contain_text(NOTA_RA13)
+    pg.click("#bg-detalhes"); pg.click("#bg-detalhes")                                  # redesenho mantém a escolha
+    expect(pg.locator("#progresso .cat-3 .livre-info")).to_be_visible()
+    pg.locator("#progresso .cat-3 .info-btn").click(); expect(pg.locator("#progresso .cat-3 .livre-info")).to_be_hidden()
+    pg.locator("#progresso .cat-3 .info-btn").focus(); pg.keyboard.press("Enter")       # teclado
+    expect(pg.locator("#progresso .cat-3 .livre-info")).to_be_visible()
+    pg.keyboard.press("Space"); expect(pg.locator("#progresso .cat-3 .livre-info")).to_be_hidden()
+    legenda = pg.locator("#legenda").inner_text() if pg.locator("#legenda").is_visible() else ""
+    assert pg.locator("#legenda .leg").count() == 0 and not any(e in legenda for e in ESTADOS), legenda
+    pg.locator("#progresso .cat-3 .info-btn").click(); foto(pg, "detalhamento-info")
+    ctx.close()
+    ctx, pg = abre(b, vp=C, perfil=p5(), toque=True, nome="detalhamento-info-toque")
+    completo(pg, "grade"); pg.locator("#bg-detalhes").tap()
+    pg.locator("#progresso .cat-3 .info-btn").tap(); expect(pg.locator("#progresso .cat-3 .livre-info")).to_be_visible()
+    r = pg.locator("#progresso .cat-3 .info-btn").bounding_box(); assert r["width"] >= 24 and r["height"] >= 24, r
+    ctx.close()
+
 @caso("RF-08 (08c, 08d): nota de RA-13 junto dos dois números e nota de RA-09 junto da idade")
 def t_rf08_notas_credito(b):
     ctx, pg = abre(b, perfil=p5(), nome="rf08-ra13")
@@ -1203,6 +1238,7 @@ def t_rf08_notas_credito(b):
     assert pg.locator(".pedidos .livre-numeros + .nota-estimativa").inner_text() == NOTA_RA13
     completo(pg, "grade")
     if pg.locator("#progresso").is_hidden(): pg.click("#bg-detalhes")
+    abre_info_livre(pg)
     assert pg.locator("#progresso .cat-3 .livre-numeros + .nota-estimativa").inner_text() == NOTA_RA13
     foto(pg, "rf08-nota-livre-escolha")
     ctx.close()
@@ -2083,7 +2119,7 @@ CASOS = [
     t_cr04_reingresso, t_cr04_ordem_dos_arquivos, t_cr04_escolha_sem_datas, t_pc05_datas_ausentes, t_cr04_troca_recalcula_planos, t_cr04_ace_duas_ocorrencias, t_cr04_controles, t_pc05_perfil_antigo_duvida, t_cr04_papel, t_cr04_fronteira,
     t_cr02_pedidos, t_cr02_duas_dispensas, t_cr02_dispensa_unica, t_cr02_alvo_fora_do_catalogo,
     t_d02_dois_numeros, t_pedidos_sem_total_e_sem_check, t_d02_ausente_e_vazia, t_d02_outros_grupos, t_d02_importacao,
-    t_rf08_faixa, t_sobre, t_rf08_notas_credito, t_rf08_periodo_atual, t_rf08_deduzido_regras, t_rf08_oferta, t_rf08_rodape, t_rf08_ace,
+    t_rf08_faixa, t_sobre, t_detalhamento_info, t_rf08_notas_credito, t_rf08_periodo_atual, t_rf08_deduzido_regras, t_rf08_oferta, t_rf08_rodape, t_rf08_ace,
     t_pc02_manual_credito, t_pc03_manual_requisito,
     t_d01_carga, t_d01_conteudo,
     t_regressao, t_a11y,

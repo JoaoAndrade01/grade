@@ -337,6 +337,7 @@
   if (!["ocultas", "foco", "todas"].includes(exibir.setas)) exibir.setas = "ocultas";
   let filtroNivel = load("filtroNivel", [], (v) => listaDe(v, numero));   // níveis de dificuldade em destaque (vazio = todos)
   let progressoAberto = load("progressoAberto", false);
+  let infoLivreAberta = false;      // explicação dos números da livre escolha (ⓘ do detalhamento), só nesta visita
   // Modo clássico (padrão ao abrir): só a grade inteira numa tela e a paleta para pintar.
   // Desligado = modo Planejador, com as abas (linha do tempo, optativas, cronograma, pedidos).
   const abrirNoModoClassico = new URLSearchParams(window.location.search).get("modo") === "classico";
@@ -1260,6 +1261,14 @@
         : `BOA: <b>indisponível</b> <small>(${esc(n.motivo)})</small>`}</li>
     </ul>${notaHtml(NOTA_RA13)}`;
   }
+  /** Detalhamento: os dois números numa linha curta; o botão ⓘ mostra os rótulos completos e a nota (clique, toque ou teclado). */
+  function htmlLivreCurta(t) {
+    const n = numerosLivreEscolha(t);
+    return `<p class="livre-curta">Livre escolha: Grade <b>${fmt(n.grade)} cr</b> · ${n.presente ? `BOA <b>${fmt(n.soma)} cr</b>` : "BOA indisponível"}
+        <button type="button" class="info-btn" id="livre-info-btn" aria-expanded="${infoLivreAberta}" aria-controls="livre-info"
+          aria-label="Como ler os números da livre escolha" title="Como ler estes números"><span aria-hidden="true">ⓘ</span></button></p>
+      <div class="livre-info" id="livre-info"${infoLivreAberta ? "" : " hidden"}>${htmlNumerosLivre(t)}</div>`;
+  }
   // Notas de estimativa de D-06 (textos em docs/REGRAS-ACADEMICAS.md#textos-de-aviso). A data de RA-20 vem de `consultado`.
   const dataBR = (iso) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ""); return m ? `${m[3]}/${m[2]}/${m[1]}` : String(iso || ""); };
   const NOTA_RA13 = "Estimativa da Grade. No BOA, os créditos usados em equivalências podem continuar aparecendo na livre escolha.";
@@ -1742,16 +1751,14 @@
         <div class="prog-topo"><span>${c.nome}</span><b>${fmt(T.ok)}${T.prev ? `<i> +${fmt(T.prev)}</i>` : ""} / ${fmt(T.total)} ${c.un}</b></div>
         <div class="barra"><span class="b-ok" style="width:${pOk}%"></span><span class="b-prev" style="width:${pPrev}%"></span><span class="b-plan" style="width:${pPlan}%"></span><span class="b-anal" style="width:${pAnal}%"></span></div>
         <small>${falta ? `faltam ${fmt(falta)} ${c.un}${T.plan ? ` · ${fmt(Math.min(T.plan, falta))} planejados` : ""}${T.anal ? ` · ${fmt(T.anal)} em análise` : ""}` : "completo ✓"}${T.aConfirmar ? ` · ${textoAConfirmar(T)} (possível duplicidade)` : ""}</small>
-        ${k === "3" ? htmlNumerosLivre(t) : ""}
+        ${k === "3" ? htmlLivreCurta(t) : ""}
       </div>`;
     }).join("");
   }
 
   function renderLegenda() {
-    $("#legenda").innerHTML = ["aprovado", "previsto", "cursando", "planejado", "analise", "reprovado", "pendente"]
-      .map((s) => `<span class="leg s-${s}"><i></i>${ROTULO[s]}</span>`).join("")
-      + (Object.keys(marcacoes).some(aprovacaoManual) ? `<span>Aprovação por marcação manual (pincel)</span>` : "")
-      + `<span class="leg-sep"></span>`
+    // Sem a legenda de estados: o cartão já diz a situação em texto. Fica a marcação manual (PC-02), os grupos e a dificuldade.
+    $("#legenda").innerHTML = (Object.keys(marcacoes).some(aprovacaoManual) ? `<span>Aprovação por marcação manual (pincel)</span><span class="leg-sep"></span>` : "")
       + Object.keys(CATS).map((k) => `<span class="leg-cat cat-${k}"><i></i>${CATS[k].nome}</span>`).join("")
       + (M.guia ? `<span class="leg-sep"></span>` + Object.values(M.guia.niveis).map((n) => `<span class="leg-niv" title="${esc(n.texto)}">${n.emoji} ${esc(n.nome)}</span>`).join("") : "");
   }
@@ -2955,6 +2962,11 @@
     // Barra geral, ferramentas da página inicial e aviso de perfil importado
     document.addEventListener("click", (ev) => {
       const t = ev.target.closest("button"); if (!t) return;
+      if (t.closest("#livre-info-btn")) {
+        infoLivreAberta = !infoLivreAberta;
+        $("#livre-info").hidden = !infoLivreAberta; $("#livre-info-btn").setAttribute("aria-expanded", String(infoLivreAberta));
+        return;
+      }
       if (t.id === "bg-detalhes") { progressoAberto = !progressoAberto; save("progressoAberto", progressoAberto); return render(); }
       if (t.dataset.pincel != null) { consultado = null; pincel = t.dataset.pincel === "__detalhes" ? null : t.dataset.pincel; seletorECI = false; return render(); }
       if (t.id === "pal-eci") {

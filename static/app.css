@@ -879,6 +879,15 @@ dialog.dlg-eci:modal { overscroll-behavior: contain; }
   .opcao { min-height: 44px; }
 }
 
+/* ---------- Detalhamento: livre escolha numa linha com ⓘ ---------- */
+.livre-curta { margin: 6px 0 0; font-size: 12.5px; }
+.livre-curta .info-btn { margin-left: 4px; vertical-align: middle; }
+.info-btn { display: inline-grid; place-items: center; min-width: 28px; min-height: 28px; padding: 0; font: inherit; font-size: 16px; line-height: 1;
+  color: var(--text); background: transparent; border: 1px solid var(--border); border-radius: 50%; cursor: pointer; }
+.info-btn:hover, .info-btn[aria-expanded="true"] { background: var(--surface-2); border-color: var(--borda-forte); }
+.livre-info { margin-top: 4px; padding: 6px 8px; border-radius: 8px; background: var(--surface-2); }
+@media (max-width: 720px) { .info-btn { min-width: 44px; min-height: 44px; } }
+
 /* ---------- Aviso no rodapé (D-06, D-09), seção Sobre e notas de estimativa ---------- */
 .rodape .rodape-aviso { color: var(--text); }
 .cfg-sobre p, .cfg-sobre ul { margin: 6px 0; font-size: 14px; line-height: 1.45; }
