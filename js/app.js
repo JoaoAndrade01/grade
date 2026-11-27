@@ -1016,7 +1016,17 @@
     box.hidden = false;
     box.dataset.alvo = "tags";
   }
-  function salvaTags() { save("tags", tags); render(); abreEditorTags(); }
+  /** Salva e redesenha o editor de tags devolvendo o foco ao mesmo controle (o redesenho troca o HTML do painel). */
+  function salvaTags() {
+    const a = document.activeElement, box = $("#detalhes");
+    const attr = a && box.contains(a) ? [...a.attributes].find((x) => x.name.startsWith("data-tag")) : null;
+    const k = attr && attr.value, id = a && box.contains(a) && a.id;
+    save("tags", tags); render(); abreEditorTags();
+    // Sem o controle (ex.: a opção da barra some ao virar "Não conta"), o foco fica no tipo da mesma tag.
+    const alvo = (attr && (box.querySelector(`[${attr.name}="${CSS.escape(k)}"]`) || box.querySelector(`[data-tagstatus="${CSS.escape(k)}"]`)))
+      || (id && document.getElementById(id));
+    if (alvo) alvo.focus();
+  }
 
   // ---------- Vista: Grade ----------
   function renderGrade() {
