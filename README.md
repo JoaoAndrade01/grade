@@ -24,13 +24,14 @@ Na primeira visita o site abre no modo **Clássico**: a grade inteira numa tela 
 
 | Onde | Para quê |
 | --- | --- |
-| **Grade** | Ver a grade por período, pintar disciplinas com a paleta (**Cursada**, **Cursando**, **Planejada**), ver as setas de pré-requisito e proteger as cursadas com o cadeado. Funciona sem perfil |
+| **Grade** | Ver a grade por período, pintar disciplinas com a paleta (**Cursada**, **Cursando**, **Planejada**), destacar pré-requisitos e o que cada disciplina libera, proteger as cursadas com o cadeado e registrar as marcações como aprovações registradas por você. Funciona sem perfil |
 | **Importar do SIGA** | Baixar o Histórico e o BOA em PDF, escolher os arquivos, conferir a prévia e usar o perfil. Os PDFs são lidos no navegador |
 | **Linha do tempo** | Seus períodos reais, com notas, equivalências, progresso por grupo e avisos de requisito e de oferta |
 | **Optativas** | Catálogo com filtros e o guia dos colegas |
 | **Cronograma** | Grade semanal dos períodos planejados, com choques, horários de referência e sugestões |
 | **Equivalências e Extensão / ACE** | Pedidos de dispensa com carga horária como orientação e prazo de 5 anos, créditos de livre escolha e horas de extensão |
-| **Configurações** | Tema, aparência, modo e atalhos; criar, exportar e carregar o perfil; Privacidade; Referências |
+| **Configurações** | Tema, Aparência (Ícone + texto, Só ícones, Minimalista), modo e atalhos; criar, exportar e carregar o perfil; Privacidade; Referências |
+| **Foco 🎯** | No Planejador, esconde o que já foi concluído e mostra a fase do curso, a previsão de formatura e as conquistas |
 | **A ECI por trás da Grade** | Experiências curtas, com dados fictícios, que mostram como disciplinas do curso aparecem no próprio site |
 
 Os critérios de cada função, por história de uso, estão em [`docs/REQUISITOS.md`](docs/REQUISITOS.md).

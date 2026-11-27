@@ -33,8 +33,8 @@ enxuto e útil para a comunidade.
 
 ## A ECI por trás da Grade
 
-Cada recurso do site usa algo que se aprende no curso. Ler o PDF do SIGA é Algoritmos e Programação. As setas
-de pré-requisito são Teoria dos Grafos. Conferir duas implementações uma contra a outra é Engenharia de
+Cada recurso do site usa algo que se aprende no curso. Ler o PDF do SIGA é Algoritmos e Programação. O destaque
+de pré-requisitos é Teoria dos Grafos. Conferir duas implementações uma contra a outra é Engenharia de
 Software. A aba **A ECI por trás da Grade** mostra essas ligações com experiências curtas e dados fictícios.
 
 A ideia é inspirar: mostrar que cada disciplina tem utilidade, usando o próprio site como exemplo didático de

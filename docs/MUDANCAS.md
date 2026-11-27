@@ -16,8 +16,30 @@ acadêmicos só no navegador. A Grade orienta; não substitui o SIGA, o BOA nem 
 ### O que mudou para quem usa
 
 - **Clássico | Planejador.** Um seletor visível no topo troca entre o modo **Clássico** (a grade inteira numa tela,
-  com a paleta) e o **Planejador** (linha do tempo, optativas, cronograma e pedidos). Configurações oferece "Mostrar só
-  ícones no seletor". No modo Clássico, "Importar do SIGA" sugere o Planejador.
+  com a paleta) e o **Planejador** (linha do tempo, optativas, cronograma e pedidos). No modo Clássico, "Importar do
+  SIGA" sugere o Planejador.
+- **Aparência em três níveis.** Em Configurações → Aparência: **Ícone + texto** (padrão), **Só ícones** e
+  **Minimalista**, para a barra do topo, o seletor, as abas e os controles (Exibir, Destaque, filtros de Optativas,
+  + Período, Exportar perfil.js e Excluir período). Em Só ícones, o nome continua no leitor de tela e ao passar o mouse.
+  No Minimalista, os cartões da Grade mostram só o nome e o ícone de estado, as ferramentas ficam atrás de um botão ⋯ e
+  a barra mostra os números com foco ou toque. As preferências antigas ("Mostrar só ícones no seletor", "Somente
+  texto") são convertidas ao abrir.
+- **Destaque no lugar das setas.** Exibir → Destaque **Em foco** (padrão) acende o pré-requisito com contorno contínuo,
+  o co-requisito com contorno tracejado e marca o que a disciplina libera com a etiqueta "libera"; o resto esmaece.
+  Funciona com o mouse, o teclado e o toque. **Desligado** não destaca. A Grade não desenha mais setas; as setas
+  didáticas continuam em "A ECI por trás da Grade".
+- **Plano na Grade e Todas acesas.** Exibir → Plano mostra no cartão o primeiro semestre planejado e "+N". Em
+  Optativas, "todas acesas" tira o esmaecimento das inativas sem filtrar nada.
+- **Registrar marcações.** As disciplinas marcadas como aprovadas com o pincel podem virar "Aprovação registrada por
+  você" (☑), com semestre opcional, mesmo sem perfil: o fluxo cria um. Elas contam para a fase e as conquistas com a
+  marca "declarado", nunca como registro do SIGA. Uma importação posterior confirma a registrada (vale o SIGA), mostra
+  divergências e não conta nada duas vezes. Dá para editar o semestre e remover, uma a uma ou em lote, e desfazer logo
+  depois de gravar.
+- **Modo Foco 🎯.** No Planejador, esconde o que já foi concluído e os períodos passados todos concluídos, deixa Grade,
+  Linha do tempo e Cronograma e mostra a **fase do curso** (calouro, meio de curso ou veterano), a **previsão de
+  formatura** (só quando o plano cobre tudo o que falta, marcada como estimativa) e a **estante de conquistas** (24
+  selos, com o próximo marco). O tom das mensagens é zoeira por padrão e pode ficar discreto. Totais e planejamento não
+  mudam.
 - **Aviso de que a Grade não é oficial.** Uma linha no rodapé ("Feita por alunos de ECI. Não substitui o SIGA, o BOA
   nem a coordenação."), a seção **Sobre** em Configurações e uma nota junto de cada cálculo que é estimativa: livre
   escolha, prazo de 5 anos, período atual deduzido do histórico e horários de referência.
@@ -49,12 +71,12 @@ acadêmicos só no navegador. A Grade orienta; não substitui o SIGA, o BOA nem 
   erro? Crie uma nova issue", que abre a escolha de modelo de Issue e também aparece quando a importação falha.
 - **Janelas e telas.** Configurações fecha pelo X no topo, por clique fora e por Esc, e o foco volta ao botão que abriu.
   "Adicionar período" usa a mesma janela central de "Excluir período", com validação do nome. Na Linha do tempo,
-  "detalhes" recolhe o detalhamento e o clique num cartão abre os detalhes da disciplina. Com as setas de requisitos
-  ligadas, a Grade abre mais espaço entre colunas e cartões. O detalhamento não tem legenda de estados: o cartão tem um
+  "detalhes" recolhe o detalhamento e o clique num cartão abre os detalhes da disciplina. O detalhamento não tem legenda de estados: o cartão tem um
   ícone de estado. O cartão protegido pelo cadeado não mostra ícone; a proteção é anunciada e aparece nos detalhes.
 - **Acessibilidade.** Correções feitas depois de uma inspeção com axe-core e teclado:
-  - **Ícone de estado no cartão.** ✓ aprovada, ◐ cursando, ○ planejada, … prevista e ✎ marcação manual (✗ reprovada e
-    ⇄ equivalência pedida), sem depender de cor nem de passar o mouse. A situação e a origem ("perfil" ou "marcação")
+  - **Ícone de estado no cartão.** ✓ aprovada, ◐ cursando, ○ planejada, … prevista, ✎ marcação manual e ☑ aprovação
+    registrada por você (✗ reprovada e ⇄ equivalência pedida), sem depender de cor nem de passar o mouse. A situação e a
+    origem ("perfil", "marcação" ou "registrada por você")
     ficam no nome acessível, no primeiro toque e nos detalhes. A disciplina reprovada deixou de ficar
     esmaecida (borda pontilhada e texto riscado).
   - **Toque com o pincel.** No celular, o primeiro toque num cartão só consulta (mostra a situação e a origem, com o
@@ -119,8 +141,10 @@ duplicatas de `js/horarios.js` e `js/guia.js`, e lista as turmas sem código. O 
   ([MANUTENCAO.md](MANUTENCAO.md)). A disciplina "Comp 3" passou a ser a COS013.
 - **Layout do SIGA.** Se o SIGA mudar o layout dos PDFs, a importação pode falhar ou omitir linhas
   ([IMPORTADOR.md](IMPORTADOR.md#limitações-conhecidas)).
-- **Previsão de formatura.** A Grade não calcula uma data: você monta a previsão com o planejamento. A previsão calculada
-  é o primeiro item planejado depois desta versão.
+- **Previsão de formatura.** A Grade só mostra um semestre quando o Cronograma cobre créditos, obrigatórias e ACE; é uma
+  estimativa a partir do seu plano. O prazo máximo de integralização não é calculado.
+- **Aprovações registradas por você.** São informação sua, não registro do SIGA. Uma versão anterior do app ou do
+  importador de terminal não conhece o campo e o perde ao reimportar.
 - **Navegação por teclado nos links do Safari.** A verificação automatizada de Tab nos links cobre Chromium e Firefox; o
   Safari no Mac, o iPhone real e a passada com leitor de tela estão pendentes
   ([PLANO-DE-TESTE.md](PLANO-DE-TESTE.md#6-limite-do-ambiente-webkit)).
@@ -131,7 +155,9 @@ duplicatas de `js/horarios.js` e `js/guia.js`, e lista as turmas sem código. O 
 
 Documentação nova: visão, requisitos, regras acadêmicas, plano de teste, decisões, manutenção, privacidade, formato do
 perfil e guia de contribuição, além de instruções públicas para agentes de IA ([AGENTS.md](../AGENTS.md)) e modelo de
-Issue. O kit de interface tem 107 cenários por `file://` e 108 por HTTP ([testes/README.md](../testes/README.md)). O que
+Issue. O kit de interface tem 126 cenários por `file://` e 127 por HTTP, e as regras de progresso, fase e conquistas têm
+testes diretos no Node (`node testes/progresso.js`) ([testes/README.md](../testes/README.md)). O cálculo do progresso e
+das conquistas fica em `js/progresso.js` e `js/conquistas.js`, sem DOM ([ARQUITETURA.md](ARQUITETURA.md)). O que
 está previsto para depois está em [MANUTENCAO.md](MANUTENCAO.md).
 
 ---
