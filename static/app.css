@@ -692,9 +692,8 @@ dialog.dlg:modal { overscroll-behavior: contain; }
 .anuncio.visivel { opacity: 1; transform: translate(-50%, 0); }
 @media (prefers-reduced-motion: reduce) { .anuncio { transition: none; } }
 
-/* cadeado da paleta e cartões protegidos */
+/* cadeado da paleta e cartões protegidos (o cartão não mostra ícone) */
 .pal-cadeado[aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
-.card .cad { position: absolute; top: 4px; right: 5px; color: var(--muted); line-height: 0; }
 .pintando .card.protegida { cursor: not-allowed; }
 .chip-btn:disabled { opacity: .5; cursor: not-allowed; }
 

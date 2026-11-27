@@ -899,7 +899,6 @@
       data-code="${esc(c.code)}" ${tag ? `style="--tag:${esc(tag.cor)}"` : ""} title="${exp ? "Abrir a experiência: " + esc(window.ECI.tem(c.code).titulo) : esc(tag ? tag.nome : ROTULO[s]) + (prot ? " · protegida pelo cadeado" : "")}"
       ${seletorECI && !exp ? "inert" : ""}${exp ? ` aria-describedby="dica-eci"` : ""}>
       ${exp ? `<span class="selo-eci">${icone("eci", 12)} ECI por trás</span>` : ""}
-      ${prot ? `<span class="cad" aria-hidden="true">${icone("cadeado", 11)}</span>` : ""}
       ${nota != null ? `<span class="nota">${esc(typeof nota === "number" ? nota.toFixed(1) : nota)}</span>` : ""}
       <span class="nome">${esc(c.name)}</span>
       ${estado ? `<span class="estado">${esc(estado)}</span>` : ""}
@@ -1101,6 +1100,8 @@
     let html = "";
     colunasTimeline().forEach((col) => {
       const p = col.p || col;
+      // Bloco de transferidas sem nenhum item (todas foram ao semestre original): some da tela, fica no modelo (D-03, D-08).
+      if (col.p && col.p.semestre == null && anoDoBloco(col.p.nome) != null && !col.itens.length) return;
       let cr = 0, temOferta = false;
       const cards = col.itens.map(({ it, bloco }) => {
         if (it.status !== "reprovado" && it.category != 5) cr += it.credits;

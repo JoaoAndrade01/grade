@@ -669,6 +669,50 @@ def t_timeline_transferidas(b):
         ctx.close()
     assert vistos[True] == vistos[False]
 
+@caso("Linha do tempo: bloco de transferidas vazio some da tela; prazo pelo ano do bloco (D-03) e requisitos (D-08) não mudam")
+def t_timeline_bloco_vazio(b):
+    def titulos(pg):
+        return pg.evaluate("""() => [...document.querySelectorAll('#painel .coluna')].map((c) => [c.querySelector('h2').textContent,
+            [...c.querySelectorAll('.card[data-code]')].map((k) => k.dataset.code)])""")
+    observado = {}
+    # Todas as transferidas têm semestre original: a coluna do bloco fica vazia e some.
+    todas = {"periodos": [
+        {"nome": "2025 (transferidas)", "disciplinas": [{"code": "MAC118", "nota": 7, "aprovadaEm": "2020/1"},
+                                                        {"code": "MAC128", "nota": 7, "aprovadaEm": "2020/2"}]},
+        {"nome": "2026/2", "atual": True, "disciplinas": [{"code": "MAC238", "status": "cursando"}]}],
+        "equivalencias": [{"cursadas": ["MAC118"], "pedida": "COC602", "status": "a pedir"}]}
+    ctx, pg = abre(b, perfil=todas, nome="timeline-bloco-vazio", relogio=RELOGIO)
+    completo(pg, "timeline")
+    cols = titulos(pg)
+    observado["colunas"] = [c[0] for c in cols if c[0] != "A alocar"]
+    observado["requisito"] = any("Requisito MAC128" in x for x in pg.evaluate("GradeInterativa.avisos('MAC238', '2026/2')"))
+    observado["aviso-card"] = "Requisito MAC128" in (pg.locator('.card[data-code="MAC238"]').first.get_attribute("title") or "")
+    foto(pg, "timeline-bloco-vazio")
+    completo(pg, "pedidos")
+    observado["prazo"] = "Base do prazo: só o ano 2025 (bloco de transferidos)." in pg.locator("#painel").inner_text()
+    ctx.close()
+    # Uma transferida sem semestre original: o bloco aparece só com ela.
+    uma = {"periodos": [
+        {"nome": "2025 (transferidas)", "disciplinas": [{"code": "MAC118", "nota": 7, "aprovadaEm": "2020/1"}, {"code": "COS111", "nota": 8}]},
+        {"nome": "2026/2", "atual": True, "disciplinas": [{"code": "MAC238", "status": "cursando"}]}]}
+    ctx, pg = abre(b, perfil=uma, nome="timeline-bloco-uma", relogio=RELOGIO)
+    completo(pg, "timeline")
+    observado["uma"] = [c for c in titulos(pg) if c[0] in ("2020/1", "2025 (transferidas)")]
+    ctx.close()
+    assert observado == {"colunas": ["2020/1", "2020/2", "2026/2"], "requisito": False, "aviso-card": False, "prazo": True,
+                         "uma": [["2020/1", ["MAC118"]], ["2025 (transferidas)", ["COS111"]]]}, observado
+
+@caso("Rodapé: 'versão antiga' leva à Grade do Grêmio publicada; classico.html continua abrindo o modo clássico")
+def t_versao_antiga(b):
+    ctx, pg = abre(b, nome="versao-antiga")
+    alterna_modo(pg)
+    link = pg.locator(".rodape a", has_text="versão antiga")
+    assert link.get_attribute("href") == "https://gremio-eci.github.io/grade/", link.get_attribute("href")
+    assert link.get_attribute("target") == "_blank" and "noopener" in (link.get_attribute("rel") or "")
+    pg.goto(URL.replace("index.html", "") + "classico.html"); pg.wait_for_url(re.compile(r"index\.html\?modo=classico$")); pronto(pg, "versao-antiga")
+    expect(pg.locator("#modo-classico")).to_be_checked()
+    ctx.close()
+
 ACE_REPETIDA = {"code": "ACE901", "name": "Atividade fictícia repetida", "category": 5, "horas": 30}
 @caso("Linha do tempo: cada transferida vai ao próprio semestre original; transferida aprovada não recebe alerta na coluna de destino")
 def t_timeline_transferida_origem(b):
@@ -1902,6 +1946,8 @@ def t_cadeado(b):
     pg.click('[data-pincel="aprovada"]'); pg.locator('.card[data-code="COS471"]').click()     # marcada como Cursada
     cad.focus(); pg.keyboard.press("Enter")
     expect(pg.locator("#cadeado")).to_have_attribute("aria-pressed", "true"); assert ls(pg, "cadeado") is True
+    expect(pg.locator('.card[data-code="COS110"]')).to_have_class(re.compile(r"(^| )protegida( |$)"))
+    assert pg.locator("#painel .card .cad, #painel .card svg.lucide-lock").count() == 0, "cartão protegido com ícone de cadeado"
     expect(pg.locator("#anuncio")).to_contain_text("Cadeado ligado")
     pg.reload(); expect(pg.locator("#cadeado")).to_have_attribute("aria-pressed", "true")
     antes = ls(pg, "marcacoes")
@@ -2211,12 +2257,12 @@ CASOS3 = [t_fecha_durante_leitura, t_previa_confirmacao, t_previa_download, t_fo
 CASOS = [
     t_descartar_salvo, t_tema, t_tema_abas, t_sem_perfil, t_seletor_modo, t_importar_sugere_planejador, t_criar_perfil, t_perfil_conflito,
     t_compat, t_siga, t_siga_sem_boa, t_excluir, t_periodo_janela, t_config_fechar, t_oferta, t_mac,
-    t_cr01_pre, t_cr01_co, t_cr01_sugestoes, t_cr01_proposta, t_cr01_equivalencia, t_cr05_transferida_requisito, t_timeline_detalhes_e_clique, t_timeline_transferidas, t_timeline_transferida_origem, t_eci_timeline, t_cr01_manual,
+    t_cr01_pre, t_cr01_co, t_cr01_sugestoes, t_cr01_proposta, t_cr01_equivalencia, t_cr05_transferida_requisito, t_timeline_detalhes_e_clique, t_timeline_transferidas, t_timeline_bloco_vazio, t_timeline_transferida_origem, t_eci_timeline, t_cr01_manual,
     t_cr03_historico, t_cr03_lista,
     t_cr04_reingresso, t_cr04_ordem_dos_arquivos, t_cr04_escolha_sem_datas, t_pc05_datas_ausentes, t_cr04_troca_recalcula_planos, t_cr04_ace_duas_ocorrencias, t_cr04_controles, t_pc05_perfil_antigo_duvida, t_cr04_papel, t_cr04_fronteira,
     t_cr02_pedidos, t_cr02_duas_dispensas, t_cr02_dispensa_unica, t_cr02_alvo_fora_do_catalogo,
     t_d02_dois_numeros, t_pedidos_sem_total_e_sem_check, t_d02_ausente_e_vazia, t_d02_outros_grupos, t_d02_importacao,
-    t_rf08_faixa, t_sobre, t_detalhamento_info, t_rf08_notas_credito, t_rf08_periodo_atual, t_rf08_deduzido_regras, t_rf08_oferta, t_rf08_rodape, t_rf08_ace,
+    t_rf08_faixa, t_sobre, t_detalhamento_info, t_rf08_notas_credito, t_rf08_periodo_atual, t_rf08_deduzido_regras, t_rf08_oferta, t_rf08_rodape, t_versao_antiga, t_rf08_ace,
     t_pc02_manual_credito, t_pc03_manual_requisito,
     t_d01_carga, t_d01_conteudo,
     t_regressao, t_a11y,
