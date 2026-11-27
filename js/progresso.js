@@ -188,6 +188,27 @@
       origensDispensa, reutilizadas };
   }
 
-  return { FORCA, semestreValido, semIdx, anoDoBloco, emCurso, parseHorarios, cursadasDe, pendente, semestreDoRegistro,
+  /** Status vindo só dos registros do perfil (histórico, atual, planos e pedidos): o de maior força. */
+  function statusDosRegistros(registros, pedidoPendente) {
+    const b = (registros || []).reduce((a, r) => (FORCA[r.status] > FORCA[a] ? r.status : a), "pendente");
+    if (FORCA[b] < FORCA.planejado && pedidoPendente) return "analise";
+    return b;
+  }
+
+  /**
+   * Fonte da aprovação de um código, para fase e selos (a barra continua usando o status efetivo):
+   * "importado" (registro do perfil), "previsto", "pincel" (tag de tipo aprovado sem registro) ou null.
+   * @param {Array} registros     registros do código (regs[code])
+   * @param {string|undefined} statusPincel  tipo da tag marcada com o pincel, se houver
+   */
+  function fonteDaAprovacao(registros, statusPincel) {
+    const rs = registros || [];
+    if (rs.some((r) => r.status === "aprovado")) return "importado";
+    if (rs.some((r) => r.status === "previsto")) return "previsto";
+    if (statusPincel === "aprovado") return "pincel";
+    return null;
+  }
+
+  return { FORCA, statusDosRegistros, fonteDaAprovacao, semestreValido, semIdx, anoDoBloco, emCurso, parseHorarios, cursadasDe, pendente, semestreDoRegistro,
     montaRegistros };
 });

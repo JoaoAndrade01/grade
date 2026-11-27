@@ -382,13 +382,14 @@
 
   /** Status vindo só do perfil (histórico, período atual, planos e pedidos), sem as marcações do pincel. */
   function statusPerfil(code) {
-    const b = (M.regs[code] || []).reduce((a, r) => (FORCA[r.status] > FORCA[a] ? r.status : a), "pendente");
-    if (FORCA[b] < FORCA.planejado && M.pendEq[code]) return "analise";
-    return b;
+    return window.PROGRESSO.statusDosRegistros(M.regs[code], !!M.pendEq[code]);
   }
   const tagPorId = (id) => tags.find((t) => t.id === id) || null;
   const statusDaTag = (id) => { const t = tagPorId(id); return t ? t.status : "pendente"; };
   const aprovacaoManual = (code) => Object.hasOwn(marcacoes, code) && statusDaTag(marcacoes[code]) === "aprovado";
+  /** Fonte da aprovação (importado, previsto, pincel ou null) para fase e selos; a barra segue `statusDe`. */
+  const fonteDe = (code) => window.PROGRESSO.fonteDaAprovacao(M.regs[code],
+    Object.hasOwn(marcacoes, code) ? statusDaTag(marcacoes[code]) : undefined);
   /** Status efetivo: a marcação do pincel, se houver, vence o perfil. */
   function statusDe(code) {
     if (Object.prototype.hasOwnProperty.call(marcacoes, code)) return statusDaTag(marcacoes[code]);
@@ -3184,7 +3185,7 @@
   }
 
   // Ganchos para testes e para quem quiser depurar no console do navegador.
-  window.GradeInterativa = { carregaPdfJs, linhasPDF, perfilExportado: () => perfilExportado(), totais: () => totais(),
+  window.GradeInterativa = { carregaPdfJs, linhasPDF, perfilExportado: () => perfilExportado(), totais: () => totais(), fonte: (c) => fonteDe(c),
     avisoOferta: (c, p) => avisoOferta(c, p), avisos: (c, nome) => { const p = M.periodos.find((x) => x.nome === nome); return p ? avisos(c, p.semestre) : null; } };
 
   // Rodapé: data da conferência do currículo com o SIGA (campo `consultado` de js/database.js).

@@ -80,6 +80,26 @@ caso("montaRegistros: edições do navegador substituem os itens do período", (
   assert.equal(m.regs.EEL873, undefined);
 });
 
+caso("statusDosRegistros: vale o de maior força; pedido pendente sem aprovação vira análise", () => {
+  const m = modelo(FICTICIO);
+  assert.equal(P.statusDosRegistros(m.regs.MAC118), "previsto");
+  assert.equal(P.statusDosRegistros(m.regs.COS110), "aprovado");
+  assert.equal(P.statusDosRegistros(undefined), "pendente");
+  assert.equal(P.statusDosRegistros(undefined, true), "analise");
+  assert.equal(P.statusDosRegistros(m.regs.MAC128, true), "cursando");
+});
+
+caso("fonteDaAprovacao: importado, previsto, pincel ou nenhuma", () => {
+  const m = modelo(FICTICIO);
+  assert.equal(P.fonteDaAprovacao(m.regs.COS110), "importado");
+  assert.equal(P.fonteDaAprovacao(m.regs.COS110, "cursando"), "importado");     // a tag não apaga o registro
+  assert.equal(P.fonteDaAprovacao(m.regs.MAC118), "previsto");                  // reprovada antes, prevista agora
+  assert.equal(P.fonteDaAprovacao(m.regs.MAC128, "aprovado"), "pincel");        // cursando no perfil, aprovada no pincel
+  assert.equal(P.fonteDaAprovacao(undefined, "aprovado"), "pincel");
+  assert.equal(P.fonteDaAprovacao(m.regs.MAC128), null);
+  assert.equal(P.fonteDaAprovacao(undefined, "planejado"), null);
+});
+
 let falhas = 0;
 for (const [nome, f] of casos) {
   try { f(); console.log("OK   ", nome); }
