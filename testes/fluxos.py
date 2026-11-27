@@ -3829,7 +3829,7 @@ def t_equivalencia_vizinhos(b):
                     f"eq-vizinhos-empate-{n}") for n, ordem in enumerate((["XYZ201", "XYZ202"], ["XYZ202", "XYZ201"]))]
     assert rows[0] == rows[1] and "2024/2" in rows[0], rows
 
-@caso("Equivalência encadeada e plano no passado na tela: a cadeia dá o mesmo resultado nas duas ordens; plano num período que já passou não cobre e é avisado; o prazo misto diz de onde vem a data; com dois blocos, o prazo usa o mais recente nas duas ordens")
+@caso("Equivalência encadeada e plano no passado na tela: a cadeia dá o mesmo resultado nas duas ordens; plano num período que já passou não cobre e é avisado; o prazo misto diz de onde vem a data; com dois blocos, o prazo usa o mais recente nas duas ordens; fora do catálogo com créditos diferentes, vale a aprovação mais recente, com aviso")
 def t_equivalencia_encadeada(b):
     ctx, pg = abre(b, perfil={"periodos": []}, nome="eq-cadeia-obr", relogio=HOJE); obr = [c for c, _, _ in obrigatorias(pg)]; ctx.close()
     pedida, outra = obr[:2]
@@ -3864,6 +3864,17 @@ def t_equivalencia_encadeada(b):
         ctx, pg = abre(b, perfil=perfil, extra={"modoClassico": False, "vista": "pedidos"}, nome=f"eq-dois-blocos-{n}", relogio=HOJE)
         t = pg.locator("tr.eq-a-pedir").inner_text(); ctx.close()
         assert "só o ano 2025" in t and "2019" not in t.replace("2018/2", ""), (n, t)
+    # disciplina fora do catálogo em dois períodos com 2 e 5 cr: vale a aprovação mais recente (5 cr), nas duas ordens, com aviso
+    rep = [{"nome": "2024/1", "disciplinas": [{"code": "XYZ301", "name": "Fora do catálogo fictícia", "credits": 2, "category": 3}]},
+           {"nome": "2025/1", "disciplinas": [{"code": "XYZ301", "name": "Fora do catálogo fictícia", "credits": 5, "category": 3}]}]
+    for n, ordem in enumerate((rep, rep[::-1])):
+        perfil = {"periodos": ordem + [{"nome": "2026/2", "atual": True, "disciplinas": []}]}
+        ctx, pg = abre(b, perfil=perfil, extra={"modoClassico": False, "vista": "timeline"}, nome=f"eq-fora-catalogo-{n}", relogio=HOJE)
+        livre = pg.evaluate("GradeInterativa.totais()[3].ok")
+        card = pg.locator('#painel .coluna:has(> header h2:text-is("2025/1")) .card[data-code="XYZ301"]')
+        card.scroll_into_view_if_needed(); card.click()
+        det = pg.locator("#detalhes"); expect(det).to_be_visible(); t = det.inner_text(); ctx.close()
+        assert livre == 5 and "Créditos diferentes no perfil (2 e 5 cr): vale o da aprovação mais recente." in t, (n, livre, t)
 
 CASOS5 = [t_controles_icones, t_todas_acesas, t_minimalista, t_plano_na_grade, t_declaradas_modelo, t_declaradas_prazo_ace, t_declaradas_arquivo, t_declaradas_reimportar,
           t_registrar_sem_perfil, t_registrar_com_perfil, t_declaradas_detalhe, t_declaradas_gestao, t_declarada_cursando, t_foco, t_motivacao, t_conquistas_estante, t_declaradas_lote_foco, t_foco_ajustes, t_ace_origem, t_previsao_cobertura, t_perfil_troca_declaradas, t_previsao_equivalencia_prevista, t_equivalencia_vizinhos, t_equivalencia_encadeada]

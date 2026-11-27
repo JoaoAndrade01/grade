@@ -316,11 +316,17 @@
 
     const regs = {};
     const registra = (code, r) => (regs[code] = regs[code] || []).push(r);
-    const conhece = (o) => {
-      if (o.code && !curr[o.code] && !opt[o.code]) {
+    // Disciplina fora do catálogo: cada ocorrência fica guardada com o seu registro; no fim, os dados vêm da ocorrência
+    // escolhida pela ordem fixa (resolveForaDoCatalogo), não da primeira da lista.
+    const ocorrencias = {};
+    const herdam = [];
+    const foraDoCatalogo = (code) => !!code && !curr[code] && !opt[code];
+    const conhece = (o, rec) => {
+      if (foraDoCatalogo(o.code)) {
         const anterior = custom[o.code] || {};
         custom[o.code] = { name: anterior.name ?? o.name, credits: anterior.credits ?? o.credits,
           category: anterior.category ?? o.category, horas: anterior.horas ?? o.horas };
+        if (rec) (ocorrencias[o.code] = ocorrencias[o.code] || []).push({ o, rec });
       }
     };
 
@@ -331,8 +337,8 @@
       const brutos = editado ? editados[p.nome] : (p.disciplinas || []);
       const itens = brutos.map((raw) => {
         const it = typeof raw === "string" ? { code: raw } : raw;
-        conhece(it);
         const status = it.status || padrao;
+        conhece(it, { pi, status, aprovadaEm: it.aprovadaEm || null });
         const alvo = it.equivale || it.code;
         const inf = info(it.code) || {};
         const item = {
@@ -344,11 +350,12 @@
           workload: inf.workload, cel: parseHorarios(it.horarios), dispensas: [], aprovadaEm: it.aprovadaEm || null,
           ri: (regs[alvo] || []).length,   // posição do registro deste item em regs[alvo]: identifica a ocorrência
         };
+        if (foraDoCatalogo(it.code) && (it.name == null || it.credits == null || it.category == null || it.horas == null)) herdam.push({ item, it });
         registra(alvo, { pi, status, nota: it.nota, horas: alvo === it.code ? it.horas : undefined,
           via: it.equivale ? `equivalência: ${it.code} ${item.name}` : null, aprovadaEm: it.aprovadaEm || null });
         (it.dispensa || []).forEach((d) => {
           const dn = typeof d === "string" ? { code: d } : { category: 2, ...d };
-          conhece(dn);
+          conhece(dn, status !== "reprovado" ? { pi, status } : null);
           if (status !== "reprovado") registra(dn.code, { pi, status, nota: "T", via: `dispensa por ${it.code}` });
           item.dispensas.push(dn.code);
         });
@@ -359,7 +366,8 @@
 
     // Aprovações registradas por você: o período virtual só existe no modelo (não vai para o perfil, para a exportação
     // nem para o Cronograma). A classificação usa os registros do perfil; a equivalência deferida é conferida depois.
-    declaradas.forEach((d) => conhece(d));
+    declaradas.forEach((d) => conhece(d, { pi: periodos.length, status: "aprovado", origem: "declarado",
+      semestreDeclarado: semestreValido(d.semestre) ? d.semestre : null, registradoEm: d.registradoEm || null }));
     let classe = classificaDeclaradas(declaradas, regs, periodos);
     // Sem declaradas, o período virtual não existe (o modelo fica igual ao de antes).
     const piDecl = declaradas.length ? periodos.length : null;
@@ -378,6 +386,28 @@
         registradoEm: item.registradoEm, horas: d.horas, via: "aprovação registrada por você", aprovadaEm: null });
     };
     classe.ativas.forEach(registraDeclarada);
+
+    // Mesmo código fora do catálogo com dados diferentes (por exemplo, 2 cr num período e 5 cr noutro): vale a ocorrência
+    // escolhida pela ordem fixa dos registros (ordemDosRegistros), de preferência a aprovação mais recente; os campos
+    // que faltam nela vêm das outras, da mais recente para a mais antiga. Créditos diferentes ficam em creditosDivergentes.
+    const creditosDivergentes = {};
+    Object.entries(ocorrencias).forEach(([code, lista]) => {
+      const ordem = lista.slice().sort((a, b) => ordemDosRegistros(b.rec, a.rec, periodos)
+        || (b.rec.status === "aprovado") - (a.rec.status === "aprovado"));
+      const aprovadas = ordem.filter((x) => x.rec.status === "aprovado");
+      const escolhida = [...aprovadas, ...ordem.filter((x) => x.rec.status !== "aprovado")];
+      const campo = (k) => { const x = escolhida.find((y) => y.o[k] != null); return x ? x.o[k] : undefined; };
+      custom[code] = { name: campo("name"), credits: campo("credits"), category: campo("category"), horas: campo("horas") };
+      const cr = [...new Set(lista.map((x) => x.o.credits).filter((c) => c != null))].sort((a, b) => a - b);
+      if (cr.length > 1) creditosDivergentes[code] = cr;
+    });
+    herdam.forEach(({ item, it }) => {
+      const inf = info(it.code) || {};
+      if (it.name == null) item.name = inf.name || it.code || "?";
+      if (it.credits == null) item.credits = inf.credits || 0;
+      if (it.category == null) item.category = inf.category || 3;
+      if (it.horas == null) item.horas = inf.horas;
+    });
 
     // Equivalências: deferida passa a valer como a disciplina pedida (e a cursada deixa de contar no grupo original);
     // "a pedir" / "em análise" ficam numa faixa separada até a resposta.
@@ -468,7 +498,7 @@
     const reutilizadas = Object.entries(dispensou).map(([origem, alvos]) => ({ origem, alvos: [...new Set(alvos)] }))
       .filter((x) => x.alvos.length > 1);
 
-    return { curr, opt, info, deps, regs, periodos, consumidas, pendEq, pendConsumo, dispensou, pedidosComConflito,
+    return { curr, opt, info, deps, regs, periodos, consumidas, pendEq, pendConsumo, dispensou, pedidosComConflito, creditosDivergentes,
       origensDispensa, reutilizadas, piDecl, declaradas: classe };
   }
 

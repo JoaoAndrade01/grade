@@ -2285,6 +2285,7 @@
         <h3>${esc(i.name)}</h3>
         ${oc ? `<p class="det-ocorrencia s-${oc.status}"><b>${esc(alvo.declarada && !oc.semestreDeclarado ? "Sem semestre" : alvo.periodo)}</b>: ${ROTULO[oc.status]} · ${oc.origem === "declarado" ? ORIGEM_DECL : "perfil"}${oc.nota != null ? ` · nota ${esc(oc.nota)}` : ""}${blocoOc ? ` (transferida, ${esc(blocoOc)})` : ""}</p>` : ""}
         <p class="det-meta">${esc(metaDe(code, valorCat(i), i.category))}${i.workload ? ` · ${i.workload} h` : ""} · ${esc(fonte)}</p>
+        ${M.creditosDivergentes && M.creditosDivergentes[code] ? `<p class="det-meta aviso-creditos">Créditos diferentes no perfil (${M.creditosDivergentes[code].map(fmt).join(" e ")} cr): vale o da aprovação mais recente.</p>` : ""}
         <p class="det-status s-${s}"><i class="dot s-${s}"></i>${oc ? "Na disciplina: " : ""}${ROTULO[s]}${aprovacaoManual(code) ? " por marcação manual (pincel), não é registro importado"
           : Object.prototype.hasOwnProperty.call(marcacoes, code) ? " (marcada com o pincel)" : s === "aprovado" && fonteDe(code) === "declarado" ? ` · ${ORIGEM_DECL}, não é registro do SIGA` : ""}</p>
         ${htmlDeclarada(code)}
