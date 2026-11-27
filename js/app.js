@@ -749,7 +749,7 @@
   const ORIGEM_DECL = "registrada por você";
 
   /**
-   * Ícone de estado do cartão (decisão M2, WCAG 1.4.1): a situação não depende só da cor. O ícone é decorativo; a
+   * Ícone de estado do cartão (PC-08, WCAG 1.4.1): a situação não depende só da cor. O ícone é decorativo; a
    * situação e a origem vão em texto no nome acessível (`.sr`), no primeiro toque (14h) e nos detalhes.
    */
   const ICONE_ESTADO = { aprovado: "✓", previsto: "…", cursando: "◐", planejado: "○", reprovado: "✗", analise: "⇄" };

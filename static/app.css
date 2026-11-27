@@ -986,7 +986,7 @@ body:has(.paleta:not([hidden])) .rodape { padding-bottom: 84px; }
 .checks .orientacao-carga { color: var(--muted); }   /* D-01: orientação, sem estilo de aprovação ou falha */
 .papel-historico .alerta { color: var(--text); font-weight: 600; border-left: 3px solid var(--alerta); padding-left: 8px; }   /* ≥ 4,5:1 nos dois temas */
 
-/* ---------- ícone de estado no cartão (M2); situação e origem em texto no nome acessível e no toque ---------- */
+/* ---------- ícone de estado no cartão (PC-08); situação e origem em texto no nome acessível e no toque ---------- */
 .card .estado { display: inline-block; min-width: 1.1em; margin-right: 3px; font-weight: 700; color: var(--text);
   font-variant-emoji: text; font-family: system-ui, "Segoe UI Symbol", sans-serif; }
 /* ✎ vem de outra fonte, mais fina e menor: compensa para ficar do tamanho dos outros ícones */
