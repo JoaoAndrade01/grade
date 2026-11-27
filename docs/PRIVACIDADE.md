@@ -55,8 +55,9 @@ lugar, e não controla o que o GitHub registra quando você visita o site hosped
 | `plano` | Edições de planejamento, pedidos, extensão e aprovações registradas por você ainda não exportadas (inclui períodos excluídos) |
 | `tema`, `aparencia` | Tema escolhido e Aparência (Só ícones ou Minimalista; sem a chave, Ícone + texto). Só existem depois de uma escolha. A chave antiga `seletorIcones` é convertida em `aparencia` e apagada |
 | `atalhos`, `ocultarSeletor`, `modoClassico`, `cadeado` | Atalhos fixados na barra, seletor de modo visível ou oculto, modo e cadeado da paleta |
-| `vista`, `exibir`, `filtros`, `filtroNivel`, `cronoPeriodo`, `progressoAberto` | Preferências de tela (em `exibir`: código, notas, dificuldade, presença, plano e destaque) |
+| `vista`, `exibir`, `filtros`, `filtroNivel`, `cronoPeriodo`, `progressoAberto` | Preferências de tela (em `exibir`: código, notas, dificuldade, presença, plano, situação e o modo da Trilha, na chave `destaque`) |
 | `foco`, `tom` | Modo Foco ligado ou desligado e o tom das mensagens do Foco (zoeira ou discreto) |
+| `conquistasFora` | Configurações → Conquistas: mostrar a aba Conquistas também fora do Foco. Sem a chave, só no Foco |
 | `perfilId`, `selosAvisados` | Identidade local aleatória do perfil e a lista de conquistas já anunciadas para ela. Não usa nome, matrícula nem outro dado do aluno; carregar outro perfil, Limpar ou Descartar recomeçam a lista. As conquistas em si não são guardadas: são recalculadas do perfil |
 
 ## Como conferir você mesmo

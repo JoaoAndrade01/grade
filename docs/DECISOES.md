@@ -5,7 +5,7 @@
 Cada decisão é um registro curto, no formato de [Nygard](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions):
 **estado**, **contexto**, **decisão** e **consequências**. Os casos de teste citados estão em
 [REQUISITOS.md](REQUISITOS.md); as regras, em [REGRAS-ACADEMICAS.md](REGRAS-ACADEMICAS.md). Todas as decisões
-abaixo são de 2026-11-26 e estão **aceitas**, salvo indicação (as de 2026-11-27 dizem a data). Uma decisão substituída aponta para o registro
+abaixo são de 2026-11-26 e estão **aceitas**, salvo indicação (as de 2026-11-27 dizem a data; PC-15 a PC-19 são da v2.1.0). Uma decisão substituída aponta para o registro
 novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, sem reescrever o antigo.
 
 ## Índice
@@ -34,6 +34,11 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
 | [PC-12](#pc-12--fase-do-curso-e-previsão-de-formatura) | Fase do curso e previsão de formatura |
 | [PC-13](#pc-13--conquistas) | Conquistas |
 | [PC-14](#pc-14--registrar-marcações-aprovações-registradas-por-você) | Registrar marcações |
+| [PC-15](#pc-15--clássico-só-para-pintar) | Clássico só para pintar |
+| [PC-16](#pc-16--botões-que-acendem-ícones-lucide-e-situação) | Botões que acendem, Lucide e Situação |
+| [PC-17](#pc-17--trilha-dos-requisitos-ao-segurar) | Trilha dos requisitos ao segurar |
+| [PC-18](#pc-18--detalhes-como-folha-no-celular-e-clique-fora) | Detalhes no celular e clique fora |
+| [PC-19](#pc-19--aba-conquistas-no-foco) | Aba Conquistas no Foco |
 | [PUB-01](#pub-01--retirada-da-página-legada) | Página legada |
 | [PUB-02](#pub-02--valor-e-condições-para-publicar) | Valor e condições para publicar |
 | [PUB-03](#pub-03--ordem-de-publicação) | Ordem de publicação |
@@ -150,6 +155,8 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
 - **Consequências:** casos 08a, 08b e 08m. As notas de estimativa de D-06 não mudam.
 - **Atualização (2026-11-27):** "Mostrar só ícones no seletor" virou o nível Só ícones da Aparência
   ([PC-09](#pc-09--aparência-em-três-níveis-e-ícones-nos-controles)).
+- **Atualização (v2.1.0):** o Clássico fica só para pintar e o importador não sugere mais o Planejador: Importar e Criar
+  perfil ficam no Planejador ([PC-15](#pc-15--clássico-só-para-pintar)). O aviso do rodapé e a seção Sobre não mudam.
 
 ## Produto e importação
 
@@ -241,6 +248,9 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
   importado, com a origem "registrada por você" no nome acessível, no primeiro toque e nos detalhes. O detalhamento
   tem uma linha irmã da marcação manual: "☑ N aprovações registradas por você: contam para fase e conquistas, não
   são registro do SIGA." No Minimalista, o cartão mostra só o nome e o ícone de estado, sem detalhamento.
+- **Atualização (v2.1.0):** os ícones de estado passam a ser da Lucide, com `data-estado` estável, e Exibir → Situação liga
+  e desliga o ícone nos cartões da Grade ([PC-16](#pc-16--botões-que-acendem-ícones-lucide-e-situação)). No Clássico, o cartão fica só com cor e nome, sem ícone, sem barra e sem
+  legenda; a situação continua no nome acessível ([PC-15](#pc-15--clássico-só-para-pintar)). A escala de dificuldade não aparece mais no Clássico.
 
 ### PC-09 · Aparência em três níveis e ícones nos controles
 
@@ -275,6 +285,8 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
   foco. As setas didáticas de "A ECI por trás da Grade" continuam.
 - **Consequências:** casos 14d, 14h, 14l e 14u. A distinção não depende da cor (contorno contínuo, tracejado e a
   palavra "libera").
+- **Atualização (v2.1.0):** Destaque vira **Trilha**, com três modos; o padrão passa a ser **Ao segurar** e "Em foco" vira
+  **Ao passar o mouse** ([PC-17](#pc-17--trilha-dos-requisitos-ao-segurar)).
 
 ### PC-11 · Modo Foco no Planejador
 
@@ -289,6 +301,8 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
   com o Planejador. Desligar mantém a aba atual e o foco no 🎯 (`aria-pressed`). Totais e planejamento nunca mudam.
 - **Consequências:** casos 20a a 20e. O cartão da fase e a estante de conquistas aparecem no Foco
   ([PC-12](#pc-12--fase-do-curso-e-previsão-de-formatura), [PC-13](#pc-13--conquistas)).
+- **Atualização (v2.1.0):** no Clássico, o botão do Foco fica oculto (a preferência continua salva) ([PC-15](#pc-15--clássico-só-para-pintar)). Com o Foco
+  ligado, a quarta aba é **Conquistas**, que recebe o cartão da fase e a estante ([PC-19](#pc-19--aba-conquistas-no-foco)).
 
 ### PC-12 · Fase do curso e previsão de formatura
 
@@ -330,6 +344,8 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
   opaca, nunca um dado do aluno: recarga e atualização do mesmo perfil preservam a lista; substituição ou limpeza
   recomeçam. A animação do selo novo respeita `prefers-reduced-motion`.
 - **Consequências:** casos 20i a 20l. Chaves `perfilId` e `selosAvisados` em [PRIVACIDADE.md](PRIVACIDADE.md).
+- **Atualização (v2.1.0):** a estante sai da Grade e vai para a aba Conquistas, em cartões por grupo; o anúncio do selo
+  novo fica separado do desenho e sai mesmo com a aba fechada ([PC-19](#pc-19--aba-conquistas-no-foco)). As regras dos selos não mudam.
 
 ### PC-14 · Registrar marcações: aprovações registradas por você
 
@@ -402,6 +418,86 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
   - *Disciplina fora do catálogo com créditos diferentes:* se ela aparece em dois períodos com créditos diferentes, a
     soma pode usar um ou outro valor conforme a ordem dos períodos.
   - *Duas aprovações do mesmo código no mesmo semestre:* o resultado pode variar conforme a ordem.
+
+### PC-15 · Clássico só para pintar
+
+- **Estado:** aceita na v2.1.0 (2026-11-27). Atualiza [D-09](#d-09--aviso-no-rodapé-seção-sobre-e-modos-clássico-e-planejador), [PC-08](#pc-08--ícone-de-estado-no-cartão-e-legendas-por-aba), [PC-11](#pc-11--modo-foco-no-planejador) e
+  RNF-06; reescreve os casos 14o, 14p e 20b.
+- **Contexto:** o Clássico juntava a grade para pintar com a barra, Configurações, importar, Foco, Registrar e os ícones
+  de estado. Quem só queria pintar via controles que não usava, e o modo perdia o sentido de "só a grade".
+- **Decisão:**
+  - **Topo:** só o seletor "Clássico | Planejador" e o botão de tema, sempre visíveis, mesmo com o seletor oculto ou o
+    atalho do tema desfixado em Configurações; essas preferências continuam salvas para o Planejador.
+  - **Saem do Clássico:** Configurações, Importar, Exportar, Foco, Registrar marcações, a barra, o detalhamento, a
+    legenda, o aviso do perfil salvo, a sugestão de trocar de modo no importador e os extras do cartão (código, nota,
+    dificuldade, presença, plano e ícone de estado). Os controles estáticos ficam ocultos, fora do Tab e da árvore de
+    acessibilidade.
+  - **Ficam:** a paleta (tags, "Limpar", Editar tags e o cadeado) e os cartões com cor e nome. A situação continua no
+    nome acessível. O Clássico ignora Exibir sem mudar a preferência salva.
+  - **Pintar:** a disciplina protegida só anuncia, sem abrir Detalhes; a consulta do primeiro toque fica só com o texto.
+  - **Registrar e criar perfil:** no Planejador.
+- **Consequências:** casos 14o, 14p, 14v e 20b; teste `t_classico_so_pintar`. **RNF-06:** sem perfil, o próximo passo
+  (Criar perfil ou Importar do SIGA) fica no Planejador, a um toque do seletor visível no topo; a primeira visita
+  continua no Clássico, sem aviso. A nova passada da inspeção heurística deve conferir esse caminho.
+
+### PC-16 · Botões que acendem, ícones Lucide e Situação
+
+- **Estado:** aceita na v2.1.0 (2026-11-27). Atualiza [PC-08](#pc-08--ícone-de-estado-no-cartão-e-legendas-por-aba) e [PC-09](#pc-09--aparência-em-três-níveis-e-ícones-nos-controles).
+- **Contexto:** os controles misturavam caixas de marcar, rádios, emojis e símbolos soltos (#, ★, ●, ✓, 📅, ⇢, ◌, ⊞, ☼).
+- **Decisão:**
+  - **Botões que acendem:** Exibir e os filtros das Optativas são um botão por opção, aceso quando ligado
+    (`aria-pressed`), sem caixa de marcar. Em Só ícones, só o ícone, com o nome no `title` e no nome acessível.
+    "Horários de AAAA/S" continua `select` nativo. "Todas acesas" indisponível fica com `aria-disabled` e anuncia o
+    motivo. Configurações mantém os controles nativos.
+  - **Ícones:** todos da Lucide (ISC), em `js/icones.js`. Os ícones de estado ganham `data-estado` estável (aprovado,
+    cursando, planejado, previsto, marcacao, reprovado, declarada, equivalencia). Pendente continua sem ícone.
+    Exceções, por serem conteúdo: as bolinhas da dificuldade, os emojis dos selos e os chips do cartão da fase.
+  - **Situação** (Exibir, padrão ligado): liga e desliga o ícone de estado nos cartões da Grade; a situação continua no
+    nome acessível e nos detalhes.
+  - **Legenda da dificuldade:** em Ícone + texto, uma linha com cada bolinha junto do nome; em Só ícones, só as cinco
+    bolinhas, com os nomes no `title` e no nome acessível. Tocar na legenda não muda o filtro.
+- **Consequências:** casos 14i, 14r, 14s, 14w, 14x e 14y.
+
+### PC-17 · Trilha dos requisitos ao segurar
+
+- **Estado:** aceita na v2.1.0 (2026-11-27). Atualiza [PC-10](#pc-10--destaque-de-requisitos-no-lugar-das-setas-da-grade).
+- **Contexto:** com "Em foco", qualquer passada do mouse acendia e esmaecia a Grade, o que cansava ao pintar.
+- **Decisão:**
+  - **Modos:** Desligado, **Ao segurar** (padrão) e Ao passar o mouse (o antigo "Em foco"), numa chave segmentada igual
+    ao seletor de modo. Vale na Grade do Clássico e do Planejador; Linha do tempo e Optativas não mudam.
+  - **Ao segurar:** clicar e segurar, tocar e segurar (cerca de 400 ms) ou segurar Espaço num cartão mostra a trilha;
+    soltar apaga, mesmo com Detalhes aberto. Nenhum outro gatilho acende. Cancela com movimento acima de 10 px, rolagem,
+    saída do alvo, perda de foco ou troca de tela. O clique curto continua igual; o clique que encerra a pressão longa é
+    consumido. A rolagem da página continua.
+  - **Migração pela regra literal:** sem a chave, Ao segurar; "foco" e "desligado" salvos continuam; a cadeia antiga
+    `setas` migra (Ocultas → Desligado; Disciplina em foco e Todas → Ao passar o mouse).
+- **Consequências:** casos 14d, 14l, 14u e 14z.
+
+### PC-18 · Detalhes como folha no celular e clique fora
+
+- **Estado:** aceita na v2.1.0 (2026-11-27).
+- **Contexto:** no celular, o detalhe de uma disciplina pintada podia cortar a parte de cima, e os painéis só fechavam
+  pelo ✕ ou por Esc.
+- **Decisão:** até 720 px, o painel de detalhes abre como uma folha que sobe de baixo, inteira, com rolagem interna, acima
+  da paleta: fundo escurecido, o resto da página `inert`, `role="dialog"` com `aria-modal` e o foco preso dentro.
+  ✕, toque no fundo e Esc fecham, e o foco volta ao cartão. O toque no fundo só fecha, sem atravessar para o cartão de
+  baixo. Clique fora fecha os detalhes da disciplina e o editor de tags no computador e no celular; o importador, a
+  Privacidade e as Referências não fecham por clique fora. Arrastar para baixo fica para depois.
+- **Consequências:** casos 22a a 22c.
+
+### PC-19 · Aba Conquistas no Foco
+
+- **Estado:** aceita na v2.1.0 (2026-11-27). Atualiza [PC-11](#pc-11--modo-foco-no-planejador) e
+  [PC-13](#pc-13--conquistas).
+- **Contexto:** o cartão da fase e a estante ocupavam o alto da Grade e da Linha do tempo, e a lista completa ficava
+  escondida em "Ver todas".
+- **Decisão:** com o Foco ligado, as abas são Grade, Linha do tempo, Cronograma e **Conquistas**. Fora do Foco, a aba
+  só aparece se Configurações → Conquistas estiver em "também fora do Foco" (padrão: só no Foco). A página tem a
+  Situação ("Bora, [nome] 💪"; discreto: "Situação · [nome]"), com fase, barra, avanço do período, próximo marco, o que
+  destrava e previsão, e as conquistas em cartões por grupo, com progresso e "N de M". Sem perfil, orienta a criar ou
+  importar. O anúncio de selo novo sai mesmo com a aba fechada e o selo aparece como novo ao abrir a aba. Se a aba some
+  com ela selecionada, a Grade volta, há anúncio e o foco fica no controle que causou a mudança.
+- **Consequências:** casos 20m a 20p. Chave `conquistasFora` em [PRIVACIDADE.md](PRIVACIDADE.md).
 
 ## Publicação e processo
 
