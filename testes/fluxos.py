@@ -2523,7 +2523,8 @@ def t_b8_alvos(b):
             for el in pg.locator(s).all():
                 if not el.is_visible(): continue
                 r = el.bounding_box()
-                if r["width"] < 24 or r["height"] < 24: pequenos.append((rotulo, s, round(r["width"], 1), round(r["height"], 1)))
+                # 0,01 px de tolerância: em coordenadas grandes e fracionárias o Firefox mede 24 px como 23,9998 (erro de ponto flutuante)
+                if r["width"] < 23.99 or r["height"] < 23.99: pequenos.append((rotulo, s, round(r["width"], 1), round(r["height"], 1)))
     for nome, vp, toque in [("desktop", D, False), ("celular", C320, True)]:
         ctx, pg = abre(b, vp=vp, perfil=PERFIL, extra={"modoClassico": False, "vista": "optativas"}, nome=f"b8-{nome}", toque=toque)
         mede(pg, [".mini-btn", ".chip-btn", ".seg button", ".check input"], f"optativas-{nome}")

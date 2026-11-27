@@ -506,7 +506,8 @@ small.alerta, .alerta { color: var(--dep); }
 .modo-op input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; pointer-events: none; }
 .modo-op:hover { background: color-mix(in srgb, var(--text) 8%, transparent); }
 .modo-op:has(input:checked) { background: var(--text); color: var(--bg); font-weight: 600; }
-.modo-op:has(input:focus-visible) { outline: 2px solid var(--foco); outline-offset: 2px; }
+/* :focus, e não :focus-visible: no WebKit o rádio focado pelas setas não casa :focus-visible e o contorno sumia */
+.modo-op:has(input:focus) { outline: 2px solid var(--foco); outline-offset: 2px; }
 .seletor-modo.so-icones .rot { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .seletor-modo.so-icones .modo-op { padding: 0 10px; min-width: 40px; }
 :root .seletor-modo.so-icones .ico { display: inline-block; }   /* só ícones vale mesmo com "Somente texto" na aparência */
