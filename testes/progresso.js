@@ -213,6 +213,141 @@ caso("semestreDoHistorico: só o período do Histórico vale para as regras de m
   assert.equal(P.semestreDoRegistro(m.regs.MAC128[0], m.periodos), sem("2025/1"));
 });
 
+// ---------- Fase, conquistas e previsão (js/conquistas.js)
+const C = require(path.join(RAIZ, "js", "conquistas.js"));
+const GUIA = {}; vm.runInNewContext(fs.readFileSync(path.join(RAIZ, "js", "guia.js"), "utf8"), { window: GUIA });
+const GRADE = janela.courses[1].map((c, i) => Object.assign({}, c, { idx: i, category: c.category || 1 }));
+const TOTAIS = { 1: 174, 2: 40, 3: 8, 4: 4 };
+/** Contexto fictício: `aprov` = código -> fonte; o resto com padrões vazios. */
+function ctx({ aprov = {}, historico = [], creditos = {}, ace = {}, fenix = {}, plano = false, deps } = {}) {
+  const m = P.montaRegistros(entrada({ periodos: [] }));
+  return { fonte: (c) => aprov[c] || null, codigos: Object.keys(aprov), nivel: (c) => (GUIA.guia[1].disciplinas[c] || {}).nivel || null,
+    deps: deps || m.deps, grade: GRADE, creditos, totais: TOTAIS, ace, aceTotal: 405, historico,
+    fenix: { importado: false, declarado: false, ...fenix }, planejamentoCompleto: plano };
+}
+const selo = (lista, id) => lista.find((s) => s.id === id);
+const todos = (codes, f = "importado") => Object.fromEntries(codes.map((c) => [c, f]));
+
+caso("Fase: fronteiras 24,9%, 25%, 74,9% e 75%; calouro só com até dois semestres do Histórico (P5)", () => {
+  assert.equal(C.fase(0.249, 1), "calouro"); assert.equal(C.fase(0.25, 1), "meio");
+  assert.equal(C.fase(0.749, 9), "meio"); assert.equal(C.fase(0.75, 9), "veterano");
+  assert.equal(C.fase(0.10, 3), "meio");                     // menos de 25% com mais de dois semestres cursados
+  assert.equal(C.fase(0.10, 2), "calouro"); assert.equal(C.fase(0.10, null), "calouro");   // sem Histórico: só o percentual
+  // precisão no cálculo: 56 de 226 cr = 24,78% (calouro), mesmo que a tela arredonde para 25%
+  assert.equal(C.fase(C.percentual({ 1: { importado: 56 } }, TOTAIS, 0), 1), "calouro");
+});
+
+caso("R27: fase com declaradas só ganha \"declarado\" quando muda sem elas", () => {
+  const f = (imp, dec) => C.faseDoCurso({ pctImportado: C.percentual({ 1: { importado: imp } }, TOTAIS, 0),
+    pctComDeclaradas: C.percentual({ 1: { importado: imp, declarado: dec } }, TOTAIS, 1), semestres: 1 });
+  assert.deepEqual([f(60, 50).fase, f(60, 50).declarado], ["meio", false]);      // 48,7% e 26,5%: as duas dão meio
+  assert.deepEqual([f(40, 20).fase, f(40, 20).declarado], ["meio", true]);       // 26,5% contra 17,7%
+});
+
+caso("Percentual: cada grupo limitado ao total; prevista e pincel ficam fora até o índice pedido", () => {
+  const cr = { 1: { importado: 200 }, 2: { importado: 10, previsto: 10, pincel: 10 } };
+  assert.equal(C.percentual(cr, TOTAIS, 0), (174 + 10) / 226);
+  assert.equal(C.percentual(cr, TOTAIS, 2), (174 + 20) / 226);
+});
+
+caso("R28 e R29: selo com declarada mostra \"· declarado\"; só com o pincel fica \"quase lá (simulação ✎)\"", () => {
+  const base = todos(["MAC118", "MAC128", "MAC238"]);
+  const d = selo(C.avaliaSelos(ctx({ aprov: { ...base, MAC248: "declarado" } })), "rei-calculos");
+  assert.deepEqual([d.estado, d.declarado], ["obtido", true]);
+  const p = selo(C.avaliaSelos(ctx({ aprov: { ...base, MAC248: "pincel" } })), "rei-calculos");
+  assert.deepEqual([p.estado, p.origem], ["quase", "simulação ✎"]);
+  const v = selo(C.avaliaSelos(ctx({ aprov: { ...base, MAC248: "previsto" } })), "rei-calculos");
+  assert.deepEqual([v.estado, v.origem], ["quase", "prevista"]);
+  const f = selo(C.avaliaSelos(ctx({ aprov: base })), "rei-calculos");
+  assert.equal(f.estado, "falta"); assert.match(f.falta, /MAC248/);
+});
+
+caso("Um caso fictício por selo de lista de disciplinas", () => {
+  const listas = { "valeu-einstein": ["FIT112", "FIT122", "FIM230", "FIM240"], "mao-na-massa": ["FIS111", "FIS121", "FIN231", "FIN241"],
+    "transistor-so": ["EEL280", "EEL480", "EEL580", "EEL770"], "hello-world": ["COS110"], "matematico-raiz": ["MAE125", "COS351", "EEL881", "COS242"],
+    "ping-0ms": ["EEL878", "EEL879"], "select-aprovadas": ["EEL871", "COS480"], "nazare-confusa": ["COS351", "EEL881"] };
+  for (const [id, codes] of Object.entries(listas)) {
+    assert.equal(selo(C.avaliaSelos(ctx({ aprov: todos(codes) })), id).estado, "obtido", id);
+    assert.equal(selo(C.avaliaSelos(ctx({ aprov: todos(codes.slice(1)) })), id).estado, "falta", id);
+  }
+});
+
+caso("Difíceis: Sobrevivente, Casca grossa, Calma Calabreso (todas aprovadas, só Histórico) e Fênix (R15 \"· declarado\")", () => {
+  assert.equal(selo(C.avaliaSelos(ctx({ aprov: todos(["COS110"]) })), "sobrevivente").estado, "obtido");        // nível 5
+  assert.equal(selo(C.avaliaSelos(ctx({ aprov: todos(["MAC128"]) })), "sobrevivente").estado, "falta");         // nível 3
+  assert.equal(selo(C.avaliaSelos(ctx({ aprov: todos(["COS110", "FIT122", "MAC248"]) })), "casca-grossa").estado, "obtido");
+  assert.equal(selo(C.avaliaSelos(ctx({ aprov: todos(["COS110", "FIT122"]) })), "casca-grossa").estado, "falta");
+  const h = (itens) => [{ nome: "2025/1", itens }];
+  assert.equal(selo(C.avaliaSelos(ctx({ historico: h([{ code: "COS110", status: "aprovado" }, { code: "FIT122", status: "aprovado" }]) })), "calma-calabreso").estado, "obtido");
+  assert.equal(selo(C.avaliaSelos(ctx({ historico: h([{ code: "COS110", status: "aprovado" }, { code: "FIT122", status: "reprovado" }]) })), "calma-calabreso").estado, "falta");
+  const fx = selo(C.avaliaSelos(ctx({ fenix: { declarado: true } })), "fenix");
+  assert.deepEqual([fx.estado, fx.declarado], ["obtido", true]);
+  assert.equal(selo(C.avaliaSelos(ctx({ fenix: { importado: true } })), "fenix").declarado, false);
+});
+
+caso("R34 (A5): regras de mesmo período só com o Histórico; o semestre declarado não conta", () => {
+  // as cinco aprovações declaradas no mesmo semestre não entram no Histórico: Movido a café e Tá pago não saem
+  const r = C.avaliaSelos(ctx({ aprov: todos(["COS110", "COS111", "EEL280", "FIT112", "FIS111"], "declarado") }));
+  assert.equal(selo(r, "movido-cafe").estado, "falta"); assert.equal(selo(r, "ta-pago").estado, "falta");
+  const h = [{ nome: "2025/1", itens: ["COS110", "COS111", "EEL280", "FIT112", "FIS111"].map((code) => ({ code, status: "aprovado" })) }];
+  const s = C.avaliaSelos(ctx({ historico: h }));
+  assert.equal(selo(s, "movido-cafe").estado, "obtido"); assert.equal(selo(s, "ta-pago").estado, "obtido");
+  const misto = [{ nome: "2025/2", itens: [{ code: "MAC118", status: "aprovado" }, { code: "FIT112", status: "reprovado" }] }];
+  assert.equal(selo(C.avaliaSelos(ctx({ historico: misto })), "ta-pago").estado, "falta");
+});
+
+caso("Etapas: Ciclo básico, Metade, Extensão em dia, Créditos completos (com ACE pendente) × Acabou! Acabou!", () => {
+  const basico = GRADE.filter((x) => x.code && x.category === 1 && x.semester <= 4).map((x) => x.code);
+  assert.equal(selo(C.avaliaSelos(ctx({ aprov: todos(basico) })), "ciclo-basico").estado, "obtido");
+  assert.equal(selo(C.avaliaSelos(ctx({ aprov: todos(basico.slice(1)) })), "ciclo-basico").estado, "falta");
+  assert.equal(selo(C.avaliaSelos(ctx({ creditos: { 1: { importado: 113 } } })), "metade").estado, "obtido");   // 113/226 = 50%
+  assert.equal(selo(C.avaliaSelos(ctx({ creditos: { 1: { importado: 112 } } })), "metade").estado, "falta");
+  assert.equal(selo(C.avaliaSelos(ctx({ ace: { importado: 405 } })), "extensao").estado, "obtido");
+  const cheio = { 1: { importado: 174 }, 2: { importado: 40 }, 3: { importado: 8 }, 4: { importado: 4 } };
+  const semAce = C.avaliaSelos(ctx({ creditos: cheio, aprov: todos(["EEWX00", "EEWU00"]), ace: { importado: 300 } }));
+  assert.equal(selo(semAce, "creditos-completos").estado, "obtido"); assert.equal(selo(semAce, "creditos-completos").nota, "falta ACE: 105 h");
+  assert.equal(selo(semAce, "acabou").estado, "falta"); assert.match(selo(semAce, "acabou").falta, /105 h de ACE/);
+  const tudo = C.avaliaSelos(ctx({ creditos: cheio, aprov: todos(["EEWX00", "EEWU00"]), ace: { importado: 405 } }));
+  assert.equal(selo(tudo, "acabou").estado, "obtido");
+});
+
+caso("Extras: Receba!, Colecionador, É tetra! e o selo do Notion (só o plano das disciplinas; ACE não entra)", () => {
+  assert.equal(selo(C.avaliaSelos(ctx({ aprov: todos(["MAC118"]) })), "receba").estado, "obtido");     // MAC118 libera 3 ou mais
+  assert.equal(selo(C.avaliaSelos(ctx({ aprov: todos(["COS480"]) })), "receba").estado, "falta");
+  assert.equal(selo(C.avaliaSelos(ctx({ creditos: { 2: { importado: 40 } } })), "colecionador").estado, "obtido");
+  const quatro = todos(["COS110", "EEL878", "EEL879", "EEL871", "COS480"]);    // Hello, Ping, SELECT, Sobrevivente
+  assert.deepEqual([selo(C.avaliaSelos(ctx({ aprov: quatro })), "tetra").estado, selo(C.avaliaSelos(ctx({ aprov: quatro })), "tetra").declarado], ["obtido", false]);
+  const tres = { ...todos(["EEL878", "EEL879"]), COS110: "declarado", EEL871: "declarado", COS480: "declarado" };   // só Ping é importado
+  assert.deepEqual([selo(C.avaliaSelos(ctx({ aprov: tres })), "tetra").estado, selo(C.avaliaSelos(ctx({ aprov: tres })), "tetra").declarado], ["obtido", true]);
+  assert.equal(selo(C.avaliaSelos(ctx({ plano: true, ace: {} })), "notion").estado, "obtido");
+  assert.equal(selo(C.avaliaSelos(ctx({ plano: false })), "notion").estado, "falta");
+  assert.equal(C.avaliaSelos(ctx()).length, 24);                                   // a tabela inteira
+});
+
+caso("Próximo marco: o mais perto de sair, com quase lá primeiro", () => {
+  const s = C.avaliaSelos(ctx({ aprov: { ...todos(["MAC118", "MAC128", "MAC238"]), EEL878: "importado" } }));
+  assert.equal(C.proximoMarco(s).id, "rei-calculos");
+  const q = C.avaliaSelos(ctx({ aprov: { EEL878: "importado", EEL879: "previsto" } }));
+  assert.equal(C.proximoMarco(q).id, "ping-0ms");
+});
+
+caso("Previsão (C4): sem perfil e sem período atual explicam; pendência concreta (inclusive só horas); concluído; semestre final", () => {
+  const nome = P.nomeDoSemestre;
+  const g = (o) => ({ 1: { nome: "Obrigatórias", un: "cr", falta: 0, planejado: 0 }, 5: { nome: "Extensão / ACE", un: "h", falta: 0, planejado: 0 }, ...o });
+  assert.equal(C.previsaoFormatura({ perfil: false }).estado, "indisponivel");
+  assert.equal(C.previsaoFormatura({ perfil: true, temAtual: false }).estado, "indisponivel");
+  assert.equal(C.previsaoFormatura({ perfil: true, temAtual: true, grupos: g(), obrigatoriasSemPlano: [] }).estado, "concluido");
+  const so = C.previsaoFormatura({ perfil: true, temAtual: true, grupos: g({ 5: { nome: "Extensão / ACE", un: "h", falta: 30, planejado: 0 } }), obrigatoriasSemPlano: [] });
+  assert.equal(so.estado, "pendente"); assert.match(so.texto, /30 h de Extensão \/ ACE/);
+  const cr = C.previsaoFormatura({ perfil: true, temAtual: true, grupos: g({ 2: { nome: "Optativas", un: "cr", falta: 12, planejado: 4 } }), obrigatoriasSemPlano: ["Projeto de Graduação"] });
+  assert.match(cr.texto, /^Planeje os 8 cr que faltam: Projeto de Graduação, 8 cr de Optativas/);
+  const ok = C.previsaoFormatura({ perfil: true, temAtual: true, grupos: g({ 2: { nome: "Optativas", un: "cr", falta: 12, planejado: 12 } }), obrigatoriasSemPlano: [],
+    ultimoSemestre: P.semIdx("2028/2"), nomeDoSemestre: nome });
+  assert.deepEqual([ok.estado, ok.semestre], ["previsao", "2028/2"]);
+  const sd = C.previsaoFormatura({ perfil: true, temAtual: true, grupos: g({ 2: { nome: "Optativas", un: "cr", falta: 4, planejado: 4 } }), obrigatoriasSemPlano: [], semDataNecessaria: true });
+  assert.equal(sd.estado, "indisponivel");
+});
+
 let falhas = 0;
 for (const [nome, f] of casos) {
   try { f(); console.log("OK   ", nome); }
