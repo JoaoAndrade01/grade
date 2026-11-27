@@ -1282,7 +1282,9 @@ def t_detalhamento_info(b):
     pg.click("#bg-detalhes"); pg.click("#bg-detalhes")                                  # redesenho mantém a escolha
     expect(pg.locator("#progresso .cat-3 .livre-info")).to_be_visible()
     pg.locator("#progresso .cat-3 .info-btn").click(); expect(pg.locator("#progresso .cat-3 .livre-info")).to_be_hidden()
-    pg.locator("#progresso .cat-3 .info-btn").focus(); pg.keyboard.press("Enter")       # teclado
+    pg.locator("#bg-detalhes").focus(); pg.keyboard.press("Tab")                      # teclado: Tab chega ao ⓘ
+    assert pg.evaluate("document.activeElement.id") == "livre-info-btn"
+    pg.keyboard.press("Enter")
     assert pg.evaluate("getComputedStyle(document.activeElement).outlineStyle") != "none"
     assert pg.evaluate("parseFloat(getComputedStyle(document.activeElement).outlineOffset)") >= 2
     assert folga_do_info(pg) >= 1, folga_do_info(pg)                                  # o contorno não encosta no título
@@ -1303,12 +1305,11 @@ def t_detalhamento_info(b):
     pg.locator("#progresso .cat-3 .info-btn").tap(); expect(pg.locator("#progresso .cat-3 .livre-info")).to_be_visible()
     r = pg.locator("#progresso .cat-3 .info-btn").bounding_box(); assert r["width"] >= 43.99 and r["height"] >= 43.99, r
     assert folga_do_info(pg) >= 1, folga_do_info(pg)                                  # a área de toque não cobre o título
-    titulo = pg.evaluate("""() => { const s = document.querySelector('#progresso .cat-3 .prog-topo span'), r = document.createRange();
-        r.selectNodeContents(s.firstChild); const q = r.getBoundingClientRect(); return [q.right - 3, q.top + q.height / 2]; }""")
-    pg.locator("#progresso .cat-3 .info-btn").tap()                                    # fecha
-    pg.touchscreen.tap(*titulo)                                                       # toque no fim de "escolha" não abre o ⓘ
-    expect(pg.locator("#progresso .cat-3 .livre-info")).to_be_hidden()
-    pg.locator("#progresso .cat-3 .info-btn").tap()
+    # O fim de "escolha" não pertence ao botão (a conferência é geométrica: o toque emulado do Chromium e do WebKit
+    # ajusta o alvo para o controle vizinho, como no aparelho, e não mede a área do botão).
+    assert pg.evaluate("""() => { const s = document.querySelector('#progresso .cat-3 .prog-topo span'), r = document.createRange();
+        r.selectNodeContents(s.firstChild); const q = r.getBoundingClientRect();
+        return !document.elementFromPoint(q.right - 1, q.top + q.height / 2).closest('.info-btn'); }""")
     foto(pg, "detalhamento-info-celular")
     ctx.close()
 
