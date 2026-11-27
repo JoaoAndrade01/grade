@@ -427,7 +427,7 @@
           credits: it.credits != null ? it.credits : inf.credits || 0,
           category: it.category != null ? it.category : inf.category || 3,
           horas: it.horas != null ? it.horas : inf.horas,
-          workload: inf.workload, cel: parseHorarios(it.horarios), dispensas: [],
+          workload: inf.workload, cel: parseHorarios(it.horarios), dispensas: [], aprovadaEm: it.aprovadaEm || null,
         };
         registra(alvo, { pi, status, nota: it.nota, horas: alvo === it.code ? it.horas : undefined,
           via: it.equivale ? `equivalência: ${it.code} ${item.name}` : null, aprovadaEm: it.aprovadaEm || null });
@@ -1070,8 +1070,8 @@
     M.periodos.forEach((p, k) => {
       const ano = p.semestre == null ? anoDoBloco(p.nome) : null;
       p.itens.forEach((it) => {
-        const reg = ano != null && (M.regs[it.alvo] || []).find((r) => r.pi === p.pi && r.aprovadaEm);
-        const original = reg && semestreValido(reg.aprovadaEm) ? reg.aprovadaEm : null;
+        // A data é a do próprio item: duas ocorrências do mesmo código no bloco podem ter semestres originais diferentes.
+        const original = ano != null && it.status === "aprovado" && semestreValido(it.aprovadaEm) ? it.aprovadaEm : null;
         if (!original) return proprias[k].itens.push({ it });
         let c = porNome.get(original);
         if (!c) {

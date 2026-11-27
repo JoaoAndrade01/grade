@@ -309,8 +309,17 @@ def t_config_fechar(b):
         try: expect(dlg).to_be_hidden()
         except AssertionError: raise AssertionError(f"{jeito}: Configurações continua aberta; foco em {descreve_foco(pg)}")
         observado[jeito] = pg.evaluate("document.activeElement.id")
+    # aberta pelo mouse: no WebKit o clique não foca o botão; o foco volta a ele mesmo assim
+    for jeito in ("clique-x", "clique-fora", "clique-esc"):
+        pg.click("#btn-config"); dlg = pg.locator("#dlg-config"); expect(dlg).to_be_visible()
+        if jeito == "clique-x": pg.locator("#dlg-config .dlg-x").click()
+        elif jeito == "clique-fora": pg.mouse.click(8, pg.viewport_size["height"] - 8)
+        else: pg.keyboard.press("Escape")
+        expect(dlg).to_be_hidden()
+        observado[jeito] = pg.evaluate("document.activeElement.id")
     ctx.close()
-    assert observado == {"x-mouse": "btn-config", "x-teclado": "btn-config", "fora": "btn-config", "esc": "btn-config"}, observado
+    assert observado == {"x-mouse": "btn-config", "x-teclado": "btn-config", "fora": "btn-config", "esc": "btn-config",
+                         "clique-x": "btn-config", "clique-fora": "btn-config", "clique-esc": "btn-config"}, observado
 
 @caso("Períodos: Adicionar e Excluir usam a mesma janela central; validação, teclado e foco")
 def t_periodo_janela(b):
@@ -659,6 +668,40 @@ def t_timeline_transferidas(b):
         vistos[com_original] = totais
         ctx.close()
     assert vistos[True] == vistos[False]
+
+ACE_REPETIDA = {"code": "ACE901", "name": "Atividade fictícia repetida", "category": 5, "horas": 30}
+@caso("Linha do tempo: cada transferida vai ao próprio semestre original; transferida aprovada não recebe alerta na coluna de destino")
+def t_timeline_transferida_origem(b):
+    perfil = {"periodos": [
+        {"nome": "2025 (transferidas)", "disciplinas": [
+            {**ACE_REPETIDA, "nota": 9, "aprovadaEm": "2020/1"}, {**ACE_REPETIDA, "nota": 10, "aprovadaEm": "2021/1"},
+            {"code": "MAC238", "nota": 7, "aprovadaEm": "2025/1"}, {"code": "EEL418", "nota": 7, "aprovadaEm": "2027/1"}]},
+        {"nome": "2025/1", "atual": True, "disciplinas": [{"code": "FIT112", "status": "cursando"}]},
+        {"nome": "2027/1", "planejado": True, "disciplinas": []}]}
+    ctx, pg = abre(b, perfil=perfil, nome="timeline-transferida-origem", relogio=RELOGIO)
+    completo(pg, "timeline")
+    cols = pg.evaluate("""() => [...document.querySelectorAll('#painel .coluna')].map((c) => [c.querySelector('h2').textContent,
+        [...c.querySelectorAll('.card[data-code]')].map((k) => k.dataset.code + '|' + (k.querySelector('.nota') || {}).textContent + '|' + k.classList.contains('tem-aviso') + '|' + /Requisito|Co-requisito|ofert/i.test(k.title))])""")
+    por = {nome: cards for nome, cards in cols}
+    assert por.get("2020/1") == ["ACE901|9.0|false|false"] and por.get("2021/1") == ["ACE901|10.0|false|false"], cols
+    assert "MAC238|7.0|false|false" in por.get("2025/1", []), cols                     # coluna do período atual: sem alerta
+    assert "EEL418|7.0|false|false" in por.get("2027/1", []), cols                     # coluna planejada: sem requisito nem oferta
+    ctx.close()
+
+@caso("ECI por trás ligada: na Linha do tempo, clique e Enter num cartão abrem os detalhes, não a experiência")
+def t_eci_timeline(b):
+    ctx, pg = abre(b, perfil=PERFIL, nome="eci-timeline")
+    completo(pg, "grade"); pg.click("#pal-eci"); expect(pg.locator("#pal-eci")).to_have_attribute("aria-pressed", "true")
+    pg.click('[data-vista="timeline"]')
+    card = pg.locator('#painel .card[data-code="COS110"]').first
+    card.click()
+    expect(pg.locator("#detalhes")).to_be_visible(); assert pg.locator("#dlg-eci[open]").count() == 0
+    pg.keyboard.press("Escape"); card.focus(); pg.keyboard.press("Enter")
+    expect(pg.locator("#detalhes")).to_be_visible(); assert pg.locator("#dlg-eci[open]").count() == 0
+    pg.keyboard.press("Escape"); pg.click('[data-vista="grade"]')                       # na Grade, continua abrindo a experiência
+    if pg.locator("#pal-eci").get_attribute("aria-pressed") != "true": pg.click("#pal-eci")
+    pg.locator('#painel .card[data-code="COS110"]').click(); expect(pg.locator("#dlg-eci")).to_be_visible()
+    ctx.close()
 
 @caso("PC-02/03: aprovação pelo pincel conta crédito e identifica a simulação")
 def t_cr01_manual(b):
@@ -1212,6 +1255,8 @@ def t_detalhamento_info(b):
     ctx, pg = abre(b, perfil=p5(), nome="detalhamento-info")
     completo(pg, "grade"); pg.click("#bg-detalhes")
     assert pg.locator("#progresso .livre-curta").count() == 0                         # sem a linha extra
+    fechado = pg.locator("#progresso .cat-3").inner_text()
+    assert "BOA" not in fechado and "Grade" not in fechado, fechado                    # B1: nenhum número sem rótulo
     formato = lambda k: pg.evaluate("(k) => [...document.querySelector(`#progresso .cat-${k}`).children].filter((e) => !e.hidden).map((e) => e.className || e.tagName)", k)
     assert formato(3) == formato(2), (formato(3), formato(2))                        # título + número, barra, "faltam"
     btn, info = pg.locator("#progresso .cat-3 .prog-topo .info-btn"), pg.locator("#progresso .cat-3 .livre-info")
@@ -1816,6 +1861,21 @@ def t_barra_quatro_trechos(b):
     assert [bool(x.get("barra")) for x in pg.evaluate("() => GradeInterativa.perfilExportado()")["tags"]] == [False, False, True, False]
     ctx.close()
 
+@caso("Tags: marcar 'Usar a cor desta tag na barra' pelo teclado mantém o foco; Tab segue para o próximo controle")
+def t_tags_barra_teclado(b):
+    ctx, pg = abre(b, perfil=PERFIL, nome="tags-barra-teclado")
+    pg.click("#btn-tags")
+    pg.locator('#detalhes [data-tagbarra="0"]').focus(); pg.keyboard.press("Space")
+    expect(pg.locator('#detalhes [data-tagbarra="0"]')).to_be_checked()
+    foco = pg.evaluate("document.activeElement.dataset.tagbarra ?? document.activeElement.tagName")
+    pg.keyboard.press("Tab")
+    depois = pg.evaluate("document.activeElement.dataset.tagcor ?? document.activeElement.tagName")
+    pg.keyboard.press("Shift+Tab"); pg.keyboard.press("Space")                           # desmarca pelo teclado
+    expect(pg.locator('#detalhes [data-tagbarra="0"]')).not_to_be_checked()
+    de_novo = pg.evaluate("document.activeElement.dataset.tagbarra ?? document.activeElement.tagName")
+    ctx.close()
+    assert (foco, depois, de_novo) == ("0", "1", "0"), (foco, depois, de_novo)
+
 @caso("Cadeado: só ícone com nome acessível, começa desligado e lembra; protege cursadas e aprovadas do perfil; detalhes e setas continuam")
 def t_cadeado(b):
     ctx, pg = abre(b, perfil=PERFIL, nome="cadeado")
@@ -1843,7 +1903,7 @@ def t_cadeado(b):
     ctx.close()
 
 
-CASOS2 = [t_plano_preservado, t_aviso_pdf, t_setas, t_setas_espaco, t_tags, t_tags_nao_conta, t_barra_quatro_trechos, t_cadeado]
+CASOS2 = [t_plano_preservado, t_aviso_pdf, t_setas, t_setas_espaco, t_tags, t_tags_nao_conta, t_barra_quatro_trechos, t_tags_barra_teclado, t_cadeado]
 
 # ================================================================== rodada 3
 PLANOS2 = {"titulo": "Grade ECI", "nome": "Caio", "curso": 1, "periodos": [
@@ -2135,7 +2195,7 @@ CASOS3 = [t_fecha_durante_leitura, t_previa_confirmacao, t_previa_download, t_fo
 CASOS = [
     t_descartar_salvo, t_tema, t_tema_abas, t_sem_perfil, t_seletor_modo, t_importar_sugere_planejador, t_criar_perfil, t_perfil_conflito,
     t_compat, t_siga, t_siga_sem_boa, t_excluir, t_periodo_janela, t_config_fechar, t_oferta, t_mac,
-    t_cr01_pre, t_cr01_co, t_cr01_sugestoes, t_cr01_proposta, t_cr01_equivalencia, t_cr05_transferida_requisito, t_timeline_detalhes_e_clique, t_timeline_transferidas, t_cr01_manual,
+    t_cr01_pre, t_cr01_co, t_cr01_sugestoes, t_cr01_proposta, t_cr01_equivalencia, t_cr05_transferida_requisito, t_timeline_detalhes_e_clique, t_timeline_transferidas, t_timeline_transferida_origem, t_eci_timeline, t_cr01_manual,
     t_cr03_historico, t_cr03_lista,
     t_cr04_reingresso, t_cr04_ordem_dos_arquivos, t_cr04_escolha_sem_datas, t_pc05_datas_ausentes, t_cr04_troca_recalcula_planos, t_cr04_ace_duas_ocorrencias, t_cr04_controles, t_pc05_perfil_antigo_duvida, t_cr04_papel, t_cr04_fronteira,
     t_cr02_pedidos, t_cr02_duas_dispensas, t_cr02_dispensa_unica, t_cr02_alvo_fora_do_catalogo,
