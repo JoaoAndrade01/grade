@@ -116,6 +116,11 @@
     </div>
     <div id="eci-exp" class="eci-exp"></div>
   </dialog>
+  <!-- Registrar marcações: o conteúdo é montado por app.js (renderRegistro). Fecha por Cancelar, Esc ou clique fora;
+       depois de gravar, só por Fechar ou Esc (o Desfazer fica disponível até fechar). -->
+  <dialog id="dlg-registrar" class="dlg dlg-registrar" aria-labelledby="dlg-registrar-titulo">
+    <form method="dialog" id="registrar-corpo" novalidate></form>
+  </dialog>
   <dialog id="dlg-perfil" class="dlg" aria-labelledby="dlg-perfil-titulo" aria-describedby="dlg-perfil-dica">
     <form method="dialog" id="form-perfil" novalidate>
       <h1 id="dlg-perfil-titulo" class="dlg-titulo">Criar perfil</h1>

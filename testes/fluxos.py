@@ -3262,7 +3262,116 @@ def t_declaradas_reimportar(b):
     assert pg.evaluate("JSON.stringify(GradeInterativa.totais())") == totais
     ctx.close()
 
-CASOS5 = [t_controles_icones, t_todas_acesas, t_minimalista, t_plano_na_grade, t_declaradas_modelo, t_declaradas_prazo_ace, t_declaradas_arquivo, t_declaradas_reimportar]
+def abre_registro(pg, via_teclado=False):
+    b = pg.locator("#btn-registrar")
+    if via_teclado: b.focus(); pg.keyboard.press("Enter")
+    else: b.click()
+    expect(pg.locator("#dlg-registrar")).to_be_visible()
+
+@caso("Registrar marcações sem perfil: contagem, criar perfil, gravar, resultado, Desfazer e Fechar; foco; recarregar (R01 a R03)")
+def t_registrar_sem_perfil(b):
+    marc = {"MAC118": "aprovada", "COS110": "aprovada", "EEL280": "aprovada", "MAC128": "cursando"}
+    ctx, pg = abre(b, extra={"marcacoes": marc}, nome="registrar-sem-perfil", relogio=HOJE, atalhos=False)
+    assert pg.locator("#btn-registrar").get_attribute("aria-disabled") is None
+    abre_registro(pg, via_teclado=True)
+    assert foco_em(pg, "#dlg-registrar-titulo"), descreve_foco(pg)
+    expect(pg.locator("#reg-contagem")).to_have_text("Serão gravadas 3 aprovações.")
+    expect(pg.get_by_role("button", name="Gravar 3 aprovações")).to_be_visible()
+    texto = pg.locator("#dlg-registrar").inner_text()
+    assert "Um perfil novo será criado neste navegador" in texto and "Não é registro do SIGA" in texto, texto
+    assert pg.locator("#dlg-registrar [disabled]").count() == 0                      # A9: nada com disabled
+    foto(pg, "registrar-sem-perfil")
+    pg.fill("#reg-nome", "Ana Exemplo")
+    pg.get_by_role("button", name="Gravar 3 aprovações").click()
+    expect(pg.locator("#reg-resultado")).to_have_text("3 aprovações registradas por você.")
+    assert foco_em(pg, "#reg-resultado"), descreve_foco(pg)
+    p = ls(pg, "perfilImportado")
+    assert p["nome"] == "Ana Exemplo" and p["aprovacoesDeclaradas"] == [{"code": c, "registradoEm": "2026-11-27"} for c in ("COS110", "EEL280", "MAC118")], p
+    assert p["marcacoes"] == {"MAC128": "cursando"} and ls(pg, "marcacoes") == {"MAC128": "cursando"}
+    expect(pg.locator('.card[data-code="MAC118"] .estado')).to_have_text("☑")
+    # o resultado não fecha com clique fora (o Desfazer continua disponível)
+    pg.mouse.click(5, 5); expect(pg.locator("#dlg-registrar")).to_be_visible()
+    foto(pg, "registrar-resultado")
+    pg.get_by_role("button", name="Desfazer").click()                                 # R03: volta sem perfil, com as marcações
+    expect(pg.locator("#reg-contagem")).to_have_text("Serão gravadas 3 aprovações.")
+    assert ls(pg, "perfilImportado") is None and ls(pg, "marcacoes") == marc
+    assert foco_em(pg, "#dlg-registrar *") or foco_em(pg, "#dlg-registrar-titulo"), descreve_foco(pg)
+    expect(pg.locator('.card[data-code="MAC118"] .estado')).to_have_text("✎")
+    pg.keyboard.press("Escape"); expect(pg.locator("#dlg-registrar")).to_be_hidden()   # cancelar não muda nada
+    assert ls(pg, "marcacoes") == marc and ls(pg, "perfilImportado") is None
+    assert foco_em(pg, "#btn-registrar"), descreve_foco(pg)
+    # gravar pelo teclado e fechar pelo botão: o foco volta à paleta; recarregar mantém tudo
+    abre_registro(pg); pg.locator("#reg-semestre").focus(); pg.keyboard.type("2025/2"); pg.keyboard.press("Enter")
+    expect(pg.locator("#reg-resultado")).to_be_visible()
+    pg.get_by_role("button", name="Fechar").click(); expect(pg.locator("#dlg-registrar")).to_be_hidden()
+    assert foco_em(pg, "#btn-registrar"), descreve_foco(pg)
+    assert pg.locator("#btn-registrar").get_attribute("aria-disabled") == "true"      # nada mais a registrar
+    pg.reload(); pronto(pg, "registrar-sem-perfil")
+    assert [d.get("semestre") for d in ls(pg, "perfilImportado")["aprovacoesDeclaradas"]] == ["2025/2"] * 3
+    assert pg.evaluate("GradeInterativa.fonte('EEL280')") == "declarado"
+    expect(pg.locator('.card[data-code="EEL280"] .estado')).to_have_text("☑")
+    ctx.close()
+
+@caso("Registrar marcações com perfil: grupos, semestre inválido, conflito e em curso desmarcados, barra igual, Desfazer; 320 px e axe (R04 a R06, R30, R33)")
+def t_registrar_com_perfil(b):
+    perfil = {"periodos": [{"nome": "2025/1", "disciplinas": ["MAC118", "FIS111"]}, {"nome": "2025/2", "disciplinas": [{"code": "FIT112", "status": "reprovado"}]},
+                           {"nome": "2026/2", "atual": True, "disciplinas": ["COS231"]}],
+              "aprovacoesDeclaradas": [{"code": "MAC238", "registradoEm": "2026-11-01"}]}
+    marc = {"MAC118": "aprovada", "MAC128": "aprovada", "XYZ101": "aprovada", "FIT112": "aprovada", "COS231": "aprovada"}
+    ctx, pg = abre(b, perfil=perfil, extra={"marcacoes": marc, "modoClassico": False, "vista": "grade", "progressoAberto": True}, nome="registrar-com-perfil", relogio=HOJE)
+    barra = pg.locator("#barra-geral").inner_text(); totais = pg.evaluate("JSON.stringify(GradeInterativa.totais())")
+    assert "Aprovação por marcação manual (pincel)" in pg.locator("#progresso").inner_text()
+    abre_registro(pg)
+    txt = pg.locator("#dlg-registrar").inner_text()
+    assert "MAC118: já aprovada no perfil" in txt and "XYZ101: não reconhecida" in txt and "MAC238" not in txt, txt     # R04
+    assert "Criar perfil" not in txt
+    gravar = lambda: pg.locator('[data-reg-code]').evaluate_all("es => es.filter((e) => e.checked).map((e) => e.dataset.regCode)")
+    assert gravar() == ["FIT112", "MAC128"], gravar()                                    # sem semestre: a reprovação de 2025/2 é anterior
+    assert not pg.locator('[data-reg-code="COS231"]').is_checked()                       # A3: em curso no BOA, desmarcada
+    assert "Em curso no BOA: registre só se já foi aprovada" in txt
+    # R05: semestre inválido e futuro
+    for v, msg in (("2027/1", "posterior ao atual"), ("2025/3", "AAAA/1 ou AAAA/2")):
+        pg.fill("#reg-semestre", v); expect(pg.locator("#reg-semestre-msg")).to_contain_text(msg)
+        expect(pg.locator("#reg-gravar")).to_have_attribute("aria-disabled", "true")
+    pg.locator("#reg-gravar").click(force=True); expect(pg.locator("#reg-resultado")).to_have_count(0)    # aria-disabled não grava
+    # R33: com 2025/1, FIT112 conflita com a reprovação de 2025/2: desmarcada, com motivo, sem poder marcar
+    pg.fill("#reg-semestre", "2025/1"); expect(pg.locator("#reg-semestre-msg")).to_have_text("")
+    cx = pg.locator('[data-reg-code="FIT112"]')
+    expect(cx).to_have_attribute("aria-disabled", "true"); expect(cx).not_to_be_checked()
+    expect(pg.locator("#reg-motivo-FIT112")).to_contain_text("reprovação em 2025/2")
+    cx.click(force=True); expect(cx).not_to_be_checked()
+    pg.fill("#reg-semestre", "2026/1"); expect(cx).not_to_have_attribute("aria-disabled", "true")
+    cx.check(); expect(pg.locator("#reg-contagem")).to_have_text("Serão gravadas 2 aprovações.")
+    pg.locator('[data-reg-code="COS231"]').check(); pg.locator('[data-reg-code="COS231"]').uncheck()
+    pg.fill("#reg-semestre", "")
+    vs = axe_graves(pg, contexto="#dlg-registrar"); assert not vs, vs                    # R30
+    pg.get_by_role("button", name="Gravar 2 aprovações").click()
+    expect(pg.locator("#reg-resultado")).to_have_text("2 aprovações registradas por você.")
+    decl = ls(pg, "plano")["aprovacoesDeclaradas"]
+    assert [d["code"] for d in decl] == ["MAC238", "FIT112", "MAC128"], decl           # as antigas ficam, as novas no fim
+    assert set(ls(pg, "marcacoes")) == {"MAC118", "XYZ101", "COS231"}
+    pg.get_by_role("button", name="Fechar").click()
+    # R06: a barra não muda; o detalhamento troca a linha do pincel pela das registradas
+    assert pg.locator("#barra-geral").inner_text() == barra and pg.evaluate("JSON.stringify(GradeInterativa.totais())") == totais
+    prog = pg.locator("#progresso").inner_text()
+    assert "3 aprovações registradas por você" in prog, prog
+    ctx.close()
+    ctx, pg = abre(b, vp=C320, perfil=perfil, extra={"marcacoes": marc}, nome="registrar-320", relogio=HOJE, toque=True, esquema="dark")
+    pg.locator("#btn-registrar").tap(); expect(pg.locator("#dlg-registrar")).to_be_visible()
+    assert pg.evaluate("document.documentElement.scrollWidth - innerWidth") <= 1
+    r = pg.locator("#dlg-registrar").bounding_box(); assert r["x"] >= 0 and r["x"] + r["width"] <= 320.5, r
+    for el in pg.locator('#dlg-registrar [data-reg-code], #dlg-registrar .dlg-acoes .btn').all():
+        bb = el.bounding_box(); assert bb["width"] >= 24 and bb["height"] >= 24, bb
+    foto(pg, "registrar-320-escuro")
+    pg.get_by_role("button", name="Gravar 2 aprovações").tap()
+    pg.get_by_role("button", name="Desfazer").tap()
+    assert ls(pg, "marcacoes") == marc and (ls(pg, "plano") or {}).get("aprovacoesDeclaradas") in (None, [{"code": "MAC238", "registradoEm": "2026-11-01"}]), ls(pg, "plano")
+    assert pg.evaluate("GradeInterativa.fonte('MAC128')") == "pincel"
+    pg.keyboard.press("Escape")
+    ctx.close()
+
+CASOS5 = [t_controles_icones, t_todas_acesas, t_minimalista, t_plano_na_grade, t_declaradas_modelo, t_declaradas_prazo_ace, t_declaradas_arquivo, t_declaradas_reimportar,
+          t_registrar_sem_perfil, t_registrar_com_perfil]
 CASOS += CASOS5
 
 

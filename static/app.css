@@ -644,6 +644,19 @@ dialog.dlg:modal { overscroll-behavior: contain; }
 .dlg .rotulo { display: block; margin-top: 14px; font-weight: 600; font-size: 13px; }
 .dlg .campo { margin-top: 6px; }
 .dlg .dica { margin: 4px 0 0; }
+/* Registrar marcações */
+.dlg-registrar { width: min(520px, calc(100vw - 24px)); overflow-y: auto; }
+.reg-h { margin: 14px 0 4px; font-size: 14px; }
+.reg-lista, .reg-outros { list-style: none; margin: 0; padding: 0; }
+.reg-lista { max-height: 36vh; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+.reg-item { color: var(--text); min-height: 32px; }
+.reg-item:has([aria-disabled="true"]) { opacity: .6; cursor: not-allowed; }
+.reg-motivo { display: block; margin: 0 0 4px 29px; color: var(--muted); font-size: 12px; }
+.reg-motivo:empty { display: none; }
+.reg-outros li { font-size: 13px; color: var(--muted); }
+.reg-contagem { margin: 12px 0 0; font-weight: 600; }
+.reg-resultado { margin: 8px 0; font-weight: 600; font-size: 15px; }
+.btn[aria-disabled="true"], .pal-btn[aria-disabled="true"] { opacity: .55; cursor: not-allowed; }
 .opcional { margin-left: 4px; font-weight: 400; font-size: 12px; color: var(--muted); }
 .msg-campo { min-height: 1.3em; margin: 6px 0 0; font-size: 13px; color: var(--perigo); }
 .msg-campo:empty { min-height: 0; margin: 0; }

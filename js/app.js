@@ -892,6 +892,7 @@
         title="Destaca as disciplinas com experiência de A ECI por trás da Grade">${icone("eci")} <span>ECI por trás</span></button>`}
       ${tags.map((t) => botao(t.id, `${esc(t.nome)}${conta[t.id] ? ` <small>${conta[t.id]}</small>` : ""}`, t.cor, `title="${esc(CONTA_COMO[t.status] || "")}"`)).join("")}
       ${botao("", `${icone("borracha")} Borracha`, null, 'title="Tirar a tag"')}
+      ${botaoRegistrar("pal-btn pal-registrar", "btn-registrar")}
       <button type="button" class="pal-btn pal-icone" id="editar-tags" title="Editar tags" aria-label="Editar tags">${icone("tags")}</button>
       <button type="button" class="pal-btn pal-icone pal-cadeado" id="cadeado" aria-pressed="${cadeado}" aria-label="Proteger disciplinas cursadas"
         title="${cadeado ? "Cursadas protegidas: clique para liberar alterações" : "Proteger as cursadas contra alterações"}">${icone(cadeado ? "cadeado" : "cadeado-aberto")}</button>
@@ -1826,6 +1827,8 @@
       <p class="dlg-texto">As escolhas valem na hora e ficam salvas neste navegador. Fixe um item para ele aparecer também na barra do topo; ele continua aqui.</p>
       <section class="cfg-sec" aria-labelledby="cfg-h-perfil"><h2 id="cfg-h-perfil">Perfil e dados</h2>
         ${linhaAtalho("perfil")}${linhaAtalho("importar")}${linhaAtalho("privacidade")}
+        <div class="cfg-linha">${botaoRegistrar("btn btn-sm cfg-abrir", "cfg-registrar")}
+          <span class="dica">Grava as marcações aprovadas do pincel como aprovações registradas por você.</span></div>
         <div class="cfg-linha"><button type="button" class="btn btn-sm btn-perigo-ghost" id="btn-limpar">${icone("limpar", 16)} Limpar dados salvos</button>
           <span class="dica">Apaga marcações, planos e o perfil salvo neste navegador.</span></div>
       </section>
@@ -2573,7 +2576,7 @@
    * Cria (ou edita) o perfil a partir do que já está no navegador: marcações, tags, planos, pedidos e extensão
    * continuam. Nome e semestre atual são opcionais. Devolve a mensagem de erro, ou null se salvou.
    */
-  function salvaPerfilCriado(nomeTxt, semTxt) {
+  function salvaPerfilCriado(nomeTxt, semTxt, ajusta = null) {
     const nome = String(nomeTxt || "").trim().replace(/\s+/g, " ");
     const sem = String(semTxt || "").trim();
     if (sem && !semestreValido(sem)) return "Use o formato AAAA/1 ou AAAA/2, ou deixe em branco.";
@@ -2594,9 +2597,166 @@
       }
     }
     if (!novo.fonte) novo.fonte = { geradoPor: "Grade ECI (Criar perfil)", geradoEm: new Date().toISOString().slice(0, 10) };
+    if (ajusta) ajusta(novo);
     try { usaPerfilImportado(novo, { irParaLinhaDoTempo: false }); }
     catch (e) { return "Não consegui salvar o perfil: " + e.message; }
     return null;
+  }
+
+  // ---------- Registrar marcações (aprovações registradas por você) ----------
+  // O pincel continua simulação. Este fluxo grava as marcações aprovadas como "Aprovação registrada por você" no perfil
+  // (aprovacoesDeclaradas), com o semestre opcional, e tira essas marcações do pincel. Sem perfil, cria um no próprio fluxo.
+  let registro = null;   // { fase: "escolha" | "resultado", marcadas: Set, gatilho, antes, gravadas }
+  const hojeISO = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
+  const nomeSemestre = (i) => window.PROGRESSO.nomeDoSemestre(i);
+  /** Marcações aprovadas do pincel separadas pelo que acontece com cada uma no registro. */
+  function gruposRegistro() {
+    const decl = new Set(getDecl().map((d) => d.code));
+    const g = { gravar: [], emCurso: [], jaAprovadas: [], jaRegistradas: [], naoReconhecidas: [] };
+    Object.keys(marcacoes).filter(aprovacaoManual).sort().forEach((code) => {
+      if (!M.info(code)) return g.naoReconhecidas.push(code);
+      if (decl.has(code)) return g.jaRegistradas.push(code);
+      if (fonteDe(code) === "importado") return g.jaAprovadas.push(code);
+      if (emCurso(statusPerfil(code))) return g.emCurso.push(code);
+      g.gravar.push(code);
+    });
+    return g;
+  }
+  const elegiveisRegistro = () => { const g = gruposRegistro(); return g.gravar.length + g.emCurso.length; };
+  const MOTIVO_REGISTRAR = "Nenhuma disciplina marcada como aprovada com o pincel para registrar.";
+  /** Botão "Registrar marcações" (paleta e Configurações): sem elegíveis, aria-disabled com o motivo em texto. */
+  function botaoRegistrar(classe, id) {
+    const n = elegiveisRegistro();
+    return `<button type="button" class="${classe}" id="${id}" data-registrar${n ? "" : ` aria-disabled="true" aria-describedby="${id}-motivo"`}
+      title="${n ? "Gravar as marcações aprovadas como aprovações registradas por você" : esc(MOTIVO_REGISTRAR)}">${icone("check")} <span>Registrar marcações</span></button>${n ? "" : `<span id="${id}-motivo" class="sr">${esc(MOTIVO_REGISTRAR)}</span>`}`;
+  }
+  /** Reprovação importada no semestre do registro ou depois (sem semestre: o de hoje): a declarada seria conflito. */
+  function conflitoRegistro(code, semestre) {
+    const limite = semIdx(semestre) ?? window.PROGRESSO.semestreDaData(hojeISO());
+    const rs = (M.regs[code] || []).filter((r) => r.status === "reprovado" && r.origem !== "declarado")
+      .map(semestreDoRegistro).filter((x) => x != null && x >= limite);
+    return rs.length ? nomeSemestre(Math.min(...rs)) : null;
+  }
+  function erroSemestreRegistro(v) {
+    if (!v) return null;
+    if (!semestreValido(v)) return "Use AAAA/1 ou AAAA/2, ou deixe em branco.";
+    if (semIdx(v) > semAtual()) return `O semestre não pode ser posterior ao atual (${nomeSemestre(semAtual())}).`;
+    return null;
+  }
+  function abreRegistro(gatilho) {
+    if (!elegiveisRegistro()) return anuncia(MOTIVO_REGISTRAR);
+    registro = { fase: "escolha", marcadas: new Set(gruposRegistro().gravar), gatilho: chaveFoco(gatilho) };
+    const d = $("#dlg-registrar");
+    renderRegistro();
+    if (!d.open) d.showModal();
+    $("#dlg-registrar-titulo").focus();
+  }
+  function renderRegistro() {
+    const corpo = $("#registrar-corpo");
+    const titulo = `<h1 id="dlg-registrar-titulo" class="dlg-titulo" tabindex="-1">Registrar marcações</h1>`;
+    if (registro.fase === "resultado") {
+      const n = registro.gravadas;
+      corpo.innerHTML = `${titulo}
+        <p id="reg-resultado" class="reg-resultado" role="status" tabindex="-1">${n} ${n === 1 ? "aprovação registrada" : "aprovações registradas"} por você.</p>
+        <p class="dlg-texto">${n === 1 ? "Ela conta" : "Elas contam"} para fase e conquistas, com a marca "declarado". Não ${n === 1 ? "é" : "são"} registro do SIGA. Edite o semestre ou remova nos detalhes da disciplina.</p>
+        <div class="dlg-acoes"><button type="button" class="btn" id="reg-desfazer">Desfazer</button><button type="button" class="btn btn-escuro" id="reg-fechar">Fechar</button></div>`;
+      return;
+    }
+    const g = gruposRegistro();
+    const linha = (code) => {
+      const i = M.info(code);
+      return `<li data-reg-linha="${esc(code)}"><label class="check reg-item"><input type="checkbox" data-reg-code="${esc(code)}"${registro.marcadas.has(code) ? " checked" : ""}>
+        <span>${esc(code)} · ${esc(i.name)}</span></label><small class="reg-motivo" id="reg-motivo-${esc(code)}"></small></li>`;
+    };
+    const outros = [...g.jaAprovadas.map((c) => [c, "já aprovada no perfil"]), ...g.jaRegistradas.map((c) => [c, "já registrada por você"]),
+      ...g.naoReconhecidas.map((c) => [c, "não reconhecida no currículo nem no catálogo"])];
+    corpo.innerHTML = `${titulo}
+      <p class="dlg-texto">As disciplinas marcadas como aprovadas com o pincel passam a ser "Aprovação registrada por você" no perfil. Não é registro do SIGA.</p>
+      ${perfil ? "" : `<fieldset class="opcoes reg-criar"><legend>Criar perfil</legend>
+        <p class="dica">Um perfil novo será criado neste navegador. Os dois campos são opcionais.</p>
+        <label class="rotulo" for="reg-nome">Nome <span class="opcional">opcional</span></label>
+        <input id="reg-nome" class="campo" maxlength="60" autocomplete="off" spellcheck="false">
+        <label class="rotulo" for="reg-atual">Semestre atual <span class="opcional">opcional</span></label>
+        <input id="reg-atual" class="campo" maxlength="6" autocomplete="off" inputmode="numeric" placeholder="ex.: 2026/2" aria-describedby="reg-atual-msg">
+        <p id="reg-atual-msg" class="msg-campo" aria-live="polite"></p></fieldset>`}
+      ${g.gravar.length ? `<h2 class="reg-h" id="reg-h-gravar">Serão gravadas</h2><ul class="reg-lista" aria-labelledby="reg-h-gravar">${g.gravar.map(linha).join("")}</ul>` : ""}
+      ${g.emCurso.length ? `<h2 class="reg-h" id="reg-h-curso">Em curso no BOA: registre só se já foi aprovada</h2><ul class="reg-lista" aria-labelledby="reg-h-curso">${g.emCurso.map(linha).join("")}</ul>` : ""}
+      <label class="rotulo" for="reg-semestre">Semestre da aprovação <span class="opcional">opcional</span></label>
+      <input id="reg-semestre" class="campo" maxlength="6" autocomplete="off" inputmode="numeric" placeholder="ex.: 2025/1" aria-describedby="reg-semestre-dica reg-semestre-msg">
+      <p id="reg-semestre-dica" class="dica">Todas no mesmo semestre? Se não, deixe em branco e ajuste no detalhe. Em branco, o semestre fica desconhecido.</p>
+      <p id="reg-semestre-msg" class="msg-campo" aria-live="polite"></p>
+      ${outros.length ? `<h2 class="reg-h">Não serão gravadas</h2><ul class="reg-outros">${outros.map(([c, m]) => `<li>${esc(c)}: ${esc(m)}</li>`).join("")}</ul>` : ""}
+      <p id="reg-contagem" class="reg-contagem" role="status"></p>
+      <div class="dlg-acoes"><button type="button" class="btn" id="reg-cancelar">Cancelar</button>
+        <button type="submit" class="btn btn-escuro" id="reg-gravar" aria-describedby="reg-gravar-motivo"></button></div>
+      <p id="reg-gravar-motivo" class="sr"></p>`;
+    atualizaRegistro();
+  }
+  /** Atualiza conflitos, contagem e o botão sem redesenhar (o campo de semestre não perde o cursor). */
+  function atualizaRegistro() {
+    const sem = ($("#reg-semestre")?.value || "").trim();
+    const erro = erroSemestreRegistro(sem);
+    $("#reg-semestre-msg").textContent = erro || "";
+    $("#reg-semestre").toggleAttribute("aria-invalid", !!erro);
+    document.querySelectorAll("#registrar-corpo [data-reg-code]").forEach((cx) => {
+      const code = cx.dataset.regCode, k = erro ? null : conflitoRegistro(code, sem);
+      if (k) registro.marcadas.delete(code);
+      cx.checked = registro.marcadas.has(code);
+      if (k) { cx.setAttribute("aria-disabled", "true"); cx.setAttribute("aria-describedby", `reg-motivo-${code}`); }
+      else { cx.removeAttribute("aria-disabled"); cx.removeAttribute("aria-describedby"); }
+      $(`#reg-motivo-${CSS.escape(code)}`).textContent = k ? `O SIGA traz reprovação em ${k}, no semestre ou depois deste registro. Informe um semestre posterior ou deixe em branco.` : "";
+    });
+    const n = registro.marcadas.size;
+    $("#reg-contagem").textContent = `Serão gravadas ${n} ${n === 1 ? "aprovação" : "aprovações"}.`;
+    const b = $("#reg-gravar");
+    b.textContent = `Gravar ${n} ${n === 1 ? "aprovação" : "aprovações"}`;
+    const motivo = erro ? "Corrija o semestre da aprovação." : !n ? "Marque pelo menos uma disciplina." : "";
+    b.toggleAttribute("aria-disabled", !!motivo); if (motivo) b.setAttribute("aria-disabled", "true");
+    $("#reg-gravar-motivo").textContent = motivo;
+  }
+  function gravaRegistro() {
+    const sem = ($("#reg-semestre").value || "").trim();
+    if (erroSemestreRegistro(sem) || !registro.marcadas.size) { atualizaRegistro(); return anuncia($("#reg-gravar-motivo").textContent); }
+    const codes = [...registro.marcadas].sort().filter((c) => !conflitoRegistro(c, sem));
+    const itens = codes.map((code) => ({ code, registradoEm: hojeISO(), ...(sem ? { semestre: sem } : {}) }));
+    const antes = { perfilImportado, perfil, plano: clone(plano), marcacoes: clone(marcacoes), tags: clone(tags), vistaAtual };
+    const resto = clone(marcacoes); codes.forEach((c) => { delete resto[c]; });
+    if (!perfil) {
+      // Perfil novo: as declaradas entram nele e as marcações convertidas saem (marcacoes explícito, mesmo vazio).
+      const erro = salvaPerfilCriado($("#reg-nome").value, $("#reg-atual").value, (novo) => { novo.aprovacoesDeclaradas = itens; novo.marcacoes = resto; });
+      if (erro) { mensagemCampo("#reg-atual", erro); $("#reg-atual").focus(); return; }
+    } else {
+      // Com perfil: grava as declaradas antes de limpar as marcações do pincel.
+      plano.aprovacoesDeclaradas = getDecl().concat(itens); save("plano", plano);
+      marcacoes = resto; save("marcacoes", marcacoes);
+      montaModelo(); render();
+    }
+    Object.assign(registro, { fase: "resultado", antes, gravadas: itens.length });
+    renderRegistro();
+    $("#reg-resultado").focus();
+  }
+  function desfazRegistro() {
+    const a = registro.antes;
+    ({ perfilImportado, perfil, plano, marcacoes, tags, vistaAtual } = a);
+    save("perfilImportado", perfilImportado); save("plano", plano); save("marcacoes", marcacoes); save("tags", tags); save("vista", vistaAtual);
+    montaModelo(); render();
+    registro = { fase: "escolha", marcadas: new Set(gruposRegistro().gravar), gatilho: registro.gatilho };
+    renderRegistro();
+    $("#dlg-registrar-titulo").focus();
+    anuncia("Registro desfeito. As marcações do pincel voltaram.");
+  }
+  /** Fecha e devolve o foco na hora (o evento close chega depois no WebKit, e o gatilho pode ter sido redesenhado). */
+  function fechaRegistro() {
+    const d = $("#dlg-registrar");
+    if (d.open) d.close();
+    devolveFocoRegistro();
+  }
+  function devolveFocoRegistro() {
+    if (!registro) return;
+    const g = registro.gatilho;
+    registro = null;
+    const alvo = (g && document.querySelector(g)) || $("#btn-registrar") || $("#painel");
+    if (alvo) alvo.focus();
   }
 
   // ---------- Diálogo de confirmação (substitui o confirm() nas ações destrutivas novas) ----------
@@ -3188,6 +3348,39 @@
       const caixa = $("#siga-descartar-planos"); if (caixa) caixa.checked = !!r.descartarPlanos;
       const nota = $("#siga-nota-ra19"); if (nota) nota.hidden = !(r.deduzido && r.atualEscolhido.trim() === r.deduzido);
     }
+
+    // Registrar marcações
+    document.addEventListener("click", (ev) => {
+      const b = ev.target.closest && ev.target.closest("[data-registrar]"); if (!b) return;
+      if (b.getAttribute("aria-disabled") === "true") return anuncia(MOTIVO_REGISTRAR);
+      if (b.closest("#dlg-config")) { fechaConfig(); return abreRegistro($("#btn-config")); }
+      abreRegistro(b);
+    });
+    const dlgReg = $("#dlg-registrar");
+    dlgReg.addEventListener("click", (ev) => {
+      const cx = ev.target.closest("[data-reg-code]");
+      if (cx && cx.getAttribute("aria-disabled") === "true") { ev.preventDefault(); return anuncia($(`#reg-motivo-${CSS.escape(cx.dataset.regCode)}`).textContent); }
+      const t = ev.target.closest("button"); if (!t) return;
+      if (t.id === "reg-cancelar" || t.id === "reg-fechar") return fechaRegistro();
+      if (t.id === "reg-desfazer") return desfazRegistro();
+    });
+    dlgReg.addEventListener("change", (ev) => {
+      const cx = ev.target.closest("[data-reg-code]"); if (!cx) return;
+      if (cx.checked) registro.marcadas.add(cx.dataset.regCode); else registro.marcadas.delete(cx.dataset.regCode);
+      atualizaRegistro();
+    });
+    dlgReg.addEventListener("input", (ev) => {
+      if (ev.target.id === "reg-semestre") atualizaRegistro();
+      if (ev.target.id === "reg-atual") mensagemCampo("#reg-atual", "");
+    });
+    $("#registrar-corpo").addEventListener("submit", (ev) => {
+      ev.preventDefault();
+      if (registro && registro.fase === "escolha") gravaRegistro();
+    });
+    dlgReg.addEventListener("close", devolveFocoRegistro);   // reserva: fechamentos que não passaram por fechaRegistro
+    dlgReg.addEventListener("cancel", (ev) => { ev.preventDefault(); fechaRegistro(); });
+    // Clique fora só fecha antes de gravar: o resultado fecha por Fechar ou Esc, para não perder o Desfazer.
+    fechaAoClicarFora(dlgReg, () => { if (registro && registro.fase === "escolha") fechaRegistro(); });
 
     // Criar / editar perfil
     $("#perfil-cancelar").addEventListener("click", () => $("#dlg-perfil").close());
