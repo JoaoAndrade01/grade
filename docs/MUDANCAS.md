@@ -53,7 +53,7 @@ como notas. Os perfis e as preferências salvos na v2.0.0 continuam valendo.
 ### Para quem contribui
 
 O helper `abre()` dos testes ganhou `modo=` (padrão Planejador; os cenários do Clássico pedem `modo="classico"`). O kit
-de interface passa a 148 cenários por `file://` e 149 por HTTP ([testes/README.md](../testes/README.md)). As decisões
+de interface passa a 152 cenários por `file://` e 153 por HTTP ([testes/README.md](../testes/README.md)). As decisões
 novas são PC-15 a PC-19 ([DECISOES.md](DECISOES.md)).
 
 ---
