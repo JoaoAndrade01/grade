@@ -616,6 +616,47 @@
     }
    ],
    "historicoAtual": "escolhido"
+  },
+  "declaradas-mesclar": {
+   "arquivos": [
+    "papel-bloco-2025",
+    "papel-anterior-2024-2"
+   ],
+   "atual": null,
+   "periodos": [
+    {
+     "nome": "2024/2",
+     "disciplinas": [
+      {
+       "code": "MAC128",
+       "nota": 7
+      }
+     ]
+    },
+    {
+     "nome": "2025 (transferidas)",
+     "disciplinas": [
+      {
+       "code": "MAC118",
+       "nota": 7,
+       "aprovadaEm": "2024/2"
+      }
+     ]
+    }
+   ],
+   "historicoAtual": "automatico",
+   "mesclar": "perfil-com-declaradas",
+   "aprovacoesDeclaradas": [
+    {
+     "code": "COS110",
+     "registradoEm": "2026-11-27"
+    },
+    {
+     "code": "MAC118",
+     "registradoEm": "2026-11-27",
+     "semestre": "2024/1"
+    }
+   ]
   }
  }
 }

@@ -425,7 +425,8 @@ def montar_perfil(historicos, boa=None, curriculo=None, catalogo=None, anterior=
         if not any(x.get("code") and x.get("code") == e["code"] for x in ext):
             ext.append(e)
     perfil["extensao"] = ext
-    for k in ("tags", "marcacoes"):
+    # Campos que o SIGA não tem: tags, marcações do pincel e aprovações registradas por você (mesma lista em siga.js).
+    for k in ("tags", "marcacoes", "aprovacoesDeclaradas"):
         if anterior.get(k) is not None:
             perfil[k] = anterior[k]
 
@@ -504,7 +505,7 @@ def ler_perfil_js(caminho):
 
 def texto_perfil(perfil):
     """Mesmo formato de exportação do app (um item por linha, fácil de revisar no git diff)."""
-    listas = ("equivalencias", "extensao")
+    listas = ("equivalencias", "extensao", "aprovacoesDeclaradas")
     linhas = ["{"]
     for k, v in perfil.items():
         if k in ("periodos",) + listas:

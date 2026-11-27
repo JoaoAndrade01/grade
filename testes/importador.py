@@ -37,6 +37,8 @@ def argumentos(cenario):
         args += ["--boa", str(FX / f"{cenario['boa']}.txt")]
     if cenario["atual"] is not None:
         args += ["--atual", str(FX / f"{cenario['arquivos'][cenario['atual']]}.txt")]
+    if cenario.get("mesclar"):
+        args += ["--mesclar", str(FX / f"{cenario['mesclar']}.json")]
     return args
 
 
@@ -62,6 +64,11 @@ def main():
             obtido = {"periodos": perfil["periodos"], "historicoAtual": (perfil.get("fonte") or {}).get("historicoAtual")}
             if obtido != esperado:
                 falhas.append(f"{nome}/{origem}: esperado {esperado}, obtido {obtido}")
+        if "aprovacoesDeclaradas" in cen:
+            # --mesclar preserva as aprovações registradas por você (campo de nível superior do perfil anterior).
+            for origem, perfil in (("python", py), ("js", js)):
+                if perfil.get("aprovacoesDeclaradas") != cen["aprovacoesDeclaradas"]:
+                    falhas.append(f"{nome}/{origem}: aprovacoesDeclaradas esperado {cen['aprovacoesDeclaradas']}, obtido {perfil.get('aprovacoesDeclaradas')}")
         if "boaPerfil" in cen:
             for origem, perfil in (("python", py), ("js", js)):
                 if perfil.get("boa") != cen["boaPerfil"]:

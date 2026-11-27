@@ -449,7 +449,8 @@
     const ext = ((anterior && anterior.extensao) || []).slice();
     extensaoBOA.forEach((e) => { if (!ext.some((x) => x.code && x.code === e.code)) ext.push(e); });
     perfil.extensao = ext;
-    ["tags", "marcacoes"].forEach((k) => { if (anterior && anterior[k] != null) perfil[k] = anterior[k]; });
+    // Campos que o SIGA não tem: tags, marcações do pincel e aprovações registradas por você (mesma lista em gerar_perfil.py).
+    ["tags", "marcacoes", "aprovacoesDeclaradas"].forEach((k) => { if (anterior && anterior[k] != null) perfil[k] = anterior[k]; });
 
     if (anterior && Array.isArray(anterior.periodos)) {
       // horários e status já anotados no período atual anterior são preservados

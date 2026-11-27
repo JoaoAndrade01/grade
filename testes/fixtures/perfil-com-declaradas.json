@@ -1,0 +1,18 @@
+{
+  "titulo": "Grade ECI",
+  "curso": 1,
+  "nome": "Pessoa Fictícia",
+  "periodos": [],
+  "aprovacoesDeclaradas": [
+    {
+      "code": "COS110",
+      "registradoEm": "2026-11-27"
+    },
+    {
+      "code": "MAC118",
+      "registradoEm": "2026-11-27",
+      "semestre": "2024/1"
+    }
+  ],
+  "marcacoes": {}
+}

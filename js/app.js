@@ -2362,6 +2362,7 @@
             : `<li class="alerta">Sem BOA: nenhuma disciplina em curso foi atualizada.${r.perfil.periodos.some((p) => p.atual) ? " O período atual do perfil anterior foi mantido." : ""}</li>`}
           ${r.semCategoria.length ? `<li class="alerta">Atividades sem créditos fora do currículo e catálogo. Confira se são ACE: ${r.semCategoria.map(esc).join(", ")}.</li>` : ""}
           <li>Documentos reconhecidos: ${r.historicos} Histórico(s)${r.boa ? " e 1 BOA" : ""}</li>
+          ${htmlDeclaradasPrevia(r)}
         </ul>
         ${htmlPapelHistorico(r)}
         ${r.atual ? `<div class="periodo-sugerido">
@@ -2385,6 +2386,25 @@
       <p class="dica" id="escolher-perfil-dica">Um arquivo válido substitui o perfil salvo; um inválido é recusado e nada muda.</p>`;
     box.hidden = false;
     box.dataset.alvo = "importar";
+  }
+
+  /**
+   * Prévia: as aprovações registradas por você contra o perfil importado, com a mesma montagem do modelo. Não bloqueia
+   * "Usar este perfil": as confirmadas ficam guardadas fora da conta e as divergências aparecem nos detalhes.
+   */
+  function htmlDeclaradasPrevia(r) {
+    const decl = window.PROGRESSO.normalizaDeclaradas(r.perfil.aprovacoesDeclaradas || []).itens;
+    if (!decl.length) return "";
+    const d = montaRegistros({ grade: M.grade, catalogo: M.catalogo, periodos: r.perfil.periodos.map((x) => ({ ...x })),
+      pedidos: r.perfil.equivalencias || [], declaradas: decl }).declaradas;
+    const confirmadas = Object.keys(d.confirmadas);
+    const divergentes = Object.keys(d.conflitos).concat(confirmadas.filter((c) => d.confirmadas[c].diverge));
+    const ultimo = semIdx(r.ultimoReal);
+    // Declaradas com semestre que o Histórico importado cobre, mas que ele não traz.
+    const naoEncontradas = d.ativas.filter((x) => x.semestre && ultimo != null && semIdx(x.semestre) <= ultimo).map((x) => x.code);
+    const n = (v, um, varios) => `${v} ${v === 1 ? um : varios}`;
+    return `<li class="previa-declaradas">Aprovações registradas por você: ${n(d.ativas.length, "mantida", "mantidas")}, ${n(confirmadas.length, "confirmada", "confirmadas")} pelo SIGA, ${divergentes.length} com divergência${divergentes.length ? ` (${divergentes.map(esc).join(", ")})` : ""}.</li>
+      ${naoEncontradas.length ? `<li class="alerta">Registradas por você e não encontradas no Histórico importado: ${naoEncontradas.map(esc).join(", ")}.</li>` : ""}`;
   }
 
   async function geraPerfilDoSiga() {

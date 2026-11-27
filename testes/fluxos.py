@@ -3234,7 +3234,35 @@ def t_declaradas_arquivo(b):
     assert exp["aprovacoesDeclaradas"] == [{"code": "MAC118", "registradoEm": "2026-11-27"}] and exp["equivalencias"] == plano["equivalencias"], exp
     ctx.close()
 
-CASOS5 = [t_controles_icones, t_todas_acesas, t_minimalista, t_plano_na_grade, t_declaradas_modelo, t_declaradas_prazo_ace, t_declaradas_arquivo]
+@caso("Declaradas e importação do SIGA: prévia com mantidas, confirmadas, divergência e não encontradas; o campo fica intacto e conta uma vez (R12, R13, R18)")
+def t_declaradas_reimportar(b):
+    perfil = {"periodos": [{"nome": "2027/1", "planejado": True, "disciplinas": ["MAC238"]}],
+              "aprovacoesDeclaradas": [{"code": "MAC118", "registradoEm": "2026-11-27"}, {"code": "FIT112", "registradoEm": "2026-11-27", "semestre": "2024/2"},
+                                       {"code": "COS360", "registradoEm": "2026-11-27", "semestre": "2025/2"}]}
+    ctx, pg = abre(b, perfil=perfil, extra={"modoClassico": False, "vista": "grade"}, nome="declaradas-reimportar", relogio=HOJE)
+    gera(pg, ["historico-ficticio.pdf"])
+    previa = pg.locator(".resumo-import").inner_text()
+    assert "Aprovações registradas por você: 1 mantida, 2 confirmadas pelo SIGA, 1 com divergência (FIT112)." in previa, previa
+    assert "não encontradas no Histórico importado: COS360" in previa, previa
+    assert not pg.locator("#siga-usar").is_disabled()                                   # a prévia não bloqueia
+    foto(pg, "declaradas-previa")
+    pg.click("#siga-usar")
+    p = ls(pg, "perfilImportado")
+    assert p["aprovacoesDeclaradas"] == perfil["aprovacoesDeclaradas"], p.get("aprovacoesDeclaradas")       # intacta
+    assert any(x["nome"] == "2027/1" and x.get("planejado") for x in p["periodos"])                       # plano mantido
+    assert pg.evaluate("GradeInterativa.fonte('MAC118')") == "importado" and pg.evaluate("GradeInterativa.fonte('COS360')") == "declarado"
+    completo(pg, "grade"); pg.locator('.card[data-code="MAC118"]').click()
+    assert "Confirmada pelo SIGA em 2026/1" in pg.locator("#detalhes").inner_text()
+    pg.keyboard.press("Escape"); pg.locator('.card[data-code="FIT112"]').click()
+    assert "Você registrou 2024/2; o SIGA traz 2025/1. Vale o SIGA." in pg.locator("#detalhes").inner_text()
+    pg.keyboard.press("Escape")
+    totais = pg.evaluate("JSON.stringify(GradeInterativa.totais())")
+    gera(pg, ["historico-ficticio.pdf"]); pg.click("#siga-usar")                        # reimportar de novo: mesmo resultado
+    assert ls(pg, "perfilImportado")["aprovacoesDeclaradas"] == perfil["aprovacoesDeclaradas"]
+    assert pg.evaluate("JSON.stringify(GradeInterativa.totais())") == totais
+    ctx.close()
+
+CASOS5 = [t_controles_icones, t_todas_acesas, t_minimalista, t_plano_na_grade, t_declaradas_modelo, t_declaradas_prazo_ace, t_declaradas_arquivo, t_declaradas_reimportar]
 CASOS += CASOS5
 
 
