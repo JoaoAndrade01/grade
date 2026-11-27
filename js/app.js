@@ -3560,7 +3560,11 @@
     document.addEventListener("pointerout", (ev) => {
       if (pressao && pressao.id === ev.pointerId && ev.target === pressao.el && !pressao.el.contains(ev.relatedTarget)) encerraPressao();
     });
-    window.addEventListener("scroll", encerraPressao, { capture: true, passive: true });
+    // Rolagem: no toque, qualquer rolagem cancela (a pessoa está rolando a página); com o mouse e o teclado, só uma
+    // rolagem da página maior que a tolerância (uma rolagem atrasada de poucos pixels não apaga a pressão).
+    window.addEventListener("scroll", () => {
+      if (pressao && (pressao.toque || Math.abs(window.scrollX - pressao.sx) > TOLERANCIA || Math.abs(window.scrollY - pressao.sy) > TOLERANCIA)) encerraPressao();
+    }, { capture: true, passive: true });
     window.addEventListener("blur", encerraPressao);
     document.addEventListener("visibilitychange", encerraPressao);
     // O menu do sistema (toque longo) fica bloqueado só durante a pressão.
