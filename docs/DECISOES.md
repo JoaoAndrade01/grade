@@ -349,11 +349,20 @@ novo. Para propor uma mudança, abra uma Issue e acrescente um registro novo, se
   - **Contagem e SIGA:** o registro importado vence a declarada, que fica guardada fora da conta, com remoção em lote
     opcional; semestre diferente é divergência informativa ("Vale o SIGA"). A declarada vence previsão e plano. Uma
     reprovação do SIGA no semestre declarado ou depois é conflito e a declarada não conta; sem semestre, o limite é o
-    semestre de `registradoEm`. A equivalência deferida com origem declarada também é declarada, com a data da
-    origem que a determina (a mais tardia, comparando o semestre datado com o limite de `registradoEm` das sem semestre; no empate, a datada). Uma equivalência importada
+    semestre de `registradoEm`. A equivalência deferida segue a regra da pedida, logo abaixo. Uma equivalência importada
     aprovada confirma também a declarada que estava em conflito. O bloco de transferidas confirma; o semestre declarado
     só é comparado com `aprovadaEm`. Carregar outro perfil pergunta antes quando alguma declarada deste navegador não
     está no arquivo; descartar o perfil salvo tira também as declaradas do plano.
+  - **Regra da pedida de uma equivalência deferida**, a partir do conjunto de origens, sem depender da ordem:
+    - *status:* aprovada se todas as origens estão aprovadas; senão, prevista (alguma prevista ou em curso, as outras
+      cumpridas).
+    - *fonte:* a mais fraca: declarada se alguma origem for declarada; prevista se a pedida ficou prevista.
+    - *data efetiva:* a mais tardia entre as origens. Cada origem contribui com o semestre que conhece: importada,
+      prevista ou em curso, o semestre do período; transferida, `aprovadaEm` ou, sem ela, o ano do bloco (D-08);
+      declarada com semestre, o semestre informado; declarada sem semestre, o limite de `registradoEm` (A7). No empate, o
+      semestre conhecido vence o limite. Sem data em alguma origem, a pedida fica sem data.
+    - *requisito:* a pedida cumpre num semestre quando todas as origens cumprem, cada uma pelo próprio critério.
+    - *previsão e selos:* a pedida ainda não cumprida entra no plano na data efetiva; a fonte decide o selo e a fase.
   - **Semestre ausente:** requisito pelo limite de `registradoEm` (pré-requisito depois dele; co-requisito também nele),
     com aviso no próprio semestre; o prazo de cinco anos fica "Data de aprovação não confirmada", sem idade e sem data
     inventada. D-03 e D-08 não são reabertas.

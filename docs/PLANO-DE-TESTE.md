@@ -71,7 +71,9 @@ arquivos); seção do BOA (ausente, vazia, presente); ocorrências de ACE (mesmo
 período); dispensa (uma, duas ou mais, alvo fora do catálogo); horário (malformado, início igual ou posterior ao
 fim, duplicata); fase do curso (24,9%, 25%, 74,9% e 75%; até dois e três semestres; sem Histórico; reingresso); aprovação
 registrada por você (com e sem semestre, confirmada, divergente, em conflito com reprovação antes, no semestre e depois,
-bloco de transferidas, equivalência com origem declarada).
+bloco de transferidas, equivalência com origem declarada); pedida de equivalência (todos os pares de origem importada,
+transferida com e sem `aprovadaEm`, declarada com e sem semestre, prevista e em curso, nas duas ordens, com pré e
+co-requisito em oito semestres).
 
 **Lacunas conhecidas** (também marcadas na matriz): os casos 11a–11d (resultado dos filtros e do guia nas
 optativas) e o 06n (atividade em curso desconhecida) **não têm teste automatizado**; os casos 12c a 12e e 14e a 14g
