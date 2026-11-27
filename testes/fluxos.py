@@ -780,6 +780,30 @@ def t_timeline_ocorrencia_mesma_coluna(b):
     erros = {k: v for k, v in observado.items() if v != esperado[k[1]]}
     assert not erros and len(observado) == 6, observado
 
+@caso("Linha do tempo: com os detalhes abertos, remover, mover ou planejar antes atualiza ou retira a linha da ocorrência, sem dado de outra")
+def t_timeline_ocorrencia_edicao(b):
+    def cenario(nome, periodos, abrir, cliques):
+        perfil = {"periodos": [{"nome": "2026/2", "atual": True, "disciplinas": [{"code": "MAC238", "status": "cursando"}]}]
+                  + [{"nome": n, "planejado": True, "disciplinas": d} for n, d in periodos]}
+        ctx, pg = abre(b, perfil=perfil, extra={"modoClassico": False, "vista": "timeline"}, nome=f"ocorrencia-edicao-{nome}", relogio=RELOGIO)
+        cartao_na_coluna(pg, abrir, "MAC118").click()
+        antes = pg.locator("#detalhes .det-ocorrencia").inner_text()
+        for c in cliques: pg.click(f'#detalhes [data-plan="{c}"]')
+        linha = pg.locator("#detalhes .det-ocorrencia")
+        depois = linha.inner_text() if linha.count() else None
+        ctx.close()
+        return antes, depois
+    observado = {
+        "remover": cenario("remover", [("2027/1", ["MAC118"]), ("2027/2", ["MAC118"])], "2027/1", ["2027/1"]),
+        "mover": cenario("mover", [("2027/1", ["MAC118"]), ("2027/2", [])], "2027/1", ["2027/1", "2027/2"]),
+        "planejar-antes": cenario("planejar-antes", [("2027/1", []), ("2027/2", ["MAC118"])], "2027/2", ["2027/1"]),
+    }
+    assert observado == {
+        "remover": ("2027/1: Planejada · perfil", None),
+        "mover": ("2027/1: Planejada · perfil", None),
+        "planejar-antes": ("2027/2: Planejada · perfil", "2027/2: Planejada · perfil"),
+    }, observado
+
 @caso("Cartões: nome acessível sem espaço antes da vírgula, na Grade e na Linha do tempo")
 def t_nome_sem_espaco(b):
     ctx, pg = abre(b, perfil=PERFIL, nome="nome-sem-espaco")
@@ -2373,7 +2397,7 @@ CASOS3 = [t_fecha_durante_leitura, t_previa_confirmacao, t_previa_download, t_fo
 CASOS = [
     t_descartar_salvo, t_tema, t_tema_abas, t_sem_perfil, t_seletor_modo, t_importar_sugere_planejador, t_criar_perfil, t_perfil_conflito,
     t_compat, t_siga, t_siga_sem_boa, t_excluir, t_periodo_janela, t_config_fechar, t_oferta, t_mac,
-    t_cr01_pre, t_cr01_co, t_cr01_sugestoes, t_cr01_proposta, t_cr01_equivalencia, t_cr05_transferida_requisito, t_timeline_detalhes_e_clique, t_timeline_transferidas, t_timeline_bloco_vazio, t_timeline_ocorrencia, t_timeline_ocorrencia_mesma_coluna, t_nome_sem_espaco, t_timeline_transferida_origem, t_eci_timeline, t_cr01_manual,
+    t_cr01_pre, t_cr01_co, t_cr01_sugestoes, t_cr01_proposta, t_cr01_equivalencia, t_cr05_transferida_requisito, t_timeline_detalhes_e_clique, t_timeline_transferidas, t_timeline_bloco_vazio, t_timeline_ocorrencia, t_timeline_ocorrencia_mesma_coluna, t_timeline_ocorrencia_edicao, t_nome_sem_espaco, t_timeline_transferida_origem, t_eci_timeline, t_cr01_manual,
     t_cr03_historico, t_cr03_lista,
     t_cr04_reingresso, t_cr04_ordem_dos_arquivos, t_cr04_escolha_sem_datas, t_pc05_datas_ausentes, t_cr04_troca_recalcula_planos, t_cr04_ace_duas_ocorrencias, t_cr04_controles, t_pc05_perfil_antigo_duvida, t_cr04_papel, t_cr04_fronteira,
     t_cr02_pedidos, t_cr02_duas_dispensas, t_cr02_dispensa_unica, t_cr02_alvo_fora_do_catalogo,

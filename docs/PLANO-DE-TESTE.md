@@ -178,7 +178,7 @@ parte dele) ou *sem teste* (conferir na integração).
 | H1, H3, H10 | [RF-14](REQUISITOS.md#rf-14--marcação-manual-aparência-tags-e-referências-h1-h3-h10) | 14a–14b | `t_cr01_manual`, `t_pc02_manual_credito` | `marca`, `pinta`, `tagDe` | direta |
 | H1, H3 | RF-14 | 14c | `t_cadeado` | `protegida` | direta |
 | H1, H3 | RF-14 | 14d | `t_setas` | `arestasDe` | direta |
-| H1, H3, H10 | RF-14 | 14h, 14i | `t_b1_estado_dos_cartoes` (1º toque consulta e o 2º marca; ícone de estado, situação e origem no nome acessível), `t_timeline_ocorrencia`, `t_timeline_ocorrencia_mesma_coluna`, `t_nome_sem_espaco` | ícone de estado e linha de consulta (`js/app.js`, `static/app.css`) | direta |
+| H1, H3, H10 | RF-14 | 14h, 14i | `t_b1_estado_dos_cartoes` (1º toque consulta e o 2º marca; ícone de estado, situação e origem no nome acessível), `t_timeline_ocorrencia`, `t_timeline_ocorrencia_mesma_coluna`, `t_timeline_ocorrencia_edicao`, `t_nome_sem_espaco` | ícone de estado e linha de consulta (`js/app.js`, `static/app.css`) | direta |
 | H1, H3 | RF-14 | 14e | `t_tema`, `t_modo`, `t_atalhos`, `t_formatos` | `renderAtalhos`, `renderConfig` | parcial (anúncio ao desafixar: conferir) |
 | H1, H3 | RF-14 | 14f | `t_tags` | `renderConfig` (editor de tags) | parcial |
 | H10 | RF-14 | 14g | `t_atalhos` (Referências sem requisição externa) | `abreReferencias` | parcial |

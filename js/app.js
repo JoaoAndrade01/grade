@@ -873,7 +873,7 @@
       `class="card s-${esc(o.status)} cat-${esc(o.cat)}${temAviso ? " tem-aviso" : ""}${o.classe ? " " + o.classe : ""}"`,
       o.code ? `data-code="${esc(o.code)}"` : "",
       o.periodo ? `data-periodo="${esc(o.periodo)}"` : "",
-      o.ri != null ? `data-reg="${o.ri}"` : "",
+      o.ri != null ? `data-reg="${o.ri}" data-status="${esc(o.status)}"${o.transferida ? " data-transferida" : ""}` : "",
       o.idx != null ? `data-idx="${o.idx}"` : "",
       o.inerte ? "inert" : "",
       o.fill ? `style="--ok:${o.fill.ok}%;--prev:${o.fill.prev}%;--plan:${o.fill.plan}%"` : "",
@@ -1135,7 +1135,7 @@
         const oferta = tipo === "planejado" && it.status !== "reprovado" ? avisoOferta(it.alvo, p.nome) : null;
         if (oferta) { temOferta = true; aviso.push(oferta.texto); subs.push(`<span class="aviso-oferta">${esc(oferta.curto)}</span>`); }
         return card({
-          code: it.alvo, name: it.name, cat: it.category, status: it.status, nota: it.nota, origem: "perfil", periodo: col.nome, ri: it.ri,
+          code: it.alvo, name: it.name, cat: it.category, status: it.status, nota: it.nota, origem: "perfil", periodo: col.nome, ri: it.ri, transferida: bloco != null,
           meta: metaDe(it.code, it.category == 5 ? it.horas : it.credits, it.category), sub: subs.join("<br>"), aviso,
           ...(bloco != null ? { classe: "transferida", titulo: `transferida do curso anterior (bloco ${bloco})` } : {}),
         });
@@ -2101,9 +2101,14 @@
       const futuros = periodosFuturos();
       // Cartão da Linha do tempo: primeiro o semestre, a situação e a origem dessa ocorrência; depois, o resumo.
       const regs = M.regs[code] || [];
-      const oc = !alvo.periodo ? null : alvo.reg != null && regs[alvo.reg] ? regs[alvo.reg]
-        : regs.find((r) => M.periodos[r.pi]?.nome === alvo.periodo) || regs.find((r) => r.aprovadaEm === alvo.periodo);
-      const blocoOc = oc && M.periodos[oc.pi]?.nome !== alvo.periodo ? M.periodos[oc.pi]?.nome : null;
+      // O índice do registro é só uma pista: o modelo pode ter sido remontado (remover, mover, planejar) com o painel
+      // aberto. Vale o registro que corresponde ao cartão (semestre, situação e, se transferida, bloco com aprovadaEm);
+      // se a ocorrência deixou de existir, a linha some.
+      const nomeDe = (r) => M.periodos[r.pi]?.nome;
+      const casa = (r) => !!r && (alvo.status == null || r.status === alvo.status) && (alvo.transferida
+        ? r.aprovadaEm === alvo.periodo && anoDoBloco(nomeDe(r)) != null : nomeDe(r) === alvo.periodo);
+      const oc = !alvo.periodo ? null : casa(regs[alvo.reg]) ? regs[alvo.reg] : regs.find(casa) || null;
+      const blocoOc = oc && alvo.transferida ? nomeDe(oc) : null;
       html = `
         <header><span class="cat-pill cat-${i.category}">${CATS[i.category] ? CATS[i.category].nome : ""}</span>
           <button type="button" class="fechar" aria-label="Fechar">×</button></header>
@@ -2148,6 +2153,8 @@
       box.dataset.alvo = "c:" + code;
       box.dataset.periodo = oc ? alvo.periodo : "";
       box.dataset.reg = oc && alvo.reg != null ? String(alvo.reg) : "";
+      box.dataset.status = oc && alvo.status ? alvo.status : "";
+      box.dataset.transferida = oc && alvo.transferida ? "1" : "";
     } else if (alvo.idx != null) {
       const c = M.grade[+alvo.idx];
       const f = preenchimentoBlocos()[c.idx] || { nomes: [] };
@@ -2199,7 +2206,8 @@
     if (box.dataset.alvo === "privacidade") return abrePrivacidade();
     if (box.dataset.alvo === "referencias") return abreReferencias();
     const t = box.dataset.alvo.slice(0, 1), v = box.dataset.alvo.slice(2);
-    abreDetalhes(t === "c" ? { code: v, periodo: box.dataset.periodo || null, reg: box.dataset.reg ? +box.dataset.reg : null } : { idx: v });
+    abreDetalhes(t === "c" ? { code: v, periodo: box.dataset.periodo || null, reg: box.dataset.reg ? +box.dataset.reg : null,
+      status: box.dataset.status || null, transferida: box.dataset.transferida === "1" } : { idx: v });
   }
 
   /** Cadeado ligado: aprovadas pelo perfil ou marcadas como Cursada (tag que conta como concluída) não mudam. */
@@ -2943,7 +2951,8 @@
       }
       destaca(el.dataset.code);
       if (el.dataset.code) defineFoco(el.dataset.code);
-      abrePainel(ev, () => abreDetalhes(el.dataset.code ? { code: el.dataset.code, periodo: el.dataset.periodo || null, reg: el.dataset.reg != null ? +el.dataset.reg : null } : { idx: el.dataset.idx }));
+      abrePainel(ev, () => abreDetalhes(el.dataset.code ? { code: el.dataset.code, periodo: el.dataset.periodo || null, reg: el.dataset.reg != null ? +el.dataset.reg : null,
+        status: el.dataset.status || null, transferida: el.hasAttribute("data-transferida") } : { idx: el.dataset.idx }));
     });
 
     // Horários: mouse e toque (mousedown, com arrasto) e teclado (Espaço/Enter, que chegam como clique sem detalhe).
