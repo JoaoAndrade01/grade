@@ -231,6 +231,16 @@ caso("B3: equivalência com duas origens declaradas usa a origem que determina a
   assert.ok(!P.registroCumpre(c.regs.XYZ201, c.periodos, sem("2025/1")) && P.registroCumpre(c.regs.XYZ201, c.periodos, sem("2025/2")));
 });
 
+caso("B4: equivalência importada aprovada confirma também a declarada que estava em conflito com uma reprovação", () => {
+  const m = P.montaRegistros({ grade: [], catalogo: [],
+    periodos: [{ nome: "2025/1", disciplinas: ["XYZ101", { code: "XYZ201", status: "reprovado" }] }],
+    declaradas: [{ code: "XYZ201", semestre: "2025/1", registradoEm: "2026-11-27" }],
+    pedidos: [{ status: "deferido", pedida: "XYZ201", cursadas: ["XYZ101"] }] });
+  assert.equal(P.fonteDaAprovacao(m.regs.XYZ201), "importado");
+  assert.deepEqual(m.declaradas.conflitos, {});
+  assert.ok(m.declaradas.confirmadas.XYZ201);
+});
+
 // ---------- Fase, conquistas e previsão (js/conquistas.js)
 const C = require(path.join(RAIZ, "js", "conquistas.js"));
 const GUIA = {}; vm.runInNewContext(fs.readFileSync(path.join(RAIZ, "js", "guia.js"), "utf8"), { window: GUIA });

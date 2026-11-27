@@ -305,14 +305,18 @@
     });
 
     // Uma equivalência deferida (importada) para o código de uma declarada também a confirma: a declarada sai da conta.
-    const confirmadaDepois = classe.ativas.filter((d) => (regs[d.code] || []).some((r) => r.status === "aprovado" && r.origem !== "declarado"));
+    // Vale também para a declarada que estava em conflito com uma reprovação: a aprovação importada a confirma.
+    const confirmada = (d) => (regs[d.code] || []).some((r) => r.status === "aprovado" && r.origem !== "declarado");
+    const confirmadaDepois = declaradas.filter((d) => (classe.conflitos[d.code] || classe.ativas.includes(d)) && confirmada(d));
     if (confirmadaDepois.length) {
       const sai = new Set(confirmadaDepois.map((d) => d.code));
       sai.forEach((code) => { regs[code] = regs[code].filter((r) => r.origem !== "declarado" || r.via !== "aprovação registrada por você"); });
       virtual.itens = virtual.itens.filter((it) => !sai.has(it.code));
       const outras = classificaDeclaradas(confirmadaDepois, regs, periodos);
+      const conflitos = Object.fromEntries(Object.entries(classe.conflitos).filter(([code]) => !sai.has(code)));
+      const notas = Object.fromEntries(Object.entries(classe.notas).filter(([code]) => !sai.has(code)));
       classe = { ativas: classe.ativas.filter((d) => !sai.has(d.code)), confirmadas: { ...classe.confirmadas, ...outras.confirmadas },
-        conflitos: classe.conflitos, notas: classe.notas };
+        conflitos, notas };
     }
 
     // D-07: os alvos contam como no histórico e a origem de uma dispensa não soma créditos em grupo nenhum.
