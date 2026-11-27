@@ -54,7 +54,7 @@ lugar, e não controla o que o GitHub registra quando você visita o site hosped
 | `tags`, `marcacoes`, `creditos` | Tags de cor, o que foi pintado e créditos manuais |
 | `plano` | Edições de planejamento, pedidos e extensão ainda não exportados (inclui períodos excluídos) |
 | `tema`, `aparencia` | Tema escolhido e formato das abas e da barra (só existem depois de uma escolha) |
-| `atalhos`, `ocultarSeletor`, `modoClassico`, `cadeado` | Atalhos fixados na barra, seletor de modo, modo e cadeado da paleta |
+| `atalhos`, `ocultarSeletor`, `seletorIcones`, `modoClassico`, `cadeado` | Atalhos fixados na barra, seletor de modo (visível, só ícones), modo e cadeado da paleta |
 | `vista`, `exibir`, `filtros`, `filtroNivel`, `cronoPeriodo`, `progressoAberto` | Preferências de tela |
 
 ## Como conferir você mesmo

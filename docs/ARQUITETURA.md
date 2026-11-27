@@ -84,7 +84,7 @@ flowchart LR
 ```mermaid
 flowchart LR
   subgraph G0["APLICAÇÃO GRADE (JavaScript no navegador)"]
-    interface["Interface<br/>Telas, Configurações,<br/>faixa e notas (js/app.js)"]
+    interface["Interface<br/>Telas, Configurações,<br/>aviso e notas (js/app.js)"]
     tema["Tema e aparência<br/>js/tema.js"]
     importacao["Importação do SIGA<br/>js/siga.js e pdf.js:<br/>leitura e prévia"]
     modelo["Modelo e regras<br/>status, créditos, requisitos,<br/>pedidos e avisos"]
@@ -185,7 +185,7 @@ flowchart LR
     exp["Exportar<br/>perfil.js"]
     eci["A ECI por trás<br/>da Grade<br/>Dados fictícios"]
     cfg["Configurações<br/>Tema e atalhos"]
-    faixa["Faixa e notas de estimativa<br/>A Grade orienta, não confirma"]
+    faixa["Aviso e notas de estimativa<br/>A Grade orienta, não confirma"]
     csp["Importação no dispositivo<br/>Cabeçalhos pessoais descartados"]
   end
   siga --> extr

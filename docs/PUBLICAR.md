@@ -88,7 +88,7 @@ houver dados pessoais no histórico a enviar, pare e revise a entrega.
 Antes do push, abra a [cópia pública por HTTP](#abrir-a-cópia-pública-por-http), criada a partir do commit aprovado.
 Confira:
 
-- a Grade abre no modo clássico, com a faixa de aviso, o seletor de modo e a engrenagem no topo;
+- a Grade abre no modo Clássico, com o seletor "Clássico | Planejador" e a engrenagem no topo e o aviso no rodapé;
 - o rodapé mostra `v2.0.0` e a data de conferência do currículo;
 - em **F12 → Rede**, o app carrega os recursos do próprio site, sem buscar `perfil/perfil.js` e sem erro 404;
 - **Configurações → Referências** abre os links certos;
@@ -112,7 +112,7 @@ O modelo de Issue ([`.github/ISSUE_TEMPLATE/`](../.github/ISSUE_TEMPLATE/)) só 
 do fork, o que acontece com o push acima.
 
 1. No fork, em **Settings → General → Features**, confirme que **Issues** está ativado.
-2. Abra o link **Achou um erro? Crie uma nova issue** do **rodapé** da Grade publicada, nos modos clássico e completo.
+2. Abra o link **Achou um erro? Crie uma nova issue** do **rodapé** da Grade publicada, nos modos Clássico e Planejador.
    Ele deve levar à criação de Issue **do fork**, sem dados da pessoa na URL. Se o GitHub mostrar a lista de modelos,
    escolha **Relatar um erro**. O formulário deve pedir o esperado, o observado, os passos e o navegador, e avisar para
    não anexar PDFs, perfil, nomes, matrículas nem capturas identificáveis.
@@ -137,7 +137,7 @@ que essa é a origem configurada.
    página.
 4. **Página substituta.** Abra `/classico.html` no site publicado: ela deve avisar que a versão antiga saiu, não carregar
    script, e levar ao modo clássico do app.
-5. **Rodapé.** No modo completo, confira se o link **arquitetura** do rodapé abre no site publicado e se a versão e a data
+5. **Rodapé.** No Planejador, confira se o link **arquitetura** do rodapé abre no site publicado e se a versão e a data
    do currículo estão corretas.
 6. **Tag do legado.** Confirme que a tag `legado-classico` existe no fork e aponta para um commit em que a página antiga
    abre.

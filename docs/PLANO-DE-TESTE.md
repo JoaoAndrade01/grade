@@ -16,7 +16,7 @@ com o texto integral da norma. A IEEE 829 aparece só como referência históric
 **Objetivo.** Dar evidência, por versão e pelo hash do commit, de que o candidato cumpre as quatro condições para
 publicar: privacidade, correção, honestidade sobre o alcance e acessibilidade mínima.
 
-**Dentro do escopo:** o app nos modos clássico e completo, aberto por `file://` e por HTTP; o importador em
+**Dentro do escopo:** o app nos modos Clássico e Planejador, aberto por `file://` e por HTTP; o importador em
 JavaScript e em Python; os dados de referência (`js/horarios.js` e `js/guia.js`); a página substituta
 `classico.html`; a política de segurança de conteúdo (CSP) e as requisições do navegador.
 
@@ -121,10 +121,12 @@ parte dele) ou *sem teste* (conferir na integração).
 | H8 | RF-01 | 01c–01e | `t_cr03_historico` | `totais` (identidade por período) | direta |
 | H8 | RF-01 | 01f | `t_cr03_lista` | `totais` | direta |
 | H8 | RF-01 | 01g | versão seguinte (sem teste na v2.0.0) | — | — |
+| H3 | RF-01 | 01h | `t_barra_quatro_trechos` | `renderBarraGeral`, `normalizaTags` | direta |
 | H1, H4 | [RF-02](REQUISITOS.md#rf-02--requisitos-e-co-requisitos-ra-03-ra-04) | 02a–02d, 02i | `t_cr01_pre`, `t_mac` | `avisos`, `requisitoCumprido` | direta |
 | H4 | RF-02 | 02e–02f | `t_cr01_sugestoes` | `candidatos` | direta |
 | H4 | RF-02 | 02g–02h | `t_cr01_co` | `avisos`, `requisitoCumprido` | direta |
 | H1, H4 | RF-02 | 02j | `t_pc03_manual_requisito` | `requisitoCumprido`, `statusDe` | direta |
+| H4, H7 | RF-02 | 02k–02o (CR-05) | `t_cr05_transferida_requisito` | `registroCumpre`, `anoDoBloco` | direta |
 | H5, H7 | [RF-03](REQUISITOS.md#rf-03--análise-de-um-pedido-de-equivalência-ra-07-ra-09-ra-11-ra-12-ra-21) | 03a–03c | `t_rf08_notas_credito`, `t_cr04_fronteira` | `analisaPedido` | parcial |
 | H5 | RF-03 | 03d–03g | `t_d01_carga` | `analisaPedido` | direta |
 | H5 | RF-03 | 03h, 03j | `t_d01_conteudo` | `analisaPedido` | direta |
@@ -149,7 +151,9 @@ parte dele) ou *sem teste* (conferir na integração).
 | H2 | RF-06 | 06n | sem teste dirigido | `gerar_perfil.py`, `lerBOA` | sem teste |
 | H7 | RF-06 | perfil antigo em dúvida | `t_pc05_perfil_antigo_duvida` | `analisaPedido` | direta |
 | H4 | [RF-07](REQUISITOS.md#rf-07--aviso-de-oferta-e-horários-de-referência-ra-20) | 07a–07e | `t_oferta`, `t_rf08_oferta` | `avisoOferta`, `CICLO_BASICO` | direta |
-| H10 | [RF-08](REQUISITOS.md#rf-08--aviso-de-que-a-grade-não-é-oficial-versão-e-relato-d-06) | 08a, 08b | `t_rf08_faixa` | `index.html`, `static/app.css` | direta |
+| H10 | [RF-08](REQUISITOS.md#rf-08--aviso-de-que-a-grade-não-é-oficial-versão-e-relato-d-06) | 08a, 08b | `t_rf08_faixa` (aviso no rodapé, D-09) | `index.html`, `static/app.css` | direta |
+| H10 | RF-08 | 08m | `t_sobre` | `htmlSobre` | direta |
+| H10 | RF-08 | 08n | `t_detalhamento_info` | `htmlLivreCurta`, `renderLegenda` | direta |
 | H10 | RF-08 | 08c, 08d | `t_rf08_notas_credito` | `notaHtml` (`js/app.js`) | direta |
 | H10 | RF-08 | 08e, 08f | `t_rf08_periodo_atual` | `perfilDaImportacao` | direta |
 | H10 | RF-08 | 08l | `t_rf08_deduzido_regras` | `perfilDaImportacao` | direta |
@@ -159,6 +163,9 @@ parte dele) ou *sem teste* (conferir na integração).
 | H4 | RF-10 | 10b | `t_b4_grade_horarios` (teclado: configurar, ver o choque nas duas, limpar); `t_regressao` (clique) | `montaModelo`, grade de horários de `js/app.js` | direta |
 | H4 | RF-10 | 10c | `t_cr01_proposta` | `montaProposta` | direta |
 | H4 | RF-10 | 10d–10e | `t_excluir` | `excluiPeriodo` | direta |
+| H4 | RF-10 | 10f | `t_periodo_janela` | `abreDialogoPeriodo`, `criaPeriodo` | direta |
+| H4 | RF-10 | 10g | `t_timeline_detalhes_e_clique` | `desenha`, clique dos cartões | direta |
+| H4, H7 | RF-10 | 10h | `t_timeline_transferidas` | `colunasTimeline` | direta |
 | H9 | [RF-11](REQUISITOS.md#rf-11--optativas-guia-e-oferta-h9) | 11a–11d | sem teste do resultado dos filtros e do guia (`t_regressao` cobre busca e foco; `t_b2_foco_filtros` cobre o foco ao filtrar) | `candidatos`, `js/horarios.js`, `js/guia.js` | sem teste |
 | H9 | RF-11, RF-17 | turmas sem código | `t_m6_somente_informativo` (lista informativa "cabe"/"choca", sem ação; fora das sugestões e dos cálculos) | `js/horarios.js`, `js/optativas.js` | direta |
 | H11 | [RF-12](REQUISITOS.md#rf-12--perfil-e-dados-locais-h11) | 12a | `t_criar_perfil` | `salvaPerfilCriado` | direta |
@@ -174,6 +181,12 @@ parte dele) ou *sem teste* (conferir na integração).
 | H1, H3 | RF-14 | 14e | `t_tema`, `t_modo`, `t_atalhos`, `t_formatos` | `renderAtalhos`, `renderConfig` | parcial (anúncio ao desafixar: conferir) |
 | H1, H3 | RF-14 | 14f | `t_tags` | `renderConfig` (editor de tags) | parcial |
 | H10 | RF-14 | 14g | `t_atalhos` (Referências sem requisição externa) | `abreReferencias` | parcial |
+| H1, H3 | RF-14 | 14j | `t_tags_nao_conta` | `normalizaTags`, `tagDe` | direta |
+| H1, H3 | RF-14 | 14k | `t_barra_quatro_trechos` | editor de tags, `renderBarraGeral` | direta |
+| H1 | RF-14 | 14l | `t_setas_espaco` | `desenha` (classe `com-setas`), `static/app.css` | direta |
+| H1, H3 | RF-14 | 14m | `t_config_fechar` | `abreConfiguracoes`, `fechaAoClicarFora` | direta |
+| H1 | RF-14 | 14n | `t_seletor_modo` | `#seletor-modo`, `renderConfig` | direta |
+| H1, H2 | RF-14 | 14o | `t_importar_sugere_planejador` | `abreImportador` | direta |
 | H14 | [RF-17](REQUISITOS.md#rf-17--validação-dos-dados-de-referência-h14) | 17a–17e | `testes/referencia_casos.py` (80 casos sintéticos, inclusive gramática do horário, dígitos não ASCII, exceção sem uso e efeito recusado; e os dados reais) | `testes/referencia.py` | direta |
 | H14 | RF-17 | 17f | `testes/referencia_casos.py --browser` | detalhe da optativa em `js/app.js` | direta (sem controle negativo) |
 | H11 | [RNF-01](REQUISITOS.md#5-requisitos-não-funcionais) | — | `t_siga` (o perfil salvo e a página não contêm o nome, o CPF nem o RG do cabeçalho); `testes/auditoria.py` (todas as requisições restritas à origem); `testes/reimportacao.py` (`classico.html` e o código sem referência externa). Arquivo exportado: sonda avulsa (seção 8) | CSP em `index.html` | parcial |

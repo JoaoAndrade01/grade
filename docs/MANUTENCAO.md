@@ -111,7 +111,7 @@ Itens para depois da publicação. A ordem é a de prioridade dentro de cada gru
 | 10 | Cobertura estrutural e mutação, depois dos testes de unidade | A definir |
 | 11 | O CLI Python imprime no `stderr` o código de uma disciplina fora do catálogo | Mensagem sem dados do documento; caso de teste cobre a saída |
 | 12 | Conferir nomes sem código entre o guia e os horários, junto da automação do Notion | O validador avisa quando uma mesma exceção declara as duas fontes e só uma contém o nome |
-| 13 | Melhorias de UX da inspeção: indicar como consultar requisitos sem marcar a Grade e rotular o interruptor de modo; explicar quando guardar a cópia do perfil, o que ela inclui e como recuperar; explicitar o recorte de cada filtro de Optativas e o sentido do selo "inativa"; explicar a lista do BOA e aproximar o motivo da duplicidade do total de ACE | Cada uma verificada no fluxo da história correspondente |
+| 13 | Melhorias de UX da inspeção: indicar como consultar requisitos sem marcar a Grade; explicar quando guardar a cópia do perfil, o que ela inclui e como recuperar; explicitar o recorte de cada filtro de Optativas e o sentido do selo "inativa"; explicar a lista do BOA e aproximar o motivo da duplicidade do total de ACE | Cada uma verificada no fluxo da história correspondente |
 
 ### Produto
 
@@ -144,7 +144,7 @@ Itens para depois da publicação. A ordem é a de prioridade dentro de cada gru
    trocar a referência.
 2. **Procure continuidade.** Primeiro com o Grêmio ECI (`gremio-eci/grade`); depois com alunos de ECI, por uma
    Issue fixada pedindo quem queira manter.
-3. **Se ninguém assumir:** publique um aviso no README e na faixa, com a **data da última conferência** e as
+3. **Se ninguém assumir:** publique um aviso no README e no rodapé, com a **data da última conferência** e as
    instruções para **exportar o perfil**. Decida entre manter, arquivar ou suspender a publicação e registre o
    motivo em [DECISOES.md](DECISOES.md).
 

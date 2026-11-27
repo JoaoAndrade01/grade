@@ -17,8 +17,8 @@ os períodos**, para ter uma meta clara e o controle do próprio caminho, de for
 - **No seu computador:** baixe o repositório e dê dois cliques em `index.html`. Funciona por `file://`, sem instalar nada e
   sem internet.
 
-Na primeira visita o site abre no **modo clássico**: a grade inteira numa tela e a paleta embaixo. O interruptor no
-topo leva ao **modo completo**, com as abas.
+Na primeira visita o site abre no modo **Clássico**: a grade inteira numa tela e a paleta embaixo. O seletor
+"Clássico | Planejador" no topo leva ao **Planejador**, com as abas.
 
 ## O que dá para fazer
 

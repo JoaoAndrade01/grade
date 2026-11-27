@@ -68,7 +68,7 @@ vivo de EEL873.
 | Mantenedor atual | Atualizar currículo e horários com segurança | [MANUTENCAO.md](MANUTENCAO.md) e validador dos dados de referência (H14) |
 | **Autores do guia no Notion** | Que os dados deles sejam usados com a atribuição combinada | Crédito no site. Têm papel técnico se houver automação: criar a conexão de leitura e manter a estrutura das bases (H16, planejada) |
 | Grêmio ECI | Continuidade do projeto original | Crédito ao projeto de origem; correções do currículo podem voltar a ele (ver backlog em [MANUTENCAO.md](MANUTENCAO.md)) |
-| Coordenação do curso | Que a Grade não pareça fonte oficial | Faixa e notas de estimativa; lista de consultas em [REGRAS-ACADEMICAS.md](REGRAS-ACADEMICAS.md) |
+| Coordenação do curso | Que a Grade não pareça fonte oficial | Aviso no rodapé, seção Sobre e notas de estimativa; lista de consultas em [REGRAS-ACADEMICAS.md](REGRAS-ACADEMICAS.md) |
 
 A Grade não é um serviço da UFRJ, do Grêmio nem da coordenação.
 

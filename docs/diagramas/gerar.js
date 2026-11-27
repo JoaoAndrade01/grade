@@ -12,7 +12,7 @@ const vistas = [
   {
     id: 'atual', arquivo: 'arquitetura-atual.svg', direcao: 'LR',
     w: 1500, h: 970, titulo: 'FLUXO DE DADOS DA GRADE ECI', estado: 'ESTADO: v2.0.0',
-    descricao: 'Dados públicos e o perfil local alimentam a Grade no navegador. Configurações ajusta a interface, a faixa e as notas avisam que a Grade não é oficial e as experiências da ECI usam dados fictícios.',
+    descricao: 'Dados públicos e o perfil local alimentam a Grade no navegador. Configurações ajusta a interface, o aviso no rodapé e as notas dizem que a Grade não é oficial e as experiências da ECI usam dados fictícios.',
     grupos: [
       { x: 20, y: 90, w: 300, h: 850, rot: 'ORIGENS DOS DADOS' },
       { x: 400, y: 90, w: 300, h: 850, rot: 'PROCESSAMENTO' },
@@ -41,7 +41,7 @@ const vistas = [
       { id: 'exp', x: 1286, y: 490, w: 164, h: 90, icon: 'download', t: ['Exportar', 'perfil.js'], peq: true },
       { id: 'eci', x: 1110, y: 600, w: 160, h: 90, icon: 'book-open-check', t: ['A ECI por trás', 'da Grade', 'Dados fictícios'], peq: true },
       { id: 'cfg', x: 1286, y: 600, w: 164, h: 90, icon: 'gear', t: ['Configurações', 'Tema e atalhos'], peq: true },
-      { id: 'faixa', x: 1110, y: 730, w: 340, h: 80, icon: 'scroll-text', t: ['Faixa e notas de estimativa', 'A Grade orienta, não confirma'], tipo: 'aviso' },
+      { id: 'faixa', x: 1110, y: 730, w: 340, h: 80, icon: 'scroll-text', t: ['Aviso e notas de estimativa', 'A Grade orienta, não confirma'], tipo: 'aviso' },
       { id: 'csp', x: 1110, y: 830, w: 340, h: 90, icon: 'shield-check', t: ['Importação no dispositivo', 'Cabeçalhos pessoais descartados'], tipo: 'selo' },
     ],
     rels: [['siga', 'extr'], ['notion', 'extr'], ['pdf', 'imp'], ['aluno', 'perfil'], ['extr', 'db'], ['extr', 'opt'], ['extr', 'hor'], ['extr', 'guia'], ['imp', 'perfil'],
@@ -107,7 +107,7 @@ const vistas = [
     ],
     nos: [
       { id: 'aluno', x: 20, y: 300, w: 230, h: 110, icon: 'user', t: ['Aluno de ECI'], tipo: 'pessoa' },
-      { id: 'interface', x: 330, y: 290, w: 330, h: 140, icon: 'list-tree', t: ['Interface', 'Telas, Configurações,', 'faixa e notas (js/app.js)'] },
+      { id: 'interface', x: 330, y: 290, w: 330, h: 140, icon: 'list-tree', t: ['Interface', 'Telas, Configurações,', 'aviso e notas (js/app.js)'] },
       { id: 'tema', x: 740, y: 110, w: 310, h: 90, icon: 'palette', t: ['Tema e aparência', 'js/tema.js'] },
       { id: 'importacao', x: 740, y: 220, w: 310, h: 110, icon: 'scripts', t: ['Importação do SIGA', 'js/siga.js e pdf.js:', 'leitura e prévia'] },
       { id: 'modelo', x: 740, y: 440, w: 310, h: 120, icon: 'calendar-days', t: ['Modelo e regras', 'status, créditos, requisitos,', 'pedidos e avisos'] },

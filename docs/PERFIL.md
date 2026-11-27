@@ -207,8 +207,9 @@ mesma ocorrência confirmam só o maior valor e o resto aparece "a confirmar"
 
 A paleta padrão tem **Cursada** (`aprovada`: cursada e aprovada, conta como concluída), **Cursando** (`cursando`) e
 **Planejada** (`planejada`). O `status` de uma tag define como ela entra nas contas (`aprovado`, `previsto`,
-`cursando`, `planejado`, `reprovado` ou `pendente`). Uma marcação **vence** o que o perfil diz; `""` significa "sem
-tag". A tag "aprovada" do pincel é uma marcação manual, não um registro importado
+`cursando`, `planejado` ou `pendente`, "Não conta"). Uma tag com `"barra": true` empresta a cor ao trecho do seu tipo
+na barra de progresso; vale no máximo uma por tipo e nunca para `pendente`. Uma marcação **vence** o que o perfil
+diz; `""` significa "sem tag". A tag "aprovada" do pincel é uma marcação manual, não um registro importado
 ([PC-02 e PC-03](DECISOES.md#pc-02-e-pc-03--tag-aprovada-do-pincel)).
 
 ## Compatibilidade com perfis antigos
@@ -222,7 +223,10 @@ O app continua lendo:
 - `dispensa` com códigos simples, sem o objeto do alvo;
 - `equivalencias[].cursada` (singular);
 - a paleta antiga de cinco tags: quem nunca a personalizou passa para a nova, e as tags antigas que ainda pintam
-  alguma disciplina (como `aprov-esperada` e `reprov-esperada`) são mantidas. Tags personalizadas não mudam.
+  alguma disciplina (como `aprov-esperada` e `reprov-esperada`) são mantidas. Tags personalizadas não mudam;
+- tags com `status: "reprovado"` (o antigo "Reprovação (não conta)"): valem e são lidas como `pendente` ("Não conta").
+  A marcação continua; a exportação grava o tipo novo. O importador Python (`--mesclar`) copia as tags como estão, e o
+  app faz a conversão ao abrir.
 
 Fixtures fictícias de perfis antigos estão em `testes/fixtures/` (`perfil-antigo.json` e `perfil-antigo-sem-nome.json`);
 os casos que os usam estão em [PLANO-DE-TESTE.md](PLANO-DE-TESTE.md).

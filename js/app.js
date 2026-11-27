@@ -20,8 +20,9 @@
  *    plano            edições de planejamento/pedidos/extensão ainda não exportadas
  *                     (plano.removidos = períodos planejados do perfil excluídos no Cronograma)
  *    tema             "claro" | "escuro": escolha do botão sol/lua (js/tema.js); sem ela, segue o sistema
- *    modoClassico     seletor de modo do topo (padrão: ligado = só a grade e a paleta)
+ *    modoClassico     seletor Clássico | Planejador do topo (padrão: Clássico = só a grade e a paleta)
  *    ocultarSeletor   esconde o seletor de modo (o modo continua o escolhido; troca em Configurações)
+ *    seletorIcones    seletor Clássico | Planejador só com ícones (o nome acessível continua)
  *    atalhos          atalhos fixados na barra: perfil, importar, tema, privacidade, referencias, tags (começa vazio)
  *    aparencia        "texto" | "icone" (sem a chave = ícone e texto), aplicada por js/tema.js
  *    cadeado          protege as cursadas contra alterações manuais

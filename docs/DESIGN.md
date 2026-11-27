@@ -30,7 +30,7 @@ movimento: só transições curtas; respeita prefers-reduced-motion
 # Princípios
 
 1. **A grade é a estrela.** No modo clássico (padrão) só aparecem o logo e o título, a barra de progresso (com perfil),
-   a grade e a paleta. Todo o resto mora no modo completo ou em **Configurações**.
+   a grade e a paleta. Todo o resto mora no Planejador ou em **Configurações**.
 2. **Barra mínima.** O topo tem a engrenagem (sempre), o seletor de modo (pode ser ocultado) e só os atalhos que a pessoa
    fixar. Sem perfil, "Criar perfil" e "Importar do SIGA" aparecem por padrão.
 3. **Uma tela.** Em telas largas, os 10 períodos cabem lado a lado sem rolagem horizontal; a altura dos cartões
@@ -52,18 +52,21 @@ movimento: só transições curtas; respeita prefers-reduced-motion
 | --- | --- | --- |
 | Cartão de disciplina (`.card.limpo`) | sem tag · com tag (fundo 22% da cor + borda) · equivalência pedida (contorno tracejado âmbar) · apagado pelo filtro (25%) · destaque de requisito (contorno vermelho/laranja) · reprovada (borda pontilhada e texto riscado, **sem esmaecer**) | Nome em destaque; extras só se "Exibir" pedir. A **situação** ("Aprovada", "Aprovação prevista", "Planejada") e a **origem** ("perfil" ou "marcação") aparecem em **texto** no cartão, sem depender de cor nem de passar o mouse |
 | Paleta (`.paleta .pal-btn`) | normal · ativa (fundo da cor, texto com contraste) · foco (contorno azul) | 44px; rola na horizontal no celular. No **toque**, com um pincel ativo, o primeiro toque num cartão só **consulta** (linha "Toque de novo para marcar…", com "Detalhes") e o segundo marca; mouse e teclado marcam com uma ativação |
-| Interruptor (`#seletor-modo`) | ligado (verde) = modo clássico · desligado = completo · oculto (Configurações) · foco visível | `aria-label="Modo clássico"` |
+| Seletor de modo (`#seletor-modo`) | Clássico · Planejador · só ícones (Configurações) · oculto (Configurações) · foco visível no rótulo | rádios nativos em `role="radiogroup"` ("Modo"); setas trocam; o nome acessível vem do texto, escondido só visualmente em "só ícones" (grade de quadradinhos = Clássico; linha do tempo = Planejador) |
 | Barra de atalhos (`#atalhos`, `.btn-atalho`) | fixado · desafixado · primário sem perfil | ícone e texto por padrão; o nome acessível vem do texto (escondido só visualmente em "Somente ícone") |
-| Configurações (`#dlg-config`) | `<dialog>` modal; seções Perfil e dados, Aparência, Grade, Referências | cada atalho tem abrir + "Fixar" (`aria-pressed`); controles sincronizados com a Grade |
-| Setas de requisitos (`svg.setas`) | ocultas · em foco (entra vermelho, sai âmbar) · todas (por baixo dos cartões) · simulada (pontilhada) | contínua = pré-requisito, tracejada = co-requisito; `pointer-events: none` |
+| Configurações (`#dlg-config`) | `<dialog>` modal; seções Perfil e dados, Aparência, Grade, Referências e Sobre | fecha pelo X no topo ("Fechar Configurações"), por clique fora e por Esc; o foco volta ao botão que abriu. Cada atalho tem abrir + "Fixar" (`aria-pressed`); controles sincronizados com a Grade |
+| Janelas de período (`#dlg-periodo`, `#dlg-confirma`) | Adicionar período · Excluir período | mesma janela central; Enter confirma, Esc e clique fora cancelam; erro do nome em texto (`aria-invalid`) |
+| Setas de requisitos (`svg.setas`) | ocultas · em foco (entra vermelho, sai âmbar) · todas (por baixo dos cartões) · simulada (pontilhada) | contínua = pré-requisito, tracejada = co-requisito; `pointer-events: none`. Ligadas, a Grade abre vãos de 28 px entre colunas e 14 px entre cartões; se não couber, rola de lado na própria região |
 | Cadeado (`#cadeado`) | desligado · ligado (fundo escuro) | só ícone, `aria-label="Proteger disciplinas cursadas"` + `aria-pressed` |
 | Seletor "ECI por trás" (`#pal-eci`) | desligado · ligado: cartões com experiência contornados, os demais `inert` e atenuados | Esc desliga |
 | Experiência (`#dlg-eci`) | `<dialog>` em tela cheia | "Voltar" e Esc fecham; o foco volta ao cartão ou botão que abriu |
-| Barra geral (`.bg-barra`) | concluída · cursando · planejada · não planejada | 8px no modo clássico; 14px com legenda no completo |
+| Barra geral (`.bg-barra`) | concluída · prevista (listrada) · cursando · planejada · não planejada | 8px no modo clássico; 14px com legenda no Planejador. Cada trecho pode usar a cor de uma tag ("Usar a cor desta tag na barra", uma por tipo) |
+| Detalhamento (`#progresso`) | recolhido · aberto ("detalhes ▾") | livre escolha numa linha com ⓘ (`aria-expanded`), que mostra os rótulos completos e a nota de RA-13; sem legenda de estados |
 | Painel lateral (`.detalhes`) | aberto · fechado | lateral no computador; folha inferior no celular; fica **acima da paleta** em qualquer largura. O foco entra no painel ao abrir e volta ao disparador ao fechar. Aberto por Configurações, o importador devolve o foco a Configurações, inclusive quando o atalho do topo some depois de Usar |
 | Abas (`.abas [role="tab"]`) | ativa · inativa · foco | `tablist` com painel associado (`aria-controls`, `aria-labelledby`); só a aba ativa entra no Tab; setas, Home e End movem e ativam |
 | Grade de horários (`.cel`) | livre · com disciplina · choque · foco | 45 células com nome ("Segunda 08h: livre"); uma só entra no Tab; setas movem, Espaço ou Enter marca, Home e End vão ao começo e ao fim; as linhas têm contraste de 3:1 |
-| Faixa de aviso (`#faixa-aviso`) | visível em todas as telas | texto estático curto ("Feita por alunos de ECI. Não substitui o SIGA, o BOA nem a coordenação."), `role="note"`, na ordem de leitura, fora do caminho dos controles; não recebe foco |
+| Aviso no rodapé (`#aviso-rodape`, D-09) | visível em todas as telas, nos dois modos | linha mínima com o texto "Feita por alunos de ECI. Não substitui o SIGA, o BOA nem a coordenação.", `role="note"`, na ordem de leitura; não recebe foco |
+| Transferida na linha do tempo (`.card.transferida`) | no semestre original, quando conhecido · no bloco, sem ele | etiqueta "transferida · bloco AAAA" e listras discretas; só exibição |
 | Nota de estimativa (`role="note"`) | junto do cálculo a que se refere | texto além da cor; nunca depende de passar o mouse ([RF-08](REQUISITOS.md#rf-08--aviso-de-que-a-grade-não-é-oficial-versão-e-relato-d-06)) |
 | Prévia de importação | resumo · escolha do histórico atual · colisões · ações | **Usar este perfil** e **Baixar perfil.js** ficam desativados enquanto houver colisão ou dúvida; **Descartar prévia** sempre disponível |
 | Rodapé enxuto | versão · data do currículo · relato · crédito · GitHub | links nativos, com contorno de foco de 2 px; também no modo clássico |
@@ -83,7 +86,7 @@ decisão registrada em [DECISOES.md](DECISOES.md).
 | H5, H6 · pedidos | A carga horária aparece como orientação neutra; os dois números de livre escolha têm rótulo e nota | Casos 03d–03g e 05a |
 | H7 · reingresso | Quando há dúvida sobre o histórico atual, a prévia pede a escolha e explica por que as ações estão desativadas | Casos 06h–06k |
 | H8 · extensão | "A confirmar" aparece no total, no cartão e nos pedidos, com a orientação de conferir | Casos 01c–01f e 06m |
-| H10 · alcance | A faixa e as notas estão onde o número aparece; o relato é alcançável por teclado | Casos 08a–08k |
+| H10 · alcance | O aviso do rodapé e as notas estão onde o número aparece; o relato é alcançável por teclado | Casos 08a–08m |
 | H11 · dados | A pessoa encontra que os dados ficam só neste navegador e como exportá-los | Caso 12e |
 | H12 · experiências | Cada experiência diz a disciplina que ilustra; **Voltar** e Esc devolvem o foco | Casos 13a–13c |
 
@@ -104,7 +107,7 @@ assistiva. O texto normativo está em [W3C, WCAG 2.2](https://www.w3.org/TR/WCAG
 | Telas pequenas | 1.4.10, 2.5.7, 2.5.8 | Conteúdo a 320 CSS px sem rolagem horizontal do documento (tabelas bidimensionais rolam dentro da própria região); alternativa sem arraste; alvos de toque (abaixo) |
 | Texto e ação | 3.3.1, 3.3.2, 4.1.2, 4.1.3 | Nome, função e estado em botões de ícone, abas e campos (inclusive o seletor de PDFs); instruções e erros claros; resultados dinâmicos (prévia, erro de leitura) com meio de anúncio |
 
-**Evidência.** Mede-se em tema claro e escuro, modos clássico e completo, computador e celular, e nos três motores. O
+**Evidência.** Mede-se em tema claro e escuro, modos Clássico e Planejador, computador e celular, e nos três motores. O
 axe-core complementa o teclado e a inspeção visual. Leitor de tela real e o teste com colegas ficam no backlog
 ([MANUTENCAO.md](MANUTENCAO.md)).
 

@@ -154,9 +154,9 @@ A Grade **não** confirma, e nenhum número dela substitui o SIGA, o BOA ou a co
 
 ## Textos de aviso
 
-A faixa fixa e as notas de estimativa usam estes textos, sem alteração de redação.
+O aviso do rodapé e as notas de estimativa usam estes textos, sem alteração de redação.
 
-**Faixa fixa no topo:** "Feita por alunos de ECI. Não substitui o SIGA, o BOA nem a coordenação."
+**Aviso no rodapé (D-09; antes, faixa fixa no topo):** "Feita por alunos de ECI. Não substitui o SIGA, o BOA nem a coordenação."
 
 | Regra | Onde aparece | Texto |
 | --- | --- | --- |

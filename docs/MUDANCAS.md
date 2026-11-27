@@ -4,6 +4,43 @@
 mudanças estão em [DECISOES.md](DECISOES.md); os critérios, em [REQUISITOS.md](REQUISITOS.md). A versão atual aparece no
 rodapé da Grade.
 
+## Próxima versão (identificação pendente)
+
+Ajustes depois da publicação da v2.0.0. O número desta versão depende de decisão da manutenção; até lá, o rodapé
+continua mostrando a versão anterior.
+
+### O que mudou para quem usa
+
+- **Transferidas cumprem requisito** (D-08). A disciplina do bloco "AAAA (transferidas)" vale pelo semestre original,
+  quando o histórico do curso anterior o informa. Sem ele, conta só a partir do ano seguinte ao do bloco. Antes, ela
+  nunca cumpria pré ou co-requisito (por exemplo, "Requisito MAC128 não cumprido" em Cálculo III de quem reingressou).
+  O prazo de 5 anos continua pelo ano do bloco (D-03).
+- **Linha do tempo.** A transferida aparece no semestre original, com a etiqueta "transferida · bloco AAAA" e listras
+  discretas; sem ele, fica no bloco. "detalhes" volta a recolher. O clique num cartão abre os detalhes da disciplina,
+  mesmo com uma tag escolhida no pincel da Grade (antes, pintava e podia mandar a cursada para "A alocar").
+- **Tags.** "Reprovação (não conta)" e "Não conta" viram uma opção só, "Não conta". Tags salvas no navegador e perfis
+  antigos são convertidos, e as marcações continuam. Uma tag "Não conta" só pinta o que você marcou.
+- **Barra de progresso em quatro trechos:** concluídas, previstas, cursando e planejadas. Em cada tag que conta, "Usar a
+  cor desta tag na barra" pinta o trecho do tipo dela (uma tag por tipo).
+- **Configurações** fecha pelo X no topo, por clique fora e por Esc, e o foco volta ao botão que abriu. Ganha a seção
+  **Sobre**. "Adicionar período" usa a mesma janela central de "Excluir período", com validação do nome.
+- **Setas de requisitos** com mais espaço na Grade, para as setas não se tocarem.
+- **Clássico | Planejador.** O interruptor sem texto vira um seletor visível no topo, e "Completo" passa a se chamar
+  "Planejador". Há a opção "Mostrar só ícones no seletor". No modo Clássico, "Importar do SIGA" sugere o Planejador.
+- **Aviso no rodapé** (D-09). "Feita por alunos de ECI. Não substitui o SIGA, o BOA nem a coordenação." sai do topo e
+  fica numa linha do rodapé.
+- **Detalhamento mais curto.** A livre escolha vira uma linha com ⓘ, que mostra a explicação por clique, toque ou
+  teclado. Sai a legenda de estados; o cartão já diz a situação em texto.
+
+### Correções técnicas
+
+- Corrida ao reabrir Configurações logo depois de fechar: a janela podia abrir vazia.
+
+### Testes
+
+- Novos cenários de interface: CR-05 (transferida e requisitos) e os casos 01h, 08m, 08n, 10f a 10h e 14j a 14o. A
+  matriz passa a ter 97 cenários por `file://` e 98 por HTTP ([testes/README.md](../testes/README.md)).
+
 ## v2.0.0 — primeira versão pública
 
 A data de publicação é a da release `v2.0.0` no GitHub, que usa o texto de "O que mudou" até "Limitações conhecidas"

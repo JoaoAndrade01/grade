@@ -43,7 +43,7 @@ text{font-family:system-ui,Segoe UI,Arial,sans-serif;fill:#142238}
 <g transform="translate(346 344) scale(1.3333333333333333)" class="icone"><path d="M6 4v16m0-13h13m-13 5h10m-10 5h13"/><circle cx="6" cy="7" r="1.5" fill="white"/><circle cx="6" cy="12" r="1.5" fill="white"/><circle cx="6" cy="17" r="1.5" fill="white"/></g>
 <text x="392" y="347" class="rotulo">Interface</text>
 <text x="392" y="366" class="descricao">Telas, Configurações,</text>
-<text x="392" y="385" class="descricao">faixa e notas (js/app.js)</text>
+<text x="392" y="385" class="descricao">aviso e notas (js/app.js)</text>
 </g>
 <g id="tema">
 <rect x="740" y="110" width="310" height="90" rx="12" class="no"/>

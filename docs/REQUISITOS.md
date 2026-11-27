@@ -57,16 +57,16 @@ Disciplinas, por Pull Request revisado por uma pessoa.
 
 | História | Casos | Seções |
 | --- | --- | --- |
-| H1 | 02a–02b, 14a–14f | [RF-02](#rf-02--requisitos-e-co-requisitos-ra-03-ra-04), [RF-14](#rf-14--marcação-manual-aparência-tags-e-referências-h1-h3-h10) |
+| H1 | 02a–02b, 14a–14f, 14l–14o | [RF-02](#rf-02--requisitos-e-co-requisitos-ra-03-ra-04), [RF-14](#rf-14--marcação-manual-aparência-tags-e-referências-h1-h3-h10) |
 | H2 | 06a–06g | [RF-06](#rf-06--importação-do-siga-ra-05-ra-06-ra-17-ra-19-ra-21) |
-| H3 | 01a–01b, 14a–14b | [RF-01](#rf-01--progresso-por-grupo-ra-01-ra-05-ra-06-ra-16), [RF-14](#rf-14--marcação-manual-aparência-tags-e-referências-h1-h3-h10) |
-| H4 | 02a–02i, 07a–07e, 10a–10e | [RF-02](#rf-02--requisitos-e-co-requisitos-ra-03-ra-04), [RF-07](#rf-07--aviso-de-oferta-e-horários-de-referência-ra-20), [RF-10](#rf-10--planejamento-de-períodos-e-choques-de-horário-h4) |
+| H3 | 01a–01b, 01h, 14a–14b, 14j–14k | [RF-01](#rf-01--progresso-por-grupo-ra-01-ra-05-ra-06-ra-16), [RF-14](#rf-14--marcação-manual-aparência-tags-e-referências-h1-h3-h10) |
+| H4 | 02a–02i, 07a–07e, 10a–10h | [RF-02](#rf-02--requisitos-e-co-requisitos-ra-03-ra-04), [RF-07](#rf-07--aviso-de-oferta-e-horários-de-referência-ra-20), [RF-10](#rf-10--planejamento-de-períodos-e-choques-de-horário-h4) |
 | H5 | 03a–03h, 03j, 04a–04e | [RF-03](#rf-03--análise-de-um-pedido-de-equivalência-ra-07-ra-09-ra-11-ra-12-ra-21), [RF-04](#rf-04--a-mesma-origem-não-conta-duas-vezes-ra-08) |
 | H6 | 05a–05h | [RF-05](#rf-05--créditos-de-um-pedido-deferido-ra-13-d-02) |
 | H7 | 02k–02o, 03i, 06h–06m | [RF-03](#rf-03--análise-de-um-pedido-de-equivalência-ra-07-ra-09-ra-11-ra-12-ra-21), [RF-06](#rf-06--importação-do-siga-ra-05-ra-06-ra-17-ra-19-ra-21) |
 | H8 | 01c–01f, 06m (01g na versão seguinte) | [RF-01](#rf-01--progresso-por-grupo-ra-01-ra-05-ra-06-ra-16), [RF-06](#rf-06--importação-do-siga-ra-05-ra-06-ra-17-ra-19-ra-21) |
 | H9 | 11a–11d | [RF-11](#rf-11--optativas-guia-e-oferta-h9) |
-| H10 | 08a–08m, 14g | [RF-08](#rf-08--aviso-de-que-a-grade-não-é-oficial-versão-e-relato-d-06), [RF-14](#rf-14--marcação-manual-aparência-tags-e-referências-h1-h3-h10) |
+| H10 | 08a–08n, 14g | [RF-08](#rf-08--aviso-de-que-a-grade-não-é-oficial-versão-e-relato-d-06), [RF-14](#rf-14--marcação-manual-aparência-tags-e-referências-h1-h3-h10) |
 | H11 | 06f–06g, 12a–12e, RNF-01 | [RF-06](#rf-06--importação-do-siga-ra-05-ra-06-ra-17-ra-19-ra-21), [RF-12](#rf-12--perfil-e-dados-locais-h11) |
 | H12 | 13a–13c | [RF-13](#rf-13--a-eci-por-trás-da-grade-h12) |
 | H13 | P13: seguir o `CONTRIBUTING.md` e propor uma experiência fictícia | [CONTRIBUTING.md](../CONTRIBUTING.md) |
@@ -98,7 +98,7 @@ Cada função da Grade aponta para uma história. Função sem história é cand
 | Importar do SIGA, criar, exportar e carregar perfil, limpar dados | H2, H11 | RF-06, RF-12 |
 | A ECI por trás da Grade | H12 | RF-13 |
 | Referências | H10 | RF-14 |
-| Faixa, notas, data do currículo, versão | H10 | RF-08 |
+| Aviso no rodapé, seção Sobre, notas, data do currículo, versão | H10 | RF-08 |
 | "Achou um erro? Crie uma nova issue" no rodapé e na falha de importação | H10 | RF-08 |
 
 ## 3. Caso de uso: Importar do SIGA
@@ -154,20 +154,20 @@ dispositivo (RNF-01).
 
 | ID | Requisito | Histórias | Estado |
 | --- | --- | --- | --- |
-| RF-01 | Progresso por grupo | H3, H8 | **Parcial.** 01b a 01f têm teste direto (`t_pc02_manual_credito`, `t_cr03_historico`, `t_cr03_lista`); 01a só em parte (confere os 7 cr concluídos). O caso 01g está em **versão seguinte** |
-| RF-02 | Requisitos e co-requisitos | H1, H4 | **Cumprido.** 02a a 02j: `t_cr01_pre`, `t_mac`, `t_cr01_sugestoes`, `t_cr01_co`, `t_pc03_manual_requisito` |
+| RF-01 | Progresso por grupo | H3, H8 | **Parcial.** 01b a 01f têm teste direto (`t_pc02_manual_credito`, `t_cr03_historico`, `t_cr03_lista`); 01a só em parte (confere os 7 cr concluídos). O caso 01g está em **versão seguinte**. 01h: `t_barra_quatro_trechos` |
+| RF-02 | Requisitos e co-requisitos | H1, H4 | **Cumprido.** 02a a 02o: `t_cr01_pre`, `t_mac`, `t_cr01_sugestoes`, `t_cr01_co`, `t_pc03_manual_requisito`, `t_cr05_transferida_requisito` |
 | RF-03 | Análise de um pedido de equivalência | H5, H7 | **Parcial.** 03d a 03j têm teste direto (`t_d01_carga`, `t_d01_conteudo`, `t_cr04_reingresso`); 03a a 03c só em parte (`t_rf08_notas_credito`, `t_cr04_fronteira`) |
 | RF-04 | A mesma origem não conta duas vezes | H5 | **Cumprido.** 04a a 04e: `t_cr02_pedidos`, `t_cr02_duas_dispensas`, `t_cr02_dispensa_unica`, `t_cr02_alvo_fora_do_catalogo` |
 | RF-05 | Créditos de um pedido deferido | H6 | **Cumprido.** 05a a 05h: `t_d02_dois_numeros`, `t_d02_ausente_e_vazia`, `t_d02_importacao`, `t_d02_outros_grupos` e os oráculos `boa-p5-*` |
 | RF-06 | Importação do SIGA | H2, H7, H11 | **Parcial.** 06a a 06m têm teste direto (`t_siga`, `t_cr04_*`, `t_previa_*`, paridade, oráculos e `testes/reimportacao.py`); 06n (atividade em curso desconhecida) **sem teste**; em 06k, a confirmação vale para a prévia e o arquivo baixado fica por conferir |
 | RF-07 | Aviso de oferta e horários de referência | H4 | **Cumprido.** 07a a 07e: `t_oferta`, `t_rf08_oferta` |
-| RF-08 | Aviso de que a Grade não é oficial | H10 | **Parcial.** 08a a 08h e 08l têm teste direto (`t_rf08_faixa`, `t_rf08_notas_credito`, `t_rf08_periodo_atual`, `t_rf08_oferta`, `t_rf08_deduzido_regras`); 08i a 08k só em parte: `t_rf08_rodape` confere presença, texto e destino dos links, e o destino no fork se confere na publicação |
+| RF-08 | Aviso de que a Grade não é oficial | H10 | **Parcial.** 08a a 08h e 08l têm teste direto (`t_rf08_faixa`, `t_rf08_notas_credito`, `t_rf08_periodo_atual`, `t_rf08_oferta`, `t_rf08_deduzido_regras`); 08i a 08k só em parte: `t_rf08_rodape` confere presença, texto e destino dos links, e o destino no fork se confere na publicação. 08m e 08n: `t_sobre`, `t_detalhamento_info` |
 | RF-09 | Procedimentos de estágio, equivalência e ACE | H5, H8 | planejado |
-| RF-10 | Planejamento de períodos e choques | H4 | **Parcial.** 10b (choque, também pelo teclado: `t_b4_grade_horarios`), 10c a 10e têm teste direto; 10a só em parte (`t_regressao`, `t_excluir`) |
+| RF-10 | Planejamento de períodos e choques | H4 | **Parcial.** 10b (choque, também pelo teclado: `t_b4_grade_horarios`), 10c a 10h têm teste direto (10f a 10h: `t_periodo_janela`, `t_timeline_detalhes_e_clique`, `t_timeline_transferidas`); 10a só em parte (`t_regressao`, `t_excluir`) |
 | RF-11 | Optativas, guia e oferta | H9 | **Parcial.** 11a a 11d **sem teste** do resultado dos filtros e do guia. Há teste do foco ao filtrar (`t_b2_foco_filtros`) e da lista informativa de turmas sem código (`t_m6_somente_informativo`) |
 | RF-12 | Perfil e dados locais | H11 | **Parcial.** 12a e 12b têm teste direto (`t_criar_perfil`, `t_regressao`, `testes/reimportacao.py`); 12c a 12e só em parte (`t_compat`, `t_b5_escolher_perfil`, `t_descartar_salvo`, `t_aviso_pdf`; a mensagem de erro do arquivo inválido não é verificada) |
 | RF-13 | A ECI por trás da Grade | H12 | experiências atuais: **cumprido** (13a a 13c: `t_experiencias`, `t_exp_com_perfil`, `t_seletor_eci`, `t_fecha_durante_leitura`); novas: planejado |
-| RF-14 | Marcação manual, aparência, tags e Referências | H1, H3, H10 | **Parcial.** 14a a 14d, 14h e 14i têm teste direto (`t_cr01_manual`, `t_pc02_manual_credito`, `t_cadeado`, `t_setas`, `t_b1_estado_dos_cartoes`); 14e a 14g só em parte (`t_tema`, `t_modo`, `t_atalhos`, `t_formatos`, `t_tags`; o anúncio ao desafixar um atalho e o cancelamento de "Restaurar padrão" ficam por conferir) |
+| RF-14 | Marcação manual, aparência, tags e Referências | H1, H3, H10 | **Parcial.** 14a a 14d, 14h e 14i têm teste direto (`t_cr01_manual`, `t_pc02_manual_credito`, `t_cadeado`, `t_setas`, `t_b1_estado_dos_cartoes`); 14e a 14g só em parte (`t_tema`, `t_modo`, `t_atalhos`, `t_formatos`, `t_tags`; o anúncio ao desafixar um atalho e o cancelamento de "Restaurar padrão" ficam por conferir). 14j a 14o têm teste direto (`t_tags_nao_conta`, `t_barra_quatro_trechos`, `t_setas_espaco`, `t_config_fechar`, `t_seletor_modo`, `t_importar_sugere_planejador`) |
 | RF-15 | Sincronização dos dados do Notion | H16 | planejado |
 | RF-16 | Atualização do currículo a partir do SIGA | H14 | planejado |
 | RF-17 | Validação dos dados de referência | H14 | **Cumprido.** 17a a 17f: `testes/referencia_casos.py` (80 casos sintéticos e os dados reais) e, com `--browser`, o 17f nos seis pares; o 17f não tem controle negativo |
@@ -188,6 +188,7 @@ registro.
 | 01d · CR-03 | P1 + `ACE901` aprovada em 2025/2 + entrada `ACE901`, 30 h, período 2026/1, "validada" (duas ocorrências, períodos diferentes) | Abrir o progresso de ACE | **60 h** (PC-01) |
 | 01e · CR-03 | P1 + `ACE901` aprovada em 2026/1 + entrada `ACE901`, 30 h, **sem período**, "validada" | Abrir o progresso de ACE | Identidade incerta: **30 h confirmadas** e 30 h à parte como "a confirmar", com aviso de possível duplicidade. O total confirmado nunca é 60 h |
 | 01f · CR-03 | P1 + duas entradas `ACE901` no período 2026/1, uma de 30 h e outra de 20 h, sem marcação da pessoa | Abrir o progresso de ACE | Identidade incerta: **30 h confirmadas** (o maior valor) e 20 h "a confirmar", com aviso |
+| 01h · barra | Disciplinas aprovadas, previstas, cursando e planejadas | Ler a barra de progresso do topo | Quatro trechos, nesta ordem: concluídas, previstas, cursando e planejadas, e o restante "não planejada". As somas são as mesmas da versão anterior (antes, prevista e cursando eram um só trecho). Sem tag escolhida, cada trecho usa a cor padrão |
 | 01g · versão seguinte | O mesmo de 01f, com a pessoa marcando as duas como atividades distintas | Abrir o progresso de ACE | **50 h** confirmadas, sem aviso de duplicidade. A marcação persiste após recarga, exportação e reimportação |
 
 ### RF-02 · Requisitos e co-requisitos (RA-03, RA-04)
@@ -340,7 +341,7 @@ pares; MAC248 e MAC238 são do ciclo básico; EEWX00 sem referência.
 
 ### RF-08 · Aviso de que a Grade não é oficial, versão e relato (D-06)
 
-O texto da faixa e das notas está em [REGRAS-ACADEMICAS.md](REGRAS-ACADEMICAS.md#textos-de-aviso). Os casos
+O texto do aviso e das notas está em [REGRAS-ACADEMICAS.md](REGRAS-ACADEMICAS.md#textos-de-aviso). Os casos
 verificam presença e local; a clareza do texto exige revisão humana.
 
 **"Alcançável" (08b)** quer dizer: o aviso do rodapé é texto estático, na ordem de leitura e na árvore de acessibilidade,
@@ -351,14 +352,15 @@ sem sobreposição. A passada com leitor de tela real está no backlog ([MANUTEN
 | --- | --- | --- | --- |
 | 08a · aviso, clássico · D-09 | Sem perfil e com P1; modo clássico (só a Grade); desktop e celular | Abrir a Grade, recarregar e trocar para o Planejador e voltar | O aviso "Feita por alunos de ECI. Não substitui o SIGA, o BOA nem a coordenação." aparece numa linha do rodapé, depois da recarga e após cada troca de modo. O topo não tem faixa |
 | 08b · aviso, Planejador · D-09 | Sem perfil e com P1; modo Planejador; desktop e celular | Percorrer as seis abas: Grade, Linha do tempo, Optativas, Cronograma, Equivalências e Extensão / ACE, A ECI por trás da Grade | O aviso está no rodapé em todas, com texto na ordem de leitura e na árvore de acessibilidade. Tab percorre os controles com foco visível |
-| 08c · RA-13 | P5 | Abrir o progresso e Pedidos | Nota de estimativa junto dos dois números de livre escolha de 05a |
+| 08c · RA-13 | P5 | Abrir Pedidos; no progresso detalhado, ativar ⓘ da livre escolha | Nota de estimativa junto dos dois números de livre escolha de 05a |
+| 08n · ⓘ | P5 | Abrir o detalhamento do progresso | A livre escolha aparece numa linha curta ("Livre escolha: Grade NN cr · BOA NN cr") com o botão ⓘ, que mostra e esconde os rótulos completos e a nota de RA-13 por clique, toque e teclado (Enter e Espaço), com `aria-expanded`. Não há legenda de estados (Aprovada, Aprovação prevista, Cursando, Planejada, Equivalência pedida, Reprovada, Pendente) |
 | 08d · RA-09 | Cursada com idade calculada (03a ou 03b) | Abrir o pedido e a tabela de livre escolha | Nota de estimativa junto da idade. A nota permanece enquanto a regra de reingresso (RA-21) não tiver sido implementada e testada; retirá-la depois é decisão registrada em [DECISOES.md](DECISOES.md) |
 | 08e · RA-19 | Perfil importado com período atual deduzido | Abrir a linha do tempo e a prévia de importação | Nota de estimativa no período atual. A nota volta ao reimportar os mesmos PDFs enquanto o semestre real deduzido for mantido |
 | 08f · RA-19 | Perfil com período atual informado pela pessoa | Abrir a linha do tempo | **Sem** nota de período deduzido |
 | 08l · RA-19 | Navegador sem perfil | Importar só o BOA, com disciplinas em curso e sem data inferível; abrir a linha do tempo | O período fica sem data, sem nota de dedução e sem campo `deduzido` |
 | 08g · RA-20 | 07a | Abrir a linha do tempo e o Cronograma | Nota de estimativa no aviso de oferta |
 | 08h · RA-20 | MAC238 planejada em 2027/1, sem horários no perfil | Abrir o Cronograma e adotar a referência | Antes, o item está sem horário e a referência traz ter e qui 10–12, a fonte, a data e a nota. Depois, os horários ficam gravados como iguais à referência |
-| 08i · versão e currículo | Modo clássico e modo completo | Ler o rodapé | Exibe `v2.0.0` e a data `consultado` de `js/database.js`. A data representa o recorte de conferência descrito nas [regras acadêmicas](REGRAS-ACADEMICAS.md#fontes) |
+| 08i · versão e currículo | Modo Clássico e Planejador | Ler o rodapé | Exibe `v2.0.0` e a data `consultado` de `js/database.js`. A data representa o recorte de conferência descrito nas [regras acadêmicas](REGRAS-ACADEMICAS.md#fontes) |
 | 08j · relato, rodapé | Cada modo | Seguir com Tab e Enter o link de relato | O destino é a criação de Issue no fork da Grade, sem dados da pessoa na URL. Com o modelo disponível na branch padrão, a tela pede esperado, observado e passos e orienta a não anexar PDFs, capturas identificáveis nem perfil |
 | 08m · Sobre · D-09 | Sem perfil; desktop e celular | Abrir Configurações e ler a seção Sobre | Texto aprovado: quem faz, dados só no navegador, os modos Clássico e Planejador, "a Grade orienta, não confirma", limites conhecidos, link do repositório e link de relato com escolha de modelo (`/issues/new/choose`) |
 | 08k · relato, importação | Perfil salvo | Importar um PDF fictício inválido | A mensagem oferece o mesmo link, não inclui dados do arquivo e preserva o perfil salvo |
@@ -379,6 +381,9 @@ periódica. Critério a definir quando entrar no escopo.
 | 10c | Período com horários livres e fixture com pelo menos uma sugestão possível | Pedir a proposta sem choques | Pelo menos uma sugestão aparece; nenhuma choca com as já colocadas nem com as outras sugestões |
 | 10d | Período planejado | Excluir período | Some do Cronograma, da Linha do tempo e do progresso; os outros períodos não mudam |
 | 10e | Período vindo do perfil, editado | Descartar edições | Volta ao conteúdo original do perfil |
+| 10f · janela | Cronograma, desktop e celular | "+ Período" e "Excluir período", por teclado | As duas usam a mesma janela central. "Adicionar período" sugere o semestre seguinte, avisa nome vazio ou repetido em texto, confirma com Enter e cancela com Esc; o foco volta ao botão ou vai ao período criado |
+| 10g · linha do tempo | P1 com uma tag escolhida no pincel da Grade | Na Linha do tempo, usar "detalhes ▾" e clicar num cartão | "detalhes" recolhe e expande o detalhamento. O clique abre os detalhes da disciplina, sem pintar nem mandar a cursada para "A alocar" |
+| 10h · transferidas | Bloco "2025 (transferidas)" com e sem semestre original | Abrir a Linha do tempo | Com o semestre original, a transferida aparece nele, com a etiqueta "transferida · bloco 2025" e marcação visual discreta; sem ele, fica no bloco. O prazo (D-03) e as contagens não mudam |
 
 ### RF-11 · Optativas, guia e oferta (H9)
 
@@ -409,7 +414,7 @@ Estado: as três experiências atuais (COS110, COS242, EEL873) são da v2.0.0; a
 | --- | --- | --- | --- |
 | 13a | Com ou sem perfil | Abrir a aba | As três experiências abrem com dados fictícios e indicam a disciplina de cada uma |
 | 13b | Com perfil e marcações | Usar uma experiência e voltar | Perfil, planos e marcações não mudam (a experiência não lê nem grava dados da pessoa) |
-| 13c | Modo completo, Grade | Ligar "ECI por trás" na paleta | As disciplinas com experiência ficam destacadas |
+| 13c | Planejador, Grade | Ligar "ECI por trás" na paleta | As disciplinas com experiência ficam destacadas |
 
 **Experiências planejadas.** COS231 com a detecção de choques de horário; um diagrama vivo da arquitetura
 (EEL873), em que passar o mouse numa parte explica o que ela faz e qual disciplina a ensina, e um modo animado
@@ -428,6 +433,12 @@ dados da pessoa, funciona por HTTP e por `file://`, com teclado e sem biblioteca
 | 14i | Perfil com disciplinas aprovadas, previstas e planejadas, e uma marcação manual | Ler os cartões da Grade e da Linha do tempo, nos dois temas e a 320 px | Cada cartão diz a situação ("Aprovada", "Aprovação prevista", "Planejada") e a origem ("perfil" ou "marcação") em texto, sem depender de cor nem de passar o mouse |
 | 14e | Configurações → Aparência | Alterar tema e modo, fixar um atalho e recarregar; depois desafixar o atalho e recarregar de novo | As escolhas persistem. Em ambas as ações há anúncio, e o item permanece acessível em Configurações |
 | 14f | Tag em uso e disciplina marcada | Editar a tag usada e limpar a marcação de uma disciplina; depois pedir "Restaurar padrão", cancelar, pedir de novo e confirmar | A edição e a limpeza aparecem na paleta e na Grade. Cancelar a restauração preserva a edição. Confirmar restaura as tags padrão |
+| 14j · Não conta | Tag com o antigo tipo "Reprovação (não conta)", salva no navegador ou num perfil antigo | Abrir a Grade, o editor de tags e exportar | A tag vira "Não conta", a marcação continua e o exportado grava o tipo novo; não há opção "Reprovação". A reprovação importada do período atual segue vermelha pela cor reserva. Uma tag "Não conta" só pinta o que a pessoa marcou |
+| 14k · cor na barra | Editor de tags | Marcar "Usar a cor desta tag na barra" em tags de mesmo tipo e de tipos diferentes; recarregar, exportar e reimportar | No máximo uma tag por tipo: marcar uma desmarca a outra. Tags "Não conta" não oferecem a opção. O trecho usa a cor da tag; sem escolha, a cor padrão. A escolha persiste |
+| 14l · setas | Setas "Todas" em tela larga, média e estreita | Abrir a Grade | Vãos maiores entre colunas e cartões. A página não rola de lado; se a Grade não couber, rola na própria região. Os nomes continuam legíveis |
+| 14m · Configurações | Configurações aberta pelo botão da barra | Fechar pelo X do topo (mouse e teclado), por clique fora e por Esc | Fecha nos quatro casos; o foco volta ao botão que abriu. Clique dentro da janela não fecha |
+| 14n · seletor | Topo, com e sem "Mostrar só ícones no seletor" | Trocar de modo pelo seletor com mouse e setas | "Clássico \| Planejador" visível, com foco visível e nome acessível. Só ícones: grade de quadradinhos e linha do tempo, com o nome acessível mantido. Configurações diz "Planejador" |
+| 14o · sugestão | Modo Clássico | Abrir "Importar do SIGA" | O importador sugere trocar para o Planejador; o botão troca o modo sem fechar o importador. No Planejador, sem sugestão. Não há aviso de primeira visita |
 | 14g | Configurações → Referências | Abrir Referências, percorrer por Tab e ativar um link com Enter | Antes da ativação, as fontes estão listadas e a seção não abre nova aba nem carrega recursos externos. Enter abre o destino em outra aba |
 
 ### RF-15 · Sincronização dos dados do Notion (H16) · planejado
@@ -482,7 +493,7 @@ hipóteses usou. Nenhum número aparece sem aviso. Até lá, a pessoa monta a pr
 | ID | Requisito | Histórias | Critério verificável | Estado |
 | --- | --- | --- | --- | --- |
 | RNF-01 | Dados acadêmicos importados e do perfil permanecem no dispositivo | H11 | Com PDFs fictícios contendo marcadores sentinela no cabeçalho: nenhuma requisição externa durante a importação; nenhuma requisição à própria origem contém dados do documento; o perfil salvo e o arquivo exportado não contêm os marcadores. A página substituta `classico.html` não carrega script nem recurso externo e leva ao modo clássico | **Parcial.** Armazenamento e página: `t_siga` (o perfil salvo e a página não contêm o nome, o CPF nem o RG do cabeçalho). Requisições: `testes/auditoria.py` em todos os cenários (nenhuma fora da origem). `classico.html` e o código sem referência externa: `testes/reimportacao.py`. Arquivo exportado e conteúdo das requisições: só em sonda avulsa não versionada (sem sentinela no arquivo baixado, no armazenamento, nos cookies, no console nem em URL ou corpo de requisição, nos seis pares). Não há teste versionado das sentinelas |
-| RNF-02 | Funciona por abertura direta (`file://`) e por hospedagem estática, sem servidor próprio do app | H1 a H11 | O kit, numa versão fixa e com dados fictícios, passa nos dois modos, em ambiente isolado de perfil real e sem rede externa | **Cumprido.** Os 85 cenários por `file://` e os 86 por HTTP passam nos três motores, sobre a cópia pública do commit, com dados fictícios e sem evento inesperado |
+| RNF-02 | Funciona por abertura direta (`file://`) e por hospedagem estática, sem servidor próprio do app | H1 a H11 | O kit, numa versão fixa e com dados fictícios, passa nos dois modos, em ambiente isolado de perfil real e sem rede externa | **Cumprido.** Os cenários da matriz (97 por `file://` e 98 por HTTP; ver [testes/README.md](../testes/README.md)) passam nos três motores, sobre a cópia pública do commit, com dados fictícios e sem evento inesperado |
 | RNF-03 | Acessibilidade | H1, H2, H3, H10, H11 | Versão fixa do axe-core sem ocorrências "serious" ou "critical" nas telas e estados listados, nos dois temas; percursos de teclado enumerados com foco visível. Leitor de tela real fica no backlog | **Parcial.** Sem ocorrência grave ou crítica no recorte do axe (`t_axe_recorte`) e testes dos dez bloqueios achados (contraste, foco, nomes, teclado, 320 px, alvos, abas), ver a [matriz](PLANO-DE-TESTE.md#5-matriz-de-rastreabilidade). Faltam o percurso de teclado de ponta a ponta de alguns fluxos centrais (paleta, Configurações, criar período), o leitor de tela real, o Safari no Mac e o iPhone real |
 | RNF-04 | Compatibilidade | H1 a H11 | O kit passa em Chromium, WebKit e Firefox, nas versões registradas, por `file://` e HTTP. O WebKit automatizado é a aproximação do Safari; não há teste em iPhone real | **Cumprido.** Chromium, Firefox e WebKit, por `file://` e HTTP (os seis pares). O WebKit automatizado não alcança links por Tab no Windows: a conferência em Safari no Mac e iPhone real fica pendente ([limite do ambiente](PLANO-DE-TESTE.md#6-limite-do-ambiente-webkit)) |
 | RNF-05 | Paridade do importador | H2, H7 | Com os conjuntos fictícios nomeados e um perfil anterior fixo, JS e Python geram perfis iguais (JSON canônico) com e sem BOA, com mescla, sobre o mesmo texto e com leitores diferentes. Complementa o oráculo, não o substitui | **Cumprido.** `ferramentas/testar_paridade.sh` nas quatro combinações (histórico; com BOA; com perfil; com BOA e perfil) e `testes/importador.py` nos oráculos escritos à mão |
