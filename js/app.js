@@ -2890,9 +2890,10 @@
       if (celula) { if (ev.detail === 0) ativaCelula(+celula.dataset.cel, false); return; }   // com o mouse, tratado no mousedown
       // cartões
       const el = t.closest(".card"); if (!el) return;
-      if (seletorECI && el.dataset.code && window.ECI.tem(el.dataset.code)) return window.ECI.abre(el.dataset.code, contextoECI(), el);
-      // O pincel só pinta na Grade; nas outras vistas o clique abre os detalhes.
-      if (pincel !== null && el.dataset.code && (modoClassico || vistaAtual === "grade")) {
+      // "ECI por trás" e o pincel só agem na Grade; nas outras vistas o clique abre os detalhes.
+      const naGrade = modoClassico || vistaAtual === "grade";
+      if (seletorECI && naGrade && el.dataset.code && window.ECI.tem(el.dataset.code)) return window.ECI.abre(el.dataset.code, contextoECI(), el);
+      if (pincel !== null && el.dataset.code && naGrade) {
         if (porToque() && consultado !== el.dataset.code && !protegida(el.dataset.code)) return consulta(el.dataset.code);
         consultado = null; return pinta(el.dataset.code);
       }
