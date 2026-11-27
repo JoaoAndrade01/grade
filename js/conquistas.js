@@ -176,9 +176,15 @@
    * @returns {{ grupos, semPlano, primeiro, semData, disciplinasPlanejadas, concluido }}
    *   primeiro: o primeiro semestre em que tudo fica coberto (null se não fica); semData: só fica com itens sem data
    */
-  function coberturaDoPlano({ grupos, obrigatorias, itens, horasAce }) {
+  function coberturaDoPlano({ grupos, obrigatorias, itens, horasAce, semestreAtual = null }) {
     const falta = {}; Object.entries(grupos).forEach(([k, g]) => { falta[k] = Math.max(0, g.total - g.cumprido); });
-    const ordem = (a, b) => (a.semestre ?? Infinity) - (b.semestre ?? Infinity);
+    // Plano em semestre anterior ao atual não cobre nada: fica listado para o aviso.
+    const passou = (x) => semestreAtual != null && x.semestre != null && x.semestre < semestreAtual;
+    const noPassado = [...new Set([...itens.filter(passou).map((it) => it.periodo || nomeSem(it.semestre)),
+      ...(horasAce || []).filter(passou).map((h) => nomeSem(h.semestre))])].sort();
+    itens = itens.filter((it) => !passou(it));
+    horasAce = (horasAce || []).filter((h) => !passou(h));
+    const ordem = (a, b) => (a.semestre ?? Infinity) - (b.semestre ?? Infinity) || String(a.code || "").localeCompare(String(b.code || ""));
     const vistos = new Set(), plano = [];
     itens.slice().sort(ordem).forEach((it) => {
       if (it.code && vistos.has(it.code)) return;
@@ -209,6 +215,7 @@
       primeiro, semData: primeiro == null && coberto(total),
       disciplinasPlanejadas: coberto(total, (k) => k !== "5"),
       concluido: !precisa.size && Object.values(falta).every((f) => f <= 0),
+      noPassado,
     };
   }
 
@@ -222,6 +229,7 @@
    * @param {string[]} e.obrigatoriasSemPlano  obrigatórias que faltam e não estão no plano (nomes)
    * @param {number|null} e.ultimoSemestre     semestre (índice) do último período com algo necessário
    * @param {boolean} e.semDataNecessaria      algo necessário está num período sem semestre
+   * @param {string[]} [e.noPassado]          períodos do plano que já passaram (não contam; o texto avisa)
    * @param {(i: number) => string} e.nomeDoSemestre
    */
   function previsaoFormatura(e) {
@@ -230,15 +238,18 @@
     const grupos = Object.values(e.grupos);
     if (grupos.every((g) => g.falta <= 0) && !e.obrigatoriasSemPlano.length) return { estado: "concluido", texto: "Você já cumpriu tudo o que a Grade modela." };
     const pend = grupos.filter((g) => g.falta > g.planejado).map((g) => `${fmtN(g.falta - g.planejado)} ${g.un} de ${g.nome}`);
+    const passado = e.noPassado && e.noPassado.length
+      ? ` O plano em ${e.noPassado.join(", ")} está num período que já passou e não conta: mova para o atual ou um futuro.` : "";
     if (e.obrigatoriasSemPlano.length || pend.length) {
       const cr = grupos.filter((g) => g.un === "cr").reduce((a, g) => a + Math.max(0, g.falta - g.planejado), 0);
       const ob = e.obrigatoriasSemPlano;
       const nomes = ob.length > 5 ? [...ob.slice(0, 5), `e mais ${ob.length - 5} obrigatórias`] : ob;
-      return { estado: "pendente", cr, texto: `${cr ? `Planeje os ${fmtN(cr)} cr que faltam` : "Planeje o que falta"}: ${[...nomes, ...pend].join(", ")}.` };
+      return { estado: "pendente", cr, texto: `${cr ? `Planeje os ${fmtN(cr)} cr que faltam` : "Planeje o que falta"}: ${[...nomes, ...pend].join(", ")}.${passado}` };
     }
     if (e.semDataNecessaria || e.ultimoSemestre == null) return { estado: "indisponivel", texto: "Algo necessário no plano está sem semestre (um período ou horas de ACE): não dá para calcular a previsão." };
-    return { estado: "previsao", semestre: e.nomeDoSemestre(e.ultimoSemestre), texto: `No seu plano, você forma em ${e.nomeDoSemestre(e.ultimoSemestre)} (estimativa).` };
+    return { estado: "previsao", semestre: e.nomeDoSemestre(e.ultimoSemestre), texto: `No seu plano, você forma em ${e.nomeDoSemestre(e.ultimoSemestre)} (estimativa).${passado}` };
   }
+  const nomeSem = (i) => i == null ? null : `${Math.floor(i / 2)}/${(i % 2) + 1}`;
   const fmtN = (n) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
 
   return { FONTES, fase, faseDoCurso, percentual, avaliaSelos, proximoMarco, coberturaDoPlano, previsaoFormatura, GRUPOS, PG, ESTAGIO };

@@ -1219,7 +1219,8 @@
     // D-03 (js/progresso.js): transferida pelo ano do bloco; declarada sem semestre sem data; pedida pela origem mais tardia.
     const b = window.PROGRESSO.prazoDoRegistro(r, M.periodos);
     if (!b) return null;      // declarada sem semestre: "Data de aprovação não confirmada" (sem idade)
-    return { ano: b.ano, min: (semAtual() - b.ate) / 2, max: (semAtual() - b.de) / 2, aprovadaEm: r.origens ? null : r.aprovadaEm || null, declarado: !!b.declarado };
+    return { ano: b.ano, min: (semAtual() - b.ate) / 2, max: (semAtual() - b.de) / 2, aprovadaEm: r.origens ? null : r.aprovadaEm || null, declarado: !!b.declarado,
+      fonte: b.fonte, misto: !!r.origens && r.origem === "declarado" && b.fonte !== "declarado" };
   }
   /**
    * Os dois números da livre escolha (D-02, PC-04): o da Grade e a soma da lista "Cursadas e Não Explicitadas" do BOA.
@@ -1276,9 +1277,13 @@
   /** Texto curto da base e da origem de uma cursada, para o pedido e a tabela de livre escolha. */
   function textoBase(b) {
     if (!b) return "";
-    return (b.declarado ? "Semestre informado por você, sem registro do SIGA." : "")
-      + (b.ano != null ? `Base do prazo: só o ano ${b.ano} (bloco de transferidos).` : "")
-      + (b.aprovadaEm ? ` Aprovação original em ${b.aprovadaEm}: não conta para o prazo.` : "");
+    // Diz de onde vem a data do prazo: registro do SIGA, bloco de transferidos ou semestre informado por você.
+    const frases = [];
+    if (b.fonte === "declarado") frases.push("Semestre informado por você, sem registro do SIGA.");
+    else if (b.ano != null) frases.push(`Base do prazo: só o ano ${b.ano} (bloco de transferidos).`);
+    else if (b.misto) frases.push("Base do prazo: o registro do SIGA (outra origem foi informada por você).");
+    if (b.aprovadaEm) frases.push(`Aprovação original em ${b.aprovadaEm}: não conta para o prazo.`);
+    return frases.join(" ");
   }
   const boaDe = (c) => ((M.boa && M.boa.naoExplicitadas) || []).find((d) => d.code === c) || null;
   const chDe = (c) => { const b = boaDe(c); if (b && b.ch) return b.ch; const i = M.info(c); return i ? (i.workload || 0) : 0; };
@@ -1843,22 +1848,12 @@
     });
     const cumprida = (code) => ["importado", "declarado"].includes(fonteDe(code));
     const obrigatorias = M.grade.filter((c) => c.code && c.category === 1 && !cumprida(c.code)).map((c) => ({ code: c.code, nome: c.name }));
-    const itens = [];
-    M.periodos.filter((p) => (p.tipo === "atual" || p.tipo === "planejado") && !p.declarado).forEach((p) => p.itens.forEach((it) => {
-      if (it.status === "reprovado" || cumprida(it.alvo) || M.consumidas.has(it.alvo)) return;
-      const cat = String(it.category);
-      itens.push({ code: it.alvo, grupo: cat, valor: cat === "5" ? (it.horas ?? it.credits) : it.credits, semestre: p.semestre });
-    }));
-    // A pedida de uma equivalência deferida cuja origem está prevista ou em curso entra como a prevista direta: item do
-    // plano no semestre da origem, sem contar como cumprida.
-    // A data é a efetiva da regra única (a mais tardia entre as origens), não o período de uma delas.
-    Object.entries(M.regs).forEach(([code, rs]) => rs.forEach((r) => {
-      if (!r.origens || !r.noPlano || cumprida(code)) return;   // só a prevista com as origens no atual ou no futuro
-      const i = M.info(code); if (!i) return;
-      itens.push({ code, grupo: String(i.category), valor: valorCat(i), semestre: r.semestreEfetivo });
-    }));
+    // Itens do plano (js/progresso.js, itensDoPlano): atual e planejados, e a pedida prevista com as origens no atual ou
+    // no futuro; o consumido por um pedido deferido não conta de novo. O que ficou num período passado não cobre nada.
+    const itens = window.PROGRESSO.itensDoPlano(M, { cumprida });
     const horasAce = getExt().filter((a) => a.status !== "validada" && Number(a.horas) > 0).map((a) => ({ horas: Number(a.horas), semestre: semIdx(a.periodo) }));
-    return CQ().coberturaDoPlano({ grupos, obrigatorias, itens, horasAce });
+    const atual = M.periodos.find((p) => p.tipo === "atual" && p.semestre != null);
+    return CQ().coberturaDoPlano({ grupos, obrigatorias, itens, horasAce, semestreAtual: atual ? atual.semestre : semAtual() });
   }
   function calculaMotivacao() {
     const c = contextoConquistas();
@@ -1867,7 +1862,7 @@
     const selos = CQ().avaliaSelos(c);
     const previsao = CQ().previsaoFormatura({ perfil: !!perfil, temAtual: M.periodos.some((p) => p.tipo === "atual"), grupos: c.cobertura.grupos,
       obrigatoriasSemPlano: c.cobertura.semPlano, ultimoSemestre: c.cobertura.primeiro, semDataNecessaria: c.cobertura.semData,
-      nomeDoSemestre: window.PROGRESSO.nomeDoSemestre });
+      noPassado: c.cobertura.noPassado, nomeDoSemestre: window.PROGRESSO.nomeDoSemestre });
     return { fase, selos, proximo: CQ().proximoMarco(selos), previsao, semestres: c.semestres, pctImportado, pctComDeclaradas, totalCr: Object.values(c.totais).reduce((a, b) => a + b, 0) };
   }
   const pctTela = (p) => { const v = Math.floor(p * 1000) / 10; return `${Number.isInteger(v) ? v : v.toFixed(1)}%`; };

@@ -100,7 +100,8 @@
    *   transferida (bloco)             -> o ano do bloco, mesmo com aprovadaEm (D-03; aprovadaEm vale só para requisitos)
    *   declarada com semestre          -> o semestre informado; declarada sem semestre -> null (data não confirmada)
    *   pedida de equivalência          -> a origem mais tardia ([maior de, maior ate]); sem data em alguma, null
-   * @returns {{ de, ate, ano, declarado } | null}  ano: o ano, quando só ele é conhecido
+   * @returns {{ de, ate, ano, fonte, declarado } | null}  ano: o ano, quando só ele é conhecido; fonte: de onde vem a
+   *   data do prazo ("registro" do SIGA, "bloco" de transferidas ou "declarado" pela pessoa)
    */
   function prazoDoRegistro(r, periodos) {
     if (!r) return null;
@@ -108,13 +109,16 @@
       const ps = r.origens.map((o) => prazoDoRegistro(o, periodos));
       if (!ps.length || ps.some((x) => !x)) return null;
       const de = Math.max(...ps.map((x) => x.de)), ate = Math.max(...ps.map((x) => x.ate));
-      return { de, ate, ano: ate > de ? Math.floor(ate / 2) : null, declarado: r.origem === "declarado" || ps.some((x) => x.declarado) };
+      // De onde vem a data: a origem mais tardia; no empate, o registro do SIGA antes do bloco e da declarada.
+      const ordem = { registro: 0, bloco: 1, declarado: 2 };
+      const det = ps.slice().sort((a, b) => b.ate - a.ate || b.de - a.de || ordem[a.fonte] - ordem[b.fonte])[0];
+      return { de, ate, ano: ate > de ? Math.floor(ate / 2) : null, fonte: det.fonte, declarado: det.fonte === "declarado" };
     }
     const p = periodos[r.pi];
-    if (r.origem === "declarado") { const s = semIdx(r.semestreDeclarado); return s == null ? null : { de: s, ate: s, ano: null, declarado: true }; }
-    if (p && p.semestre != null) return { de: p.semestre, ate: p.semestre, ano: null, declarado: false };
+    if (r.origem === "declarado") { const s = semIdx(r.semestreDeclarado); return s == null ? null : { de: s, ate: s, ano: null, fonte: "declarado", declarado: true }; }
+    if (p && p.semestre != null) return { de: p.semestre, ate: p.semestre, ano: null, fonte: "registro", declarado: false };
     const ano = p ? anoDoBloco(p.nome) : null;
-    return ano == null ? null : { de: ano * 2, ate: ano * 2 + 1, ano, declarado: false };
+    return ano == null ? null : { de: ano * 2, ate: ano * 2 + 1, ano, fonte: "bloco", declarado: false };
   }
 
   /**
@@ -141,7 +145,7 @@
     const declarada = origens.some((r) => r && r.origem === "declarado");
     const tipo = (t) => {
       const p = periodos[t.r.pi];
-      const base = p && p.semestre != null && !p.declarado ? 0 : p && anoDoBloco(p.nome) != null ? 1 : t.r.origens ? 2 : 3;
+      const base = t.r.origens ? 2 : p && p.semestre != null && !p.declarado ? 0 : p && anoDoBloco(p.nome) != null ? 1 : 3;
       return (t.exata ? 0 : 10) + base;
     };
     const tempos = origens.map((r, i) => { const t = tempoDaOrigem(r, periodos); return t && { ...t, codigo: codigos[i] || "" }; });
@@ -156,6 +160,34 @@
         semestreDeclarado: det && det.exata && det.r.origem === "declarado" ? det.r.semestreDeclarado || null : null,
         registradoEm: det && !det.exata && det.r.origem === "declarado" ? det.r.registradoEm || null : null } : {}),
     };
+  }
+
+  /**
+   * Itens do plano para a cobertura (previsão e selo do Notion): os do período atual e dos planejados, e a pedida
+   * prevista de uma equivalência com as origens no atual ou num futuro (noPlano), na data efetiva. Fica de fora o que
+   * já foi cumprido, o que foi consumido por um pedido deferido (não conta de novo) e o reprovado. A cobertura descarta
+   * os itens de semestres anteriores ao atual.
+   * @param {object} m          resultado de montaRegistros
+   * @param {object} o
+   * @param {(code: string) => boolean} o.cumprida   código já cumprido pelo registrado
+   * @returns {Array<{ code, grupo, valor, semestre, periodo }>}
+   */
+  function itensDoPlano(m, { cumprida }) {
+    const itens = [];
+    const valor = (cat, it) => (cat === "5" ? (it.horas ?? it.credits) : it.credits);
+    m.periodos.filter((p) => (p.tipo === "atual" || p.tipo === "planejado") && !p.declarado).forEach((p) => p.itens.forEach((it) => {
+      if (it.status === "reprovado" || cumprida(it.alvo) || m.consumidas.has(it.alvo)) return;
+      const cat = String(it.category);
+      itens.push({ code: it.alvo, grupo: cat, valor: valor(cat, it), semestre: p.semestre, periodo: p.nome });
+    }));
+    Object.keys(m.regs).sort().forEach((code) => m.regs[code].forEach((r) => {
+      if (!r.origens || !r.noPlano || cumprida(code) || m.consumidas.has(code)) return;
+      const i = m.info(code); if (!i) return;
+      const cat = String(i.category);
+      itens.push({ code, grupo: cat, valor: cat === "5" ? (i.horas != null ? i.horas : i.credits) : i.credits, semestre: r.semestreEfetivo,
+        periodo: r.semestreEfetivo == null ? null : nomeDoSemestre(r.semestreEfetivo) });
+    }));
+    return itens;
   }
 
   const CODIGO = /^[A-Z]{3}[A-Z0-9]{3}$/;
@@ -347,7 +379,23 @@
     });
     const pedidosComConflito = new Set();
     const semestreDe = (r) => semestreDoRegistro(r, periodos);
-    pedidos.forEach((e) => {
+    // Os deferidos são resolvidos em ordem topológica: um pedido que usa a pedida de outro vem depois dele, seja qual
+    // for a ordem da lista. Empates seguem uma chave canônica (pedida e cursadas em ordem), para o resultado não depender
+    // da ordem. Pedido em ciclo (A usa a pedida de B e B a de A) fica em conflito, sinalizado, e não registra nada.
+    const deferidos = pedidos.filter((e) => e && e.pedida && cursadasDe(e).length && (e.status || "a pedir") === "deferido");
+    const chave = (e) => `${e.pedida}<${cursadasDe(e).map((c) => c.code).sort().join("+")}`;
+    const dependeDe = new Map(deferidos.map((e) => [e, deferidos.filter((f) => f !== e && cursadasDe(e).some((c) => c.code === f.pedida))]));
+    const ordemTopologica = [];
+    const feitos = new Set();
+    let resto = deferidos.slice().sort((a, b) => (chave(a) < chave(b) ? -1 : chave(a) > chave(b) ? 1 : 0));
+    while (resto.length) {
+      const pronto = resto.find((e) => dependeDe.get(e).every((f) => feitos.has(f)));
+      if (!pronto) { resto.forEach((e) => pedidosComConflito.add(e)); break; }    // só sobrou ciclo
+      ordemTopologica.push(pronto); feitos.add(pronto); resto = resto.filter((e) => e !== pronto);
+    }
+    const emOrdem = [...ordemTopologica, ...pedidos.filter((e) => !deferidos.includes(e))];
+    emOrdem.forEach((e) => {
+      if (pedidosComConflito.has(e)) return;
       const cs = e ? cursadasDe(e) : [];
       if (!cs.length || !e.pedida) return;
       const st = e.status || "a pedir";
@@ -457,7 +505,7 @@
     ? r.origens.some((o) => limiteEm(o, periodos, semestre)) && r.origens.every((o) => limiteEm(o, periodos, semestre) || cumpreUm(o, periodos, semestre, false))
     : limiteEm(r, periodos, semestre)));
 
-  return { FORCA, NOME_DECL, tempoDaOrigem, prazoDoRegistro, pedidaDaEquivalencia, dataValida, semestreDaData, nomeDoSemestre, semestreDoHistorico, erroDeclarada, normalizaDeclaradas,
+  return { FORCA, NOME_DECL, tempoDaOrigem, prazoDoRegistro, pedidaDaEquivalencia, itensDoPlano, dataValida, semestreDaData, nomeDoSemestre, semestreDoHistorico, erroDeclarada, normalizaDeclaradas,
     classificaDeclaradas, registroCumpre, declaradaSemSemestreEm, statusDosRegistros, fonteDaAprovacao, semestreValido, semIdx, anoDoBloco, emCurso, parseHorarios, cursadasDe, pendente, semestreDoRegistro,
     montaRegistros };
 });

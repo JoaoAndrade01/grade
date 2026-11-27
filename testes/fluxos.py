@@ -3829,8 +3829,35 @@ def t_equivalencia_vizinhos(b):
                     f"eq-vizinhos-empate-{n}") for n, ordem in enumerate((["XYZ201", "XYZ202"], ["XYZ202", "XYZ201"]))]
     assert rows[0] == rows[1] and "2024/2" in rows[0], rows
 
+@caso("Equivalência encadeada e plano no passado na tela: a cadeia dá o mesmo resultado nas duas ordens; plano num período que já passou não cobre e é avisado; o prazo misto diz de onde vem a data")
+def t_equivalencia_encadeada(b):
+    ctx, pg = abre(b, perfil={"periodos": []}, nome="eq-cadeia-obr", relogio=HOJE); obr = [c for c, _, _ in obrigatorias(pg)]; ctx.close()
+    pedida, outra = obr[:2]
+    feitas = obr[2:] + [{"code": "XYZ201", "credits": 40, "category": 2}, {"code": "XYZ301", "credits": 8, "category": 3}, {"code": "XYZ401", "credits": 4, "category": 4}]
+    def resumo(periodos, equivalencias, nome):
+        perfil = {"periodos": [{"nome": "2025/1", "disciplinas": feitas}] + periodos, "equivalencias": equivalencias,
+                  "extensao": [{"nome": "Projeto fictício", "horas": 405, "periodo": "2025/1", "status": "validada"}]}
+        ctx, pg = abre(b, perfil=perfil, extra={"modoClassico": False, "vista": "grade", "foco": True}, nome=nome, relogio=HOJE)
+        m = motivacao(pg); r = (m["previsao"]["estado"], m["previsao"].get("semestre"), next(s for s in m["selos"] if s["id"] == "notion")["estado"],
+                                 pg.evaluate("(c) => GradeInterativa.fonte(c)", pedida), m["previsao"]["texto"])
+        ctx.close(); return r
+    atual = [{"nome": "2026/2", "atual": True, "disciplinas": [{"code": "XYZ202", "credits": 4, "category": 3, "status": "previsto"}, outra]}]
+    cadeia = [{"status": "deferido", "pedida": "XYZ203", "cursadas": ["XYZ202"]}, {"status": "deferido", "pedida": pedida, "cursadas": ["XYZ203"]}]
+    r1, r2 = resumo(atual, cadeia, "eq-cadeia-1"), resumo(atual, cadeia[::-1], "eq-cadeia-2")
+    assert r1 == r2 and r1[:4] == ("previsao", "2026/2", "obtido", "previsto"), (r1, r2)
+    # plano num período que já passou: não cobre, não dá selo e o texto explica
+    r = resumo([{"nome": "2024/2", "planejado": True, "disciplinas": [pedida]}, {"nome": "2026/2", "atual": True, "disciplinas": [outra]}], [], "eq-plano-passado")
+    assert r[0] == "pendente" and r[2] == "falta" and "2024/2" in r[4] and "já passou" in r[4], r
+    # prazo misto: a data vem do registro do SIGA (2024/2), não da origem informada por você (2019/2)
+    perfil = {"periodos": [{"nome": "2024/2", "disciplinas": [{"code": "XYZ202", "name": "Importada fictícia"}]}, {"nome": "2026/2", "atual": True, "disciplinas": []}],
+              "aprovacoesDeclaradas": [{"code": "XYZ201", "name": "Origem fictícia", "credits": 2, "category": 3, "semestre": "2019/2", "registradoEm": "2026-11-27"}],
+              "equivalencias": [{"status": "deferido", "pedida": obr[0], "cursadas": ["XYZ201", "XYZ202"]}, {"status": "a pedir", "pedida": obr[1], "cursadas": [obr[0]]}]}
+    ctx, pg = abre(b, perfil=perfil, extra={"modoClassico": False, "vista": "pedidos"}, nome="eq-prazo-misto", relogio=HOJE)
+    t = pg.locator("tr.eq-a-pedir").inner_text(); ctx.close()
+    assert "Base do prazo: o registro do SIGA" in t and "SIGA.Base" not in t and "sem registro do SIGA" not in t, t
+
 CASOS5 = [t_controles_icones, t_todas_acesas, t_minimalista, t_plano_na_grade, t_declaradas_modelo, t_declaradas_prazo_ace, t_declaradas_arquivo, t_declaradas_reimportar,
-          t_registrar_sem_perfil, t_registrar_com_perfil, t_declaradas_detalhe, t_declaradas_gestao, t_declarada_cursando, t_foco, t_motivacao, t_conquistas_estante, t_declaradas_lote_foco, t_foco_ajustes, t_ace_origem, t_previsao_cobertura, t_perfil_troca_declaradas, t_previsao_equivalencia_prevista, t_equivalencia_vizinhos]
+          t_registrar_sem_perfil, t_registrar_com_perfil, t_declaradas_detalhe, t_declaradas_gestao, t_declarada_cursando, t_foco, t_motivacao, t_conquistas_estante, t_declaradas_lote_foco, t_foco_ajustes, t_ace_origem, t_previsao_cobertura, t_perfil_troca_declaradas, t_previsao_equivalencia_prevista, t_equivalencia_vizinhos, t_equivalencia_encadeada]
 CASOS += CASOS5
 
 

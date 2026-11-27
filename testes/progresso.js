@@ -591,6 +591,113 @@ caso("B1 e B2: cobertura pelo plano: primeiro semestre com tudo coberto, sem rep
   assert.equal(feito.concluido, true);
 });
 
+// ---------- Invariância à ordem das entradas (pedidos, origens, itens de cada período e declaradas)
+// Gerador determinístico (mulberry32) para embaralhar sem depender do relógio.
+function gerador(semente) { let a = semente >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+const embaralha = (lista, rnd) => { const a = lista.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+function embaralhaPerfil(perfil, rnd) {
+  const p = clone(perfil);
+  p.periodos = p.periodos.map((x) => ({ ...x, disciplinas: embaralha(x.disciplinas || [], rnd) }));
+  p.equivalencias = embaralha(p.equivalencias || [], rnd).map((e) => ({ ...e, cursadas: embaralha(e.cursadas, rnd) }));
+  p.aprovacoesDeclaradas = embaralha(p.aprovacoesDeclaradas || [], rnd);
+  return p;
+}
+const SEMESTRE_ATUAL = sem("2026/2");
+/** Tudo o que o perfil produz e que não pode depender da ordem das listas. */
+function saidaDoPerfil(perfil) {
+  const m = modelo(perfil);
+  const cumprida = (code) => ["importado", "declarado"].includes(P.fonteDaAprovacao(m.regs[code]));
+  const codigos = Object.keys(m.regs).sort();
+  const porCodigo = {};
+  codigos.forEach((code) => {
+    const rs = m.regs[code];
+    const ultimo = rs.filter((r) => r.status === "aprovado").pop();
+    porCodigo[code] = { status: P.statusDosRegistros(rs, !!m.pendEq[code]), fonte: P.fonteDaAprovacao(rs),
+      semestres: rs.map((r) => P.semestreDoRegistro(r, m.periodos)).sort(),
+      prazo: ultimo ? P.prazoDoRegistro(ultimo, m.periodos) : null,
+      periodo: rs.map((r) => (m.periodos[r.pi] || {}).nome ?? null).sort(),
+      pre: SEMS.map((n) => P.registroCumpre(rs, m.periodos, sem(n))), co: SEMS.map((n) => P.registroCumpre(rs, m.periodos, sem(n), true)),
+      aviso: SEMS.map((n) => P.declaradaSemSemestreEm(rs, m.periodos, sem(n))) };
+  });
+  // cobertura, previsão e selos, com o cumprido só do registrado (como js/app.js)
+  const creditos = {};
+  codigos.forEach((code) => {
+    const i = m.info(code), f = P.fonteDaAprovacao(m.regs[code]);
+    if (!i || !f || m.consumidas.has(code) || m.origensDispensa.has(code) || i.category == 5) return;
+    const k = String(i.category); creditos[k] = creditos[k] || {}; creditos[k][f] = (creditos[k][f] || 0) + i.credits;
+  });
+  const reg = (o) => (o.importado || 0) + (o.declarado || 0);
+  const grupos = {};
+  ["1", "2", "3", "4"].forEach((k) => { grupos[k] = { nome: k, un: "cr", total: TOTAIS[k], cumprido: reg(creditos[k] || {}) }; });
+  const obrigatorias = GRADE.filter((c) => c.code && c.category === 1 && !cumprida(c.code)).map((c) => ({ code: c.code, nome: c.code }));
+  const cob = C.coberturaDoPlano({ grupos, obrigatorias, itens: P.itensDoPlano(m, { cumprida }), horasAce: [], semestreAtual: SEMESTRE_ATUAL });
+  const previsao = C.previsaoFormatura({ perfil: true, temAtual: true, grupos: cob.grupos, obrigatoriasSemPlano: cob.semPlano, ultimoSemestre: cob.primeiro,
+    semDataNecessaria: cob.semData, noPassado: cob.noPassado, nomeDoSemestre: P.nomeDoSemestre });
+  const selos = C.avaliaSelos(ctx({ aprov: Object.fromEntries(codigos.map((c) => [c, P.fonteDaAprovacao(m.regs[c])]).filter(([, f]) => f)), creditos, plano: cob.disciplinasPlanejadas }))
+    .map((s) => [s.id, s.estado, s.declarado || false]);
+  return { porCodigo, conflitos: [...m.pedidosComConflito].map((e) => e.pedida).sort(), consumidas: [...m.consumidas].sort(), cob, previsao, selos };
+}
+const OBR = GRADE.filter((c) => c.code && c.category === 1).map((c) => c.code);
+const PERFIS_INVARIANCIA = {
+  encadeado: { periodos: [{ nome: "2025/1", disciplinas: OBR.slice(2).concat([{ code: "XYZ103", credits: 5, category: 2, status: "reprovado" }]) },
+    { nome: "2026/2", atual: true, disciplinas: [{ code: "XYZ102", credits: 4, category: 3, status: "previsto" }] }],
+    equivalencias: [{ status: "deferido", pedida: "XYZ103", cursadas: ["XYZ102"] }, { status: "deferido", pedida: OBR[0], cursadas: ["XYZ103"] }] },
+  tresOrigens: { periodos: [{ nome: "2024 (transferidas)", disciplinas: [{ code: "XYZ101", aprovadaEm: "2023/2" }] }, { nome: "2024/2", disciplinas: ["XYZ104"] }],
+    aprovacoesDeclaradas: [{ code: "XYZ102", registradoEm: "2024-11-27" }, { code: "XYZ103", semestre: "2024/2", registradoEm: "2026-11-27" }],
+    equivalencias: [{ status: "deferido", pedida: OBR[0], cursadas: ["XYZ101", "XYZ102", "XYZ103", "XYZ104"] }] },
+  empateAninhado: { periodos: [{ nome: "2024 (transferidas)", disciplinas: [{ code: "XYZ101", aprovadaEm: "2023/2" }] }, { nome: "2025 (transferidas)", disciplinas: [{ code: "XYZ102", aprovadaEm: "2023/2" }] }],
+    equivalencias: [{ status: "deferido", pedida: OBR[0], cursadas: ["XYZ101"] }, { status: "deferido", pedida: OBR[1], cursadas: [OBR[0], "XYZ102"] }, { status: "a pedir", pedida: OBR[2], cursadas: [OBR[1]] }] },
+  periodos: { periodos: [{ nome: "2025/1", disciplinas: OBR.slice(3) }, { nome: "2024/2", planejado: true, disciplinas: [OBR[0]] },
+    { nome: "2026/2", atual: true, disciplinas: [{ code: OBR[1], status: "previsto" }, "XYZ105"] }, { nome: "2027/1", planejado: true, disciplinas: [OBR[2], "XYZ106"] }],
+    aprovacoesDeclaradas: [{ code: "XYZ107", registradoEm: "2026-11-27" }],
+    equivalencias: [{ status: "deferido", pedida: "XYZ108", cursadas: ["XYZ105", "XYZ107"] }, { status: "deferido", pedida: "XYZ109", cursadas: ["XYZ106"] }] },
+  ciclo: { periodos: [{ nome: "2025/1", disciplinas: ["XYZ101"] }],
+    equivalencias: [{ status: "deferido", pedida: "XYZ102", cursadas: ["XYZ103"] }, { status: "deferido", pedida: "XYZ103", cursadas: ["XYZ102"] },
+      { status: "deferido", pedida: "XYZ104", cursadas: ["XYZ101"] }] },
+  repetidos: { periodos: [{ nome: "2024/1", disciplinas: [{ code: "XYZ101", status: "reprovado" }, "XYZ102"] }, { nome: "2025/1", disciplinas: ["XYZ101", "XYZ102"] }],
+    equivalencias: [{ status: "deferido", pedida: OBR[0], cursadas: ["XYZ101", "XYZ102"] }] },
+};
+
+caso("Invariância: 24 embaralhamentos de pedidos, origens, itens de período e declaradas dão a mesma saída (status, fontes, datas, prazo, período, cobertura, previsão e selos)", () => {
+  const falhas = [];
+  for (const [nome, perfil] of Object.entries(PERFIS_INVARIANCIA)) {
+    const base = JSON.stringify(saidaDoPerfil(perfil));
+    for (let k = 0; k < 24; k++) {
+      const outra = JSON.stringify(saidaDoPerfil(embaralhaPerfil(perfil, gerador(1000 + k))));
+      if (outra !== base) { falhas.push(`${nome} (embaralhamento ${k})`); break; }
+    }
+  }
+  assert.deepEqual(falhas, []);
+});
+
+caso("Encadeadas, ciclo, plano no passado e desempate aninhado: os resultados esperados", () => {
+  const enc = saidaDoPerfil(PERFIS_INVARIANCIA.encadeado);
+  assert.ok(enc.consumidas.includes("XYZ103"));                                            // a intermediária foi consumida
+  assert.equal(enc.porCodigo[OBR[0]].status, "previsto");
+  assert.ok(!P.itensDoPlano(modelo(PERFIS_INVARIANCIA.encadeado), { cumprida: () => false }).some((it) => it.code === "XYZ103"));   // não empresta créditos
+  const ciclo = saidaDoPerfil(PERFIS_INVARIANCIA.ciclo);
+  assert.deepEqual(ciclo.conflitos, ["XYZ102", "XYZ103"]);                                // ciclo: em conflito, sinalizado
+  assert.equal(ciclo.porCodigo.XYZ104.status, "aprovado");                                 // o pedido fora do ciclo segue
+  assert.ok(!ciclo.porCodigo.XYZ102 && !ciclo.porCodigo.XYZ103);
+  const per = saidaDoPerfil(PERFIS_INVARIANCIA.periodos);
+  assert.deepEqual(per.cob.noPassado, ["2024/2"]);                                         // o plano no passado não conta
+  assert.ok(!per.cob.primeiro || per.cob.primeiro >= SEMESTRE_ATUAL);
+  assert.match(per.previsao.texto, /2024\/2/);
+  const m = modelo(PERFIS_INVARIANCIA.empateAninhado);
+  assert.equal(m.periodos[m.regs[OBR[1]][0].pi].nome, "2025 (transferidas)");              // o bloco direto vence a pedida no empate
+  // o prazo diz de onde vem a data: do registro do SIGA quando ele é o mais tardio, mesmo com uma origem declarada
+  const misto = modelo({ periodos: [{ nome: "2024/2", disciplinas: ["XYZ102"] }], aprovacoesDeclaradas: [{ code: "XYZ101", semestre: "2019/2", registradoEm: "2026-11-27" }],
+    equivalencias: [{ status: "deferido", pedida: OBR[0], cursadas: ["XYZ101", "XYZ102"] }] });
+  const pz = P.prazoDoRegistro(misto.regs[OBR[0]][0], misto.periodos);
+  assert.deepEqual([pz.fonte, pz.declarado, P.fonteDaAprovacao(misto.regs[OBR[0]])], ["registro", false, "declarado"]);
+  const bloco = modelo({ periodos: [{ nome: "2024 (transferidas)", disciplinas: [{ code: "XYZ102", aprovadaEm: "2022/2" }] }], aprovacoesDeclaradas: [{ code: "XYZ101", semestre: "2019/2", registradoEm: "2026-11-27" }],
+    equivalencias: [{ status: "deferido", pedida: OBR[0], cursadas: ["XYZ101", "XYZ102"] }] });
+  assert.equal(P.prazoDoRegistro(bloco.regs[OBR[0]][0], bloco.periodos).fonte, "bloco");
+  const empate = modelo({ periodos: [{ nome: "2024/2", disciplinas: ["XYZ102"] }], aprovacoesDeclaradas: [{ code: "XYZ101", semestre: "2024/2", registradoEm: "2026-11-27" }],
+    equivalencias: [{ status: "deferido", pedida: OBR[0], cursadas: ["XYZ101", "XYZ102"] }] });
+  assert.equal(P.prazoDoRegistro(empate.regs[OBR[0]][0], empate.periodos).fonte, "registro");
+});
+
 let falhas = 0;
 for (const [nome, f] of casos) {
   try { f(); console.log("OK   ", nome); }
