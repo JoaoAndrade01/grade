@@ -20,7 +20,7 @@ def abre(b, url, nome, eventos, avisos):
     observa(ctx, url, nome, eventos, avisos)
     pg.goto(url); pg.wait_for_load_state("load")
     # deixa o botão Importar no topo (atalhos fixados); versões sem essa chave simplesmente a ignoram
-    pg.evaluate("k => localStorage.setItem(k + 'atalhos', JSON.stringify(['perfil','importar','tema','privacidade','referencias','tags']))", K)
+    pg.evaluate("k => { localStorage.setItem(k + 'atalhos', JSON.stringify(['perfil','importar','tema','privacidade','referencias','tags'])); localStorage.setItem(k + 'modoClassico', 'false'); }", K)
     pg.reload(); pg.wait_for_load_state("load")
     return ctx, pg
 
@@ -179,9 +179,9 @@ def publicacao_local(b, url, site, eventos, avisos, faltando):
     try:
         pg.goto(url); pg.wait_for_load_state("networkidle")
         info["classico_ao_abrir"] = pg.locator("#modo-classico").is_checked()
-        info["seletor_e_engrenagem"] = pg.locator("#seletor-modo").is_visible() and pg.locator("#btn-config").is_visible()
-        # Referências pelas Configurações
-        pg.click("#btn-config"); pg.locator('[data-abrir-atalho="referencias"]').click()
+        info["seletor_e_engrenagem"] = pg.locator("#seletor-modo").is_visible() and pg.locator("#btn-config").is_hidden()   # Clássico: só seletor e tema
+        # Referências pelas Configurações (no Planejador)
+        modo_classico(pg, False); pg.click("#btn-config"); pg.locator('[data-abrir-atalho="referencias"]').click()
         info["links_referencias"] = pg.locator("#detalhes a").evaluate_all("as => as.map((a) => a.href)")
         pg.keyboard.press("Escape"); pg.wait_for_timeout(100); pg.keyboard.press("Escape")
         # A ECI por trás da Grade sem perfil

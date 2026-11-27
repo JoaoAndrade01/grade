@@ -44,6 +44,8 @@ como notas. Os perfis e as preferências salvos na v2.0.0 continuam valendo.
 
 - As limitações da v2.0.0 continuam valendo.
 - **Arrastar a folha para baixo** ainda não fecha os detalhes no celular; use o ✕, o fundo ou o Esc.
+- **Corte do topo no celular.** A correção é comprovada por captura: o teste automatizado do cenário (disciplina pintada
+  aberta pela consulta, a 390 px) não reproduz o corte na v2.0.0.
 - **Ao segurar no iPhone real:** a pressão longa foi testada em WebKit com toque simulado; o Safari do iPhone real e o
   leitor de tela estão pendentes.
 - **Diagramas.** Os diagramas de arquitetura ainda dizem v2.0.0; a estrutura do app não mudou.

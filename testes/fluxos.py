@@ -2212,7 +2212,7 @@ def abre_config(pg):
 def t_formatos(b):
     for vp, toque, nome in [(D, False, "desktop"), (C, True, "celular")]:
         ctx, pg = abre(b, vp=vp, perfil=PERFIL, extra={"modoClassico": False, "vista": "timeline"}, nome=f"formatos-{nome}", toque=toque)
-        tab = pg.locator('[data-vista="timeline"]'); atal = pg.locator("#btn-privacidade")
+        tab = pg.locator('.abas [data-vista="timeline"]'); atal = pg.locator("#btn-privacidade")
         vis = lambda el, s: el.locator(s).evaluate("e => { const r = e.getBoundingClientRect(); return getComputedStyle(e).display !== 'none' && r.width > 2; }")
         assert vis(tab, ".ico") and vis(tab, ".rot") and vis(atal, ".ico") and vis(atal, ".rot")
         abre_config(pg)
@@ -2230,7 +2230,7 @@ def t_formatos(b):
             pg.get_by_role("tab", name="Optativas").focus(); pg.keyboard.press("Shift+Tab"); pg.keyboard.press("Tab")
             assert pg.evaluate("getComputedStyle(document.activeElement).outlineStyle") == "solid"
             if toque:
-                for el in pg.locator(".acoes .btn, .abas button").all():
+                for el in pg.locator(".acoes .btn:not([hidden]), .abas button:not([hidden])").all():   # a aba Conquistas fica oculta fora do Foco
                     r = el.bounding_box(); assert r["height"] >= 44 and r["width"] >= 44, r
             foto(pg, f"52-{nivel}-{nome}")
         pg.reload(); assert pg.evaluate("document.documentElement.dataset.aparencia") == "minimalista"
@@ -2678,9 +2678,9 @@ PONTO_OCULTO = """() => {
   if (!el || el === document.body) return null;     // o fim da ordem de Tab passa pelo documento (WebKit): não é cartão encoberto
   if (el.closest('.paleta, #detalhes, dialog')) return null;
   const alvo = el.matches('.seletor-modo input') ? el.closest('label') : el;    // o rádio do seletor fica oculto; o rótulo mostra o foco
-  const r = alvo.getBoundingClientRect();
+  const rs = [...alvo.getClientRects()]; const r = rs.reduce((m, q) => (q.width * q.height > m.width * m.height ? q : m), rs[0] || alvo.getBoundingClientRect());
   if (!r.width || !r.height) return 'sem caixa: ' + el.outerHTML.slice(0, 70);
-  const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+  const cx = r.left + r.width / 2, cy = r.top + r.height / 2;   // link quebrado em duas linhas: o centro da maior linha
   if (cx < 0 || cy < 0 || cx >= innerWidth || cy >= innerHeight) return 'fora da janela: ' + el.outerHTML.slice(0, 70);
   const topo = document.elementFromPoint(cx, cy);
   if (topo && (topo === alvo || alvo.contains(topo))) return null;
@@ -2919,9 +2919,9 @@ def t_b8_alvos(b):
 @caso("B9: abas com painel associado e teclado de abas; seleção sem aria-selected inválido; axe sem atributos ARIA inválidos")
 def t_b9_aria(b):
     ctx, pg = abre(b, perfil=PERFIL, extra={"modoClassico": False, "vista": "grade"}, nome="b9")
-    abas = pg.locator('.abas [role="tab"]'); assert abas.count() == 6
+    abas = pg.locator('.abas [role="tab"]'); assert abas.count() == 7     # Conquistas existe, oculta fora do Foco
     ids = pg.evaluate("[...document.querySelectorAll('.abas [role=tab]')].map(e => e.id)")
-    assert all(ids) and len(set(ids)) == 6, ids
+    assert all(ids) and len(set(ids)) == 7, ids
     for v in ("grade", "timeline", "optativas", "cronograma", "pedidos", "eci"):
         pg.click(f'[data-vista="{v}"]')
         painel = pg.locator("#painel")
@@ -3067,7 +3067,7 @@ def t_todas_acesas(b):
     if pg.locator(".opt.opt-inativa").count() == 0:
         # indisponível: aria-disabled, o motivo é anunciado ao acionar e a preferência fica
         expect(acesas).to_have_attribute("aria-disabled", "true"); expect(acesas).to_have_attribute("aria-pressed", "true")
-        acesas.click(); expect(pg.locator("#anuncio")).to_contain_text("Nenhuma optativa inativa na lista")
+        acesas.click(force=True); expect(pg.locator("#anuncio")).to_contain_text("Nenhuma optativa inativa na lista")
         assert ls(pg, "filtros")["acesas"] is True
     pg.reload(); pronto(pg, "todas-acesas"); assert ls(pg, "filtros")["acesas"] is True
     expect(pg.get_by_role("button", name="Todas acesas", exact=True)).to_have_attribute("aria-pressed", "true")
@@ -3250,7 +3250,7 @@ def t_declaradas_arquivo(b):
     antigo = json.loads(json.dumps(ANTIGO)); antigo["marcacoes"] = {"MAC128": "aprovada"}
     carrega(antigo, "antigo.json")
     expect(pg.locator("#titulo")).to_have_text(re.compile(r"Grade ECI — Fulano"))
-    expect(pg.locator('.card[data-code="MAC128"] .estado')).to_have_attribute("data-estado", "marcacao")
+    pg.click('[data-vista="grade"]'); expect(pg.locator('.card[data-code="MAC128"] .estado')).to_have_attribute("data-estado", "marcacao")
     assert "aprovacoesDeclaradas" not in pg.evaluate("GradeInterativa.perfilExportado()")
     alertas = []; pg.on("dialog", lambda d: (alertas.append(d.message), d.accept()))
     ruim = {"periodos": [], "aprovacoesDeclaradas": [{"code": "MAC118", "semestre": "2025"}]}
@@ -4056,7 +4056,7 @@ def t_varredura_simbolos(b):
     pg.click("#editar-tags"); confere("tags"); pg.keyboard.press("Escape")
     for vista in ("timeline", "optativas", "cronograma", "pedidos"):
         pg.click(f'[data-vista="{vista}"]'); confere(vista)
-    pg.click('[data-cperiodo="2027/1"]'); confere("cronograma-periodo")
+    pg.click('[data-vista="cronograma"]'); pg.click('[data-cperiodo="2027/1"]'); confere("cronograma-periodo")
     abre_config(pg); confere("configuracoes"); pg.keyboard.press("Escape")
     abre_config(pg); pg.check('#dlg-config input[name="aparencia"][value="minimalista"]'); pg.keyboard.press("Escape")
     pg.click('[data-vista="grade"]'); pg.click("#ferr-mais"); confere("minimalista")
@@ -4279,7 +4279,10 @@ def t_folha_corte_topo(b):
     ctx, pg = abre(b, vp=C, perfil=PERFIL, extra={"vista": "grade", "marcacoes": {"COS231": "cursando"}}, nome="folha-corte", toque=True)
     abre_pela_consulta(pg, "COS231")
     pg.wait_for_timeout(300)
-    f = pg.evaluate(FOLHA_JS)
+    # só o painel e o fechar (sem #detalhes-fundo, que não existe na v2.0.0). O corte não se reproduz no automatizado:
+    # a v2.0.0 também fica verde aqui; a prova do defeito é por captura (limitação em docs/MUDANCAS.md).
+    f = pg.evaluate("""() => { const d = document.querySelector('#detalhes'), r = d.getBoundingClientRect(), x = d.querySelector('.fechar').getBoundingClientRect();
+        return { top: r.top, bottom: r.bottom, alt: innerHeight, xTop: x.top, xBottom: x.bottom }; }""")
     foto(pg, "folha-corte-topo-390")
     assert f["top"] >= -0.5 and f["bottom"] <= f["alt"] + 0.5, f
     assert f["xTop"] >= -0.5 and f["xBottom"] <= f["alt"] + 0.5, f                 # o fechar está na tela
@@ -4401,8 +4404,13 @@ PERFIS_FASE = {
     "meio": {"periodos": [{"nome": n, "disciplinas": [c]} for n, c in (("2024/1", "COS110"), ("2024/2", "COS111"), ("2025/1", "EEL280"))]},
 }
 def perfil_veterano(pg):
+    """Veterano de verdade (75% ou mais registrado): as obrigatórias e optativas, como em t_motivacao."""
     feitas = [c for c, _, _ in obrigatorias(pg) if c not in ("EEWX00", "EEWU00")]
-    return {"periodos": [{"nome": "2025/1", "disciplinas": feitas}, {"nome": "2026/2", "atual": True, "disciplinas": ["EEWX00"]}]}
+    return {"periodos": [{"nome": "2025/1", "disciplinas": feitas + [{"code": "XYZ201", "name": "Optativa fictícia", "credits": 30, "category": 2}]},
+                         {"nome": "2026/2", "atual": True, "disciplinas": ["EEWX00", {"code": "XYZ202", "name": "Optativa fictícia II", "credits": 10, "category": 2}]},
+                         {"nome": "2027/1", "planejado": True, "disciplinas": ["EEWU00", {"code": "XYZ301", "name": "Livre fictícia", "credits": 8, "category": 3},
+                                                                          {"code": "XYZ401", "name": "Humanas fictícia", "credits": 4, "category": 4}]}],
+            "extensao": [{"nome": "Projeto de extensão fictício", "horas": 405, "periodo": "2027/1", "status": "planejada"}]}
 
 @v210
 @caso("Aba Conquistas no Foco: aba por teclado (role=tab, aria-selected, painel associado), depois de Cronograma; Situação à esquerda (em cima a 320 px); cartões por grupo com 'N de M'; 3 fases × 2 tons; nome ausente, longo e com <b>; dois temas; axe")
@@ -4420,7 +4428,7 @@ def t_aba_conquistas(b):
     assert pg.locator("#painel details").count() == 0 and pg.locator("#barra-geral").is_hidden() and pg.locator("#paleta").is_hidden()
     sit, est = pg.locator("#painel .cq-situacao").bounding_box(), pg.locator("#painel .estante").bounding_box()
     assert sit["x"] + sit["width"] <= est["x"] + 1 and abs(sit["y"] - est["y"]) < 40, (sit, est)          # Situação à esquerda
-    grupos = pg.locator("#painel .cq-grupo h3").all_inner_texts()
+    grupos = pg.locator("#painel .cq-grupo h3").all_text_contents()
     assert len(grupos) == 4 and all(re.search(r" · \d+ de \d+$", g) for g in grupos), grupos
     assert pg.locator("#painel .selo .selo-barra").count() == pg.locator("#painel .selo").count()
     obt = pg.locator("#painel .selo.s-obtido .selo-barra i").first
@@ -4503,7 +4511,7 @@ def t_conquistas_some(b):
     ctx, pg = abre(b, perfil=PERFIL, extra={"vista": "conquistas", "conquistasFora": True}, nome="some-config", relogio=HOJE)
     expect(pg.locator("#aba-conquistas")).to_have_attribute("aria-selected", "true")
     abre_config(pg); pg.locator('#dlg-config input[name="conquistas"][value="foco"]').check()
-    assert foco_em(pg, '#dlg-config input[name="conquistas"]'), descreve_foco(pg)
+    assert foco_em(pg, '#dlg-config input[name="conquistas"], #dlg-config'), descreve_foco(pg)   # WebKit não foca o rádio no clique
     expect(pg.locator("#anuncio")).to_contain_text(AVISO_ABA); pg.keyboard.press("Escape")
     expect(pg.locator("#aba-conquistas")).to_be_hidden(); expect(pg.locator("#aba-grade")).to_have_attribute("aria-selected", "true")
     assert ls(pg, "conquistasFora") is None
