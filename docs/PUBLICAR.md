@@ -113,8 +113,8 @@ do fork, o que acontece com o push acima.
 
 1. No fork, em **Settings → General → Features**, confirme que **Issues** está ativado.
 2. Abra o link **Achou um erro? Crie uma nova issue** do **rodapé** da Grade publicada, nos modos Clássico e Planejador.
-   Ele deve levar à criação de Issue **do fork**, sem dados da pessoa na URL. Se o GitHub mostrar a lista de modelos,
-   escolha **Relatar um erro**. O formulário deve pedir o esperado, o observado, os passos e o navegador, e avisar para
+   Ele deve levar à escolha de modelo de Issue **do fork** (`/issues/new/choose`), sem dados da pessoa na URL. Na
+   lista de modelos, escolha **Relatar um erro**. O formulário deve pedir o esperado, o observado, os passos e o navegador, e avisar para
    não anexar PDFs, perfil, nomes, matrículas nem capturas identificáveis.
 3. Com um PDF fictício inválido, force o erro de importação e abra o **mesmo link** pela mensagem de erro. Deve chegar
    ao mesmo formulário.

@@ -1341,7 +1341,7 @@ def t_rf08_rodape(b):
             link = pg.locator("#link-relato"); expect(link).to_be_visible()
             assert link.inner_text() == "Achou um erro? Crie uma nova issue"
             href = link.get_attribute("href")
-            assert href.startswith("https://github.com/") and href.endswith("/issues/new"), href      # sem dados da pessoa
+            assert href == "https://github.com/JoaoAndrade01/grade/issues/new/choose", href      # escolha de modelo; sem dados da pessoa
             credito = pg.locator("#link-credito"); expect(credito).to_be_visible()          # crédito ao Grêmio, nos dois modos
             assert credito.inner_text() == "Baseado na Grade do Grêmio ECI" and credito.get_attribute("href") == "https://github.com/gremio-eci/grade"
             if modo == "completo":
