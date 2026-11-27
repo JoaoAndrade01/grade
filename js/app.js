@@ -1785,9 +1785,9 @@
   }
 
   /**
-   * Escala de dificuldade do guia (Exibir → Dificuldade). Ícone + texto: "🟢 Trivial · 🔵 Só o básico · …". Só ícones:
-   * só as bolinhas; o nome fica no `title` e no `.sr`, e o foco ou o toque na escala mostram os nomes (como a barra do
-   * Minimalista). Tocar na escala não muda o filtro de dificuldade.
+   * Escala de dificuldade do guia (Exibir → Dificuldade). Ícone + texto: uma linha só, cada bolinha junto do nome
+   * ("🟢 Trivial · 🔵 Só o básico · …"). Só ícones: só as cinco bolinhas, sem linha de nomes na tela em nenhum momento;
+   * o nome fica no `title` e no nome acessível (`.sr`).
    */
   function escalaDificuldade() {
     if (!M.guia) return "";
@@ -1796,8 +1796,8 @@
       return `<span class="escala-dificuldade" role="list" aria-label="Escala de dificuldade">${ns.map((n) =>
         `<span class="leg-niv" role="listitem" title="${esc(n.texto)}"><span aria-hidden="true">${n.emoji}</span> ${esc(n.nome)}</span>`).join("")}</span>`;
     }
-    return `<span class="escala-dificuldade so-icones" role="list" aria-label="Escala de dificuldade" tabindex="0" title="Toque ou foque para ver os nomes">${ns.map((n) =>
-      `<span class="leg-niv" role="listitem" title="${esc(n.nome)}"><span aria-hidden="true">${n.emoji}</span><span class="sr"> ${esc(n.nome)}</span></span>`).join("")}<span class="leg-nomes" aria-hidden="true">${ns.map((n) => `<span class="leg-par">${n.emoji} ${esc(n.nome)}</span>`).join(" · ")}</span></span>`;
+    return `<span class="escala-dificuldade so-icones" role="list" aria-label="Escala de dificuldade">${ns.map((n) =>
+      `<span class="leg-niv" role="listitem" title="${esc(n.nome)}"><span aria-hidden="true">${n.emoji}</span><span class="sr"> ${esc(n.nome)}</span></span>`).join("")}</span>`;
   }
 
   /**
@@ -3945,12 +3945,6 @@
       $("#barra-geral").classList.toggle("ver-numeros", !!naBarra && minimalista() && !$("#barra-geral").classList.contains("ver-numeros"));
     });
     document.addEventListener("keydown", (ev) => { if (ev.key === "Escape") $("#barra-geral").classList.remove("ver-numeros"); });
-    // Escala de dificuldade em Só ícones: o toque mostra e esconde os nomes (o foco também mostra); o filtro não muda.
-    document.addEventListener("click", (ev) => {
-      const escala = ev.target.closest && ev.target.closest(".escala-dificuldade.so-icones");
-      document.querySelectorAll(".escala-dificuldade.so-icones").forEach((e) => e.classList.toggle("ver-nomes", e === escala && !e.classList.contains("ver-nomes")));
-    });
-    document.addEventListener("keydown", (ev) => { if (ev.key === "Escape") document.querySelectorAll(".escala-dificuldade.ver-nomes").forEach((e) => e.classList.remove("ver-nomes")); });
     document.addEventListener("keydown", (ev) => {
       if (ev.key !== "Escape") return;
       if (document.querySelector("dialog[open]")) return;   // o próprio <dialog> trata o Esc

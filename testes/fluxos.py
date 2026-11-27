@@ -3917,7 +3917,7 @@ CASOS6 = []
 def v210(f): CASOS6.append(f); return f
 
 @v210
-@caso("Legenda da dificuldade: Ícone + texto com nomes e separadores; Só ícones só com as bolinhas, nome no title e no leitor de tela; foco e toque mostram os nomes sem mudar o filtro")
+@caso("Legenda da dificuldade: Ícone + texto numa linha só, cada bolinha com o nome; Só ícones só com as cinco bolinhas, sem linha de nomes no foco nem no toque, nome no title e no leitor de tela")
 def t_legenda_dificuldade(b):
     base = {"vista": "grade", "exibir": {"codigo": True, "dificuldade": True}}
     # Ícone + texto: "🟢 Trivial · 🔵 Só o básico · …"; o separador é só visual
@@ -3925,6 +3925,7 @@ def t_legenda_dificuldade(b):
     escala = pg.locator("#ferramentas .escala-dificuldade"); expect(escala).to_be_visible()
     assert escala.get_attribute("role") == "list" and escala.get_attribute("tabindex") is None
     assert [t.split(" ", 1)[1] for t in escala.locator(".leg-niv").all_inner_texts()] == ESCALA
+    assert escala.locator(".leg-niv").count() == 5 and escala.locator(".leg-nomes, .leg-par").count() == 0   # sem fileira extra
     seps = escala.locator(".leg-niv").evaluate_all("es => es.map((e) => getComputedStyle(e, '::before').content)")
     assert "·" not in seps[0] and all("·" in s for s in seps[1:]), seps
     arvore = escala.aria_snapshot()
@@ -3935,33 +3936,28 @@ def t_legenda_dificuldade(b):
     alturas = pg.locator("#ferramentas .escala-dificuldade .leg-niv").evaluate_all("es => es.map((e) => [getComputedStyle(e).whiteSpace, e.getBoundingClientRect().height])")
     assert all(w == "nowrap" for w, _ in alturas) and max(h for _, h in alturas) - min(h for _, h in alturas) < 2, alturas
     ctx.close()
-    # Só ícones: só as bolinhas; nomes no title, no .sr e na árvore de acessibilidade; foco mostra os nomes
+    # Só ícones: só as cinco bolinhas; nomes no title, no .sr e na árvore de acessibilidade; nada de nomes na tela
     ctx, pg = abre(b, perfil=PERFIL, extra={**base, "aparencia": "icone"}, nome="legenda-icones")
     escala = pg.locator("#ferramentas .escala-dificuldade.so-icones"); expect(escala).to_be_visible()
+    assert escala.locator(".leg-niv").count() == 5 and escala.locator(".leg-nomes, .leg-par").count() == 0
+    assert escala.get_attribute("tabindex") is None                                                  # não é mais um contêiner que revela
     assert escala.locator(".leg-niv").evaluate_all("es => es.map((e) => e.title)") == ESCALA
     assert all(w <= 1 for w in escala.locator(".leg-niv .sr").evaluate_all("es => es.map((e) => e.getBoundingClientRect().width)"))
-    nomes = escala.locator(".leg-nomes"); expect(nomes).to_be_hidden()
     arvore = escala.aria_snapshot()
     assert all(n in arvore for n in ESCALA), arvore
-    escala.focus(); expect(nomes).to_be_visible()
-    assert nomes.inner_text() == "🟢 Trivial · 🔵 Só o básico · 🟡 Matéria de verdade · 🟠 Difícil · 🔴 Morte instantânea", nomes.inner_text()
-    assert escala.evaluate("e => getComputedStyle(e).outlineStyle") != "none" or not escala.evaluate("e => e.matches(':focus-visible')")
-    pg.locator("#titulo").evaluate("e => { e.tabIndex = -1; e.focus(); }"); pg.mouse.move(1, 1); expect(nomes).to_be_hidden()
-    # teclado: Tab chega à escala
-    pg.locator('#ferramentas [data-exibir="dificuldade"]').focus(); pg.keyboard.press("Tab")
-    assert pg.evaluate("document.activeElement.classList.contains('escala-dificuldade')"), descreve_foco(pg)
-    expect(nomes).to_be_visible()
+    visivel = r"e => { const c = e.cloneNode(true); c.querySelectorAll('.sr').forEach((x) => x.remove()); return c.textContent.replace(/\s+/g, ''); }"
+    assert escala.evaluate(visivel) == "🟢🔵🟡🟠🔴", escala.evaluate(visivel)
+    escala.locator(".leg-niv").first.hover(); assert escala.evaluate(visivel) == "🟢🔵🟡🟠🔴"
     ctx.close()
-    # toque a 320 px: tocar mostra os nomes e não muda o filtro de dificuldade; tocar fora esconde
+    # toque a 320 px: tocar não mostra nomes nem muda o filtro de dificuldade
     ctx, pg = abre(b, vp=C320, perfil=PERFIL, extra={**base, "aparencia": "icone"}, nome="legenda-toque", toque=True, esquema="dark")
-    escala = pg.locator("#ferramentas .escala-dificuldade.so-icones"); nomes = escala.locator(".leg-nomes")
+    escala = pg.locator("#ferramentas .escala-dificuldade.so-icones")
     antes = ls(pg, "filtroNivel")
-    escala.locator(".leg-niv").nth(3).tap(); expect(nomes).to_be_visible()
+    escala.locator(".leg-niv").nth(3).tap()
+    assert escala.evaluate(visivel) == "🟢🔵🟡🟠🔴"
     assert ls(pg, "filtroNivel") == antes and pg.locator('#ferramentas [data-nivel].on').count() == 0
     assert pg.evaluate("document.documentElement.scrollWidth - innerWidth") <= 1
-    assert escala.locator(".leg-par").evaluate_all("es => es.every((e) => e.getClientRects().length === 1)")   # bolinha e nome não se separam
     foto(pg, "legenda-icones-toque-320-escuro")
-    pg.locator("#titulo").tap(); expect(nomes).to_be_hidden()
     ctx.close()
 
 @v210
