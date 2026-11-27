@@ -167,7 +167,9 @@
     && opcional(a.horas, numero) && opcional(a.periodo, texto) && opcional(a.status, (v) => EXT_STATUS.includes(v));
   const camposTag = {
     id: texto, nome: texto, cor: (v) => texto(v) && /^#[\da-f]{6}$/i.test(v),
-    status: (v) => texto(v) && Object.hasOwn(CONTA_COMO, v),
+    // "reprovado" é o antigo "Reprovação (não conta)": perfis e navegadores antigos continuam válidos e viram "Não conta".
+    status: (v) => texto(v) && (Object.hasOwn(CONTA_COMO, v) || v === "reprovado"),
+    barra: (v) => opcional(v, (x) => typeof x === "boolean"),
   };
   const tagsValidas = (v) => listaDe(v, (t) => !erroCampos(t, camposTag, "tag"));
   const marcacoesValidas = (v) => objeto(v) && Object.entries(v).every(([c, t]) => codigo(c) && texto(t));
@@ -266,7 +268,21 @@
     previsto: { id: "", nome: "Aprovação esperada", cor: "#84cc16", status: "previsto" },
     reprovado: { id: "", nome: "Reprovação esperada", cor: "#dc2626", status: "reprovado" },
   };
-  const CONTA_COMO = { aprovado: "Concluída (cursada e aprovada)", previsto: "Aprovação esperada", cursando: "Em curso", planejado: "Planejada", reprovado: "Reprovação (não conta)", pendente: "Não conta" };
+  const CONTA_COMO = { aprovado: "Concluída (cursada e aprovada)", previsto: "Aprovação esperada", cursando: "Em curso", planejado: "Planejada", pendente: "Não conta" };
+  /**
+   * Tags no formato atual: o antigo "Reprovação (não conta)" vira "Não conta" (os dois não contam no progresso) e
+   * "Usar a cor desta tag na barra" vale para no máximo uma tag por tipo, nunca para "Não conta".
+   */
+  function normalizaTags(lista) {
+    if (!Array.isArray(lista)) return lista;
+    const naBarra = new Set();
+    return lista.map((t) => {
+      const n = { ...t, status: t.status === "reprovado" ? "pendente" : t.status };
+      if (n.barra && n.status !== "pendente" && !naBarra.has(n.status)) naBarra.add(n.status);
+      else delete n.barra;
+      return n;
+    });
+  }
 
   // ---------- Estado ----------
   // Ordem de prioridade do perfil: importado pelo app (localStorage) > perfil/perfil.js > nenhum.
@@ -301,7 +317,11 @@
     Object.keys(antigo).filter(codigo).forEach((c) => { m[c] = antigo[c] === "aprovado" ? "aprovada" : ""; });
     return m;
   })();
-  tags = migraTags(tags, marcacoes);
+  tags = normalizaTags(migraTags(tags, marcacoes));
+  try {   // grava a conversão das tags salvas neste navegador (a marcação continua apontando para o mesmo id)
+    const salvas = localStorage.getItem(STORE + "tags");
+    if (salvas && tagsValidas(JSON.parse(salvas)) && salvas !== JSON.stringify(tags)) localStorage.setItem(STORE + "tags", JSON.stringify(tags));
+  } catch (e) { /* armazenamento indisponível: a conversão vale só nesta visita */ }
   let pincel = null;                 // id da tag selecionada para pintar (null = clique abre detalhes)
   let cadeado = load("cadeado", false, (v) => typeof v === "boolean"); // protege as cursadas contra alterações manuais
   let focoSetas = null;              // disciplina em foco para as setas de requisitos
@@ -504,8 +524,9 @@
       // reprovação no período atual = "reprovação esperada"
       const atual = M.periodos.find((p) => p.tipo === "atual");
       const r = (M.regs[code] || []).find((x) => x.status === "reprovado" && atual && x.pi === atual.pi);
-      return r ? tags.find((t) => t.status === "reprovado") || COR_STATUS.reprovado : null;
+      return r ? COR_STATUS.reprovado : null;   // cor reserva: nenhuma tag tem o tipo "reprovado"
     }
+    if (s === "pendente") return null;   // "Não conta" só pinta o que a pessoa marcou
     return tags.find((t) => t.status === s) || COR_STATUS[s] || null;
   }
   const notaDe = (code) => {
@@ -808,7 +829,7 @@
   const temEdicoes = () => Object.keys(plano.periodos).length > 0 || (plano.novos || []).length > 0 || (plano.removidos || []).length > 0
     || !!plano.equivalencias || !!plano.extensao
     || JSON.stringify(marcacoes) !== JSON.stringify((perfil && perfil.marcacoes) || {})
-    || JSON.stringify(tags) !== JSON.stringify(migraTags((perfil && perfil.tags) || TAGS_PADRAO, marcacoes));
+    || JSON.stringify(tags) !== JSON.stringify(normalizaTags(migraTags((perfil && perfil.tags) || TAGS_PADRAO, marcacoes)));
 
   // ---------- Renderização: peças ----------
   const metaDe = (code, valor, cat) =>
@@ -883,28 +904,32 @@
     </button>`;
   }
 
-  /** Barra única de progresso: concluída · cursando · planejada · não planejada (créditos dos grupos 1–4). */
+  /**
+   * Barra única de progresso (créditos dos grupos 1–4), nesta ordem: concluída · prevista · cursando · planejada ·
+   * não planejada. Cada trecho usa a cor da tag escolhida para o tipo ("Usar a cor desta tag na barra") ou a padrão.
+   */
   function renderBarraGeral() {
     const t = totais();
-    let total = 0, ok = 0, cur = 0, pl = 0;
+    let total = 0, ok = 0, prev = 0, cur = 0, pl = 0;
     ["1", "2", "3", "4"].forEach((k) => {
       const T = t[k]; if (!T.total) return;
       const a = Math.min(T.ok, T.total);
-      const b = Math.min(T.prev + T.cur, T.total - a);
-      const c = Math.min(Math.max(0, T.plan - T.cur), T.total - a - b);
-      total += T.total; ok += a; cur += b; pl += c;
+      const b = Math.min(T.prev, T.total - a);
+      const c = Math.min(T.cur, T.total - a - b);
+      const d = Math.min(Math.max(0, T.plan - T.cur), T.total - a - b - c);
+      total += T.total; ok += a; prev += b; cur += c; pl += d;
     });
-    const resto = Math.max(0, total - ok - cur - pl);
+    const resto = Math.max(0, total - ok - prev - cur - pl);
     const pc = (v) => (total ? (v / total) * 100 : 0);
-    const seg = (cls, v, nome) => `<span class="seg-${cls}" style="width:${pc(v)}%" title="${nome}: ${fmt(v)} cr (${pc(v).toFixed(0)}%)"></span>`;
+    const cor = (status) => { const tg = tags.find((x) => x.barra && x.status === status); return tg ? `background:${esc(tg.cor)};` : ""; };
+    const trechos = [["ok", ok, "Concluída", "aprovado"], ["prev", prev, "Prevista", "previsto"], ["cur", cur, "Cursando", "cursando"],
+      ["plan", pl, "Planejada", "planejado"], ["resto", resto, "Não planejada", null]];
     const T5 = t[5];
     $("#barra-geral").innerHTML = `
-      <div class="bg-barra">${seg("ok", ok, "Concluída")}${seg("cur", cur, "Cursando")}${seg("plan", pl, "Planejada")}${seg("resto", resto, "Não planejada")}</div>
+      <div class="bg-barra">${trechos.map(([cls, v, nome, st]) =>
+        `<span class="seg-${cls}" style="width:${pc(v)}%;${st ? cor(st) : ""}" title="${nome}: ${fmt(v)} cr (${pc(v).toFixed(0)}%)"></span>`).join("")}</div>
       <div class="bg-legenda">
-        <span><i class="seg-ok"></i>Concluída <b>${pc(ok).toFixed(0)}%</b></span>
-        <span><i class="seg-cur"></i>Cursando <b>${pc(cur).toFixed(0)}%</b></span>
-        <span><i class="seg-plan"></i>Planejada <b>${pc(pl).toFixed(0)}%</b></span>
-        <span><i class="seg-resto"></i>Não planejada <b>${pc(resto).toFixed(0)}%</b></span>
+        ${trechos.map(([cls, v, nome, st]) => `<span><i class="seg-${cls}"${st && cor(st) ? ` style="${cor(st)}"` : ""}></i>${nome} <b>${pc(v).toFixed(0)}%</b></span>`).join("")}
         <span class="bg-total">${fmt(ok)} de ${fmt(total)} cr${T5.total ? ` · Extensão/ACE ${fmt(T5.ok)}/${fmt(T5.total)} h${T5.aConfirmar ? ` ${textoAConfirmar(T5)}` : ""}` : ""}</span>
         <button type="button" class="link" id="bg-detalhes">${progressoAberto ? "ocultar detalhes ▴" : "detalhes ▾"}</button>
       </div>`;
@@ -980,7 +1005,9 @@
         <input type="color" value="${esc(t.cor)}" data-tagcor="${k}" aria-label="Cor da tag ${esc(t.nome)}">
         <input class="campo campo-sm" value="${esc(t.nome)}" data-tagnome="${k}" aria-label="Nome da tag ${k + 1}">
         <select class="campo campo-sm" data-tagstatus="${k}" aria-label="Como a tag ${esc(t.nome)} conta no progresso">${Object.entries(CONTA_COMO).map(([v, n]) => `<option value="${v}" ${t.status === v ? "selected" : ""}>${n}</option>`).join("")}</select>
-        <button type="button" class="x" data-tagdel="${k}" title="Apagar tag" aria-label="Apagar a tag ${esc(t.nome)}">×</button></li>`).join("")}</ul>
+        <button type="button" class="x" data-tagdel="${k}" title="Apagar tag" aria-label="Apagar a tag ${esc(t.nome)}">×</button>
+        ${t.status !== "pendente" ? `<label class="check tag-barra"><input type="checkbox" data-tagbarra="${k}" ${t.barra ? "checked" : ""}> Usar a cor desta tag na barra</label>` : ""}</li>`).join("")}</ul>
+      <p class="dica">Na barra, cada tipo (concluída, prevista, cursando, planejada) usa a cor de no máximo uma tag; sem escolha, a cor padrão.</p>
       <div class="add"><button type="button" class="btn btn-sm" id="tag-nova">+ Nova tag</button>
       <button type="button" class="btn btn-sm btn-ghost" id="tag-padrao">Restaurar padrão</button></div>`;
     box.hidden = false;
@@ -2557,7 +2584,7 @@
     const anterior = { perfilImportado, perfil, plano, tags, marcacoes, vistaAtual, M };
     perfilImportado = perfil = novo;
     plano = { periodos: {}, novos: [] };
-    tags = novo.tags ?? tags;
+    tags = normalizaTags(novo.tags) ?? tags;
     marcacoes = novo.marcacoes ?? marcacoes;
     if (opcoes.irParaLinhaDoTempo !== false) vistaAtual = "timeline";
     try {
@@ -2984,7 +3011,17 @@
       const t = ev.target;
       if (t.dataset.tagcor != null) { tags[+t.dataset.tagcor].cor = t.value; return salvaTags(); }
       if (t.dataset.tagnome != null) { tags[+t.dataset.tagnome].nome = t.value.trim() || tags[+t.dataset.tagnome].nome; return salvaTags(); }
-      if (t.dataset.tagstatus != null) { tags[+t.dataset.tagstatus].status = t.value; return salvaTags(); }
+      if (t.dataset.tagstatus != null) {
+        const tg = tags[+t.dataset.tagstatus]; tg.status = t.value;
+        if (tg.barra && (tg.status === "pendente" || tags.some((x) => x !== tg && x.barra && x.status === tg.status))) delete tg.barra;
+        return salvaTags();
+      }
+      if (t.dataset.tagbarra != null) {
+        const tg = tags[+t.dataset.tagbarra];
+        tags.forEach((x) => { if (x.status === tg.status) delete x.barra; });   // no máximo uma tag por tipo
+        if (t.checked) tg.barra = true;
+        return salvaTags();
+      }
       if (t.id === "importar") return importaArquivoPerfil(t);
       if (t.dataset.creditos) {
         creditosManuais[t.dataset.creditos] = Math.max(0, Number(t.value) || 0);

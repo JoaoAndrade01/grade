@@ -1512,6 +1512,90 @@ def t_tags(b):
     assert [n.split()[0] for n in pg.locator("#paleta .pal-btn[data-pincel]").all_inner_texts()][:2] == ["Quero", "Borracha"]
     ctx.close()
 
+TAG_REPROVACAO = {"id": "rep", "nome": "Reprovei", "cor": "#aa0000", "status": "reprovado"}
+@caso("Tags: 'Reprovação (não conta)' vira 'Não conta' no navegador, no perfil importado e no exportado; reprovação do período atual segue vermelha")
+def t_tags_nao_conta(b):
+    # tags salvas no navegador
+    ctx, pg = abre(b, perfil=PERFIL, extra={"tags": [*ANTIGAS_TAGS[:3], TAG_REPROVACAO], "marcacoes": {"MAC118": "rep"}}, nome="tags-nao-conta-local")
+    assert [t["status"] for t in ls(pg, "tags")] == ["aprovado", "previsto", "cursando", "pendente"], ls(pg, "tags")
+    assert ls(pg, "marcacoes") == {"MAC118": "rep"}
+    pg.click("#btn-tags")
+    opcoes = pg.locator('#detalhes [data-tagstatus="3"] option').all_inner_texts()
+    assert "Não conta" in opcoes and not any("Reprova" in o for o in opcoes), opcoes
+    assert pg.locator('#detalhes [data-tagstatus="3"]').input_value() == "pendente"
+    exportado = pg.evaluate("() => GradeInterativa.perfilExportado()")
+    assert [t["status"] for t in exportado["tags"]] == ["aprovado", "previsto", "cursando", "pendente"], exportado["tags"]
+    ctx.close()
+    # perfil antigo (importado) com a tag "reprovado": vale e é convertido; reimportar o exportado dá o mesmo
+    antigo = {**PERFIL, "tags": [ANTIGAS_TAGS[0], TAG_REPROVACAO], "marcacoes": {"MAC118": "rep"}}
+    ctx, pg = abre(b, perfil=antigo, nome="tags-nao-conta-perfil")
+    assert not pg.locator("#aviso-perfil").is_visible()
+    exportado = pg.evaluate("() => GradeInterativa.perfilExportado()")
+    assert exportado["tags"][1]["status"] == "pendente" and exportado["marcacoes"] == {"MAC118": "rep"}, exportado
+    tot = pg.evaluate("JSON.stringify(GradeInterativa.totais())")
+    ctx2, pg2 = abre(b, perfil=exportado, nome="tags-nao-conta-reimporta")
+    assert pg2.evaluate("JSON.stringify(GradeInterativa.totais())") == tot
+    ctx2.close(); ctx.close()
+    # reprovação importada no período atual: cor reserva vermelha, sem depender de tag
+    perfil = {"periodos": [{"nome": "2025/1", "disciplinas": ["MAC118"]},
+                           {"nome": "2026/2", "atual": True, "disciplinas": [{"code": "FIT112", "status": "reprovado"}]}]}
+    ctx, pg = abre(b, perfil=perfil, extra={"tags": [ANTIGAS_TAGS[0], TAG_REPROVACAO]}, nome="tags-reprovacao-atual")
+    card = pg.locator('.card[data-code="FIT112"]')
+    assert "com-tag" in card.get_attribute("class") and "#dc2626" in card.get_attribute("style"), card.get_attribute("style")
+    # a tag "Não conta" convertida não pinta as pendentes que ninguém marcou
+    assert "com-tag" not in pg.locator('.card[data-code="MAC128"]').get_attribute("class")
+    ctx.close()
+
+@caso("Barra: quatro trechos (concluídas, previstas, cursando, planejadas) com somas iguais; cor de uma tag por tipo; salva, exporta e reimporta")
+def t_barra_quatro_trechos(b):
+    perfil = {"periodos": [
+        {"nome": "2025/1", "disciplinas": ["MAC118", "COS110"]},
+        {"nome": "2026/2", "atual": True, "disciplinas": [{"code": "MAC128", "status": "previsto"}, {"code": "FIT112", "status": "cursando"}]},
+        {"nome": "2027/1", "planejado": True, "disciplinas": ["MAC238", "EEL280"]}]}
+    ctx, pg = abre(b, perfil=perfil, nome="barra-quatro")
+    segs = pg.evaluate("""() => [...document.querySelectorAll('#barra-geral .bg-barra > span')].map((s) => [s.className, parseFloat(s.style.width)])""")
+    assert [s[0] for s in segs] == ["seg-ok", "seg-prev", "seg-cur", "seg-plan", "seg-resto"], segs
+    t = pg.evaluate("GradeInterativa.totais()")
+    total = sum(t[k]["total"] for k in "1234")
+    pc = lambda v: v / total * 100
+    ok = sum(t[k]["ok"] for k in "1234"); prev = sum(t[k]["prev"] for k in "1234"); cur = sum(t[k]["cur"] for k in "1234")
+    plan = sum(t[k]["plan"] - t[k]["cur"] for k in "1234")
+    assert (ok, prev, cur, plan) == (11, 4, 4, 9), (ok, prev, cur, plan)    # MAC118 6 + COS110 5; MAC128 4; FIT112 4; MAC238 4 + EEL280 5
+    for (cls, w), v in zip(segs, (ok, prev, cur, plan)):
+        assert abs(w - pc(v)) < 0.01, (cls, w, pc(v))
+    assert abs(sum(w for _, w in segs) - 100) < 0.01, segs
+    padrao = pg.evaluate("getComputedStyle(document.querySelector('#barra-geral .seg-ok')).backgroundColor")
+    # Opção B: "Usar a cor desta tag na barra"; no máximo uma por tipo; "Não conta" não oferece
+    pg.click("#btn-tags")
+    assert pg.locator('#detalhes [data-tagbarra]').count() == 3                            # Cursada, Cursando, Planejada
+    pg.click("#tag-nova")                                                                    # nova tag começa "Não conta"
+    assert pg.locator('#detalhes [data-tagbarra="3"]').count() == 0
+    pg.locator('#detalhes [data-tagstatus="3"]').select_option("aprovado")
+    pg.locator('#detalhes [data-tagcor="3"]').evaluate("(el) => { el.value = '#0891b2'; el.dispatchEvent(new Event('change', { bubbles: true })); }")
+    pg.locator('#detalhes [data-tagbarra="0"]').check()
+    assert pg.evaluate("getComputedStyle(document.querySelector('#barra-geral .seg-ok')).backgroundColor") == "rgb(22, 163, 74)"
+    pg.locator('#detalhes [data-tagbarra="3"]').check()                                       # desmarca a outra do mesmo tipo
+    expect(pg.locator('#detalhes [data-tagbarra="0"]')).not_to_be_checked()
+    assert [bool(x.get("barra")) for x in ls(pg, "tags")] == [False, False, False, True], ls(pg, "tags")
+    assert pg.evaluate("getComputedStyle(document.querySelector('#barra-geral .seg-ok')).backgroundColor") == "rgb(8, 145, 178)"
+    assert pg.evaluate("getComputedStyle(document.querySelector('#barra-geral .seg-cur')).backgroundColor") != "rgb(8, 145, 178)"
+    pg.locator('#detalhes [data-tagbarra="3"]').uncheck()
+    assert pg.evaluate("getComputedStyle(document.querySelector('#barra-geral .seg-ok')).backgroundColor") == padrao
+    pg.locator('#detalhes [data-tagbarra="1"]').check()                                       # Cursando na barra
+    pg.locator('#detalhes [data-tagstatus="1"]').select_option("pendente")                    # vira "Não conta": perde a opção
+    assert pg.locator('#detalhes [data-tagbarra="1"]').count() == 0 and not ls(pg, "tags")[1].get("barra")
+    pg.locator('#detalhes [data-tagcor="2"]').evaluate("(el) => { el.value = '#0d9488'; el.dispatchEvent(new Event('change', { bubbles: true })); }")
+    pg.locator('#detalhes [data-tagbarra="2"]').check()
+    foto(pg, "barra-quatro-trechos-editor")
+    exportado = pg.evaluate("() => GradeInterativa.perfilExportado()")
+    assert [bool(x.get("barra")) for x in exportado["tags"]] == [False, False, True, False], exportado["tags"]
+    pg.reload(); pg.wait_for_load_state("load"); pronto(pg, "barra-quatro")
+    assert pg.evaluate("getComputedStyle(document.querySelector('#barra-geral .seg-plan')).backgroundColor") == "rgb(13, 148, 136)"
+    ctx.close()
+    ctx, pg = abre(b, perfil=exportado, nome="barra-quatro-reimporta")
+    assert [bool(x.get("barra")) for x in pg.evaluate("() => GradeInterativa.perfilExportado()")["tags"]] == [False, False, True, False]
+    ctx.close()
+
 @caso("Cadeado: só ícone com nome acessível, começa desligado e lembra; protege cursadas e aprovadas do perfil; detalhes e setas continuam")
 def t_cadeado(b):
     ctx, pg = abre(b, perfil=PERFIL, nome="cadeado")
@@ -1539,7 +1623,7 @@ def t_cadeado(b):
     ctx.close()
 
 
-CASOS2 = [t_plano_preservado, t_aviso_pdf, t_setas, t_tags, t_cadeado]
+CASOS2 = [t_plano_preservado, t_aviso_pdf, t_setas, t_tags, t_tags_nao_conta, t_barra_quatro_trechos, t_cadeado]
 
 # ================================================================== rodada 3
 PLANOS2 = {"titulo": "Grade ECI", "nome": "Caio", "curso": 1, "periodos": [
