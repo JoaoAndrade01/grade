@@ -1851,6 +1851,14 @@
       const cat = String(it.category);
       itens.push({ code: it.alvo, grupo: cat, valor: cat === "5" ? (it.horas ?? it.credits) : it.credits, semestre: p.semestre });
     }));
+    // A pedida de uma equivalência deferida cuja origem está prevista ou em curso entra como a prevista direta: item do
+    // plano no semestre da origem, sem contar como cumprida.
+    Object.entries(M.regs).forEach(([code, rs]) => rs.forEach((r) => {
+      if (!/^equivalência deferida/.test(r.via || "") || r.status === "aprovado" || cumprida(code)) return;
+      const p = M.periodos[r.pi], i = M.info(code); if (!i) return;
+      if (p && !(p.tipo === "atual" || p.tipo === "planejado")) return;
+      itens.push({ code, grupo: String(i.category), valor: valorCat(i), semestre: p ? p.semestre : null });
+    }));
     const horasAce = getExt().filter((a) => a.status !== "validada" && Number(a.horas) > 0).map((a) => ({ horas: Number(a.horas), semestre: semIdx(a.periodo) }));
     return CQ().coberturaDoPlano({ grupos, obrigatorias, itens, horasAce });
   }
