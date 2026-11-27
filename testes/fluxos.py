@@ -796,8 +796,8 @@ def t_cr03_historico(b):
         pg.click("#bg-detalhes")
         progresso = pg.locator("#progresso .cat-5")
         largura = progresso.locator(".b-ok").evaluate("el => parseFloat(el.style.width)")
-        pg.click('[data-vista="pedidos"]')
         pg_barra[nome] = pg.locator("#barra-geral .bg-total").inner_text()
+        pg.click('[data-vista="pedidos"]')
         observado[nome] = (horas_ace(pg), bloco, pg.locator(".ace-duplicidade").count(), largura)
         ctx.close()
     esperados = {
@@ -1519,7 +1519,49 @@ def detalhe_de(pg, code):
 
 def legenda_do_progresso(pg):
     if pg.locator("#progresso").is_hidden(): pg.click("#bg-detalhes")
-    return pg.locator("#legenda").inner_text() if pg.locator("#legenda").is_visible() else ""
+    return pg.locator("#progresso").inner_text()
+
+ESCALA = ["Trivial", "Só o básico", "Matéria de verdade", "Difícil", "Morte instantânea"]
+def estado_das_legendas(pg):
+    return pg.evaluate(r"""() => { const v = (s) => { const e = document.querySelector(s); return !!e && !e.hidden && !!e.offsetParent || (!!e && !e.hidden && getComputedStyle(e).position === 'fixed'); };
+        const leg = document.querySelector('#legenda'), prog = document.querySelector('#progresso');
+        return { barra: v('#barra-geral'), detalhes: v('#bg-detalhes'), progresso: v('#progresso'),
+                 categorias: v('#legenda') && leg.querySelectorAll('.leg-cat').length > 0,
+                 escala: [...document.querySelectorAll('.leg-niv')].filter((e) => !!e.offsetParent).map((e) => e.textContent.replace(/^\S+\s/, '')),
+                 manual: !!prog && !prog.hidden && /Aprovação por marcação manual \(pincel\)/.test(prog.textContent),
+                 manualFora: !!leg && !leg.hidden && /marcação manual/.test(leg.textContent) }; }""")
+
+@caso("Abas: barra e Detalhes só na Grade e na Linha do tempo; categorias só na Linha do tempo; escala junto a Exibir → Dificuldade; marcação manual no detalhamento")
+def t_abas_legendas(b):
+    ctx, pg = abre(b, perfil=PERFIL, extra={"marcacoes": {"MAC238": "aprovada"}, "progressoAberto": True}, nome="abas-legendas")
+    completo(pg)
+    observado = {}
+    for vista in ("grade", "timeline", "optativas", "cronograma", "pedidos", "eci"):
+        pg.click(f'[data-vista="{vista}"]'); observado[vista] = estado_das_legendas(pg)
+    com = {"barra": True, "detalhes": True, "progresso": True, "escala": [], "manual": True, "manualFora": False}
+    sem = {"barra": False, "detalhes": False, "progresso": False, "categorias": False, "escala": [], "manual": False, "manualFora": False}
+    assert observado == {"grade": {**com, "categorias": False}, "timeline": {**com, "categorias": True},
+                         **{v: sem for v in ("optativas", "cronograma", "pedidos", "eci")}}, observado
+    # Exibir → Dificuldade: a escala aparece junto ao controle, com os cinco níveis, e some ao desmarcar.
+    pg.click('[data-vista="grade"]'); pg.check('#ferramentas [data-exibir="dificuldade"]')
+    escala = pg.locator("#ferramentas .escala-dificuldade")
+    expect(escala).to_be_visible()
+    assert [t.split(" ", 1)[1] for t in escala.locator(".leg-niv").all_inner_texts()] == ESCALA
+    assert estado_das_legendas(pg)["escala"] == ESCALA
+    foto(pg, "abas-escala-dificuldade")
+    pg.uncheck('#ferramentas [data-exibir="dificuldade"]'); assert estado_das_legendas(pg)["escala"] == []
+    ctx.close()
+    # Clássico segue a Grade; a escala aparece com Dificuldade ligada (Exibir fica em Configurações).
+    ctx, pg = abre(b, perfil=PERFIL, extra={"marcacoes": {"MAC238": "aprovada"}, "progressoAberto": True, "modoClassico": True,
+                                           "exibir": {"codigo": True, "dificuldade": True}}, nome="abas-legendas-classico")
+    assert estado_das_legendas(pg) == {**com, "categorias": False, "escala": ESCALA}, estado_das_legendas(pg)
+    ctx.close()
+    # Sem perfil: sem barra nem detalhamento, em qualquer aba.
+    ctx, pg = abre(b, nome="abas-legendas-sem-perfil", extra={"modoClassico": False})
+    for vista in ("grade", "timeline", "optativas"):
+        pg.click(f'[data-vista="{vista}"]'); e = estado_das_legendas(pg)
+        assert not e["barra"] and not e["progresso"] and not e["manual"], (vista, e)
+    ctx.close()
 
 @caso("PC-02 (01b): a aprovação por tag é marcação manual no detalhe e na legenda; só tag aprovada")
 def t_pc02_manual_credito(b):
@@ -2263,7 +2305,7 @@ CASOS = [
     t_cr02_pedidos, t_cr02_duas_dispensas, t_cr02_dispensa_unica, t_cr02_alvo_fora_do_catalogo,
     t_d02_dois_numeros, t_pedidos_sem_total_e_sem_check, t_d02_ausente_e_vazia, t_d02_outros_grupos, t_d02_importacao,
     t_rf08_faixa, t_sobre, t_detalhamento_info, t_rf08_notas_credito, t_rf08_periodo_atual, t_rf08_deduzido_regras, t_rf08_oferta, t_rf08_rodape, t_versao_antiga, t_rf08_ace,
-    t_pc02_manual_credito, t_pc03_manual_requisito,
+    t_abas_legendas, t_pc02_manual_credito, t_pc03_manual_requisito,
     t_d01_carga, t_d01_conteudo,
     t_regressao, t_a11y,
 ] + CASOS2 + CASOS3

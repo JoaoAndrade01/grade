@@ -996,6 +996,7 @@
     return `<div class="ferr-grupo"><span class="ferr-rot">${icone("exibir", 14)} Exibir</span>
         ${[["codigo", "Código e créditos"], ["notas", "Notas"], ["dificuldade", "Dificuldade"], ["presenca", "Presença"]].map(([k, n]) =>
           `<label class="check"><input type="checkbox" data-exibir="${k}" ${exibir[k] ? "checked" : ""}> ${n}</label>`).join("")}
+        ${exibir.dificuldade ? escalaDificuldade() : ""}
       </div>
       <div class="ferr-grupo" role="radiogroup" aria-label="Setas de requisitos"><span class="ferr-rot">${icone("setas", 14)} Setas</span>
         ${[["ocultas", "Ocultas"], ["foco", "Disciplina em foco"], ["todas", "Todas"]].map(([v, n]) =>
@@ -1784,14 +1785,27 @@
         <small>${falta ? `faltam ${fmt(falta)} ${c.un}${T.plan ? ` · ${fmt(Math.min(T.plan, falta))} planejados` : ""}${T.anal ? ` · ${fmt(T.anal)} em análise` : ""}` : "completo ✓"}${T.aConfirmar ? ` · ${textoAConfirmar(T)} (possível duplicidade)` : ""}</small>
         ${k === "3" ? htmlInfoLivre(t) : ""}
       </div>`;
-    }).join("");
+    }).join("")
+      // PC-02/03: a aprovação pelo pincel é identificada no detalhamento, com o mesmo ícone do cartão.
+      + (Object.keys(marcacoes).some(aprovacaoManual)
+        ? `<p class="leg-manual"><span aria-hidden="true">${ICONE_MARCACAO}</span> Aprovação por marcação manual (pincel): simulação, não é registro importado.</p>` : "");
   }
 
-  function renderLegenda() {
-    // Sem a legenda de estados: o cartão já diz a situação em texto. Fica a marcação manual (PC-02), os grupos e a dificuldade.
-    $("#legenda").innerHTML = (Object.keys(marcacoes).some(aprovacaoManual) ? `<span>Aprovação por marcação manual (pincel)</span><span class="leg-sep"></span>` : "")
-      + Object.keys(CATS).map((k) => `<span class="leg-cat cat-${k}"><i></i>${CATS[k].nome}</span>`).join("")
-      + (M.guia ? `<span class="leg-sep"></span>` + Object.values(M.guia.niveis).map((n) => `<span class="leg-niv" title="${esc(n.texto)}">${n.emoji} ${esc(n.nome)}</span>`).join("") : "");
+  /** Escala de dificuldade do guia (Exibir → Dificuldade). */
+  function escalaDificuldade() {
+    if (!M.guia) return "";
+    return `<span class="escala-dificuldade" role="list" aria-label="Escala de dificuldade">${Object.values(M.guia.niveis).map((n) =>
+      `<span class="leg-niv" role="listitem" title="${esc(n.texto)}">${n.emoji} ${esc(n.nome)}</span>`).join("")}</span>`;
+  }
+
+  /**
+   * Faixa de legenda abaixo do progresso. Linha do tempo: os grupos (categorias). Clássico, com Dificuldade ligada: a
+   * escala, porque ali o Exibir fica em Configurações. Sem legenda de estados: o cartão tem o ícone e o nome acessível.
+   */
+  function renderLegenda(vista) {
+    $("#legenda").innerHTML = vista === "timeline"
+      ? Object.keys(CATS).map((k) => `<span class="leg-cat cat-${k}"><i></i>${CATS[k].nome}</span>`).join("")
+      : escalaDificuldade();
   }
 
   function renderAvisoPerfil() {
@@ -2011,15 +2025,16 @@
     if (modoClassico) { painelRef.removeAttribute("role"); painelRef.removeAttribute("aria-labelledby"); }
     else { painelRef.setAttribute("role", "tabpanel"); painelRef.setAttribute("aria-labelledby", `aba-${vista}`); }
     document.body.classList.toggle("pintando", pincel !== null);
-    // Sem perfil válido, os indicadores de progresso ficam ocultos (a grade continua utilizável).
-    $("#barra-geral").hidden = !perfil;
-    if (perfil) renderBarraGeral();
-    const detalhado = !!perfil && progressoAberto;
+    // Barra e Detalhes do progresso só na Grade (e no Clássico) e na Linha do tempo; sem perfil, ocultos.
+    const comProgresso = !!perfil && (vista === "grade" || vista === "timeline");
+    $("#barra-geral").hidden = !comProgresso;
+    if (comProgresso) renderBarraGeral();
+    const detalhado = comProgresso && progressoAberto;
     $("#progresso").hidden = !detalhado;
-    const mostraLegenda = vista === "timeline" || detalhado;
+    const mostraLegenda = vista === "timeline" || (modoClassico && exibir.dificuldade && !!M.guia);
     $("#legenda").hidden = !mostraLegenda;
     if (detalhado) renderProgresso();
-    if (mostraLegenda) renderLegenda();
+    if (mostraLegenda) renderLegenda(vista);
     $("#ferramentas").hidden = vista !== "grade" || modoClassico;
     if (vista === "grade" && !modoClassico) $("#ferramentas").innerHTML = renderFerramentas();
     $("#paleta").hidden = vista !== "grade";
