@@ -4761,6 +4761,28 @@ def t_conquistas_ordem_filtro(b):
     ctx.close()
 
 @v210
+@caso("Topo: com todos os atalhos fixados, o título não fica espremido (no máximo 2 linhas a 1280 e 1024 px); os atalhos descem para a linha de baixo; sem rolagem lateral de 1280 a 320 px, no Clássico e no Planejador")
+def t_topo_titulo(b):
+    perfil = {**PERFIL, "nome": "Beatriz Fictícia"}
+    altura = """() => { const h = document.querySelector('#titulo'), s = getComputedStyle(h);
+        const lh = parseFloat(s.lineHeight) || parseFloat(s.fontSize) * 1.15; return [h.getBoundingClientRect().height, lh]; }"""
+    for w in (1280, 1024):
+        ctx, pg = abre(b, vp={"width": w, "height": 800}, perfil=perfil, extra={"vista": "grade"}, nome=f"topo-{w}")
+        assert pg.locator("#atalhos button").count() == 6
+        h, lh = pg.evaluate(altura)
+        assert h <= lh * 2 + 4, (w, h, lh)
+        assert pg.evaluate("document.documentElement.scrollWidth - innerWidth") <= 1, w
+        foto(pg, f"topo-atalhos-{w}")
+        ctx.close()
+    for w in (1280, 720, 390, 320):
+        for modo in ("planejador", "classico"):
+            ctx, pg = abre(b, vp={"width": w, "height": 800}, perfil=perfil, extra={"vista": "grade"}, nome=f"topo-{w}-{modo}", toque=w <= 720, modo=modo)
+            assert pg.evaluate("document.documentElement.scrollWidth - innerWidth") <= 1, (w, modo)
+            if w >= 720:
+                h, lh = pg.evaluate(altura); assert h <= lh * 2 + 4, (w, modo, h, lh)
+            ctx.close()
+
+@v210
 @caso("Aviso do perfil salvo: aparece uma vez por perfil, com OK, entendi; fica fechado ao recarregar; volta com outro perfil carregado; Baixar e Descartar ficam em Configurações → Perfil e dados")
 def t_aviso_perfil_salvo(b):
     ctx, pg = abre(b, perfil=PERFIL, extra={"vista": "grade"}, nome="aviso-perfil")

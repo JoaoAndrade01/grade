@@ -717,10 +717,12 @@ dialog.dlg:modal { overscroll-behavior: contain; }
 .btn-perigo-ghost { color: var(--perigo); border-color: color-mix(in srgb, var(--perigo) 45%, var(--border)); box-shadow: none; background: transparent; }
 .btn-perigo-ghost:hover { border-color: var(--perigo); }
 
-/* topo: linha 1 = identidade + barra (atalhos fixados, Configurações, seletor de modo); linha 2 = abas */
-.topo { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px 16px; }
+/* topo: linha 1 = identidade + barra (atalhos fixados, Configurações, seletor de modo); linha 2 = abas. O título fica
+   entre 24ch e o tamanho natural, e nunca é espremido palavra por palavra; a barra usa o resto da linha e quebra em várias
+   linhas quando há muitos atalhos fixados. */
+.topo { display: grid; grid-template-columns: minmax(min(100%, 24ch), max-content) minmax(0, 1fr); align-items: center; gap: 12px 16px; }
 .titulo { grid-area: 1 / 1; }
-.acoes { grid-area: 1 / 2; justify-content: flex-end; }
+.acoes { grid-area: 1 / 2; justify-content: flex-end; min-width: 0; }
 .abas { grid-area: 2 / 1 / 3 / -1; justify-self: start; max-width: 100%; overflow-x: auto; scrollbar-width: thin; }
 /* celular: linha 1 = logo e título; linha 2 = barra; linha 3 = abas (as preferências de aparência continuam valendo) */
 @media (max-width: 720px) {

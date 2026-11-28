@@ -49,6 +49,8 @@ como notas. Os perfis e as preferências salvos na v2.0.0 continuam valendo.
 ### Correções
 
 - No celular, o detalhe de uma disciplina pintada podia cortar a parte de cima.
+- Com muitos atalhos fixados, o título do topo ficava espremido, quebrando palavra por palavra; agora ele mantém a
+  largura e os atalhos quebram em várias linhas.
 - Percentuais e números com casa decimal aparecem com vírgula ("24,3%", "4,5 cr", "6,5 anos"); os valores guardados e
   exportados não mudam.
 
@@ -65,7 +67,7 @@ como notas. Os perfis e as preferências salvos na v2.0.0 continuam valendo.
 ### Para quem contribui
 
 O helper `abre()` dos testes ganhou `modo=` (padrão Planejador; os cenários do Clássico pedem `modo="classico"`). O kit
-de interface passa a 156 cenários por `file://` e 157 por HTTP ([testes/README.md](../testes/README.md)). As decisões
+de interface passa a 157 cenários por `file://` e 158 por HTTP ([testes/README.md](../testes/README.md)). As decisões
 novas são PC-15 a PC-19 ([DECISOES.md](DECISOES.md)).
 
 ---
