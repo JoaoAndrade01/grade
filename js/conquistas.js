@@ -253,7 +253,7 @@
     return { estado: "previsao", semestre: e.nomeDoSemestre(e.ultimoSemestre), texto: `No seu plano, você forma em ${e.nomeDoSemestre(e.ultimoSemestre)} (estimativa).${passado}` };
   }
   const nomeSem = (i) => i == null ? null : `${Math.floor(i / 2)}/${(i % 2) + 1}`;
-  const fmtN = (n) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
+  const fmtN = (n) => (Number.isInteger(n) ? String(n) : n.toFixed(1).replace(".", ","));   // texto em pt-BR: vírgula decimal
 
   return { FONTES, fase, faseDoCurso, percentual, avaliaSelos, proximoMarco, coberturaDoPlano, previsaoFormatura, GRUPOS, PG, ESTAGIO };
 });

@@ -90,7 +90,9 @@
   const $ = (s, el = document) => el.querySelector(s);
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-  const fmt = (n) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
+  // Números na tela em pt-BR: vírgula decimal ("4,5 cr", "24,3%"). Valores guardados e exportados não passam por aqui.
+  const decimal = (n, casas = 1) => n.toFixed(casas).replace(".", ",");
+  const fmt = (n) => (Number.isInteger(n) ? String(n) : decimal(n));
   const pad = (n) => String(n).padStart(2, "0");
   const load = (k, def, valida = () => true) => {
     try {
@@ -798,7 +800,7 @@
       o.fill ? `style="--ok:${o.fill.ok}%;--prev:${o.fill.prev}%;--plan:${o.fill.plan}%"` : "",
       `title="${esc(ROTULO[o.status] || "")}${o.titulo ? " · " + esc(o.titulo) : ""}${temAviso ? " — " + esc(o.aviso.join("; ")) : ""}"`,
     ].join(" ");
-    const nota = o.nota != null && o.nota !== "" ? (typeof o.nota === "number" ? o.nota.toFixed(1) : o.nota) : null;
+    const nota = o.nota != null && o.nota !== "" ? (typeof o.nota === "number" ? decimal(o.nota) : o.nota) : null;
     return `<button type="button" ${attrs}>
       ${nota != null ? `<span class="nota">${esc(nota)}</span>` : ""}
       ${temAviso ? `<span class="aviso" aria-label="aviso">!</span>` : ""}
@@ -846,7 +848,7 @@
       data-code="${esc(c.code)}" ${tag ? `style="--tag:${esc(tag.cor)}"` : ""} title="${exp ? "Abrir a experiência: " + esc(window.ECI.tem(c.code).titulo) : esc(tag ? tag.nome : ROTULO[s]) + (prot ? " · protegida pelo cadeado" : "")}"
       ${seletorECI && !exp ? "inert" : ""}${exp ? ` aria-describedby="dica-eci"` : ""}>
       ${exp ? `<span class="selo-eci">${icone("eci", 12)} ECI por trás</span>` : ""}
-      ${nota != null ? `<span class="nota">${esc(typeof nota === "number" ? nota.toFixed(1) : nota)}</span>` : ""}
+      ${nota != null ? `<span class="nota">${esc(typeof nota === "number" ? decimal(nota) : nota)}</span>` : ""}
       ${nomeDoCartao(c.name, ico, estado)}
       ${extras ? `<span class="meta">${extras}</span>` : ""}
       ${plano}
@@ -1900,7 +1902,7 @@
       noPassado: c.cobertura.noPassado, nomeDoSemestre: window.PROGRESSO.nomeDoSemestre });
     return { fase, selos, proximo: CQ().proximoMarco(selos), previsao, semestres: c.semestres, pctImportado, pctComDeclaradas, totalCr: Object.values(c.totais).reduce((a, b) => a + b, 0) };
   }
-  const pctTela = (p) => { const v = Math.floor(p * 1000) / 10; return `${Number.isInteger(v) ? v : v.toFixed(1)}%`; };
+  const pctTela = (p) => { const v = Math.floor(p * 1000) / 10; return `${Number.isInteger(v) ? v : decimal(v)}%`; };
   const FASES = { calouro: ["🌱", "Calouro"], meio: ["🏋️", "Meio do curso"], veterano: ["🎓", "Veterano"] };
   /** Disciplina que mais destrava entre as candidatas: [código, liberadas]. */
   function maisDestrava(codes) {
@@ -2629,7 +2631,7 @@
       <p class="det-meta">${aqui === "file:" ? "Aberto direto do seu computador (<code>file:</code>): nenhum endereço de internet é usado." :
         `Recursos carregados por esta página: <b>${recursos.length}</b> · de outros sites: <b class="${externos.length ? "alerta" : "ok"}">${externos.length}</b>${externos.length ? ` (${esc(externos.join(", "))})` : " ✓"} · origem <code>${esc(aqui)}</code>.`}<br> Para conferir por conta própria: F12 → aba <b>Rede</b> (Network), ou desligue a internet e continue usando.</p>
       <h4>O que está guardado neste navegador</h4>
-      <ul class="lista">${chaves.length ? chaves.map(([k, n]) => `<li><code>${esc(k)}</code><small>${(n / 1024).toFixed(1)} KB</small></li>`).join("") : "<li>Nada.</li>"}</ul>
+      <ul class="lista">${chaves.length ? chaves.map(([k, n]) => `<li><code>${esc(k)}</code><small>${decimal(n / 1024)} KB</small></li>`).join("") : "<li>Nada.</li>"}</ul>
       <div class="add">
         <button type="button" class="btn btn-sm" id="baixar-importado">${icone("baixar", 14)} Baixar meus dados (perfil.js)</button>
         <button type="button" class="btn btn-sm btn-ghost" id="apagar-tudo">${icone("lixeira", 14)} Apagar tudo deste navegador</button>

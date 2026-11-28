@@ -49,6 +49,8 @@ como notas. Os perfis e as preferências salvos na v2.0.0 continuam valendo.
 ### Correções
 
 - No celular, o detalhe de uma disciplina pintada podia cortar a parte de cima.
+- Percentuais e números com casa decimal aparecem com vírgula ("24,3%", "4,5 cr", "6,5 anos"); os valores guardados e
+  exportados não mudam.
 
 ### Limitações conhecidas
 

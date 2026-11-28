@@ -1026,7 +1026,7 @@ def t_cr04_controles(b):
     ctx, pg = importa_cenario(b, "so-antigo", "cr04-so-antigo")
     perfil, linha = aplica_e_le_pedido(pg)
     confere_oraculo(perfil, "so-antigo")
-    assert "6.5 anos" in linha and "pode exigir exame de suficiência" in linha, linha    # idade pelo semestre 2020/1
+    assert "6,5 anos" in linha and "pode exigir exame de suficiência" in linha, linha    # idade pelo semestre 2020/1
     ctx.close()
     ctx, pg = importa_cenario(b, "zero", "cr04-zero")
     perfil, linha = aplica_e_le_pedido(pg)
@@ -3235,7 +3235,7 @@ def t_declaradas_prazo_ace(b):
     linhas = pg.locator("table tr").all_inner_texts()
     l110 = next(l for l in linhas if "COS351" in l); l118 = next(l for l in linhas if "COS360" in l)
     assert "Data de aprovação não confirmada: COS110 (aprovação registrada por você, sem semestre)" in l110 and "anos" not in l110, l110
-    assert "6.5 anos: pode exigir exame de suficiência" in l118 and "Semestre informado por você, sem registro do SIGA" in l118, l118
+    assert "6,5 anos: pode exigir exame de suficiência" in l118 and "Semestre informado por você, sem registro do SIGA" in l118, l118
     assert "Idade estimada pelo semestre de aprovação" in l118, l118
     foto(pg, "declaradas-prazo")
     ctx.close()
