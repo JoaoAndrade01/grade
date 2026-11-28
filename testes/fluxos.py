@@ -837,9 +837,9 @@ def t_timeline_transferida_origem(b):
     cols = pg.evaluate("""() => [...document.querySelectorAll('#painel .coluna')].map((c) => [c.querySelector('h2').textContent,
         [...c.querySelectorAll('.card[data-code]')].map((k) => k.dataset.code + '|' + (k.querySelector('.nota') || {}).textContent + '|' + k.classList.contains('tem-aviso') + '|' + /Requisito|Co-requisito|ofert/i.test(k.title))])""")
     por = {nome: cards for nome, cards in cols}
-    assert por.get("2020/1") == ["ACE901|9.0|false|false"] and por.get("2021/1") == ["ACE901|10.0|false|false"], cols
-    assert "MAC238|7.0|false|false" in por.get("2025/1", []), cols                     # coluna do período atual: sem alerta
-    assert "EEL418|7.0|false|false" in por.get("2027/1", []), cols                     # coluna planejada: sem requisito nem oferta
+    assert por.get("2020/1") == ["ACE901|9,0|false|false"] and por.get("2021/1") == ["ACE901|10,0|false|false"], cols   # nota com vírgula (pt-BR)
+    assert "MAC238|7,0|false|false" in por.get("2025/1", []), cols                     # coluna do período atual: sem alerta
+    assert "EEL418|7,0|false|false" in por.get("2027/1", []), cols                     # coluna planejada: sem requisito nem oferta
     ctx.close()
 
 @caso("ECI por trás ligada: na Linha do tempo, clique e Enter num cartão abrem os detalhes, não a experiência")
