@@ -4711,7 +4711,8 @@ def t_foco_reprovacoes_passadas(b):
     pg.click('[data-vista="timeline"]')
     cols = colunas(pg)
     assert "2025/1" not in cols and "2025/2" not in cols and "2026/2" in cols and "2027/1" in cols, cols
-    assert pg.locator('#painel .card[data-code="FIT112"], #painel .card[data-code="FIS111"]').count() == 0
+    passadas = '#painel .coluna:not(.col-alocar) .card[data-code="FIT112"], #painel .coluna:not(.col-alocar) .card[data-code="FIS111"]'
+    assert pg.locator(passadas).count() == 0                                                   # (pendentes, continuam em "A alocar")
     expect(pg.locator('#painel .col-atual .card[data-code="MAC118"]')).to_have_count(1)        # reprovação esperada do atual fica
     pg.click('[data-vista="grade"]')
     for code in ("FIT112", "FIS111"): expect(pg.locator(f'#painel .card[data-code="{code}"]')).to_have_count(1)   # pendentes na Grade
